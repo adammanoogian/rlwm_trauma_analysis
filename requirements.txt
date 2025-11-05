@@ -1,0 +1,14 @@
+# Core dependencies for RLWM Trauma Analysis Pipeline
+# Python 3.10+
+
+# Data processing
+pandas>=2.0.0
+numpy>=2.0.0
+
+# Optional: For enhanced analysis (already included in ds_env)
+# matplotlib>=3.0.0
+# seaborn>=0.13.0
+# scipy>=1.0.0
+# scikit-learn>=1.0.0
+# statsmodels>=0.14.0
+# jupyterlab>=4.0.0
