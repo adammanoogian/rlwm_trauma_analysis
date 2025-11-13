@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../rlwm_trauma"
+		},
+		{
+			"path": "../project_utils"
+		},
+		{
+			"path": "../neurogym"
+		}
+	],
+	"settings": {}
+}
