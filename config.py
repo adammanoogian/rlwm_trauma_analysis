@@ -72,6 +72,13 @@ class TaskParams:
     NUM_MAIN_BLOCKS = 21  # Blocks 3-23: main task
     TOTAL_BLOCKS = NUM_PRACTICE_BLOCKS + NUM_MAIN_BLOCKS  # 23 total
 
+    # Trials per block (from actual experimental data)
+    TRIALS_PER_BLOCK_MIN = 30  # Minimum trials observed
+    TRIALS_PER_BLOCK_MAX = 90  # Maximum trials observed
+    TRIALS_PER_BLOCK_MEAN = 58  # Mean trials per block
+    TRIALS_PER_BLOCK_MEDIAN = 45  # Median trials per block
+    TRIALS_PER_BLOCK_DEFAULT = 100  # Default for simulations (max envelope)
+
     # Phase types
     PHASE_PRACTICE_STATIC = 'practice_static'  # Block 1
     PHASE_PRACTICE_DYNAMIC = 'practice_dynamic'  # Block 2

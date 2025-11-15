@@ -8,18 +8,26 @@ heatmap visualizations for all parameter pairs.
 Requirements:
     pip install tqdm  # For progress bars
 
+Defaults (from actual experimental task):
+    - Set sizes: [2, 3, 5, 6] (all set sizes from actual task)
+    - Trials: 45 (median from actual task; range: 30-90)
+    - Reversals: 12-18 consecutive correct (from config)
+
 Usage:
-    # Serial execution (1 CPU)
+    # Serial execution with defaults (1 CPU, uses actual task parameters)
     python scripts/simulations/explore_prior_parameter_space.py --model qlearning --n-samples 200
 
-    # Parallel execution (use all CPUs)
-    python scripts/simulations/explore_prior_parameter_space.py --model wmrl --n-samples 300 --n-jobs -1
+    # Parallel execution (use all CPUs, RECOMMENDED)
+    python scripts/simulations/explore_prior_parameter_space.py --model both --n-samples 200 --n-jobs -1
 
     # Parallel with specific number of CPUs
-    python scripts/simulations/explore_prior_parameter_space.py --model both --n-samples 200 --n-jobs 4
+    python scripts/simulations/explore_prior_parameter_space.py --model wmrl --n-samples 300 --n-jobs 4
 
-    # Quick test run
-    python scripts/simulations/explore_prior_parameter_space.py --model qlearning --n-samples 50 --num-trials 30
+    # Quick test run (fewer samples, fewer trials)
+    python scripts/simulations/explore_prior_parameter_space.py --model qlearning --n-samples 20 --num-trials 30 --n-jobs -1
+
+    # Match exact task structure (all 4 set sizes)
+    python scripts/simulations/explore_prior_parameter_space.py --model both --n-samples 200 --set-sizes 2 3 5 6 --n-jobs -1
 """
 
 import numpy as np
@@ -53,6 +61,7 @@ from models.q_learning import QLearningAgent
 from models.wm_rl_hybrid import WMRLHybridAgent
 from scripts.simulations.unified_simulator import simulate_agent_fixed
 from scripts.analysis.plotting_utils import setup_plot_style, save_figure, get_color_palette
+from config import TaskParams
 
 
 # ============================================================================
@@ -428,7 +437,7 @@ def create_marginal_distributions(
     save_dir: Path = None
 ) -> None:
     """
-    Plot marginal effects of each parameter on accuracy.
+    Plot marginal effects of each parameter on accuracy with separate lines per set size.
 
     Parameters
     ----------
@@ -464,52 +473,65 @@ def create_marginal_distributions(
         'rho': 'Rho (Base WM Reliance)',
     }
 
+    # Get set sizes and colors
+    set_sizes = sorted(results['set_size'].unique())
+    colors = get_color_palette('set_size')
+
     for idx, param in enumerate(params):
         ax = axes[idx]
 
-        # Bin parameter values
-        if param == 'capacity':
-            bins = sorted(results[param].unique())
-            results_copy = results.copy()
-        else:
-            results_copy = results.copy()
-            results_copy[f'{param}_binned'] = pd.cut(results[param], bins=20)
-            grouped = results_copy.groupby(f'{param}_binned')['accuracy_mean'].agg(['mean', 'std', 'count'])
-            bin_centers = [iv.mid for iv in grouped.index]
+        # Plot separate line for each set size
+        for ss in set_sizes:
+            ss_data = results[results['set_size'] == ss].copy()
 
-            ax.plot(bin_centers, grouped['mean'], 'o-', linewidth=2, markersize=6, color='#3498db')
-            ax.fill_between(
-                bin_centers,
-                grouped['mean'] - grouped['std'],
-                grouped['mean'] + grouped['std'],
-                alpha=0.3,
-                color='#3498db'
-            )
+            # Bin parameter values
+            if param == 'capacity':
+                grouped = ss_data.groupby('capacity')['accuracy_mean'].agg(['mean', 'std'])
+                ax.plot(grouped.index, grouped['mean'], 'o-',
+                       linewidth=2, markersize=6, color=colors[ss],
+                       label=f'Set Size {ss}', alpha=0.8)
+                ax.fill_between(
+                    grouped.index,
+                    grouped['mean'] - grouped['std'],
+                    grouped['mean'] + grouped['std'],
+                    alpha=0.2,
+                    color=colors[ss]
+                )
+            else:
+                ss_data[f'{param}_binned'] = pd.cut(ss_data[param], bins=15)
+                grouped = ss_data.groupby(f'{param}_binned', observed=False)['accuracy_mean'].agg(['mean', 'std', 'count'])
 
-        if param == 'capacity':
-            grouped = results_copy.groupby('capacity')['accuracy_mean'].agg(['mean', 'std'])
-            ax.plot(grouped.index, grouped['mean'], 'o-', linewidth=2, markersize=8, color='#3498db')
-            ax.fill_between(
-                grouped.index,
-                grouped['mean'] - grouped['std'],
-                grouped['mean'] + grouped['std'],
-                alpha=0.3,
-                color='#3498db'
-            )
+                # Filter out bins with no data
+                grouped = grouped[grouped['count'] > 0]
+
+                if len(grouped) > 0:
+                    bin_centers = [iv.mid for iv in grouped.index]
+
+                    ax.plot(bin_centers, grouped['mean'], 'o-',
+                           linewidth=2, markersize=4, color=colors[ss],
+                           label=f'Set Size {ss}', alpha=0.8)
+                    ax.fill_between(
+                        bin_centers,
+                        grouped['mean'] - grouped['std'],
+                        grouped['mean'] + grouped['std'],
+                        alpha=0.2,
+                        color=colors[ss]
+                    )
 
         ax.set_xlabel(param_labels.get(param, param), fontweight='bold')
         ax.set_ylabel('Accuracy', fontweight='bold')
         ax.set_title(f'Effect of {param_labels.get(param, param)}', fontweight='bold')
         ax.grid(True, alpha=0.3)
-        ax.axhline(y=1/3, color='gray', linestyle='--', alpha=0.5, label='Chance')
+        ax.axhline(y=1/3, color='gray', linestyle='--', alpha=0.5, linewidth=1)
         ax.set_ylim([0, 1.05])
+        ax.legend(fontsize=8, loc='best')
 
     # Remove extra subplots
     for idx in range(n_params, len(axes)):
         fig.delaxes(axes[idx])
 
     model_name = 'Q-Learning' if model_type == 'qlearning' else 'WM-RL'
-    fig.suptitle(f'{model_name}: Marginal Parameter Effects (Prior Sampling)',
+    fig.suptitle(f'{model_name}: Marginal Parameter Effects by Set Size (Prior Sampling)',
                 fontsize=16, fontweight='bold', y=0.995)
     fig.tight_layout()
 
@@ -532,14 +554,14 @@ def main():
                        default='both', help='Which model to explore')
     parser.add_argument('--n-samples', type=int, default=200,
                        help='Number of parameter sets to sample from priors')
-    parser.add_argument('--set-sizes', type=int, nargs='+', default=[3, 5],
-                       help='Set sizes to test')
-    parser.add_argument('--num-trials', type=int, default=50,
-                       help='Trials per simulation')
+    parser.add_argument('--set-sizes', type=int, nargs='+', default=TaskParams.SET_SIZES,
+                       help=f'Set sizes to test (default: {TaskParams.SET_SIZES} from actual task)')
+    parser.add_argument('--num-trials', type=int, default=TaskParams.TRIALS_PER_BLOCK_MEDIAN,
+                       help=f'Trials per simulation (default: {TaskParams.TRIALS_PER_BLOCK_MEDIAN}, median from actual task)')
     parser.add_argument('--num-reps', type=int, default=3,
-                       help='Repetitions per condition')
+                       help='Repetitions per condition for averaging')
     parser.add_argument('--seed', type=int, default=42,
-                       help='Random seed')
+                       help='Random seed for reproducibility')
     parser.add_argument('--n-jobs', type=int, default=1,
                        help='Number of parallel jobs (1=serial, -1=all CPUs)')
 

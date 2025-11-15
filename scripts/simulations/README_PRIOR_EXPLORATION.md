@@ -20,16 +20,24 @@ pip install tqdm
 pip install -r requirements-dev.txt
 ```
 
+## Defaults (Matched to Actual Experimental Task)
+
+The script uses defaults matched to your actual experimental data:
+- **Set sizes**: [2, 3, 5, 6] (all set sizes from actual task)
+- **Trials per block**: 45 (median from actual data; range: 30-90)
+- **Reversals**: 12-18 consecutive correct responses (from config)
+- **Total blocks**: 21 main task blocks (blocks 3-23)
+
 ## Quick Start
 
 ```bash
 # Quick test (serial, ~2-3 minutes)
-python scripts/simulations/explore_prior_parameter_space.py --model qlearning --n-samples 50 --num-trials 30 --num-reps 2
+python scripts/simulations/explore_prior_parameter_space.py --model qlearning --n-samples 20 --num-trials 30 --num-reps 2
 
-# Full exploration with parallelization (recommended, ~10-15 minutes with 8 CPUs)
+# Full exploration with defaults (recommended, uses actual task parameters, ~15-20 minutes with 8 CPUs)
 python scripts/simulations/explore_prior_parameter_space.py --model qlearning --n-samples 200 --n-jobs -1
 
-# Both models in parallel (~20-30 minutes with 8 CPUs)
+# Both models in parallel (~30-40 minutes with 8 CPUs)
 python scripts/simulations/explore_prior_parameter_space.py --model both --n-samples 200 --n-jobs -1
 ```
 
@@ -43,8 +51,8 @@ python scripts/simulations/explore_prior_parameter_space.py --help
 |----------|------|---------|-------------|
 | `--model` | str | both | Model to explore: `qlearning`, `wmrl`, or `both` |
 | `--n-samples` | int | 200 | Number of parameter sets to sample from priors |
-| `--set-sizes` | int+ | [3, 5] | Task set sizes to test |
-| `--num-trials` | int | 50 | Trials per simulation |
+| `--set-sizes` | int+ | [2, 3, 5, 6] | Task set sizes to test (from actual task) |
+| `--num-trials` | int | 45 | Trials per simulation (median from actual task; range: 30-90) |
 | `--num-reps` | int | 3 | Repetitions per condition (for averaging) |
 | `--seed` | int | 42 | Random seed for reproducibility |
 | `--n-jobs` | int | 1 | Parallel jobs: `1` = serial, `-1` = all CPUs |
@@ -59,8 +67,8 @@ PRIOR-BASED PARAMETER SPACE EXPLORATION
 Configuration:
   Model: qlearning
   Prior samples: 200
-  Set sizes: [3, 5]
-  Trials per simulation: 50
+  Set sizes: [2, 3, 5, 6]  # Actual experimental task set sizes
+  Trials per simulation: 45  # Median from actual task (range: 30-90)
   Repetitions: 3
   Parallel jobs: -1 (all CPUs)
   Random seed: 42
@@ -143,9 +151,11 @@ Total runtime: 3.12 minutes (187.4 seconds)
    - Color scale: Green = high accuracy, Red = low accuracy
 
 2. **`{model}_prior_marginal_effects.png`**
-   - Individual parameter effects on accuracy
-   - Shows how each parameter affects performance when averaged across other parameters
-   - Includes confidence bands (±1 SD)
+   - Individual parameter effects on accuracy **with separate lines per set size**
+   - Shows how each parameter affects performance across different working memory loads
+   - Each set size has its own color (matching config color scheme)
+   - Includes confidence bands (±1 SD) for each set size
+   - **Key insight**: See if parameters have different effects at different set sizes
 
 ## Prior Distributions
 
@@ -184,16 +194,17 @@ The script samples from the same prior distributions used in PyMC model fitting:
 
 ### Estimated Runtimes
 
-| n-samples | num-trials | n-jobs | Model | Estimated Time |
-|-----------|------------|--------|-------|----------------|
-| 50 | 30 | 1 | qlearning | ~5 min |
-| 50 | 30 | -1 (8 CPUs) | qlearning | ~1 min |
-| 200 | 50 | 1 | qlearning | ~25 min |
-| 200 | 50 | -1 (8 CPUs) | qlearning | ~3-4 min |
-| 200 | 50 | -1 (8 CPUs) | wmrl | ~8-10 min |
-| 200 | 50 | -1 (8 CPUs) | both | ~12-15 min |
+| n-samples | num-trials | set-sizes | n-jobs | Model | Estimated Time |
+|-----------|------------|-----------|--------|-------|----------------|
+| 20 | 30 | [2, 3] | 1 | qlearning | ~2 min |
+| 20 | 30 | [2, 3] | -1 (8 CPUs) | qlearning | ~30 sec |
+| 200 | 45 | [2, 3, 5, 6] | 1 | qlearning | ~40 min |
+| 200 | 45 | [2, 3, 5, 6] | -1 (8 CPUs) | qlearning | ~5-6 min |
+| 200 | 45 | [2, 3, 5, 6] | -1 (8 CPUs) | wmrl | ~12-15 min |
+| 200 | 45 | [2, 3, 5, 6] | -1 (8 CPUs) | both | ~18-25 min |
 
 *Times vary based on CPU speed and number of cores*
+*Default uses all 4 set sizes [2, 3, 5, 6] from actual experimental task*
 
 ## Interpreting Results
 
@@ -209,18 +220,28 @@ The script samples from the same prior distributions used in PyMC model fitting:
 1. **Which parameters matter most?**
    - Look at marginal effects plots
    - Parameters with steep slopes = high impact
+   - Parameters where lines spread apart = set-size dependent effects
 
-2. **Are there parameter interactions?**
+2. **Do parameters affect set sizes differently?**
+   - **Parallel lines**: Parameter has consistent effect across all set sizes
+   - **Diverging lines**: Parameter effect depends on working memory load
+   - **Crossing lines**: Parameter effect reverses at different set sizes
+   - Example: If beta shows parallel lines → inverse temperature works similarly across loads
+   - Example: If capacity shows diverging lines → capacity matters more for larger set sizes
+
+3. **Are there parameter interactions?**
    - Look at heatmaps for non-diagonal patterns
    - Example: Does optimal alpha_pos depend on beta?
 
-3. **What's the optimal parameter range?**
+4. **What's the optimal parameter range?**
    - Identify green regions in heatmaps
+   - Look for parameter values where ALL set size lines are high in marginal plots
    - Use for setting informed priors in model fitting
 
-4. **How robust is the model?**
-   - Large green regions = robust
+5. **How robust is the model?**
+   - Large green regions in heatmaps = robust
    - Narrow peaks = sensitive (harder to fit reliably)
+   - Wide confidence bands in marginal plots = high variability
 
 ## Next Steps
 
