@@ -37,10 +37,13 @@ rlwm_trauma_analysis/
 │   ├── q_learning.py
 │   └── wm_rl_hybrid.py
 ├── fitting/                     # Bayesian fitting
-│   ├── pymc_models.py
+│   ├── pymc_models.py           # Uses agent classes via unified_simulator
 │   └── fit_to_data.py
-├── simulations/                 # Data generation
-│   └── generate_data.py
+├── simulations/                 # Data generation & exploration
+│   ├── unified_simulator.py     # Core: fixed & sampled parameter simulation
+│   ├── generate_data.py         # Synthetic data generation
+│   ├── parameter_sweep.py       # Parameter space exploration
+│   └── interactive_exploration.py  # Jupyter widgets
 ├── scripts/                     # Original data pipeline
 │   ├── 01_parse_raw_data.py
 │   ├── 02_create_collated_csv.py
@@ -53,6 +56,52 @@ rlwm_trauma_analysis/
     ├── MODEL_REFERENCE.md
     └── ANALYSIS_PIPELINE.md     # This file
 ```
+
+## Unified Architecture
+
+**Key Design Principle**: All simulation, fitting, and parameter exploration use the **same agent implementations** from `models/`. This eliminates code duplication and ensures consistency.
+
+### Code Flow
+
+```
+Agent Classes (models/)
+    ↓
+Unified Simulator (simulations/unified_simulator.py)
+    ↓
+    ├─→ Parameter Sweeps (parameter_sweep.py)
+    ├─→ Data Generation (generate_data.py)
+    └─→ PyMC Fitting (fitting/pymc_models.py)
+```
+
+### Two Simulation Modes
+
+1. **Fixed Parameters**: `simulate_agent_fixed()`
+   - Used for: Parameter sweeps, single-condition simulations
+   - Example: "What accuracy do I get with α=0.3, β=2.0?"
+   - Parameters are deterministic for each run
+
+2. **Sampled Parameters**: `simulate_agent_sampled()`
+   - Used for: Prior/posterior predictive checks, realistic synthetic data
+   - Example: "Generate 50 participants with α ~ Beta(2,2), β ~ Gamma(2,1)"
+   - Parameters vary across samples according to distributions
+
+### Benefits
+
+- ✅ **Single source of truth**: Agent logic defined once in `models/`
+- ✅ **Guaranteed consistency**: PyMC fits the same model that parameter sweeps test
+- ✅ **Easy to extend**: Add new model? Just update agent class
+- ✅ **Flexible simulation**: Can simulate with both fixed and sampled parameters
+
+### PyMC Integration
+
+Since agent classes use pure Python (not PyTensor), we use **Metropolis sampler** (no gradients) instead of NUTS:
+
+```python
+with build_qlearning_model(data) as model:
+    trace = pm.sample(draws=2000, step=pm.Metropolis())
+```
+
+Trade-off: Slower sampling than NUTS, but ensures exact consistency between simulation and fitting.
 
 ---
 
@@ -530,6 +579,187 @@ VERSION = 'v1'  # Pilot data
 
 # Outputs automatically saved to output/v1/
 ```
+
+---
+
+## Stage 8: Testing and Validation
+
+### 8.1 Test Suite
+
+Comprehensive pytest test suite ensures code correctness.
+
+**Run all tests:**
+```bash
+pytest
+```
+
+**Run only fast tests:**
+```bash
+pytest -m "not slow"
+```
+
+**Run with coverage:**
+```bash
+pytest --cov=models --cov=fitting --cov=environments --cov-report=html
+```
+
+### 8.2 Test Categories
+
+**Model Consistency (`test_model_consistency.py`):**
+- Deterministic behavior across runs
+- Parameter effects
+- Valid probability distributions
+- Cross-model comparisons
+
+**Parameter Recovery (`test_parameter_recovery.py`):**
+- Can we recover known parameters from synthetic data?
+- Q-learning and WM-RL recovery tests
+- Identifiability checks
+
+**PyMC Integration (`test_pymc_integration.py`):**
+- Model building works
+- MCMC sampling succeeds
+- Convergence diagnostics
+
+**Run specific category:**
+```bash
+pytest tests/test_model_consistency.py -v
+pytest tests/test_parameter_recovery.py -v -m "not slow"
+```
+
+### 8.3 Continuous Testing
+
+Add pre-commit hook:
+```bash
+# .git/hooks/pre-commit
+#!/bin/bash
+pytest -m "not slow" || exit 1
+```
+
+See `tests/README.md` for complete testing documentation.
+
+---
+
+## Stage 9: Parameter Space Exploration
+
+### 9.1 Systematic Parameter Sweeps
+
+Explore how parameters affect model behavior systematically.
+
+**Q-learning sweep:**
+```bash
+python simulations/parameter_sweep.py \
+    --model qlearning \
+    --num-trials 100 \
+    --num-reps 5
+```
+
+**WM-RL sweep:**
+```bash
+python simulations/parameter_sweep.py \
+    --model wmrl \
+    --num-trials 50 \
+    --num-reps 3
+```
+
+**Output:**
+- CSV files with results: `output/v1/parameter_sweeps/qlearning_sweep_seed42.csv`
+- Visualizations: `output/v1/parameter_sweeps/qlearning_sweep_viz.png`
+
+### 9.2 Custom Parameter Ranges
+
+In Python:
+```python
+from simulations.parameter_sweep import ParameterSweep
+
+sweep = ParameterSweep(model_type='qlearning')
+
+results = sweep.sweep_qlearning_parameters(
+    alpha_range=[0.1, 0.3, 0.5, 0.7],
+    beta_range=[1, 2, 3, 5, 10],
+    set_sizes=[2, 3, 5, 6],
+    num_trials=100,
+    num_reps=5
+)
+
+# Results are saved automatically and returned as DataFrame
+print(results.head())
+```
+
+### 9.3 Interactive Exploration (Jupyter)
+
+For real-time parameter exploration with interactive widgets:
+
+```python
+from simulations.interactive_exploration import explore_qlearning_interactive
+explore_qlearning_interactive()
+```
+
+```python
+from simulations.interactive_exploration import explore_wmrl_interactive
+explore_wmrl_interactive()
+```
+
+```python
+from simulations.interactive_exploration import compare_models_interactive
+compare_models_interactive()
+```
+
+**Features:**
+- Interactive sliders for all parameters
+- Real-time learning curve updates
+- Q-value heatmaps
+- WM buffer visualization
+- Side-by-side model comparisons
+
+### 9.4 Analysis of Parameter Sweep Results
+
+Load and analyze sweep results:
+
+```python
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Load results
+results = pd.read_csv('output/v1/parameter_sweeps/qlearning_sweep_seed42.csv')
+
+# Find optimal parameters
+best = results.loc[results['accuracy'].idxmax()]
+print(f"Best parameters: α={best['alpha']}, β={best['beta']}")
+
+# Plot set-size effects
+for alpha in [0.1, 0.3, 0.5]:
+    subset = results[results['alpha'] == alpha]
+    grouped = subset.groupby('set_size')['accuracy'].mean()
+    plt.plot(grouped.index, grouped.values, marker='o', label=f'α={alpha}')
+
+plt.xlabel('Set Size')
+plt.ylabel('Accuracy')
+plt.legend()
+plt.show()
+```
+
+### 9.5 Use Cases for Parameter Sweeps
+
+1. **Model Development:**
+   - Understand parameter interactions
+   - Identify sensitive vs robust parameters
+   - Find reasonable parameter ranges
+
+2. **Hypothesis Generation:**
+   - Which parameters predict set-size effects?
+   - When does WM-RL outperform Q-learning?
+   - How does capacity limit affect performance?
+
+3. **Prior Specification:**
+   - Inform prior distributions for Bayesian fitting
+   - Identify realistic parameter ranges
+   - Avoid flat/uninformative priors
+
+4. **Simulation Studies:**
+   - Power analysis for detecting parameter differences
+   - Sample size planning
+   - Model recovery validation
 
 ---
 

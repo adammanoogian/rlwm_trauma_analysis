@@ -26,7 +26,7 @@ import sys
 from datetime import datetime
 
 # Add project root
-project_root = Path(__file__).parent.parent
+project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from config import PyMCParams, DataParams, OUTPUT_VERSION_DIR
@@ -40,7 +40,7 @@ except ImportError:
     print("ERROR: PyMC not installed. Install with: pip install pymc arviz")
     sys.exit(1)
 
-from fitting.pymc_models import (
+from scripts.fitting.pymc_models import (
     build_qlearning_model,
     build_wmrl_model,
     prepare_data_for_fitting,
@@ -128,12 +128,15 @@ def fit_qlearning_model(
         print(f"  Model variables: {list(model.named_vars.keys())}")
 
         # Sample
+        # NOTE: Using Metropolis sampler because agent classes use pure Python
+        # (not PyTensor operations), so no gradients available for NUTS
         print(f"\nSampling: {num_chains} chains, {num_samples} samples, {num_tune} tune")
+        print("  Using Metropolis sampler (agent classes are pure Python)")
         trace = pm.sample(
             draws=num_samples,
             tune=num_tune,
             chains=num_chains,
-            target_accept=target_accept,
+            step=pm.Metropolis(),  # Use Metropolis for pure Python functions
             return_inferencedata=True,
             random_seed=42
         )
@@ -184,11 +187,12 @@ def fit_wmrl_model(
         print(f"  Model variables: {list(model.named_vars.keys())}")
 
         print(f"\nSampling: {num_chains} chains, {num_samples} samples, {num_tune} tune")
+        print("  Using Metropolis sampler (agent classes are pure Python)")
         trace = pm.sample(
             draws=num_samples,
             tune=num_tune,
             chains=num_chains,
-            target_accept=target_accept,
+            step=pm.Metropolis(),  # Use Metropolis for pure Python functions
             return_inferencedata=True,
             random_seed=42
         )

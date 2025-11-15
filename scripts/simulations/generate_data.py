@@ -27,17 +27,19 @@ from pathlib import Path
 import sys
 from datetime import datetime
 from tqdm import tqdm
+from typing import Dict, List, Optional
 
 # Add project root
-project_root = Path(__file__).parent.parent
+project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from config import TaskParams, ModelParams, OUTPUT_VERSION_DIR, AnalysisParams
 
 from environments.rlwm_env import create_rlwm_env
 from environments.task_config import TaskConfigGenerator
-from models.q_learning import create_q_learning_agent, simulate_agent_on_env
-from models.wm_rl_hybrid import create_wm_rl_agent, simulate_wm_rl_on_env
+from models.q_learning import QLearningAgent
+from models.wm_rl_hybrid import WMRLHybridAgent
+from scripts.simulations.unified_simulator import simulate_agent_fixed, simulate_agent_sampled
 
 try:
     import arviz as az
@@ -224,47 +226,56 @@ def simulate_participant(
             seed=seed
         )
 
-        # Create agent
+        # Select agent class and run simulation using unified simulator
         if model_type == 'qlearning':
-            agent = create_q_learning_agent(
-                alpha=params['alpha'],
-                beta=params['beta'],
-                gamma=params.get('gamma', 0.0),
-                seed=seed
-            )
-            results = simulate_agent_on_env(agent, env, num_trials=trials_per_block, log_history=False)
-
+            agent_class = QLearningAgent
+            # Ensure required params are present
+            sim_params = {
+                'num_stimuli': TaskParams.MAX_STIMULI,
+                'num_actions': TaskParams.NUM_ACTIONS,
+                'alpha': params['alpha'],
+                'beta': params['beta'],
+                'gamma': params.get('gamma', 0.0),
+                'q_init': ModelParams.Q_INIT_VALUE
+            }
         elif model_type == 'wmrl':
-            agent = create_wm_rl_agent(
-                alpha=params['alpha'],
-                beta=params['beta'],
-                capacity=params['capacity'],
-                lambda_decay=params['lambda_decay'],
-                w_wm=params['w_wm'],
-                gamma=params.get('gamma', 0.0),
-                seed=seed
-            )
-            results = simulate_wm_rl_on_env(agent, env, num_trials=trials_per_block, log_history=False)
+            agent_class = WMRLHybridAgent
+            sim_params = {
+                'num_stimuli': TaskParams.MAX_STIMULI,
+                'num_actions': TaskParams.NUM_ACTIONS,
+                'alpha': params['alpha'],
+                'beta': params['beta'],
+                'capacity': params['capacity'],
+                'lambda_decay': params['lambda_decay'],
+                'w_wm': params['w_wm'],
+                'gamma': params.get('gamma', 0.0),
+                'q_init': ModelParams.Q_INIT_VALUE
+            }
         else:
             raise ValueError(f"Unknown model type: {model_type}")
 
+        # Use unified simulator
+        result = simulate_agent_fixed(
+            agent_class=agent_class,
+            params=sim_params,
+            env=env,
+            num_trials=trials_per_block,
+            seed=seed
+        )
+
         # Create trial dataframe
-        for trial_idx in range(len(results['stimuli'])):
+        for trial_idx in range(len(result.stimuli)):
             trial_data = {
                 'participant_id': participant_id,
                 'block': block_num,
                 'trial': trial_idx + 1,
                 'set_size': set_size,
                 'load_condition': 'low' if set_size <= 3 else 'high',
-                'stimulus': results['stimuli'][trial_idx] + 1,  # Convert to 1-indexed
-                'key_press': results['actions'][trial_idx],
-                'correct': results['correct'][trial_idx],
-                'reward': results['rewards'][trial_idx],
+                'stimulus': result.stimuli[trial_idx] + 1,  # Convert to 1-indexed
+                'key_press': result.actions[trial_idx],
+                'correct': result.correct[trial_idx],
+                'reward': result.rewards[trial_idx],
             }
-
-            # Add model-specific data
-            if model_type == 'wmrl' and 'wm_retrieved' in results:
-                trial_data['wm_retrieved'] = results['wm_retrieved'][trial_idx]
 
             # Add parameters (for reference)
             trial_data.update({f'param_{k}': v for k, v in params.items()})

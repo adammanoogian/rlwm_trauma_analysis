@@ -20,17 +20,16 @@ Both models can be fitted to human data using hierarchical Bayesian inference wi
 
 #### Q-Value Update
 
-Temporal difference learning rule:
+Temporal difference learning rule with **asymmetric learning rates**:
 
 ```
-Q(s,a) ← Q(s,a) + α[r + γ·max Q(s',·) - Q(s,a)]
+Prediction Error (PE) = r - Q(s,a)
+
+If PE > 0:  Q(s,a) ← Q(s,a) + α_pos · PE  (positive PE, correct trials)
+If PE ≤ 0:  Q(s,a) ← Q(s,a) + α_neg · PE  (negative PE, incorrect trials)
 ```
 
-For immediate rewards (γ=0), simplifies to:
-
-```
-Q(s,a) ← Q(s,a) + α[r - Q(s,a)]
-```
+For this task, γ=0 (no bootstrapping), so the update simplifies to learning from immediate rewards only.
 
 #### Action Selection
 
@@ -44,9 +43,10 @@ P(a|s) = exp(β·Q(s,a)) / Σ_a' exp(β·Q(s,a'))
 
 | Parameter | Symbol | Range | Default | Description |
 |-----------|--------|-------|---------|-------------|
-| Learning rate | α | [0, 1] | 0.1 | How quickly Q-values update |
+| Learning rate (positive PE) | α₊ | [0, 1] | 0.3 | How quickly Q-values increase from correct trials |
+| Learning rate (negative PE) | α₋ | [0, 1] | 0.1 | How quickly Q-values decrease from incorrect trials |
 | Inverse temperature | β | (0, ∞) | 2.0 | Exploration vs exploitation |
-| Discount factor | γ | [0, 1] | 0.0 | Future reward weighting |
+| Discount factor | γ | [0, 1] | 0.0 | Future reward weighting (fixed at 0) |
 | Initial Q-value | Q₀ | ℝ | 0.5 | Optimistic initialization |
 
 ### Implementation
@@ -57,7 +57,8 @@ P(a|s) = exp(β·Q(s,a)) / Σ_a' exp(β·Q(s,a'))
 QLearningAgent(
     num_stimuli: int = 6,
     num_actions: int = 3,
-    alpha: float = 0.1,
+    alpha_pos: float = 0.3,    # Learning rate for positive PE
+    alpha_neg: float = 0.1,    # Learning rate for negative PE
     beta: float = 2.0,
     gamma: float = 0.0,
     q_init: float = 0.5,
@@ -93,7 +94,7 @@ from models.q_learning import create_q_learning_agent
 
 # Create environment and agent
 env = create_rlwm_env(set_size=3, seed=42)
-agent = create_q_learning_agent(alpha=0.3, beta=3.0, seed=42)
+agent = create_q_learning_agent(alpha_pos=0.3, alpha_neg=0.1, beta=3.0, seed=42)
 
 # Reset
 obs, info = env.reset()
@@ -123,10 +124,15 @@ print(agent.get_q_table())
 
 ### Parameter Interpretation
 
-**Learning Rate (α)**
-- **Low α (0.01-0.1)**: Slow, stable learning. Less sensitive to noise.
-- **High α (0.5-0.9)**: Fast learning. More sensitive to recent outcomes.
-- Trauma effects: Might alter α (e.g., increased volatility in learning)
+**Asymmetric Learning Rates (α₊, α₋)**
+- **α₊ (positive PE)**: Controls how quickly the agent learns from correct responses
+  - High α₊: Fast learning from successes
+  - Low α₊: Slower, more stable learning from positive outcomes
+- **α₋ (negative PE)**: Controls how quickly the agent learns from incorrect responses
+  - High α₋: Fast learning from mistakes
+  - Low α₋: Less sensitive to negative feedback
+- **Asymmetry**: α₊ > α₋ represents optimistic learning (faster from rewards than punishments)
+- Trauma effects: May show altered asymmetry (e.g., heightened α₋, reflecting increased sensitivity to negative outcomes)
 
 **Inverse Temperature (β)**
 - **Low β (0.1-1)**: Exploratory. More random choices.
@@ -143,48 +149,74 @@ print(agent.get_q_table())
 
 #### Components
 
-1. **Working Memory**: Episodic buffer storing recent (stimulus, action, reward) experiences
-2. **Q-Learning**: Same as Model 1
-3. **Hybrid Decision**: Weighted combination of WM and RL
+1. **Working Memory**: Matrix-based distributed value storage (one-shot learning)
+2. **Q-Learning**: Asymmetric learning rates (same as Model 1)
+3. **Hybrid Decision**: Adaptively weighted combination based on capacity and set size
 
-#### Working Memory
+#### Working Memory (Matrix-Based)
 
-Storage:
-- Capacity: K items (typically 2-7)
-- FIFO buffer: Oldest items evicted when capacity exceeded
-- Memory strength: Decays with age
+**WM Matrix**: State-action value matrix `WM[s, a]` storing immediate reward outcomes.
 
+**Update Rule** (one-shot learning, α=1):
 ```
-strength(mem) = exp(-λ · age)
+WM_{t+1}(s,a) ← r_{t+1}  (immediate overwrite)
 ```
 
-Retrieval:
-- If stimulus in WM: Retrieve associated action from most recent positive-reward memory
-- Otherwise: Uniform probabilities
-
-WM probabilities:
+**Global Decay** (before update, every trial):
 ```
-P_wm(a|s) = strength · I(a = retrieved_action) + (1 - strength) · uniform
+∀s,a: WM_{t+1}(s,a) ← (1 - φ)·WM_{t+1}(s,a) + φ·WM_0(s,a)
+```
+Where WM_0 is the baseline value (typically 0.0).
+
+**WM Policy**:
+```
+P_WM(a|s) = softmax(β_WM · WM(s,:))
+P_WM(a|s) = exp(β_WM·WM(s,a)) / Σ_a' exp(β_WM·WM(s,a'))
 ```
 
-#### Hybrid Decision
+#### RL Component
 
-Combine WM and RL systems:
+Same asymmetric Q-learning as Model 1:
+```
+Q(s,a) ← Q(s,a) + α_pos/neg · [r - Q(s,a)]
+```
 
+**RL Policy**:
 ```
-P(a|s) = w_wm · P_wm(a|s) + (1 - w_wm) · P_rl(a|s)
+P_RL(a|s) = softmax(β · Q(s,:))
 ```
+
+#### Adaptive Hybrid Decision
+
+**Adaptive Weighting**:
+```
+ω = ρ · min(1, K/N_s)
+```
+Where:
+- ρ: Base WM reliance parameter
+- K: WM capacity
+- N_s: Current set size
+
+**Final Policy**:
+```
+P(a|s) = ω·P_WM(a|s) + (1 - ω)·P_RL(a|s)
+```
+
+The weight ω increases when set size is within capacity (K ≥ N_s), allowing WM to dominate. When set size exceeds capacity, ω decreases, shifting reliance to RL.
 
 ### Parameters
 
 | Parameter | Symbol | Range | Default | Description |
 |-----------|--------|-------|---------|-------------|
-| Learning rate | α | [0, 1] | 0.1 | Q-learning update rate |
-| Inverse temperature | β | (0, ∞) | 2.0 | RL exploitation |
-| WM capacity | K | {1,...,7} | 4 | Max items in memory |
-| Decay rate | λ | [0, 1] | 0.1 | Memory decay speed |
-| WM weight | w_wm | [0, 1] | 0.5 | WM vs RL weighting |
-| Discount factor | γ | [0, 1] | 0.0 | Future rewards |
+| Learning rate (positive PE) | α₊ | [0, 1] | 0.3 | RL update rate for correct trials |
+| Learning rate (negative PE) | α₋ | [0, 1] | 0.1 | RL update rate for incorrect trials |
+| RL inverse temperature | β | (0, ∞) | 2.0 | RL exploitation |
+| WM inverse temperature | β_WM | (0, ∞) | 3.0 | WM exploitation (typically higher) |
+| WM capacity | K | {1,...,7} | 4 | Capacity for adaptive weighting |
+| WM decay rate | φ | [0, 1] | 0.1 | Global decay toward baseline |
+| Base WM reliance | ρ | [0, 1] | 0.7 | Base WM weight in adaptive formula |
+| Discount factor | γ | [0, 1] | 0.0 | Future rewards (fixed at 0) |
+| WM baseline | WM_0 | ℝ | 0.0 | Decay target value |
 
 ### Implementation
 
@@ -194,22 +226,32 @@ P(a|s) = w_wm · P_wm(a|s) + (1 - w_wm) · P_rl(a|s)
 WMRLHybridAgent(
     num_stimuli: int = 6,
     num_actions: int = 3,
-    alpha: float = 0.1,
-    beta: float = 2.0,
+    alpha_pos: float = 0.3,        # RL learning rate (positive PE)
+    alpha_neg: float = 0.1,        # RL learning rate (negative PE)
+    beta: float = 2.0,             # RL inverse temperature
+    beta_wm: float = 3.0,          # WM inverse temperature
+    capacity: int = 4,             # WM capacity (K)
+    phi: float = 0.1,              # WM global decay rate
+    rho: float = 0.7,              # Base WM reliance
     gamma: float = 0.0,
-    capacity: int = 4,
-    lambda_decay: float = 0.1,
-    w_wm: float = 0.5,
     q_init: float = 0.5,
+    wm_init: float = 0.0,          # WM baseline
     seed: Optional[int] = None
 )
 ```
 
 #### Key Methods
 
-**choose_action(stimulus)**
+**choose_action(stimulus, set_size)**
 ```python
-action, info = agent.choose_action(stimulus)
+action = agent.choose_action(stimulus, set_size)
+# Returns: int (0, 1, or 2)
+# Note: set_size required for adaptive weighting
+```
+
+**choose_action(stimulus, set_size, return_info=True)**
+```python
+action, info = agent.choose_action(stimulus, set_size, return_info=True)
 # Returns: (action, decision_info_dict)
 ```
 
@@ -217,19 +259,24 @@ Decision info includes:
 - `probs`: Hybrid probabilities
 - `wm_probs`: WM component probabilities
 - `rl_probs`: RL component probabilities
-- `wm_retrieved`: Whether WM retrieval succeeded
-- `wm_strength`: Strength of retrieved memory
+- `omega`: Adaptive weight (ω = ρ · min(1, K/N_s))
 
 **update(stimulus, action, reward, next_stimulus)**
 ```python
 agent.update(stimulus, action, reward, next_stimulus)
-# Updates both Q-table and WM buffer
+# Updates both Q-table and WM matrix (with decay)
 ```
 
-**get_wm_contents()**
+**get_wm_matrix()**
 ```python
-contents = agent.get_wm_contents()
-# Returns: List of memory items with stimulus, action, reward, age, strength
+wm_matrix = agent.get_wm_matrix()
+# Returns: np.ndarray of shape (num_stimuli, num_actions)
+```
+
+**get_hybrid_probs(stimulus, set_size)**
+```python
+hybrid_info = agent.get_hybrid_probs(stimulus, set_size)
+# Returns: Dict with 'probs', 'wm_probs', 'rl_probs', 'omega'
 ```
 
 ### Usage Example
@@ -241,11 +288,13 @@ from models.wm_rl_hybrid import create_wm_rl_agent
 # Create environment and agent
 env = create_rlwm_env(set_size=5, seed=42)  # Larger set size
 agent = create_wm_rl_agent(
-    alpha=0.2,
-    beta=3.0,
+    alpha_pos=0.3,
+    alpha_neg=0.1,
+    beta=2.0,
+    beta_wm=3.0,
     capacity=4,
-    lambda_decay=0.1,
-    w_wm=0.6,
+    phi=0.1,
+    rho=0.7,
     seed=42
 )
 
@@ -255,9 +304,10 @@ agent.reset()
 
 for trial in range(100):
     stimulus = obs['stimulus']
+    set_size = int(obs['set_size'].item())  # Extract from observation
 
     # Choose action (get decision info)
-    action, decision_info = agent.choose_action(stimulus)
+    action, decision_info = agent.choose_action(stimulus, set_size, return_info=True)
 
     # Environment step
     obs, reward, terminated, truncated, info = env.step(action)
@@ -266,38 +316,46 @@ for trial in range(100):
     next_stimulus = obs['stimulus'] if not truncated else None
     agent.update(stimulus, action, reward, next_stimulus)
 
-    # Track WM retrieval
-    if decision_info['wm_retrieved']:
-        print(f"Trial {trial}: WM retrieval (strength={decision_info['wm_strength']:.2f})")
+    # Track adaptive weighting
+    omega = decision_info['omega']
+    print(f"Trial {trial}: set_size={set_size}, omega={omega:.2f}, "
+          f"WM_weight={omega:.2%}, RL_weight={(1-omega):.2%}")
 
     if truncated:
         break
 
-# Inspect WM buffer
-print("\nFinal WM contents:")
-for mem in agent.get_wm_contents():
-    print(f"  Stim {mem['stimulus']}: action={mem['action']}, "
-          f"reward={mem['reward']}, age={mem['age']}, strength={mem['strength']:.3f}")
+# Inspect WM matrix
+print("\nFinal WM matrix:")
+wm_matrix = agent.get_wm_matrix()
+print(wm_matrix)
 ```
 
 ### Parameter Interpretation
 
 **WM Capacity (K)**
-- Determines how many stimulus-response pairs can be held
-- Set-size effects: Performance degrades when set_size > capacity
+- Determines adaptive weighting via ω = ρ · min(1, K/N_s)
+- When K ≥ set_size: Full WM reliance possible (ω = ρ)
+- When K < set_size: Reduced WM reliance (ω = ρ·K/N_s)
 - Individual differences: Lower capacity → stronger set-size effects
 - Trauma effects: WM capacity deficits predicted
 
-**Decay Rate (λ)**
-- **Low λ (0.0-0.1)**: Slow forgetting. Memories persist.
-- **High λ (0.3-1.0)**: Fast forgetting. Only recent memories useful.
-- Affects how quickly old stimulus-response associations fade
+**WM Decay Rate (φ)**
+- **Low φ (0.0-0.1)**: Slow global decay. WM values persist toward rewards.
+- **High φ (0.3-1.0)**: Fast decay. WM values quickly return to baseline.
+- Controls forgetting rate of all stimulus-action associations
+- Different from buffer-based models: Decay is global, not age-based
 
-**WM Weight (w_wm)**
-- **w_wm ≈ 0**: Pure RL (ignores WM)
-- **w_wm ≈ 0.5**: Balanced hybrid
-- **w_wm ≈ 1**: Pure WM (ignores RL)
-- Task-dependent: Low set size → higher w_wm useful
+**Base WM Reliance (ρ)**
+- **ρ ≈ 0**: Minimal WM use (RL-dominant)
+- **ρ ≈ 0.5**: Moderate WM reliance
+- **ρ ≈ 1**: Maximal WM use (WM-dominant when K ≥ N_s)
+- Combined with capacity: Final weight ω = ρ · min(1, K/N_s)
+- Reflects individual preference for one-shot vs. incremental learning
+
+**WM vs. RL Inverse Temperatures (β_WM, β)**
+- **β_WM typically > β**: WM retrieval is more deterministic than RL
+- Reflects certainty: WM provides immediate outcome info, RL accumulates noisy evidence
+- Separate temperatures allow different exploration strategies per system
 
 ---
 

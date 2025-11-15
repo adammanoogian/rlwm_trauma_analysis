@@ -14,12 +14,17 @@ Likelihood:
 - Categorical(choice | softmax(Q-values)) for each trial
 - Models compute Q-values/action probs trial-by-trial
 
+**UNIFIED ARCHITECTURE:**
+This module uses the agent classes directly from models/ via the unified_simulator
+module. This eliminates code duplication between parameter sweeps and PyMC fitting.
+
 Usage:
     import pymc as pm
     from fitting.pymc_models import build_qlearning_model
 
     with build_qlearning_model(data, participant_ids) as model:
-        trace = pm.sample(2000, tune=1000, chains=4)
+        # Use Metropolis sampler since agent classes are pure Python
+        trace = pm.sample(2000, tune=1000, chains=4, step=pm.Metropolis())
 """
 
 import numpy as np
@@ -38,73 +43,21 @@ except ImportError:
     print("Warning: PyMC not installed. Install with: pip install pymc")
 
 # Add project root to path
-project_root = Path(__file__).parent.parent
+project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from config import PyMCParams, ModelParams, TaskParams
+from scripts.simulations.unified_simulator import (
+    simulate_qlearning_for_likelihood,
+    simulate_wmrl_for_likelihood
+)
 
 
 # ============================================================================
 # Q-LEARNING MODEL
 # ============================================================================
-
-def simulate_qlearning_choices(
-    stimuli: np.ndarray,
-    actions: np.ndarray,
-    rewards: np.ndarray,
-    alpha: float,
-    beta: float,
-    q_init: float = 0.5,
-    num_stimuli: int = TaskParams.MAX_STIMULI,
-    num_actions: int = TaskParams.NUM_ACTIONS
-) -> np.ndarray:
-    """
-    Simulate Q-learning model and return trial-by-trial action probabilities.
-
-    Parameters
-    ----------
-    stimuli : np.ndarray
-        Stimulus IDs for each trial
-    actions : np.ndarray
-        Actions taken (for updating Q-values)
-    rewards : np.ndarray
-        Rewards received (for updating Q-values)
-    alpha : float
-        Learning rate
-    beta : float
-        Inverse temperature
-    q_init : float
-        Initial Q-values
-    num_stimuli : int
-        Number of stimuli
-    num_actions : int
-        Number of actions
-
-    Returns
-    -------
-    np.ndarray
-        Action probabilities of shape (num_trials, num_actions)
-    """
-    num_trials = len(stimuli)
-    Q = np.full((num_stimuli, num_actions), q_init, dtype=np.float64)
-    action_probs = np.zeros((num_trials, num_actions))
-
-    for t in range(num_trials):
-        s = int(stimuli[t])
-        a = int(actions[t])
-        r = rewards[t]
-
-        # Compute action probabilities (softmax)
-        q_vals = Q[s, :]
-        q_scaled = beta * (q_vals - np.max(q_vals))  # numerical stability
-        exp_q = np.exp(q_scaled)
-        probs = exp_q / np.sum(exp_q)
-        action_probs[t, :] = probs
-
-        # Update Q-value
-        Q[s, a] += alpha * (r - Q[s, a])
-
-    return action_probs
+# NOTE: simulate_qlearning_for_likelihood is imported from unified_simulator
+# This uses the QLearningAgent class directly - NO CODE DUPLICATION
 
 
 def build_qlearning_model(
@@ -154,9 +107,13 @@ def build_qlearning_model(
         # PRIORS: Group-level (population)
         # ====================================================================
 
-        # Learning rate (alpha): bounded [0, 1]
-        mu_alpha = pm.Beta('mu_alpha', alpha=2, beta=2)  # Mean ~0.5
-        sigma_alpha = pm.HalfNormal('sigma_alpha', sigma=0.3)
+        # Learning rate for positive PE: bounded [0, 1]
+        mu_alpha_pos = pm.Beta('mu_alpha_pos', alpha=3, beta=2)  # Mean ~0.6 (faster learning from correct)
+        sigma_alpha_pos = pm.HalfNormal('sigma_alpha_pos', sigma=0.3)
+
+        # Learning rate for negative PE: bounded [0, 1]
+        mu_alpha_neg = pm.Beta('mu_alpha_neg', alpha=2, beta=3)  # Mean ~0.4 (slower learning from incorrect)
+        sigma_alpha_neg = pm.HalfNormal('sigma_alpha_neg', sigma=0.3)
 
         # Inverse temperature (beta): positive
         mu_beta = pm.Gamma('mu_beta', alpha=2, beta=1)  # Mean ~2
@@ -166,11 +123,18 @@ def build_qlearning_model(
         # PRIORS: Individual-level
         # ====================================================================
 
-        # Learning rate per participant (transformed to [0,1])
-        alpha_raw = pm.Normal('alpha_raw', mu=0, sigma=1, shape=n_participants)
-        alpha = pm.Deterministic(
-            'alpha',
-            pm.math.invlogit(pm.math.log(mu_alpha / (1 - mu_alpha)) + sigma_alpha * alpha_raw)
+        # Learning rate (positive PE) per participant (transformed to [0,1])
+        alpha_pos_raw = pm.Normal('alpha_pos_raw', mu=0, sigma=1, shape=n_participants)
+        alpha_pos = pm.Deterministic(
+            'alpha_pos',
+            pm.math.invlogit(pm.math.log(mu_alpha_pos / (1 - mu_alpha_pos)) + sigma_alpha_pos * alpha_pos_raw)
+        )
+
+        # Learning rate (negative PE) per participant (transformed to [0,1])
+        alpha_neg_raw = pm.Normal('alpha_neg_raw', mu=0, sigma=1, shape=n_participants)
+        alpha_neg = pm.Deterministic(
+            'alpha_neg',
+            pm.math.invlogit(pm.math.log(mu_alpha_neg / (1 - mu_alpha_neg)) + sigma_alpha_neg * alpha_neg_raw)
         )
 
         # Inverse temperature per participant (positive)
@@ -187,8 +151,8 @@ def build_qlearning_model(
         # For each participant, simulate Q-learning and get action probs
         # This is done using a custom likelihood function
 
-        def logp_func(actions, participant_idx, stimuli, rewards, alpha, beta):
-            """Compute log-likelihood for all trials."""
+        def logp_func(actions, participant_idx, stimuli, rewards, alpha_pos, alpha_neg, beta):
+            """Compute log-likelihood for all trials with asymmetric learning rates."""
             logp_total = 0.0
 
             for p in range(n_participants):
@@ -202,9 +166,14 @@ def build_qlearning_model(
                 p_rewards = rewards[mask]
 
                 # Simulate Q-learning for this participant
-                action_probs = simulate_qlearning_choices(
-                    p_stimuli, p_actions, p_rewards,
-                    alpha[p], beta[p],
+                # Uses QLearningAgent class via unified_simulator
+                action_probs = simulate_qlearning_for_likelihood(
+                    stimuli=p_stimuli,
+                    rewards=p_rewards,
+                    alpha_pos=alpha_pos[p],
+                    alpha_neg=alpha_neg[p],
+                    beta=beta[p],
+                    gamma=ModelParams.GAMMA_DEFAULT,
                     q_init=ModelParams.Q_INIT_VALUE
                 )
 
@@ -217,97 +186,17 @@ def build_qlearning_model(
         # Create custom likelihood
         pm.Potential(
             'likelihood',
-            logp_func(actions, participant_idx, stimuli, rewards, alpha, beta)
+            logp_func(actions, participant_idx, stimuli, rewards, alpha_pos, alpha_neg, beta)
         )
 
     return model
 
 
 # ============================================================================
-# WM-RL HYBRID MODEL (Placeholder)
+# WM-RL HYBRID MODEL
 # ============================================================================
-
-def simulate_wmrl_choices(
-    stimuli: np.ndarray,
-    actions: np.ndarray,
-    rewards: np.ndarray,
-    alpha: float,
-    beta: float,
-    capacity: int,
-    lambda_decay: float,
-    w_wm: float,
-    q_init: float = 0.5,
-    num_stimuli: int = TaskParams.MAX_STIMULI,
-    num_actions: int = TaskParams.NUM_ACTIONS
-) -> np.ndarray:
-    """
-    Simulate WM-RL hybrid model and return action probabilities.
-
-    NOTE: This is a simplified version. Full implementation would use
-    the WMRLHybridAgent class, but that's complex for PyMC integration.
-
-    Parameters
-    ----------
-    stimuli, actions, rewards : np.ndarray
-        Trial data
-    alpha, beta, capacity, lambda_decay, w_wm : float
-        Model parameters
-    q_init : float
-        Initial Q-values
-    num_stimuli, num_actions : int
-        Task dimensions
-
-    Returns
-    -------
-    np.ndarray
-        Action probabilities
-    """
-    from collections import deque
-
-    num_trials = len(stimuli)
-    Q = np.full((num_stimuli, num_actions), q_init, dtype=np.float64)
-    action_probs = np.zeros((num_trials, num_actions))
-
-    # Working memory buffer
-    wm_buffer = deque(maxlen=int(capacity))
-
-    for t in range(num_trials):
-        s = int(stimuli[t])
-        a = int(actions[t])
-        r = rewards[t]
-
-        # RL probabilities
-        q_vals = Q[s, :]
-        q_scaled = beta * (q_vals - np.max(q_vals))
-        exp_q = np.exp(q_scaled)
-        rl_probs = exp_q / np.sum(exp_q)
-
-        # WM probabilities
-        wm_probs = np.ones(num_actions) / num_actions  # default uniform
-
-        # Check if stimulus in WM
-        for mem in wm_buffer:
-            if mem['stimulus'] == s and mem['reward'] > 0:
-                strength = np.exp(-lambda_decay * mem['age'])
-                wm_probs = np.ones(num_actions) * (1 - strength) / num_actions
-                wm_probs[mem['action']] += strength
-                wm_probs /= np.sum(wm_probs)
-                break
-
-        # Hybrid
-        probs = w_wm * wm_probs + (1 - w_wm) * rl_probs
-        probs /= np.sum(probs)
-        action_probs[t, :] = probs
-
-        # Update
-        Q[s, a] += alpha * (r - Q[s, a])
-        wm_buffer.append({'stimulus': s, 'action': a, 'reward': r, 'age': 0})
-
-        # Age memories
-        for mem in wm_buffer:
-            mem['age'] += 1
-
-    return action_probs
+# NOTE: simulate_wmrl_for_likelihood is imported from unified_simulator
+# This uses the WMRLHybridAgent class directly - NO CODE DUPLICATION
 
 
 def build_wmrl_model(
@@ -316,21 +205,28 @@ def build_wmrl_model(
     stimulus_col: str = 'stimulus',
     action_col: str = 'key_press',
     reward_col: str = 'correct',
+    set_size_col: str = 'set_size',
 ) -> pm.Model:
     """
-    Build hierarchical Bayesian WM-RL hybrid model.
+    Build hierarchical Bayesian WM-RL hybrid model (matrix-based architecture).
+
+    Model uses:
+    - Asymmetric learning rates (alpha_pos, alpha_neg) for RL component
+    - Global WM decay (phi) toward baseline
+    - Adaptive weighting (rho) based on capacity and set size
+    - Separate inverse temperatures for WM (beta_wm) and RL (beta)
 
     Parameters
     ----------
     data : pd.DataFrame
-        Trial-level data
-    participant_col, stimulus_col, action_col, reward_col : str
+        Trial-level data with columns: participant, stimulus, action, reward, set_size
+    participant_col, stimulus_col, action_col, reward_col, set_size_col : str
         Column names
 
     Returns
     -------
     pm.Model
-        PyMC model
+        PyMC model ready for sampling
     """
     if not PYMC_AVAILABLE:
         raise ImportError("PyMC is required")
@@ -345,51 +241,98 @@ def build_wmrl_model(
     stimuli = data[stimulus_col].values.astype(int)
     actions = data[action_col].values.astype(int)
     rewards = data[reward_col].values.astype(float)
+    set_sizes = data[set_size_col].values.astype(int)
 
     with pm.Model() as model:
-        # Group-level priors
-        mu_alpha = pm.Beta('mu_alpha', alpha=2, beta=2)
-        sigma_alpha = pm.HalfNormal('sigma_alpha', sigma=0.3)
+        # ====================================================================
+        # PRIORS: Group-level (population)
+        # ====================================================================
 
-        mu_beta = pm.Gamma('mu_beta', alpha=2, beta=1)
+        # Learning rates for RL component (asymmetric)
+        mu_alpha_pos = pm.Beta('mu_alpha_pos', alpha=3, beta=2)  # Mean ~0.6
+        sigma_alpha_pos = pm.HalfNormal('sigma_alpha_pos', sigma=0.3)
+
+        mu_alpha_neg = pm.Beta('mu_alpha_neg', alpha=2, beta=3)  # Mean ~0.4
+        sigma_alpha_neg = pm.HalfNormal('sigma_alpha_neg', sigma=0.3)
+
+        # Inverse temperature for RL component
+        mu_beta = pm.Gamma('mu_beta', alpha=2, beta=1)  # Mean ~2
         sigma_beta = pm.HalfNormal('sigma_beta', sigma=2)
 
+        # Inverse temperature for WM component
+        mu_beta_wm = pm.Gamma('mu_beta_wm', alpha=3, beta=1)  # Mean ~3 (slightly higher)
+        sigma_beta_wm = pm.HalfNormal('sigma_beta_wm', sigma=2)
+
+        # WM capacity (K)
         mu_capacity = pm.TruncatedNormal('mu_capacity', mu=4, sigma=1.5, lower=1, upper=7)
         sigma_capacity = pm.HalfNormal('sigma_capacity', sigma=1)
 
-        mu_w_wm = pm.Beta('mu_w_wm', alpha=2, beta=2)
-        sigma_w_wm = pm.HalfNormal('sigma_w_wm', sigma=0.3)
+        # WM global decay parameter (phi) - bounded [0, 1]
+        mu_phi = pm.Beta('mu_phi', alpha=1, beta=9)  # Mean ~0.1 (slow decay)
+        sigma_phi = pm.HalfNormal('sigma_phi', sigma=0.2)
 
-        # Individual-level priors
-        alpha_raw = pm.Normal('alpha_raw', mu=0, sigma=1, shape=n_participants)
-        alpha = pm.Deterministic(
-            'alpha',
-            pm.math.invlogit(pm.math.log(mu_alpha / (1 - mu_alpha)) + sigma_alpha * alpha_raw)
+        # Base WM reliance (rho) - bounded [0, 1]
+        mu_rho = pm.Beta('mu_rho', alpha=7, beta=3)  # Mean ~0.7 (high WM reliance)
+        sigma_rho = pm.HalfNormal('sigma_rho', sigma=0.3)
+
+        # ====================================================================
+        # PRIORS: Individual-level
+        # ====================================================================
+
+        # RL learning rates (asymmetric)
+        alpha_pos_raw = pm.Normal('alpha_pos_raw', mu=0, sigma=1, shape=n_participants)
+        alpha_pos = pm.Deterministic(
+            'alpha_pos',
+            pm.math.invlogit(pm.math.log(mu_alpha_pos / (1 - mu_alpha_pos)) + sigma_alpha_pos * alpha_pos_raw)
         )
 
+        alpha_neg_raw = pm.Normal('alpha_neg_raw', mu=0, sigma=1, shape=n_participants)
+        alpha_neg = pm.Deterministic(
+            'alpha_neg',
+            pm.math.invlogit(pm.math.log(mu_alpha_neg / (1 - mu_alpha_neg)) + sigma_alpha_neg * alpha_neg_raw)
+        )
+
+        # Inverse temperatures
         beta_raw = pm.Normal('beta_raw', mu=0, sigma=1, shape=n_participants)
         beta = pm.Deterministic(
             'beta',
             pm.math.exp(pm.math.log(mu_beta) + sigma_beta * beta_raw)
         )
 
+        beta_wm_raw = pm.Normal('beta_wm_raw', mu=0, sigma=1, shape=n_participants)
+        beta_wm = pm.Deterministic(
+            'beta_wm',
+            pm.math.exp(pm.math.log(mu_beta_wm) + sigma_beta_wm * beta_wm_raw)
+        )
+
+        # WM capacity (clipped to [1, 7])
         capacity_raw = pm.Normal('capacity_raw', mu=0, sigma=1, shape=n_participants)
         capacity = pm.Deterministic(
             'capacity',
             pm.math.clip(mu_capacity + sigma_capacity * capacity_raw, 1, 7)
         )
 
-        w_wm_raw = pm.Normal('w_wm_raw', mu=0, sigma=1, shape=n_participants)
-        w_wm = pm.Deterministic(
-            'w_wm',
-            pm.math.invlogit(pm.math.log(mu_w_wm / (1 - mu_w_wm)) + sigma_w_wm * w_wm_raw)
+        # WM decay parameter (phi) bounded [0, 1]
+        phi_raw = pm.Normal('phi_raw', mu=0, sigma=1, shape=n_participants)
+        phi = pm.Deterministic(
+            'phi',
+            pm.math.invlogit(pm.math.log(mu_phi / (1 - mu_phi)) + sigma_phi * phi_raw)
         )
 
-        # Lambda decay (fixed for simplicity, or could be estimated)
-        lambda_decay = pm.HalfNormal('lambda_decay', sigma=0.3, shape=n_participants)
+        # Base WM reliance (rho) bounded [0, 1]
+        rho_raw = pm.Normal('rho_raw', mu=0, sigma=1, shape=n_participants)
+        rho = pm.Deterministic(
+            'rho',
+            pm.math.invlogit(pm.math.log(mu_rho / (1 - mu_rho)) + sigma_rho * rho_raw)
+        )
 
-        # Likelihood
-        def logp_func(actions, participant_idx, stimuli, rewards, alpha, beta, capacity, lambda_decay, w_wm):
+        # ====================================================================
+        # LIKELIHOOD: Trial-by-trial choices
+        # ====================================================================
+
+        def logp_func(actions, participant_idx, stimuli, rewards, set_sizes,
+                     alpha_pos, alpha_neg, beta, beta_wm, capacity, phi, rho):
+            """Compute log-likelihood for all trials with matrix-based WM-RL."""
             logp_total = 0.0
 
             for p in range(n_participants):
@@ -400,10 +343,23 @@ def build_wmrl_model(
                 p_stimuli = stimuli[mask]
                 p_actions = actions[mask]
                 p_rewards = rewards[mask]
+                p_set_sizes = set_sizes[mask]
 
-                action_probs = simulate_wmrl_choices(
-                    p_stimuli, p_actions, p_rewards,
-                    alpha[p], beta[p], capacity[p], lambda_decay[p], w_wm[p]
+                # Uses WMRLHybridAgent class via unified_simulator
+                action_probs = simulate_wmrl_for_likelihood(
+                    stimuli=p_stimuli,
+                    rewards=p_rewards,
+                    set_sizes=p_set_sizes,
+                    alpha_pos=alpha_pos[p],
+                    alpha_neg=alpha_neg[p],
+                    beta=beta[p],
+                    beta_wm=beta_wm[p],
+                    capacity=int(capacity[p]),
+                    phi=phi[p],
+                    rho=rho[p],
+                    gamma=ModelParams.GAMMA_DEFAULT,
+                    q_init=ModelParams.Q_INIT_VALUE,
+                    wm_init=ModelParams.WM_INIT_VALUE
                 )
 
                 trial_logp = np.log(action_probs[np.arange(len(p_actions)), p_actions] + 1e-10)
@@ -413,7 +369,8 @@ def build_wmrl_model(
 
         pm.Potential(
             'likelihood',
-            logp_func(actions, participant_idx, stimuli, rewards, alpha, beta, capacity, lambda_decay, w_wm)
+            logp_func(actions, participant_idx, stimuli, rewards, set_sizes,
+                     alpha_pos, alpha_neg, beta, beta_wm, capacity, phi, rho)
         )
 
     return model

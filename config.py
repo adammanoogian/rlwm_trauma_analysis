@@ -84,8 +84,9 @@ class TaskParams:
 class ModelParams:
     """Default hyperparameters for RL models."""
 
-    # Q-learning parameters
-    ALPHA_DEFAULT = 0.1  # Learning rate (0-1)
+    # Q-learning parameters (asymmetric learning rates)
+    ALPHA_POS_DEFAULT = 0.3  # Learning rate for positive PE (correct trials)
+    ALPHA_NEG_DEFAULT = 0.1  # Learning rate for negative PE (incorrect trials)
     ALPHA_MIN = 0.0
     ALPHA_MAX = 1.0
 
@@ -93,22 +94,26 @@ class ModelParams:
     BETA_MIN = 0.01
     BETA_MAX = 20.0
 
-    GAMMA_DEFAULT = 0.0  # Discount factor (0-1), often 0 for immediate rewards
+    GAMMA_DEFAULT = 0.0  # Discount factor (fixed at 0 for this task)
     GAMMA_MIN = 0.0
     GAMMA_MAX = 1.0
 
     # Working Memory + RL Hybrid parameters
-    WM_CAPACITY_DEFAULT = 4  # Working memory capacity (items)
+    WM_CAPACITY_DEFAULT = 4  # WM capacity for adaptive weighting
     WM_CAPACITY_MIN = 1
     WM_CAPACITY_MAX = 7
 
-    LAMBDA_DECAY_DEFAULT = 0.1  # Memory decay rate (0-1)
-    LAMBDA_DECAY_MIN = 0.0
-    LAMBDA_DECAY_MAX = 1.0
+    PHI_DEFAULT = 0.1  # WM decay rate toward baseline (0-1)
+    PHI_MIN = 0.0
+    PHI_MAX = 1.0
 
-    W_WM_DEFAULT = 0.5  # Weight for WM vs RL (0-1)
-    W_WM_MIN = 0.0
-    W_WM_MAX = 1.0
+    RHO_DEFAULT = 0.7  # Base WM reliance parameter (0-1)
+    RHO_MIN = 0.0
+    RHO_MAX = 1.0
+
+    BETA_WM_DEFAULT = 3.0  # WM inverse temperature (>0)
+    BETA_WM_MIN = 0.01
+    BETA_WM_MAX = 20.0
 
     # Exploration parameters
     EPSILON_DEFAULT = 0.1  # Epsilon-greedy exploration (0-1)
@@ -117,6 +122,7 @@ class ModelParams:
 
     # Initialization
     Q_INIT_VALUE = 0.5  # Initial Q-values (optimistic initialization)
+    WM_INIT_VALUE = 0.0  # Initial WM values (baseline)
 
 # ============================================================================
 # PYMC SAMPLING PARAMETERS
@@ -215,6 +221,13 @@ class AnalysisParams:
         'main_task': '#2ecc71',  # Green
     }
 
+    COLORS_SET_SIZE = {
+        2: '#27ae60',  # Green
+        3: '#3498db',  # Blue
+        5: '#f39c12',  # Orange
+        6: '#e74c3c',  # Red
+    }
+
     # Random seed for reproducibility
     RANDOM_SEED = 42
 
@@ -297,7 +310,8 @@ def print_config_summary():
     print(f"  - Reversal Range: [{TaskParams.REVERSAL_MIN}, {TaskParams.REVERSAL_MAX}]")
     print(f"  - Reward: Correct={TaskParams.REWARD_CORRECT}, Incorrect={TaskParams.REWARD_INCORRECT}")
     print(f"\nModel Defaults:")
-    print(f"  - Learning Rate (α): {ModelParams.ALPHA_DEFAULT}")
+    print(f"  - Learning Rate (α_pos): {ModelParams.ALPHA_POS_DEFAULT}")
+    print(f"  - Learning Rate (α_neg): {ModelParams.ALPHA_NEG_DEFAULT}")
     print(f"  - Inverse Temperature (β): {ModelParams.BETA_DEFAULT}")
     print(f"  - Discount Factor (γ): {ModelParams.GAMMA_DEFAULT}")
     print(f"  - WM Capacity: {ModelParams.WM_CAPACITY_DEFAULT}")
