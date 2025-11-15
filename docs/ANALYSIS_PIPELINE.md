@@ -107,13 +107,17 @@ Trade-off: Slower sampling than NUTS, but ensures exact consistency between simu
 
 ## Pipeline Stages
 
-### Stage 1: Data Cleaning (Existing)
+### Stage 1: Data Cleaning and Behavioral Analysis
 
-Clean raw jsPsych data and compute behavioral metrics.
+Clean raw jsPsych data, compute behavioral metrics, and generate visualizations.
+
+#### 1.1 Standard Pipeline (With Survey Data)
+
+For participants with complete demographic and survey data:
 
 **Scripts:**
 ```bash
-# Run existing data pipeline
+# Parse raw jsPsych data
 python scripts/01_parse_raw_data.py
 python scripts/02_create_collated_csv.py
 python scripts/03_create_task_trials_csv.py
@@ -121,15 +125,101 @@ python scripts/04_create_summary_csv.py
 ```
 
 **Outputs:**
-- `output/parsed_*.csv`: Demographics, surveys, task trials
+- `output/parsed_demographics.csv`: Demographic information
+- `output/parsed_survey1.csv`: LEC-5 trauma exposure data
+- `output/parsed_survey2.csv`: IES-R PTSD symptoms
+- `output/parsed_task_trials.csv`: Trial-level task data
+- `output/collated_participant_data.csv`: Combined participant data
 - `output/task_trials_long.csv`: Trial-level data (for model fitting)
 - `output/summary_participant_metrics.csv`: Participant-level aggregates
 
+#### 1.2 Extended Pipeline (All Participants)
+
+For datasets including participants with partial data or anonymous IDs:
+
+**Parse all participants (including partial data):**
+```bash
+python scripts/parse_all_participants.py
+```
+
+This script:
+- Processes all CSV files in `data/` directory
+- Assigns anonymous IDs to participants without sona_id
+- Includes participants with ≥100 trials (partial completion)
+- Uses ID mapping from `data/participant_id_mapping.json`
+
+**Output:**
+- `output/task_trials_long_all_participants.csv`: Task data for all participants
+
+#### 1.3 Behavioral Visualizations
+
+**Activate environment (if using conda):**
+```bash
+# On Windows
+conda activate ds_env
+
+# Or use full path to Python executable
+# /c/Users/USERNAME/AppData/Local/miniforge3/envs/ds_env/python.exe
+```
+
+**Generate human performance visualizations:**
+```bash
+python scripts/analysis/visualize_human_performance.py --data output/task_trials_long_all_participants.csv
+```
+
+**Outputs:**
+- `figures/behavioral_summary/human_stimulus_performance_analysis.png`: Combined 2-panel figure
+- `figures/behavioral_summary/human_stimulus_learning_curve.png`: Detailed learning curves
+- `figures/behavioral_summary/human_stimulus_encounter_performance.png`: Performance by position
+- `output/behavioral_summary/human_stimulus_based_data.csv`: Processed encounter data
+
+**Generate scale distributions:**
+```bash
+python scripts/analysis/visualize_scale_distributions.py
+```
+
+**Outputs:**
+- `figures/behavioral_summary/scale_distributions.png`: LEC-5 and IES-R distributions
+- `figures/behavioral_summary/performance_distributions.png`: Task performance metrics
+
+**Generate correlation matrices:**
+```bash
+python scripts/analysis/visualize_scale_correlations.py
+```
+
+**Outputs:**
+- `figures/behavioral_summary/scale_correlations.png`: Correlation heatmap
+- `figures/behavioral_summary/trauma_performance_scatterplots.png`: Trauma-performance relationships
+
+**Generate summary report:**
+```bash
+python scripts/analysis/summarize_behavioral_data.py
+```
+
+**Output:**
+- `output/behavioral_summary/data_summary_report.txt`: Comprehensive data summary
+
+#### 1.4 Complete Behavioral Analysis Pipeline
+
+Run all behavioral analysis steps in sequence:
+
+```bash
+# Parse all participants
+python scripts/parse_all_participants.py
+
+# Generate all visualizations
+python scripts/analysis/visualize_human_performance.py --data output/task_trials_long_all_participants.csv
+python scripts/analysis/visualize_scale_distributions.py
+python scripts/analysis/visualize_scale_correlations.py
+python scripts/analysis/summarize_behavioral_data.py
+```
+
 **Key Variables:**
 - Demographics: age, gender, race, education
-- LEC-5: Trauma exposure (30 binary columns)
-- IES-R: PTSD symptoms (intrusion, avoidance, hyperarousal subscales)
-- Task metrics: accuracy, RT, learning slopes, reversal adaptation
+- LEC-5: Trauma exposure (total_events, personal_events, sum_exposures)
+- IES-R: PTSD symptoms (total, intrusion, avoidance, hyperarousal)
+- Task metrics: accuracy by set size, RT, learning slopes, reversal adaptation
+- Stimulus-based metrics: encounters per stimulus, pre/post-reversal performance
 
 ---
 

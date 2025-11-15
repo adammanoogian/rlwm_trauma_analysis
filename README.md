@@ -93,6 +93,54 @@ Or run all steps at once:
 python scripts/01_parse_raw_data.py && python scripts/02_create_collated_csv.py && python scripts/03_create_task_trials_csv.py && python scripts/04_create_summary_csv.py
 ```
 
+## Behavioral Analysis
+
+### Parse All Participants (Extended Pipeline)
+
+For datasets with partial data or anonymous participants:
+
+```bash
+# Parse all participants including those with partial data
+python scripts/parse_all_participants.py
+```
+
+This creates `output/task_trials_long_all_participants.csv` with all available data.
+
+### Generate Visualizations
+
+```bash
+# Human performance visualizations (stimulus-based learning curves)
+python scripts/analysis/visualize_human_performance.py --data output/task_trials_long_all_participants.csv
+
+# Scale distributions (LEC-5, IES-R)
+python scripts/analysis/visualize_scale_distributions.py
+
+# Correlation matrices
+python scripts/analysis/visualize_scale_correlations.py
+
+# Summary report
+python scripts/analysis/summarize_behavioral_data.py
+```
+
+### Complete Behavioral Analysis Pipeline
+
+Run all analysis steps:
+
+```bash
+# 1. Parse all participants
+python scripts/parse_all_participants.py
+
+# 2. Generate all visualizations
+python scripts/analysis/visualize_human_performance.py --data output/task_trials_long_all_participants.csv
+python scripts/analysis/visualize_scale_distributions.py
+python scripts/analysis/visualize_scale_correlations.py
+python scripts/analysis/summarize_behavioral_data.py
+```
+
+**Outputs:**
+- `figures/behavioral_summary/`: All visualization PNG files
+- `output/behavioral_summary/`: Processed data and reports
+
 ## Data Sources
 
 ### Demographics (8 variables)

@@ -1,1 +1,24 @@
 .claude/
+
+# Raw participant data (contains potentially sensitive information)
+data/rlwm_trauma_PARTICIPANT_SESSION_*.csv
+data/backup_*.csv
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+nul

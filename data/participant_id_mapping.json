@@ -1,0 +1,47 @@
+{
+  "rlwm_trauma_PARTICIPANT_SESSION_2025-11-05_19h45.58.719.csv": {
+    "assigned_id": 10000,
+    "n_trials": 1077,
+    "filename": "rlwm_trauma_PARTICIPANT_SESSION_2025-11-05_19h45.58.719.csv"
+  },
+  "rlwm_trauma_PARTICIPANT_SESSION_2025-11-08_14h54.06.567.csv": {
+    "assigned_id": 9187,
+    "n_trials": 1077,
+    "filename": "rlwm_trauma_PARTICIPANT_SESSION_2025-11-08_14h54.06.567.csv"
+  },
+  "rlwm_trauma_PARTICIPANT_SESSION_2025-11-12_07h27.21.790.csv": {
+    "assigned_id": 10001,
+    "n_trials": 207,
+    "filename": "rlwm_trauma_PARTICIPANT_SESSION_2025-11-12_07h27.21.790.csv"
+  },
+  "rlwm_trauma_PARTICIPANT_SESSION_2025-11-12_09h44.16.383.csv": {
+    "assigned_id": 10002,
+    "n_trials": 1077,
+    "filename": "rlwm_trauma_PARTICIPANT_SESSION_2025-11-12_09h44.16.383.csv"
+  },
+  "rlwm_trauma_PARTICIPANT_SESSION_2025-11-12_17h10.37.250.csv": {
+    "assigned_id": 10003,
+    "n_trials": 1077,
+    "filename": "rlwm_trauma_PARTICIPANT_SESSION_2025-11-12_17h10.37.250.csv"
+  },
+  "rlwm_trauma_PARTICIPANT_SESSION_2025-11-13_07h56.47.235.csv": {
+    "assigned_id": 10004,
+    "n_trials": 1077,
+    "filename": "rlwm_trauma_PARTICIPANT_SESSION_2025-11-13_07h56.47.235.csv"
+  },
+  "rlwm_trauma_PARTICIPANT_SESSION_2025-11-13_09h03.51.111.csv": {
+    "assigned_id": 10005,
+    "n_trials": 1077,
+    "filename": "rlwm_trauma_PARTICIPANT_SESSION_2025-11-13_09h03.51.111.csv"
+  },
+  "rlwm_trauma_PARTICIPANT_SESSION_2025-11-13_15h13.24.456.csv": {
+    "assigned_id": 10006,
+    "n_trials": 1077,
+    "filename": "rlwm_trauma_PARTICIPANT_SESSION_2025-11-13_15h13.24.456.csv"
+  },
+  "rlwm_trauma_PARTICIPANT_SESSION_2025-11-13_17h30.30.467.csv": {
+    "assigned_id": 10007,
+    "n_trials": 1077,
+    "filename": "rlwm_trauma_PARTICIPANT_SESSION_2025-11-13_17h30.30.467.csv"
+  }
+}
