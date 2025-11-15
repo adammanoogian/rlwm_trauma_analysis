@@ -16,6 +16,11 @@ import sys
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+# Import parsing and scoring functions
+sys.path.append(str(Path(__file__).resolve().parent / 'utils'))
+from data_cleaning import extract_survey1_data, extract_survey2_data
+from scoring_functions import score_lec5, score_ies_r
+
 # Load ID mapping
 mapping_file = Path('data/participant_id_mapping.json')
 with open(mapping_file, 'r') as f:
@@ -88,21 +93,19 @@ for filename, info in id_mapping.items():
             all_demographics.append(demo_row)
             print(f"  Demographics: Found")
 
-        # Extract Survey 1 (LEC-5)
-        survey1_data = df[df['section'] == 'survey1']
-        if len(survey1_data) > 0:
-            survey1_row = {'sona_id': assigned_id}
-            # Would need to parse response column properly
-            all_survey1.append(survey1_row)
-            print(f"  Survey 1: Found")
+        # Extract and parse Survey 1 (LEC-5)
+        survey1_parsed = extract_survey1_data(df)
+        if len(survey1_parsed) > 0:
+            survey1_parsed['sona_id'] = assigned_id
+            all_survey1.append(survey1_parsed)
+            print(f"  Survey 1: Parsed")
 
-        # Extract Survey 2 (IES-R)
-        survey2_data = df[df['section'] == 'survey2']
-        if len(survey2_data) > 0:
-            survey2_row = {'sona_id': assigned_id}
-            # Would need to parse response column properly
-            all_survey2.append(survey2_row)
-            print(f"  Survey 2: Found")
+        # Extract and parse Survey 2 (IES-R)
+        survey2_parsed = extract_survey2_data(df)
+        if len(survey2_parsed) > 0:
+            survey2_parsed['sona_id'] = assigned_id
+            all_survey2.append(survey2_parsed)
+            print(f"  Survey 2: Parsed")
 
     except Exception as e:
         print(f"  ERROR: {e}")
@@ -166,11 +169,80 @@ if all_task_trials:
 else:
     print("No task data found!")
 
+# Save survey data
+print()
+print("=" * 80)
+print("SAVING SURVEY DATA")
+print("=" * 80)
+
+if all_survey1:
+    survey1_df = pd.concat(all_survey1, ignore_index=True)
+    # Score LEC-5
+    survey1_df = score_lec5(survey1_df)
+
+    output_path = Path('output') / 'parsed_survey1_all.csv'
+    survey1_df.to_csv(output_path, index=False)
+    print(f"\\n[SAVED] {output_path}")
+    print(f"  {len(survey1_df)} participants with LEC-5 data")
+else:
+    print("\\nNo Survey 1 data found")
+
+if all_survey2:
+    survey2_df = pd.concat(all_survey2, ignore_index=True)
+    # Score IES-R
+    survey2_df = score_ies_r(survey2_df)
+
+    output_path = Path('output') / 'parsed_survey2_all.csv'
+    survey2_df.to_csv(output_path, index=False)
+    print(f"\\n[SAVED] {output_path}")
+    print(f"  {len(survey2_df)} participants with IES-R data")
+else:
+    print("\\nNo Survey 2 data found")
+
+# Create basic summary metrics with all participants
+if all_survey1 and all_survey2:
+    print()
+    print("=" * 80)
+    print("CREATING SUMMARY WITH SURVEY DATA")
+    print("=" * 80)
+
+    # Get LEC-5 summary scores
+    lec_summary = survey1_df[['sona_id', 'lec_total_events', 'lec_personal_events', 'lec_sum_exposures']]
+
+    # Get IES-R summary scores
+    ies_summary = survey2_df[['sona_id', 'ies_total', 'ies_intrusion', 'ies_avoidance', 'ies_hyperarousal']]
+
+    # Merge survey data
+    summary_df = lec_summary.merge(ies_summary, on='sona_id', how='outer')
+
+    # Add basic task metrics if available
+    if all_task_trials and len(task_df) > 0:
+        # Simple accuracy calculation per participant
+        task_basic = task_df.groupby('sona_id').agg({
+            'correct': ['mean', 'count'],
+            'rt': 'mean'
+        }).reset_index()
+        task_basic.columns = ['sona_id', 'accuracy_overall', 'n_trials_total', 'mean_rt_overall']
+
+        # Merge with survey data
+        summary_df = summary_df.merge(task_basic, on='sona_id', how='left')
+
+    # Save
+    output_path = Path('output') / 'summary_participant_metrics_all.csv'
+    summary_df.to_csv(output_path, index=False)
+    print(f"\\n[SAVED] {output_path}")
+    print(f"  {len(summary_df)} participants with survey data")
+
+    # Also update the default summary file for visualizations
+    output_path_default = Path('output') / 'summary_participant_metrics.csv'
+    summary_df.to_csv(output_path_default, index=False)
+    print(f"\\n[UPDATED] {output_path_default} (for use in visualizations)")
+
 print("\\n" + "=" * 80)
 print("PARSING COMPLETE")
 print("=" * 80)
 print("\\nNext steps:")
 print("  1. Review output/task_trials_long_all_participants.csv")
-print("  2. Run compute_summary_metrics.py to calculate performance metrics")
+print("  2. Review output/summary_participant_metrics_all.csv")
 print("  3. Generate visualizations with all 9 participants")
 print("=" * 80)

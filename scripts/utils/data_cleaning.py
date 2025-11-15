@@ -197,10 +197,16 @@ def extract_survey2_data(df):
         return pd.DataFrame()
 
     # Get one row per participant
-    survey2 = survey2_data.groupby('sona_id')['scored_responses'].first().reset_index()
+    # Try 'response' column first (actual data), fall back to 'scored_responses' if needed
+    if 'response' in survey2_data.columns and survey2_data['response'].notna().any():
+        survey2 = survey2_data.groupby('sona_id')['response'].first().reset_index()
+        response_col = 'response'
+    else:
+        survey2 = survey2_data.groupby('sona_id')['scored_responses'].first().reset_index()
+        response_col = 'scored_responses'
 
     # Parse JSON responses
-    parsed_scores = survey2['scored_responses'].apply(extract_ies_scores)
+    parsed_scores = survey2[response_col].apply(extract_ies_scores)
 
     # Convert to DataFrame
     scores_df = pd.DataFrame(parsed_scores.tolist())
