@@ -155,6 +155,7 @@ def plot_trauma_performance_relationships(summary_df, save_dir):
 
     # Define relationships to plot
     relationships = [
+        ('lec_total_events', 'ies_total', 'LEC-5 Total Events', 'IES-R Total'),
         ('lec_total_events', 'accuracy_overall', 'LEC-5 Total Events', 'Overall Accuracy'),
         ('lec_personal_events', 'accuracy_overall', 'LEC-5 Personal Events', 'Overall Accuracy'),
         ('ies_total', 'accuracy_overall', 'IES-R Total', 'Overall Accuracy'),
