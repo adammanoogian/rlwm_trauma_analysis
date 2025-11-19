@@ -3,7 +3,7 @@ BEHAVIORAL DATA SUMMARY REPORT
 ================================================================================
 
 PARTICIPANTS: 2
-TOTAL TRIALS: 9030
+TOTAL TRIALS: 14580
 
 DEMOGRAPHICS:
   Age: ['26x' '34.0']
@@ -11,23 +11,15 @@ DEMOGRAPHICS:
   Countries: ['Ausx', 'Australia']
 
 TASK PERFORMANCE:
-  Overall Accuracy              : 0.8172
-  Low Load Accuracy             : 0.8485
-  High Load Accuracy            : 0.8015
-  Set Size 2 Accuracy           : 0.8533
-  Set Size 3 Accuracy           : 0.8444
-  Set Size 5 Accuracy           : 0.7633
-  Set Size 6 Accuracy           : 0.8333
-  Mean RT (ms)                  : 611.6481
-  Learning Slope                : 0.0087
-  Learning Improvement          : 0.1748
+  Overall Accuracy              : 0.6202
+  Mean RT (ms)                  : 494.1670
 
 SCALE METRICS:
-  LEC-5 Total Events            : 15
-  LEC-5 Personal Events         : 15
-  IES-R Total                   : 0.0
-  IES-R Intrusion               : 0.0
-  IES-R Avoidance               : 0.0
-  IES-R Hyperarousal            : 0.0
+  LEC-5 Total Events            : 11
+  LEC-5 Personal Events         : 8
+  IES-R Total                   : 22
+  IES-R Intrusion               : 7
+  IES-R Avoidance               : 9
+  IES-R Hyperarousal            : 6
 
 ================================================================================

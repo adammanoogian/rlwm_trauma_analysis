@@ -214,6 +214,65 @@ python scripts/analysis/visualize_scale_correlations.py
 python scripts/analysis/summarize_behavioral_data.py
 ```
 
+#### 1.5 Complete Pipeline from Raw Data (One Command)
+
+Run the **entire data processing and analysis pipeline** with a single script (excludes model fitting/simulation).
+
+**Two-Folder Setup:**
+- **Experiment folder**: `../rlwm_trauma/data/` - Where experiment software saves new participant data
+- **Analysis folder**: `rlwm_trauma_analysis/data/` - Where analysis pipeline reads data from
+
+**Automatic Data Sync:**
+By default, the pipeline automatically syncs new data from the experiment folder to the analysis folder before processing. This ensures you're always analyzing the latest data without manually copying files.
+
+**Standard Usage (with automatic sync):**
+```bash
+# Python script (recommended for Windows)
+python run_data_pipeline.py
+
+# OR Bash script (Linux/Mac or Git Bash on Windows)
+bash run_data_pipeline.sh
+```
+
+**Skip sync if no new data:**
+```bash
+python run_data_pipeline.py --no-sync
+```
+
+**Just sync data without analysis:**
+```bash
+python sync_experiment_data.py
+```
+
+**This pipeline will:**
+1. **Sync data** from experiment folder (unless `--no-sync` is used)
+2. Update participant ID mapping
+3. Parse raw jsPsych data (demographics, LEC-5, IES-R, task trials)
+4. Create collated participant data
+5. Create task trials datasets (standard + all participants)
+6. Generate summary metrics
+7. Generate all behavioral visualizations
+8. Generate scale distributions and correlations
+9. Create comprehensive summary report
+
+**Outputs generated:**
+- `output/parsed_*.csv` - Parsed demographic and survey data
+- `output/task_trials_long.csv` - Standard task trials
+- `output/task_trials_long_all_participants.csv` - Extended task trials
+- `output/collated_participant_data.csv` - Combined participant data
+- `output/summary_participant_metrics.csv` - Behavioral metrics
+- `figures/behavioral_summary/*.png` - All visualizations
+- `output/behavioral_summary/data_summary_report.txt` - Summary report
+- `data/sync_log.txt` - Log of all data sync operations
+
+**Data Sync Safety Features:**
+- **Read-only** access to experiment folder - never modifies source data
+- Only copies files matching pattern `rlwm_trauma_PARTICIPANT_SESSION_*.csv`
+- Skips files already present (compares by filename and timestamp)
+- Updates existing files only if source is newer
+- Logs all operations to `data/sync_log.txt`
+- Validates experiment folder exists before attempting sync
+
 **Key Variables:**
 - Demographics: age, gender, race, education
 - LEC-5: Trauma exposure (total_events, personal_events, sum_exposures)
@@ -850,6 +909,188 @@ plt.show()
    - Power analysis for detecting parameter differences
    - Sample size planning
    - Model recovery validation
+
+---
+
+## Stage 10: Trauma-Based Grouping Analysis
+
+### 10.1 Overview
+
+Analyze participant subgroups based on trauma exposure (LEC-5) and PTSD symptoms (IES-R) using two complementary approaches:
+1. **Hypothesis-driven**: Theory-based 3-group classification
+2. **Unsupervised**: Hierarchical clustering to discover natural groupings
+
+### 10.2 Rationale for Methodological Choices
+
+**Why Distribution-Based Cutoffs (Median Splits)?**
+
+For exploratory analysis with small samples (N=17), distribution-based cutoffs are preferred over clinical thresholds for several reasons:
+
+1. **Adequate sample sizes**: Clinical cutoffs (e.g., IES-R ≥ 33 for probable PTSD) may create severely imbalanced groups. With N=17, if only 2-3 participants exceed clinical threshold, statistical comparisons become underpowered.
+
+2. **Relative differences matter**: In exploratory research, we're interested in *relative* differences within our sample (who has higher vs. lower trauma/symptoms) rather than absolute diagnostic classification.
+
+3. **Sample-specific interpretation**: Median splits create balanced groups while capturing meaningful variation in your specific cohort, which is appropriate for pilot/exploratory studies.
+
+4. **Statistical power**: Equal group sizes maximize power for group comparisons with limited N.
+
+**Clinical Thresholds (For Reference):**
+- IES-R ≥ 33: Probable PTSD diagnosis (Creamer et al., 2003)
+- LEC-5: No established cutoff (it's an exposure checklist, not diagnostic)
+
+**When to Use Clinical Cutoffs:**
+- Larger samples (N > 60) where group imbalance is tolerable
+- Clinical/diagnostic research questions
+- Comparing to published literature using same thresholds
+- Confirmatory rather than exploratory analysis
+
+**Why Hierarchical Clustering Over K-Means?**
+
+For this dataset, hierarchical clustering with Ward linkage is recommended:
+
+1. **No pre-specified k**: You don't know if 2, 3, or 4 groups is optimal. Hierarchical clustering tests all simultaneously via the dendrogram.
+
+2. **Small sample size**: With N=17, computational cost is negligible, making hierarchical's slower speed irrelevant.
+
+3. **Deterministic results**: Unlike k-means (which uses random initialization), hierarchical clustering produces identical results every run without needing to set random seeds.
+
+4. **Rich visualization**: The dendrogram shows not just *which* cluster each participant belongs to, but *how similar* they are to each other at different levels of the hierarchy.
+
+5. **Flexible cluster shapes**: Doesn't assume spherical/equal-variance clusters like k-means.
+
+6. **Individual-level interpretation**: With only 17 participants, you can examine *why* specific individuals grouped together by looking at their position in the tree.
+
+**When K-Means Is Better:**
+- Very large datasets (N > 1000) where hierarchical is too slow
+- You have strong theoretical reasons to expect exactly k groups
+- You want probabilistic cluster assignments (use GMM variant)
+
+### 10.3 Run Grouping Analysis
+
+**Hypothesis-driven + Hierarchical clustering:**
+```bash
+python scripts/analysis/trauma_grouping_analysis.py
+```
+
+**Outputs:**
+- `figures/trauma_groups/hypothesis_groups_scatter.png`: 3-group classification visualization
+- `figures/trauma_groups/hierarchical_dendrogram.png`: Full cluster hierarchy tree
+- `figures/trauma_groups/cluster_comparison.png`: Comparing k=2, 3, 4 solutions
+- `figures/trauma_groups/cluster_silhouette.png`: Quality metrics for each k
+- `figures/trauma_groups/group_comparison_heatmap.png`: Cross-tab of methods
+- `output/trauma_groups/group_assignments.csv`: All grouping solutions
+- `output/trauma_groups/group_summary_stats.csv`: Descriptive stats per group
+- `output/trauma_groups/clustering_metrics.csv`: Silhouette scores
+- `output/trauma_groups/cutoff_values.csv`: Median values used
+
+### 10.4 Validate Groups
+
+Test whether groups differ on behavioral outcomes:
+
+```bash
+python scripts/analysis/validate_trauma_groups.py
+```
+
+**Statistical Tests:**
+- ANOVA or Kruskal-Wallis (depending on normality)
+- Post-hoc pairwise comparisons with Bonferroni correction
+- Effect size calculations (eta-squared, Cohen's d)
+
+**Outputs:**
+- `figures/trauma_groups/behavioral_by_group.png`: Performance differences
+- `output/trauma_groups/validation_report.txt`: Statistical results
+
+### 10.5 Hypothesis-Driven Groups
+
+**Group A (Low-Low)**: Low trauma exposure, low symptoms
+- LEC-5 < median
+- IES-R < median
+- **Interpretation**: Minimal trauma history, no significant symptoms
+- **Predicted behavior**: Baseline/control performance
+
+**Group B (High-Low)**: High trauma exposure, low symptoms (Resilient)
+- LEC-5 ≥ median
+- IES-R < median
+- **Interpretation**: Experienced trauma but no PTSD symptoms (resilience)
+- **Predicted behavior**: May show trauma effects despite resilience, or compensatory performance
+
+**Group C (High-High)**: High trauma exposure, high symptoms
+- LEC-5 ≥ median
+- IES-R ≥ median
+- **Interpretation**: Trauma exposure with significant symptomatology
+- **Predicted behavior**: Potential cognitive/learning deficits
+
+**Note on Low LEC + High IES-R:**
+This pattern (trauma symptoms without trauma exposure) is theoretically inconsistent and rare. If present, participants are flagged as "Excluded_Low_High" for review.
+
+### 10.6 Interpreting Results
+
+**With N=17:**
+- Statistical power is limited (~80% power to detect large effects, d ≥ 1.2)
+- **Focus on effect sizes** rather than p-values
+- Treat as exploratory/pilot analysis
+- Non-significant results ≠ no effect (may reflect insufficient power)
+
+**Effect Size Interpretation:**
+- **Small**: η² = 0.01, Cohen's d = 0.2
+- **Medium**: η² = 0.06, Cohen's d = 0.5
+- **Large**: η² = 0.14, Cohen's d = 0.8
+
+**Silhouette Score Interpretation:**
+- **0.7-1.0**: Strong, well-separated clusters
+- **0.5-0.7**: Reasonable cluster structure
+- **0.25-0.5**: Weak, overlapping clusters
+- **< 0.25**: No substantial cluster structure
+
+### 10.7 Comparing Methods
+
+Cross-tabulation shows concordance between hypothesis-driven and clustering approaches:
+
+- **High concordance**: Methods agree on grouping → robust, interpretable groups
+- **Low concordance**: Methods disagree → data-driven structure differs from hypothesis
+- **Chi-square test**: Tests whether association is significant
+
+**Recommendations:**
+1. If methods agree: Use hypothesis groups for primary analysis (more interpretable)
+2. If methods disagree: Report both, explore discrepant cases
+3. Always validate both against behavioral outcomes
+
+### 10.8 Sample Size Considerations
+
+**Current Study (N=17):**
+- Appropriate for: Exploratory analysis, pilot study, effect size estimation
+- Limitations: Underpowered for detecting small-medium effects, limited generalizability
+- Recommendation: Treat as hypothesis-generating, plan larger replication
+
+**For Confirmatory Analysis:**
+- **N = 60-90** recommended for adequate power (80%) to detect medium effects
+- Allows ~20-30 participants per group
+- Enables more complex analyses (covariates, interactions, mediation)
+
+### 10.9 Advanced Analyses (Future Directions)
+
+**Include Subscales:**
+```python
+# In trauma_grouping_analysis.py, modify features:
+features = [
+    'lec_personal_events',  # Focus on personal trauma
+    'ies_intrusion',        # Re-experiencing symptoms
+    'ies_avoidance',        # Avoidance behaviors
+    'ies_hyperarousal'      # Arousal symptoms
+]
+```
+
+This may identify **symptom profile subtypes**:
+- High intrusion, low avoidance
+- High avoidance, low hyperarousal
+- Balanced symptom profile
+
+**Latent Profile Analysis (LPA):**
+For larger samples (N > 100), consider LPA:
+- Model-based clustering with better statistical properties
+- Estimates class probabilities
+- Allows covariate inclusion
+- Standard in trauma research
 
 ---
 
