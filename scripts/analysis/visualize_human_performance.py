@@ -37,6 +37,9 @@ def process_human_data_stimulus_based(trials_df):
     """
     processed = []
 
+    # Filter out practice blocks (block < 3)
+    trials_df = trials_df[trials_df['block'] >= 3].copy()
+
     # Process each participant and block
     for (subject_id, block_id), block_data in trials_df.groupby(['sona_id', 'block']):
         block_data = block_data.sort_values('trial_in_block').reset_index(drop=True)
