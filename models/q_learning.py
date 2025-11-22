@@ -156,7 +156,7 @@ class QLearningAgent:
         # Numerical stability: subtract max before exp
         q_vals_scaled = self.beta * (q_vals - np.max(q_vals))
         exp_q = np.exp(q_vals_scaled)
-        probs = exp_q / np.sum(exp_q)
+        probs = exp_q / exp_q.sum()  # Use .sum() for PyTensor compatibility
 
         return probs
 

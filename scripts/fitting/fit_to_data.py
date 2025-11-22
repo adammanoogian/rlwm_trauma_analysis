@@ -24,6 +24,7 @@ import pandas as pd
 from pathlib import Path
 import sys
 from datetime import datetime
+from typing import Dict
 
 # Add project root
 project_root = Path(__file__).parent.parent.parent
@@ -45,6 +46,11 @@ from scripts.fitting.pymc_models import (
     build_wmrl_model,
     prepare_data_for_fitting,
     compute_model_comparison
+)
+
+# Import functional models (PyTensor-compatible)
+from scripts.fitting.pymc_models_functional import (
+    build_qlearning_model_functional
 )
 
 
@@ -82,7 +88,7 @@ def load_and_prepare_data(
         df,
         participant_col='sona_id',
         block_col='block',
-        trial_col='trial',
+        trial_col='trial_in_block',
         stimulus_col='stimulus',
         action_col='key_press',
         correct_col='correct',
@@ -124,7 +130,13 @@ def fit_qlearning_model(
 
     # Build model
     print("\nBuilding model...")
-    with build_qlearning_model(data) as model:
+    with build_qlearning_model(
+        data,
+        participant_col='sona_id',
+        stimulus_col='stimulus',
+        action_col='key_press',
+        reward_col='reward'
+    ) as model:
         print(f"  Model variables: {list(model.named_vars.keys())}")
 
         # Sample
@@ -148,6 +160,74 @@ def fit_qlearning_model(
     print(f"  Divergences: {trace.sample_stats.diverging.sum().values}")
 
     summary = az.summary(trace, var_names=['mu_alpha', 'sigma_alpha', 'mu_beta', 'sigma_beta'])
+    print("\nGroup-level parameters:")
+    print(summary)
+
+    return trace
+
+
+def fit_qlearning_model_functional(
+    data: pd.DataFrame,
+    num_chains: int = PyMCParams.NUM_CHAINS,
+    num_samples: int = PyMCParams.NUM_SAMPLES,
+    num_tune: int = PyMCParams.NUM_TUNE,
+    target_accept: float = PyMCParams.TARGET_ACCEPT,
+) -> az.InferenceData:
+    """
+    Fit Q-learning model to data using functional PyTensor approach.
+
+    This uses pure functional operations (no mutation) which allows
+    full PyTensor compatibility and gradient-based sampling.
+
+    Parameters
+    ----------
+    data : pd.DataFrame
+        Prepared trial data
+    num_chains, num_samples, num_tune : int
+        MCMC parameters
+    target_accept : float
+        Target acceptance rate
+
+    Returns
+    -------
+    az.InferenceData
+        Posterior samples and diagnostics
+    """
+    print("\n" + "=" * 80)
+    print("FITTING Q-LEARNING MODEL (FUNCTIONAL)")
+    print("=" * 80)
+
+    # Build model using functional approach
+    print("\nBuilding model (functional PyTensor implementation)...")
+    with build_qlearning_model_functional(
+        data,
+        participant_col='sona_id',
+        stimulus_col='stimulus',
+        action_col='key_press',
+        reward_col='reward'
+    ) as model:
+        print(f"  Model variables: {list(model.named_vars.keys())}")
+
+        # Sample
+        print(f"\nSampling: {num_chains} chains, {num_samples} samples, {num_tune} tune")
+        print("  Using Metropolis sampler (functional approach)")
+
+        trace = pm.sample(
+            draws=num_samples,
+            tune=num_tune,
+            chains=num_chains,
+            step=pm.Metropolis(),  # Still use Metropolis for now
+            return_inferencedata=True,
+            random_seed=42
+        )
+
+    print("\nSampling complete!")
+
+    # Diagnostics
+    print("\nDiagnostics:")
+    print(f"  Divergences: {trace.sample_stats.diverging.sum().values if hasattr(trace, 'sample_stats') else 'N/A'}")
+
+    summary = az.summary(trace, var_names=['mu_alpha_pos', 'mu_alpha_neg', 'mu_beta'])
     print("\nGroup-level parameters:")
     print(summary)
 
@@ -183,7 +263,14 @@ def fit_wmrl_model(
     print("=" * 80)
 
     print("\nBuilding model...")
-    with build_wmrl_model(data) as model:
+    with build_wmrl_model(
+        data,
+        participant_col='sona_id',
+        stimulus_col='stimulus',
+        action_col='key_press',
+        reward_col='reward',
+        set_size_col='set_size'
+    ) as model:
         print(f"  Model variables: {list(model.named_vars.keys())}")
 
         print(f"\nSampling: {num_chains} chains, {num_samples} samples, {num_tune} tune")
@@ -279,6 +366,9 @@ def main():
     parser.add_argument('--model', type=str, default='both',
                         choices=['qlearning', 'wmrl', 'both'],
                         help='Which model to fit')
+    parser.add_argument('--method', type=str, default='functional',
+                        choices=['functional', 'agent'],
+                        help='Fitting method: functional (PyTensor scan) or agent (OOP classes)')
     parser.add_argument('--data', type=str, default=str(DataParams.TASK_TRIALS_LONG),
                         help='Path to task_trials_long.csv')
     parser.add_argument('--chains', type=int, default=PyMCParams.NUM_CHAINS,
@@ -297,6 +387,7 @@ def main():
     print("=" * 80)
     print(f"\nSettings:")
     print(f"  Model: {args.model}")
+    print(f"  Method: {args.method}")
     print(f"  Data: {args.data}")
     print(f"  Chains: {args.chains}")
     print(f"  Samples: {args.samples}")
@@ -310,12 +401,21 @@ def main():
     traces = {}
 
     if args.model in ['qlearning', 'both']:
-        trace_qlearning = fit_qlearning_model(
-            data,
-            num_chains=args.chains,
-            num_samples=args.samples,
-            num_tune=args.tune
-        )
+        # Choose fitting method
+        if args.method == 'functional':
+            trace_qlearning = fit_qlearning_model_functional(
+                data,
+                num_chains=args.chains,
+                num_samples=args.samples,
+                num_tune=args.tune
+            )
+        else:
+            trace_qlearning = fit_qlearning_model(
+                data,
+                num_chains=args.chains,
+                num_samples=args.samples,
+                num_tune=args.tune
+            )
         traces['qlearning'] = trace_qlearning
 
     if args.model in ['wmrl', 'both']:

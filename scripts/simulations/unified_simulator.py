@@ -292,13 +292,14 @@ def simulate_qlearning_for_likelihood(
     )
 
     num_trials = len(stimuli)
-    action_probs = np.zeros((num_trials, num_actions))
+    action_probs_list = []
 
     for t in range(num_trials):
         stimulus = stimuli[t]
 
         # Get action probabilities at this trial
-        action_probs[t] = agent.get_action_probs(stimulus)
+        probs = agent.get_action_probs(stimulus)
+        action_probs_list.append(probs)
 
         # For likelihood computation, we need to update with OBSERVED action
         # But we don't have it in this function - it's handled in the caller
@@ -307,12 +308,13 @@ def simulate_qlearning_for_likelihood(
 
         if t < num_trials - 1:
             # Get most likely action (for updating Q-values)
-            action = np.argmax(action_probs[t])
+            action = np.argmax(probs)
             reward = rewards[t]
             next_stimulus = stimuli[t + 1]
             agent.update(stimulus, action, reward, next_stimulus)
 
-    return action_probs
+    # Stack into array (PyTensor-compatible)
+    return np.stack(action_probs_list, axis=0)
 
 
 def simulate_wmrl_for_likelihood(
@@ -393,7 +395,7 @@ def simulate_wmrl_for_likelihood(
     )
 
     num_trials = len(stimuli)
-    action_probs = np.zeros((num_trials, num_actions))
+    action_probs_list = []
 
     for t in range(num_trials):
         stimulus = stimuli[t]
@@ -401,15 +403,17 @@ def simulate_wmrl_for_likelihood(
 
         # Get hybrid action probabilities (requires set_size for adaptive weighting)
         hybrid_info = agent.get_hybrid_probs(stimulus, set_size)
-        action_probs[t] = hybrid_info['probs']
+        probs = hybrid_info['probs']
+        action_probs_list.append(probs)
 
         if t < num_trials - 1:
-            action = np.argmax(action_probs[t])
+            action = np.argmax(probs)
             reward = rewards[t]
             next_stimulus = stimuli[t + 1]
             agent.update(stimulus, action, reward, next_stimulus)
 
-    return action_probs
+    # Stack into array (PyTensor-compatible)
+    return np.stack(action_probs_list, axis=0)
 
 
 def results_to_dataframe(results: Union[SimulationResult, List[SimulationResult]]) -> pd.DataFrame:
