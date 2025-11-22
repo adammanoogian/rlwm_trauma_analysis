@@ -237,6 +237,53 @@ def prepare_data_for_numpyro(
     return participant_data
 
 
+def test_likelihood_compilation(
+    participant_data: Dict,
+    verbose: bool = True
+):
+    """
+    Test likelihood compilation on single evaluation (for debugging).
+
+    This helps identify issues before starting expensive MCMC sampling.
+    """
+    if verbose:
+        print("\n>> Testing likelihood compilation...")
+        print("   This will compile JAX functions (first time only)")
+
+    # Get first participant
+    first_pid = list(participant_data.keys())[0]
+    pdata = participant_data[first_pid]
+
+    # Test parameters
+    test_params = {
+        'alpha_pos': 0.3,
+        'alpha_neg': 0.1,
+        'beta': 2.0
+    }
+
+    if verbose:
+        num_blocks = len(pdata['stimuli_blocks'])
+        num_trials = sum([len(block) for block in pdata['stimuli_blocks']])
+        print(f"   Participant {first_pid}: {num_blocks} blocks, {num_trials} trials")
+
+    # Compute likelihood (will trigger compilation)
+    log_lik = q_learning_multiblock_likelihood(
+        stimuli_blocks=pdata['stimuli_blocks'],
+        actions_blocks=pdata['actions_blocks'],
+        rewards_blocks=pdata['rewards_blocks'],
+        alpha_pos=test_params['alpha_pos'],
+        alpha_neg=test_params['alpha_neg'],
+        beta=test_params['beta'],
+        verbose=verbose,
+        participant_id=str(first_pid)
+    )
+
+    if verbose:
+        print(f">> Compilation successful! Test log-likelihood: {float(log_lik):.2f}\n")
+
+    return log_lik
+
+
 def run_inference(
     model: callable,
     model_args: Dict[str, Any],
@@ -245,7 +292,8 @@ def run_inference(
     num_chains: int = 4,
     seed: int = 42,
     target_accept_prob: float = 0.8,
-    max_tree_depth: int = 10
+    max_tree_depth: int = 10,
+    test_compilation: bool = True
 ):
     """
     Run MCMC inference using NUTS sampler.
@@ -268,6 +316,8 @@ def run_inference(
         Target acceptance probability for NUTS (default: 0.8)
     max_tree_depth : int
         Maximum tree depth for NUTS (default: 10)
+    test_compilation : bool
+        Test likelihood compilation before MCMC (default: True)
 
     Returns
     -------
@@ -288,6 +338,17 @@ def run_inference(
     >>> samples = mcmc.get_samples()
     >>> print(samples['mu_alpha_pos'].mean())
     """
+    # Test compilation first
+    if test_compilation and 'participant_data' in model_args:
+        test_likelihood_compilation(model_args['participant_data'], verbose=True)
+
+    print(">> Starting MCMC sampling...")
+    print(f"   Chains: {num_chains}")
+    print(f"   Warmup: {num_warmup}")
+    print(f"   Samples: {num_samples}")
+    print(f"   Total iterations: {(num_warmup + num_samples) * num_chains}")
+    print()
+
     # Initialize NUTS sampler
     nuts_kernel = NUTS(
         model,
@@ -309,6 +370,7 @@ def run_inference(
     mcmc.run(rng_key, **model_args)
 
     # Print diagnostics
+    print("\n>> Sampling complete! Computing diagnostics...")
     mcmc.print_summary()
 
     return mcmc

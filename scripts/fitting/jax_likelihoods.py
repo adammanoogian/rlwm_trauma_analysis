@@ -222,7 +222,9 @@ def q_learning_multiblock_likelihood(
     beta: float,
     num_stimuli: int = 6,
     num_actions: int = 3,
-    q_init: float = 0.5
+    q_init: float = 0.5,
+    verbose: bool = False,
+    participant_id: str = None
 ) -> float:
     """
     Compute log-likelihood across MULTIPLE BLOCKS.
@@ -244,6 +246,10 @@ def q_learning_multiblock_likelihood(
         State/action space dimensions
     q_init : float
         Initial Q-value for all state-action pairs
+    verbose : bool
+        Print block-by-block progress
+    participant_id : str
+        Participant ID for verbose output
 
     Returns
     -------
@@ -262,8 +268,17 @@ def q_learning_multiblock_likelihood(
     ... )
     """
     total_log_lik = 0.0
+    num_blocks = len(stimuli_blocks)
 
-    for stim_block, act_block, rew_block in zip(stimuli_blocks, actions_blocks, rewards_blocks):
+    if verbose:
+        print(f"\n  >> Processing {num_blocks} blocks for participant {participant_id}...")
+
+    for block_idx, (stim_block, act_block, rew_block) in enumerate(zip(stimuli_blocks, actions_blocks, rewards_blocks)):
+        if verbose and block_idx == 0:
+            print(f"     [Block 1/{num_blocks}] Compiling JAX likelihood (first time only)...", flush=True)
+        elif verbose and block_idx % 5 == 0:
+            print(f"     [Block {block_idx+1}/{num_blocks}] Processing...", flush=True)
+
         block_log_lik = q_learning_block_likelihood(
             stimuli=stim_block,
             actions=act_block,
@@ -276,6 +291,12 @@ def q_learning_multiblock_likelihood(
             q_init=q_init
         )
         total_log_lik += block_log_lik
+
+        if verbose and block_idx == 0:
+            print(f"     [Block 1/{num_blocks}] Compiled! Log-lik: {float(block_log_lik):.2f}", flush=True)
+
+    if verbose:
+        print(f"  >> Total log-likelihood: {float(total_log_lik):.2f} ({num_blocks} blocks)\n", flush=True)
 
     return total_log_lik
 
