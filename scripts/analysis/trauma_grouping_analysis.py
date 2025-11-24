@@ -21,6 +21,11 @@ from scipy.stats import chi2_contingency
 import warnings
 warnings.filterwarnings('ignore')
 
+# Import plotting config
+import sys
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from plotting_config import PlotConfig, ScatterPlotConfig
+
 # Set style
 sns.set_style("whitegrid")
 plt.rcParams['figure.dpi'] = 300
@@ -87,11 +92,11 @@ def create_hypothesis_groups(df):
     # Create group labels
     def assign_group(row):
         if row['lec_high'] == 0 and row['ies_high'] == 0:
-            return 'A_Low_Low'
+            return 'No Trauma'
         elif row['lec_high'] == 1 and row['ies_high'] == 0:
-            return 'B_High_Low'
+            return 'Trauma - No Ongoing Impact'
         elif row['lec_high'] == 1 and row['ies_high'] == 1:
-            return 'C_High_High'
+            return 'Trauma - Ongoing Impact'
         else:  # Low LEC, High IES - theoretically inconsistent
             return 'Excluded_Low_High'
 
@@ -111,7 +116,7 @@ def create_hypothesis_groups(df):
 
     # Print group characteristics
     print("\nGroup Characteristics (Mean ± SD):")
-    for group in ['A_Low_Low', 'B_High_Low', 'C_High_High']:
+    for group in ['No Trauma', 'Trauma - No Ongoing Impact', 'Trauma - Ongoing Impact']:
         if group in df['hypothesis_group'].values:
             group_data = df[df['hypothesis_group'] == group]
             lec_mean = group_data['lec_total_events'].mean()
@@ -198,20 +203,20 @@ def plot_hypothesis_groups(df, lec_median, ies_median):
 
     # Define colors and markers for each group
     group_colors = {
-        'A_Low_Low': '#2ecc71',      # Green - low trauma, low symptoms
-        'B_High_Low': '#f39c12',     # Orange - high trauma, low symptoms (resilient)
-        'C_High_High': '#e74c3c',    # Red - high trauma, high symptoms
-        'Excluded_Low_High': '#95a5a6'  # Gray - excluded
+        'No Trauma': '#2ecc71',                    # Green - no trauma exposure, no symptoms
+        'Trauma - No Ongoing Impact': '#f39c12',  # Orange - trauma exposure, no ongoing symptoms
+        'Trauma - Ongoing Impact': '#e74c3c',     # Red - trauma exposure, ongoing symptoms
+        'Excluded_Low_High': '#95a5a6'            # Gray - excluded (theoretically inconsistent)
     }
 
     group_labels = {
-        'A_Low_Low': 'Group A: Low Trauma, Low Symptoms',
-        'B_High_Low': 'Group B: High Trauma, Low Symptoms (Resilient)',
-        'C_High_High': 'Group C: High Trauma, High Symptoms',
+        'No Trauma': 'No Trauma',
+        'Trauma - No Ongoing Impact': 'Trauma - No Ongoing Impact',
+        'Trauma - Ongoing Impact': 'Trauma - Ongoing Impact',
         'Excluded_Low_High': 'Excluded: Low Trauma, High Symptoms'
     }
 
-    # Plot each group
+    # Plot each group - use ScatterPlotConfig for marker properties
     for group in df['hypothesis_group'].unique():
         group_data = df[df['hypothesis_group'] == group]
         ax.scatter(
@@ -219,33 +224,34 @@ def plot_hypothesis_groups(df, lec_median, ies_median):
             group_data['ies_total'],
             c=group_colors.get(group, 'gray'),
             label=group_labels.get(group, group),
-            s=150,
-            alpha=0.7,
-            edgecolors='black',
-            linewidth=1.5
+            s=ScatterPlotConfig.SIZE,
+            alpha=ScatterPlotConfig.ALPHA,
+            edgecolors=ScatterPlotConfig.EDGE_COLOR,
+            linewidth=ScatterPlotConfig.EDGE_WIDTH
         )
 
     # Add median lines
     ax.axvline(lec_median, color='black', linestyle='--', alpha=0.5, linewidth=1, label=f'LEC Median ({lec_median})')
     ax.axhline(ies_median, color='black', linestyle='--', alpha=0.5, linewidth=1, label=f'IES-R Median ({ies_median})')
 
-    # Formatting
-    ax.set_xlabel('LEC-5 Total Events', fontsize=14, fontweight='bold')
-    ax.set_ylabel('IES-R Total Score', fontsize=14, fontweight='bold')
+    # Formatting - use PlotConfig for font sizes
+    ax.set_xlabel('LEC-5 Total Events', fontsize=PlotConfig.AXIS_LABEL_SIZE, fontweight='bold')
+    ax.set_ylabel('IES-R Total Score', fontsize=PlotConfig.AXIS_LABEL_SIZE, fontweight='bold')
     ax.set_title('Hypothesis-Driven Trauma Grouping\n(Median Split Classification)',
-                 fontsize=16, fontweight='bold', pad=20)
-    ax.legend(loc='upper left', fontsize=10, framealpha=0.9)
-    ax.grid(True, alpha=0.3)
+                 fontsize=PlotConfig.TITLE_SIZE, fontweight='bold', pad=PlotConfig.PAD)
+    ax.legend(loc='upper left', fontsize=PlotConfig.LEGEND_SIZE, framealpha=0.9)
+    ax.grid(True, alpha=PlotConfig.GRID_ALPHA)
+    ax.tick_params(axis='both', which='major', labelsize=PlotConfig.TICK_LABEL_SIZE)
 
     # Add quadrant labels
     ax.text(0.02, 0.98, 'Low Exposure\nLow Symptoms',
-            transform=ax.transAxes, fontsize=9, alpha=0.5,
+            transform=ax.transAxes, fontsize=PlotConfig.ANNOTATION_SIZE, alpha=0.5,
             verticalalignment='top', horizontalalignment='left')
     ax.text(0.98, 0.98, 'High Exposure\nLow Symptoms',
-            transform=ax.transAxes, fontsize=9, alpha=0.5,
+            transform=ax.transAxes, fontsize=PlotConfig.ANNOTATION_SIZE, alpha=0.5,
             verticalalignment='top', horizontalalignment='right')
     ax.text(0.98, 0.02, 'High Exposure\nHigh Symptoms',
-            transform=ax.transAxes, fontsize=9, alpha=0.5,
+            transform=ax.transAxes, fontsize=PlotConfig.ANNOTATION_SIZE, alpha=0.5,
             verticalalignment='bottom', horizontalalignment='right')
 
     plt.tight_layout()
@@ -458,9 +464,9 @@ def save_results(df, silhouette_scores, optimal_k, lec_median, ies_median):
     # Save group summary statistics
     summary_data = []
 
-    # Hypothesis groups
-    for group in df['hypothesis_group'].unique():
-        if group != 'Excluded_Low_High':
+    # Hypothesis groups (exclude theoretically inconsistent group)
+    for group in ['No Trauma', 'Trauma - No Ongoing Impact', 'Trauma - Ongoing Impact']:
+        if group in df['hypothesis_group'].values:
             group_data = df[df['hypothesis_group'] == group]
             summary_data.append({
                 'method': 'hypothesis',

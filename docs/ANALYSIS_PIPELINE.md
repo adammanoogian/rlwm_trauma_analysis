@@ -8,6 +8,8 @@ This pipeline integrates:
 1. **Data Processing**: Clean and organize jsPsych behavioral data
 2. **Model Simulation**: Generate synthetic data using RL models
 3. **Model Fitting**: Fit models to human data using hierarchical Bayesian inference
+   - **PyMC**: Agent-based, slower but consistent with simulations
+   - **JAX/NumPyro**: Functional, 10-100x faster, gradient-based NUTS sampler (RECOMMENDED)
 4. **Model Comparison**: Evaluate which model best explains behavior
 5. **Trauma Analysis**: Compare model parameters across trauma groups
 
@@ -36,9 +38,12 @@ rlwm_trauma_analysis/
 ├── models/                      # RL agents
 │   ├── q_learning.py
 │   └── wm_rl_hybrid.py
-├── fitting/                     # Bayesian fitting
-│   ├── pymc_models.py           # Uses agent classes via unified_simulator
-│   └── fit_to_data.py
+├── scripts/fitting/             # Bayesian fitting
+│   ├── pymc_models.py           # PyMC: Uses agent classes via unified_simulator
+│   ├── fit_to_data.py           # PyMC: Main fitting script
+│   ├── jax_likelihoods.py       # JAX: Pure functional likelihoods (JIT-compiled)
+│   ├── numpyro_models.py        # NumPyro: Hierarchical Bayesian models
+│   └── fit_with_jax.py          # JAX/NumPyro: Main fitting script (RECOMMENDED)
 ├── simulations/                 # Data generation & exploration
 │   ├── unified_simulator.py     # Core: fixed & sampled parameter simulation
 │   ├── generate_data.py         # Synthetic data generation
@@ -59,9 +64,13 @@ rlwm_trauma_analysis/
 
 ## Unified Architecture
 
-**Key Design Principle**: All simulation, fitting, and parameter exploration use the **same agent implementations** from `models/`. This eliminates code duplication and ensures consistency.
+**Key Design Principle**: The codebase provides two parallel approaches for model fitting:
 
-### Code Flow
+1. **Agent-Based (PyMC)**: All simulation, fitting, and parameter exploration use the **same agent implementations** from `models/`. This eliminates code duplication and ensures consistency.
+
+2. **Functional (JAX/NumPyro)**: Pure functional likelihoods for production fitting. Separate implementation optimized for speed and gradient-based sampling.
+
+### Code Flow: Agent-Based (PyMC)
 
 ```
 Agent Classes (models/)
@@ -71,6 +80,16 @@ Unified Simulator (simulations/unified_simulator.py)
     ├─→ Parameter Sweeps (parameter_sweep.py)
     ├─→ Data Generation (generate_data.py)
     └─→ PyMC Fitting (fitting/pymc_models.py)
+```
+
+### Code Flow: Functional (JAX/NumPyro)
+
+```
+JAX Likelihoods (scripts/fitting/jax_likelihoods.py)
+    ↓
+NumPyro Models (scripts/fitting/numpyro_models.py)
+    ↓
+Production Fitting (scripts/fitting/fit_with_jax.py)
 ```
 
 ### Two Simulation Modes
@@ -85,14 +104,23 @@ Unified Simulator (simulations/unified_simulator.py)
    - Example: "Generate 50 participants with α ~ Beta(2,2), β ~ Gamma(2,1)"
    - Parameters vary across samples according to distributions
 
-### Benefits
+### Benefits of Agent-Based Approach
 
 - ✅ **Single source of truth**: Agent logic defined once in `models/`
 - ✅ **Guaranteed consistency**: PyMC fits the same model that parameter sweeps test
 - ✅ **Easy to extend**: Add new model? Just update agent class
 - ✅ **Flexible simulation**: Can simulate with both fixed and sampled parameters
+- ⚠️ **Trade-off**: Slower sampling (Metropolis, no gradients)
 
-### PyMC Integration
+### Benefits of Functional Approach (JAX/NumPyro)
+
+- ✅ **10-100x faster**: JIT compilation via XLA
+- ✅ **Gradient-based NUTS**: Better convergence, higher ESS
+- ✅ **Native JAX operations**: Automatic differentiation, parallel execution
+- ✅ **Block-structured processing**: Efficient sequential operations via `jax.lax.scan()`
+- ⚠️ **Trade-off**: Separate implementation from agent classes
+
+### PyMC Integration (Agent-Based)
 
 Since agent classes use pure Python (not PyTensor), we use **Metropolis sampler** (no gradients) instead of NUTS:
 
@@ -102,6 +130,24 @@ with build_qlearning_model(data) as model:
 ```
 
 Trade-off: Slower sampling than NUTS, but ensures exact consistency between simulation and fitting.
+
+### JAX/NumPyro Integration (Functional)
+
+Pure functional likelihoods enable gradient-based NUTS sampler:
+
+```python
+from scripts.fitting.numpyro_models import qlearning_hierarchical_model, run_inference
+
+mcmc = run_inference(
+    model=qlearning_hierarchical_model,
+    model_args={'participant_data': participant_data},
+    num_warmup=1000,
+    num_samples=2000,
+    num_chains=4
+)
+```
+
+Trade-off: 10-100x faster but requires separate implementation from agent classes.
 
 ---
 
@@ -364,9 +410,16 @@ python simulations/generate_data.py \
 
 ### Stage 4: Bayesian Model Fitting
 
-Fit models to human behavioral data.
+Two approaches available for fitting models to human behavioral data:
 
-#### 4.1 Prepare Data
+1. **PyMC (Agent-Based)**: Uses agent classes, slower but consistent with simulations
+2. **JAX/NumPyro (Functional)**: Pure JAX, 10-100x faster, gradient-based NUTS sampler
+
+**Recommendation**: Use JAX/NumPyro (Stage 4B) for production fitting. Use PyMC (Stage 4A) for validation and debugging.
+
+#### Stage 4A: PyMC Fitting (Agent-Based)
+
+##### 4A.1 Prepare Data
 
 Ensure `output/task_trials_long.csv` exists with columns:
 - `sona_id`: Participant ID
@@ -376,7 +429,7 @@ Ensure `output/task_trials_long.csv` exists with columns:
 - `key_press`: Action taken (0, 1, or 2)
 - `correct`: Whether response was correct (0 or 1)
 
-#### 4.2 Fit Q-Learning
+##### 4A.2 Fit Q-Learning
 
 ```bash
 python fitting/fit_to_data.py \
@@ -387,13 +440,13 @@ python fitting/fit_to_data.py \
     --tune 1000
 ```
 
-**Estimated Runtime**: 30-60 minutes (depends on data size, hardware)
+**Estimated Runtime**: 2-4 hours (Metropolis sampler, no gradients)
 
 **Outputs:**
 - `output/v1/qlearning_posterior_TIMESTAMP.nc`: Full posterior samples
 - `output/v1/qlearning_summary_TIMESTAMP.csv`: Parameter summaries
 
-#### 4.3 Fit WM-RL Hybrid
+##### 4A.3 Fit WM-RL Hybrid
 
 ```bash
 python fitting/fit_to_data.py \
@@ -402,9 +455,9 @@ python fitting/fit_to_data.py \
     --samples 2000
 ```
 
-**Estimated Runtime**: 60-120 minutes (more parameters)
+**Estimated Runtime**: 4-6 hours (more parameters, Metropolis sampler)
 
-#### 4.4 Fit Both and Compare
+##### 4A.4 Fit Both and Compare
 
 ```bash
 python fitting/fit_to_data.py --model both
@@ -414,6 +467,212 @@ Automatically compares models using WAIC and LOO.
 
 **Output:**
 - `output/v1/model_comparison_TIMESTAMP.csv`
+
+---
+
+#### Stage 4B: JAX/NumPyro Fitting (Functional) - RECOMMENDED
+
+Fast, gradient-based fitting using pure JAX likelihoods and NumPyro NUTS sampler.
+
+**Key Advantages**:
+- **10-100x faster** than PyMC (XLA compilation)
+- **NUTS sampler** (Hamiltonian Monte Carlo with gradients)
+- **Better convergence** (gradient-based exploration)
+- **Higher effective sample size** per iteration
+
+**Files**:
+- `scripts/fitting/jax_likelihoods.py` - JIT-compiled likelihood functions
+- `scripts/fitting/numpyro_models.py` - Hierarchical Bayesian models
+- `scripts/fitting/fit_with_jax.py` - Main fitting script
+
+##### 4B.1 Prepare Data
+
+Same requirements as PyMC (Stage 4A.1):
+- `output/task_trials_long.csv` or `output/task_trials_long_all_participants.csv`
+- Columns: `sona_id`, `block`, `stimulus`, `key_press`, `correct`
+
+##### 4B.2 Fit Q-Learning with JAX/NumPyro
+
+**Basic Usage**:
+
+```bash
+python scripts/fitting/fit_with_jax.py \
+    --data output/task_trials_long_all_participants.csv \
+    --chains 4 \
+    --warmup 1000 \
+    --samples 2000 \
+    --save-plots
+```
+
+**Quick Test** (fewer samples for validation):
+
+```bash
+python scripts/fitting/fit_with_jax.py \
+    --data output/task_trials_long.csv \
+    --chains 2 \
+    --warmup 500 \
+    --samples 1000
+```
+
+**Custom Output**:
+
+```bash
+python scripts/fitting/fit_with_jax.py \
+    --data output/task_trials_long.csv \
+    --output output/v2/ \
+    --min-block 3 \
+    --seed 42
+```
+
+**Estimated Runtime**:
+- Compilation: ~30 seconds (first time only)
+- Sampling: ~20-40 minutes for 2000 samples × 4 chains (vs 2-4 hours for PyMC)
+
+**Outputs**:
+- `output/qlearning_jax_posterior_TIMESTAMP.nc`: Full posterior samples (ArviZ format)
+- `output/qlearning_jax_summary_TIMESTAMP.csv`: Parameter summaries with R-hat, ESS
+- `output/qlearning_jax_trace_TIMESTAMP.png`: Trace plots (if --save-plots)
+- `output/qlearning_jax_posterior_TIMESTAMP.png`: Posterior distributions (if --save-plots)
+
+##### 4B.3 Programmatic Usage
+
+```python
+from scripts.fitting.numpyro_models import (
+    qlearning_hierarchical_model,
+    prepare_data_for_numpyro,
+    run_inference,
+    samples_to_arviz
+)
+import pandas as pd
+import arviz as az
+
+# Load data
+data = pd.read_csv('output/task_trials_long_all_participants.csv')
+
+# Prepare for NumPyro (block-structured format)
+participant_data = prepare_data_for_numpyro(
+    data,
+    participant_col='sona_id',
+    block_col='block',
+    stimulus_col='stimulus',
+    action_col='key_press',
+    reward_col='reward'
+)
+
+# Run MCMC with NUTS sampler
+mcmc = run_inference(
+    model=qlearning_hierarchical_model,
+    model_args={'participant_data': participant_data},
+    num_warmup=1000,
+    num_samples=2000,
+    num_chains=4,
+    seed=42,
+    target_accept_prob=0.8,  # Control step size
+    max_tree_depth=10        # Control trajectory length
+)
+
+# Get samples
+samples = mcmc.get_samples()
+
+# Group-level parameters
+print("Group-level posteriors:")
+print(f"  μ_α+ = {samples['mu_alpha_pos'].mean():.3f} ± {samples['mu_alpha_pos'].std():.3f}")
+print(f"  μ_α- = {samples['mu_alpha_neg'].mean():.3f} ± {samples['mu_alpha_neg'].std():.3f}")
+print(f"  μ_β  = {samples['mu_beta'].mean():.3f} ± {samples['mu_beta'].std():.3f}")
+
+# Individual parameters (shape: [n_samples, n_participants])
+print("\nIndividual posteriors:")
+for i in range(samples['alpha_pos'].shape[1]):
+    alpha_pos_i = samples['alpha_pos'][:, i].mean()
+    alpha_neg_i = samples['alpha_neg'][:, i].mean()
+    beta_i = samples['beta'][:, i].mean()
+    print(f"  Participant {i}: α+={alpha_pos_i:.3f}, α-={alpha_neg_i:.3f}, β={beta_i:.3f}")
+
+# Convert to ArviZ and save
+idata = samples_to_arviz(mcmc, data)
+idata.to_netcdf('output/posterior_jax.nc')
+
+# Check diagnostics
+summary = az.summary(idata)
+print("\nConvergence diagnostics:")
+print(summary[['mean', 'sd', 'r_hat', 'ess_bulk', 'ess_tail']])
+```
+
+##### 4B.4 Fit WM-RL Hybrid (Future)
+
+WM-RL model is implemented in `numpyro_models.py` but not yet integrated into the main fitting script. To fit WM-RL:
+
+```python
+from scripts.fitting.numpyro_models import wmrl_hierarchical_model
+
+# Prepare data (must include set_size column)
+participant_data = prepare_data_for_numpyro(
+    data,
+    participant_col='sona_id',
+    block_col='block',
+    stimulus_col='stimulus',
+    action_col='key_press',
+    reward_col='reward',
+    set_size_col='set_size'  # Required for WM-RL
+)
+
+# Run inference
+mcmc = run_inference(
+    model=wmrl_hierarchical_model,
+    model_args={'participant_data': participant_data},
+    num_warmup=1000,
+    num_samples=2000,
+    num_chains=4
+)
+```
+
+##### 4B.5 Model Comparison (JAX/NumPyro)
+
+```python
+import arviz as az
+
+# Load posteriors
+idata_qlearning = az.from_netcdf('output/qlearning_jax_posterior.nc')
+idata_wmrl = az.from_netcdf('output/wmrl_jax_posterior.nc')
+
+# Compare using WAIC/LOO
+comparison = az.compare({
+    'Q-Learning': idata_qlearning,
+    'WM-RL': idata_wmrl
+})
+
+print(comparison)
+```
+
+##### 4B.6 Performance Tips
+
+**For Faster Sampling**:
+- Use fewer chains (2 instead of 4) if compute-limited
+- Reduce warmup samples (500-800) if priors are informative
+- Use `target_accept_prob=0.9` for more conservative step sizes (fewer divergences)
+
+**For Better Convergence**:
+- Increase `target_accept_prob` to 0.95 if seeing divergences
+- Increase `max_tree_depth` to 12 if seeing max tree depth warnings
+- Check that data is properly 0-indexed (stimuli/actions)
+- Verify block boundaries are correct
+
+**Debugging**:
+- Run with `test_compilation=True` in `run_inference()` to catch errors early
+- Use smaller dataset first (single participant or block)
+- Check likelihood values are finite: `print(log_lik)` should be negative, not NaN/-inf
+
+##### 4B.7 Comparison: PyMC vs JAX/NumPyro
+
+| Aspect | PyMC (4A) | JAX/NumPyro (4B) |
+|--------|-----------|------------------|
+| **Speed** | 2-4 hours | 20-40 minutes |
+| **Sampler** | Metropolis (no gradients) | NUTS (gradient-based) |
+| **Convergence** | Slower (random walk) | Faster (Hamiltonian) |
+| **ESS** | Lower | Higher |
+| **Code** | Uses agent classes | Pure functional JAX |
+| **Consistency** | Same as simulations | Separate implementation |
+| **Best for** | Validation, debugging | Production, large datasets |
 
 ---
 
@@ -591,7 +850,7 @@ python fitting/fit_to_data.py --model qlearning --data output/v1/simulated_data_
 python -c "import arviz as az; trace = az.from_netcdf('output/v1/qlearning_posterior_TIMESTAMP.nc'); print(az.summary(trace))"
 ```
 
-### Workflow 2: Fit to Human Data
+### Workflow 2: Fit to Human Data (PyMC)
 
 ```bash
 # 1. Ensure data is processed
@@ -607,6 +866,38 @@ python fitting/fit_to_data.py --model wmrl
 # 4. Compare models
 python fitting/fit_to_data.py --model both
 ```
+
+### Workflow 2B: Fit to Human Data (JAX/NumPyro) - RECOMMENDED
+
+```bash
+# 1. Ensure data is processed
+python scripts/parse_all_participants.py  # Creates task_trials_long_all_participants.csv
+
+# 2. Fit Q-learning with JAX/NumPyro (FAST!)
+python scripts/fitting/fit_with_jax.py \
+    --data output/task_trials_long_all_participants.csv \
+    --chains 4 \
+    --warmup 1000 \
+    --samples 2000 \
+    --save-plots
+
+# Results saved to output/qlearning_jax_*
+
+# 3. Analyze posteriors
+python -c "
+import arviz as az
+idata = az.from_netcdf('output/qlearning_jax_posterior_TIMESTAMP.nc')
+print(az.summary(idata, var_names=['mu_alpha_pos', 'mu_alpha_neg', 'mu_beta']))
+"
+
+# 4. Create visualizations (saves to figures/)
+python scripts/visualization/quick_arviz_plots.py \
+    --posterior output/qlearning_jax_posterior_TIMESTAMP.nc
+```
+
+**Runtime Comparison**:
+- PyMC (Workflow 2): ~2-4 hours
+- JAX/NumPyro (Workflow 2B): ~20-40 minutes (5-10x faster)
 
 ### Workflow 3: Posterior Predictive Checks
 

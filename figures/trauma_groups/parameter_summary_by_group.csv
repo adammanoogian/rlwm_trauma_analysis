@@ -1,0 +1,4 @@
+group,parameter,n,mean,std,sem,min,max
+Trauma - Ongoing Impact,alpha_pos,1,0.192,,,0.192,0.192
+Trauma - Ongoing Impact,alpha_neg,1,0.004,,,0.004,0.004
+Trauma - Ongoing Impact,beta,1,5.412,,,5.412,5.412

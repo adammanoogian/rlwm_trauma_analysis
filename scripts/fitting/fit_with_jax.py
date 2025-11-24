@@ -55,7 +55,7 @@ from scripts.fitting.numpyro_models import (
     samples_to_arviz
 )
 
-from config import OUTPUT_VERSION_DIR
+from config import OUTPUT_DIR
 
 
 def load_and_prepare_data(
@@ -213,7 +213,7 @@ def fit_qlearning_jax(
 def save_results(
     mcmc,
     data: pd.DataFrame,
-    output_dir: Path = OUTPUT_VERSION_DIR,
+    output_dir: Path = OUTPUT_DIR,
     save_plots: bool = True
 ):
     """
@@ -317,7 +317,7 @@ def main():
     parser.add_argument(
         '--output',
         type=str,
-        default=str(OUTPUT_VERSION_DIR),
+        default=str(OUTPUT_DIR),
         help='Output directory for results'
     )
     parser.add_argument(

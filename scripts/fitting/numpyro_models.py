@@ -42,6 +42,7 @@ import numpy as np
 
 from scripts.fitting.jax_likelihoods import (
     q_learning_multiblock_likelihood,
+    wmrl_multiblock_likelihood,
     prepare_block_data
 )
 
@@ -176,13 +177,201 @@ def qlearning_hierarchical_model(
         numpyro.factor(f'obs_p{participant_id}', log_lik)
 
 
+def wmrl_hierarchical_model(
+    participant_data: Dict[Any, Dict[str, List]],
+    num_stimuli: int = 6,
+    num_actions: int = 3,
+    q_init: float = 0.5,
+    wm_init: float = 0.5
+):
+    """
+    Hierarchical Bayesian WM-RL hybrid model for multiple participants.
+
+    Model Structure:
+    ---------------
+    # Group-level (population) parameters
+    μ_α+ ~ Beta(3, 2)         # Mean positive learning rate ~ 0.6
+    σ_α+ ~ HalfNormal(0.3)    # Variability in α+
+    μ_α- ~ Beta(2, 3)         # Mean negative learning rate ~ 0.4
+    σ_α- ~ HalfNormal(0.3)    # Variability in α-
+    μ_β ~ Gamma(2, 1)         # Mean RL inverse temperature ~ 2
+    σ_β ~ HalfNormal(2.0)     # Variability in β
+    μ_β_WM ~ Gamma(3, 1)      # Mean WM inverse temperature ~ 3
+    σ_β_WM ~ HalfNormal(2.0)  # Variability in β_WM
+    μ_φ ~ Beta(2, 8)          # Mean WM decay rate ~ 0.2
+    σ_φ ~ HalfNormal(0.3)     # Variability in φ
+    μ_ρ ~ Beta(5, 2)          # Mean WM reliance ~ 0.7
+    σ_ρ ~ HalfNormal(0.3)     # Variability in ρ
+    μ_K ~ TruncatedNormal(4, 1.5, low=1, high=7)  # Mean WM capacity ~ 4
+    σ_K ~ HalfNormal(1.0)     # Variability in K
+
+    # Individual-level parameters (non-centered)
+    Similar to Q-learning model, but with additional WM parameters
+
+    # Likelihood
+    actions_i ~ Hybrid(WM, RL; all parameters)
+
+    Parameters
+    ----------
+    participant_data : dict
+        Nested dict: {participant_id: {
+            'stimuli_blocks': list of arrays,
+            'actions_blocks': list of arrays,
+            'rewards_blocks': list of arrays,
+            'set_sizes_blocks': list of arrays  # Set sizes for adaptive weighting
+        }}
+    num_stimuli : int
+        Number of possible stimuli
+    num_actions : int
+        Number of possible actions
+    q_init : float
+        Initial Q-value for all state-action pairs
+    wm_init : float
+        Initial WM values (baseline)
+
+    Notes
+    -----
+    This function is used with numpyro.infer.MCMC for sampling.
+    """
+    num_participants = len(participant_data)
+    participant_ids = list(participant_data.keys())
+
+    # ========================================================================
+    # GROUP-LEVEL (POPULATION) PRIORS
+    # ========================================================================
+
+    # Positive learning rate: bounded [0, 1]
+    mu_alpha_pos = numpyro.sample('mu_alpha_pos', dist.Beta(3, 2))
+    sigma_alpha_pos = numpyro.sample('sigma_alpha_pos', dist.HalfNormal(0.3))
+
+    # Negative learning rate: bounded [0, 1]
+    mu_alpha_neg = numpyro.sample('mu_alpha_neg', dist.Beta(2, 3))
+    sigma_alpha_neg = numpyro.sample('sigma_alpha_neg', dist.HalfNormal(0.3))
+
+    # RL inverse temperature: positive
+    mu_beta = numpyro.sample('mu_beta', dist.Gamma(2.0, 1.0))
+    sigma_beta = numpyro.sample('sigma_beta', dist.HalfNormal(2.0))
+
+    # WM inverse temperature: positive
+    mu_beta_wm = numpyro.sample('mu_beta_wm', dist.Gamma(3.0, 1.0))
+    sigma_beta_wm = numpyro.sample('sigma_beta_wm', dist.HalfNormal(2.0))
+
+    # WM decay rate: bounded [0, 1]
+    mu_phi = numpyro.sample('mu_phi', dist.Beta(2, 8))
+    sigma_phi = numpyro.sample('sigma_phi', dist.HalfNormal(0.3))
+
+    # WM reliance: bounded [0, 1]
+    mu_rho = numpyro.sample('mu_rho', dist.Beta(5, 2))
+    sigma_rho = numpyro.sample('sigma_rho', dist.HalfNormal(0.3))
+
+    # WM capacity: bounded [1, 7] (using truncated normal)
+    mu_capacity = numpyro.sample('mu_capacity', dist.TruncatedNormal(4.0, 1.5, low=1.0, high=7.0))
+    sigma_capacity = numpyro.sample('sigma_capacity', dist.HalfNormal(1.0))
+
+    # ========================================================================
+    # INDIVIDUAL-LEVEL PARAMETERS (NON-CENTERED)
+    # ========================================================================
+
+    with numpyro.plate('participants', num_participants):
+        # Sample standard normal offsets
+        z_alpha_pos = numpyro.sample('z_alpha_pos', dist.Normal(0, 1))
+        z_alpha_neg = numpyro.sample('z_alpha_neg', dist.Normal(0, 1))
+        z_beta = numpyro.sample('z_beta', dist.Normal(0, 1))
+        z_beta_wm = numpyro.sample('z_beta_wm', dist.Normal(0, 1))
+        z_phi = numpyro.sample('z_phi', dist.Normal(0, 1))
+        z_rho = numpyro.sample('z_rho', dist.Normal(0, 1))
+        z_capacity = numpyro.sample('z_capacity', dist.Normal(0, 1))
+
+        # Transform to constrained space
+        # For Beta-distributed parameters: use logit transformation
+        alpha_pos = numpyro.deterministic(
+            'alpha_pos',
+            jax.scipy.special.expit(
+                jax.scipy.special.logit(mu_alpha_pos) + sigma_alpha_pos * z_alpha_pos
+            )
+        )
+        alpha_neg = numpyro.deterministic(
+            'alpha_neg',
+            jax.scipy.special.expit(
+                jax.scipy.special.logit(mu_alpha_neg) + sigma_alpha_neg * z_alpha_neg
+            )
+        )
+        phi = numpyro.deterministic(
+            'phi',
+            jax.scipy.special.expit(
+                jax.scipy.special.logit(mu_phi) + sigma_phi * z_phi
+            )
+        )
+        rho = numpyro.deterministic(
+            'rho',
+            jax.scipy.special.expit(
+                jax.scipy.special.logit(mu_rho) + sigma_rho * z_rho
+            )
+        )
+
+        # For Gamma-distributed parameters: use log transformation
+        beta = numpyro.deterministic(
+            'beta',
+            jnp.exp(jnp.log(mu_beta) + sigma_beta * z_beta)
+        )
+        beta_wm = numpyro.deterministic(
+            'beta_wm',
+            jnp.exp(jnp.log(mu_beta_wm) + sigma_beta_wm * z_beta_wm)
+        )
+
+        # For capacity: use clipped normal transformation
+        capacity = numpyro.deterministic(
+            'capacity',
+            jnp.clip(mu_capacity + sigma_capacity * z_capacity, 1.0, 7.0)
+        )
+
+    # ========================================================================
+    # LIKELIHOOD: Compute for each participant
+    # ========================================================================
+
+    for i, participant_id in enumerate(participant_ids):
+        pdata = participant_data[participant_id]
+
+        # Get individual parameters
+        alpha_pos_i = alpha_pos[i]
+        alpha_neg_i = alpha_neg[i]
+        beta_i = beta[i]
+        beta_wm_i = beta_wm[i]
+        phi_i = phi[i]
+        rho_i = rho[i]
+        capacity_i = capacity[i]
+
+        # Compute log-likelihood across all blocks for this participant
+        log_lik = wmrl_multiblock_likelihood(
+            stimuli_blocks=pdata['stimuli_blocks'],
+            actions_blocks=pdata['actions_blocks'],
+            rewards_blocks=pdata['rewards_blocks'],
+            set_sizes_blocks=pdata['set_sizes_blocks'],
+            alpha_pos=alpha_pos_i,
+            alpha_neg=alpha_neg_i,
+            beta=beta_i,
+            beta_wm=beta_wm_i,
+            phi=phi_i,
+            rho=rho_i,
+            capacity=capacity_i,
+            num_stimuli=num_stimuli,
+            num_actions=num_actions,
+            q_init=q_init,
+            wm_init=wm_init
+        )
+
+        # Add to model via factor (log probability)
+        numpyro.factor(f'obs_p{participant_id}', log_lik)
+
+
 def prepare_data_for_numpyro(
     data_df: pd.DataFrame,
     participant_col: str = 'sona_id',
     block_col: str = 'block',
     stimulus_col: str = 'stimulus',
     action_col: str = 'key_press',
-    reward_col: str = 'reward'
+    reward_col: str = 'reward',
+    set_size_col: str = 'set_size'
 ) -> Dict[Any, Dict[str, List]]:
     """
     Prepare data in format expected by NumPyro model.
@@ -193,6 +382,8 @@ def prepare_data_for_numpyro(
         Trial-level data with columns for participant, block, stimulus, action, reward
     participant_col, block_col, etc. : str
         Column names
+    set_size_col : str
+        Column name for set size (for WM-RL model)
 
     Returns
     -------
@@ -200,7 +391,8 @@ def prepare_data_for_numpyro(
         Nested dict: {participant_id: {
             'stimuli_blocks': [block1_stimuli, block2_stimuli, ...],
             'actions_blocks': [block1_actions, block2_actions, ...],
-            'rewards_blocks': [block1_rewards, block2_rewards, ...]
+            'rewards_blocks': [block1_rewards, block2_rewards, ...],
+            'set_sizes_blocks': [block1_set_sizes, block2_set_sizes, ...]  # For WM-RL
         }}
     """
     # Get block-structured data
@@ -220,6 +412,10 @@ def prepare_data_for_numpyro(
         stimuli_blocks = []
         actions_blocks = []
         rewards_blocks = []
+        set_sizes_blocks = []
+
+        # Get participant's data for set sizes
+        participant_df = data_df[data_df[participant_col] == participant_id]
 
         # Sort blocks by block number
         for block_num in sorted(blocks.keys()):
@@ -228,10 +424,20 @@ def prepare_data_for_numpyro(
             actions_blocks.append(block['actions'])
             rewards_blocks.append(block['rewards'])
 
+            # Get set sizes for this block
+            block_df = participant_df[participant_df[block_col] == block_num]
+            if set_size_col in block_df.columns:
+                set_sizes = jnp.array(block_df[set_size_col].values, dtype=jnp.float32)
+            else:
+                # Default to set size 6 if not available
+                set_sizes = jnp.ones(len(block['stimuli']), dtype=jnp.float32) * 6
+            set_sizes_blocks.append(set_sizes)
+
         participant_data[participant_id] = {
             'stimuli_blocks': stimuli_blocks,
             'actions_blocks': actions_blocks,
-            'rewards_blocks': rewards_blocks
+            'rewards_blocks': rewards_blocks,
+            'set_sizes_blocks': set_sizes_blocks
         }
 
     return participant_data

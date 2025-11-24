@@ -77,9 +77,14 @@ for filename, info in id_mapping.items():
                     if 'block' not in task_data.columns or task_data['block'].isna().all():
                         task_data['block'] = (task_data['trial_in_experiment'] // 50) + 3  # Start at block 3
 
+                # Map key_answer to key_press if available
+                if 'key_answer' in task_data.columns and 'key_press' not in task_data.columns:
+                    task_data['key_press'] = task_data['key_answer']
+                    print(f"  Mapped key_answer -> key_press")
+
                 # Extract key columns
                 task_cols = ['sona_id', 'trial_in_experiment', 'block', 'time_elapsed',
-                           'rt', 'stimulus', 'response', 'correct']
+                           'rt', 'stimulus', 'key_press', 'correct']
                 task_subset = task_data[[ c for c in task_cols if c in task_data.columns]].copy()
 
                 all_task_trials.append(task_subset)
