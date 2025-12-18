@@ -23,17 +23,17 @@ plt.rcParams['figure.dpi'] = 300
 
 def create_trauma_groups(df):
     """
-    Create 3 trauma groups based on LEC and IES-R scores.
+    Create 3 trauma groups based on LESS and IES-R scores.
     
     Groups:
-    - Group 1 (No Trauma): LEC = 0 (no trauma events)
-    - Group 2 (Trauma - No Ongoing Impact): LEC >= 1 AND IES-R 0-23
-    - Group 3 (Trauma - Ongoing Impact): LEC >= 1 AND IES-R >= 24
+    - Group 1 (No Trauma): LESS = 0 (no trauma events)
+    - Group 2 (Trauma - No Ongoing Impact): LESS >= 1 AND IES-R 0-23
+    - Group 3 (Trauma - Ongoing Impact): LESS >= 1 AND IES-R >= 24
     
     Parameters
     ----------
     df : pd.DataFrame
-        Participant data with lec_total_events and ies_total columns
+        Participant data with less_total_events and ies_total columns
         
     Returns
     -------
@@ -41,23 +41,23 @@ def create_trauma_groups(df):
         Data with trauma_group column added
     """
     # Thresholds
-    LEC_THRESHOLD = 0  # 0 = no trauma, 1+ = trauma present
+    LESS_THRESHOLD = 0  # 0 = no trauma, 1+ = trauma present
     IES_THRESHOLD = 24  # 0-23 = no long-term impact, 24+ = long-term impact
     
     print(f"\n=== Trauma Group Classification ===")
-    print(f"LEC-5 Threshold: {LEC_THRESHOLD} (0 = no trauma)")
+    print(f"LESS Threshold: {LESS_THRESHOLD} (0 = no trauma)")
     print(f"IES-R Threshold: {IES_THRESHOLD} (0-23 = no impact, 24+ = impact)\n")
     
     # Assign groups
     def assign_group(row):
-        lec = row['lec_total_events']
+        less = row['less_total_events']
         ies = row['ies_total']
         
-        if lec == 0:
+        if less == 0:
             return 'No Trauma'
-        elif lec >= 1 and ies < IES_THRESHOLD:
+        elif less >= 1 and ies < IES_THRESHOLD:
             return 'Trauma - No Ongoing Impact'
-        elif lec >= 1 and ies >= IES_THRESHOLD:
+        elif less >= 1 and ies >= IES_THRESHOLD:
             return 'Trauma - Ongoing Impact'
         else:
             return 'Excluded'  # Should not occur with this logic
@@ -70,16 +70,16 @@ def create_trauma_groups(df):
         n = (df['trauma_group'] == group).sum()
         group_data = df[df['trauma_group'] == group]
         if len(group_data) > 0:
-            lec_mean = group_data['lec_total_events'].mean()
+            less_mean = group_data['less_total_events'].mean()
             ies_mean = group_data['ies_total'].mean()
             print(f"  {group}: n={n}")
-            print(f"    LEC M={lec_mean:.2f}, IES-R M={ies_mean:.2f}")
+            print(f"    LESS M={less_mean:.2f}, IES-R M={ies_mean:.2f}")
     
     n_excluded = (df['trauma_group'] == 'Excluded').sum()
     if n_excluded > 0:
         print(f"  Excluded: n={n_excluded}")
     
-    return df, LEC_THRESHOLD, IES_THRESHOLD
+    return df, LESS_THRESHOLD, IES_THRESHOLD
 
 
 def prepare_data_for_anova(df):
@@ -393,7 +393,7 @@ def main():
     print(f"Merged data: {len(df)} participants with both trauma scores and load accuracy")
     
     # Required columns
-    required_cols = ['sona_id', 'lec_total_events', 'ies_total', 
+    required_cols = ['sona_id', 'less_total_events', 'ies_total', 
                      'accuracy_low_load', 'accuracy_high_load']
     
     missing = [col for col in required_cols if col not in df.columns]

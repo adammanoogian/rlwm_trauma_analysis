@@ -31,7 +31,7 @@ def create_trauma_groups(df):
     Parameters
     ----------
     df : pd.DataFrame
-        Participant data with lec_total_events and ies_total columns
+        Participant data with less_total_events and ies_total columns
         
     Returns
     -------
@@ -43,19 +43,19 @@ def create_trauma_groups(df):
     IES_THRESHOLD = 24  # 0-23 = no long-term impact, 24+ = long-term impact
     
     print(f"\n=== Trauma Group Classification ===")
-    print(f"LEC-5 Threshold: {LEC_THRESHOLD} (0 = no trauma)")
+    print(f"LESS Threshold: {LEC_THRESHOLD} (0 = no trauma)")
     print(f"IES-R Threshold: {IES_THRESHOLD} (0-23 = no impact, 24+ = impact)\n")
     
     # Assign groups
     def assign_group(row):
-        lec = row['lec_total_events']
+        less = row['less_total_events']
         ies = row['ies_total']
         
-        if lec == 0:
+        if less == 0:
             return 'No Trauma'
-        elif lec >= 1 and ies < IES_THRESHOLD:
+        elif less >= 1 and ies < IES_THRESHOLD:
             return 'Trauma - No Ongoing Impact'
-        elif lec >= 1 and ies >= IES_THRESHOLD:
+        elif less >= 1 and ies >= IES_THRESHOLD:
             return 'Trauma - Ongoing Impact'
         else:
             return 'Excluded'
