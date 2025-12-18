@@ -207,7 +207,7 @@ class WMRLHybridAgent:
         # Numerical stability: subtract max before exp
         q_vals_scaled = self.beta * (q_vals - np.max(q_vals))
         exp_q = np.exp(q_vals_scaled)
-        probs = exp_q / np.sum(exp_q)
+        probs = exp_q / exp_q.sum()  # Use .sum() for PyTensor compatibility
 
         return probs
 
@@ -232,7 +232,7 @@ class WMRLHybridAgent:
         # Numerical stability: subtract max before exp
         wm_vals_scaled = self.beta_wm * (wm_vals - np.max(wm_vals))
         exp_wm = np.exp(wm_vals_scaled)
-        probs = exp_wm / np.sum(exp_wm)
+        probs = exp_wm / exp_wm.sum()  # Use .sum() for PyTensor compatibility
 
         return probs
 
@@ -298,7 +298,7 @@ class WMRLHybridAgent:
         hybrid_probs = omega * wm_probs + (1 - omega) * rl_probs
 
         # Normalize (should already sum to 1, but ensure numerical stability)
-        hybrid_probs /= np.sum(hybrid_probs)
+        hybrid_probs /= hybrid_probs.sum()  # Use .sum() for PyTensor compatibility
 
         return {
             'probs': hybrid_probs,

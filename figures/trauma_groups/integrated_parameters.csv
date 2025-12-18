@@ -1,0 +1,16 @@
+sona_id,lec_total_events,ies_total,hypothesis_group,cluster_k2,cluster_k3,cluster_k4,param_index,alpha_pos_mean,alpha_neg_mean,beta_mean
+9187,11,22,Trauma - Ongoing Impact,1,1,2,1.0,0.192,0.004,5.412
+10001,9,3,No Trauma,2,2,3,,,,
+10002,11,0,Trauma - No Ongoing Impact,2,2,3,,,,
+10003,13,28,Trauma - Ongoing Impact,1,1,2,,,,
+10004,8,9,No Trauma,2,2,3,,,,
+10005,6,10,No Trauma,2,2,3,,,,
+10006,9,1,No Trauma,2,2,3,,,,
+10007,13,17,Trauma - No Ongoing Impact,1,1,1,,,,
+10012,11,1,Trauma - No Ongoing Impact,2,2,3,,,,
+10017,13,38,Trauma - Ongoing Impact,1,1,2,,,,
+10018,13,39,Trauma - Ongoing Impact,1,1,2,,,,
+10024,15,1,Trauma - No Ongoing Impact,1,1,1,,,,
+10025,13,35,Trauma - Ongoing Impact,1,1,2,,,,
+10027,15,18,Trauma - Ongoing Impact,1,1,1,,,,
+10028,11,31,Trauma - Ongoing Impact,1,1,2,,,,

@@ -70,26 +70,26 @@ def plot_scale_correlations(summary_df, save_dir):
     # Select relevant columns for correlation
     scale_cols = []
 
-    # LEC-5 columns
-    lec_cols = ['lec_total_events', 'lec_personal_events', 'lec_sum_exposures']
+    # LEC-5 columns (excluding total_events)
+    lec_cols = ['lec_personal_events', 'lec_sum_exposures']
     scale_cols.extend([c for c in lec_cols if c in summary_df.columns])
 
-    # IES-R columns
-    ies_cols = ['ies_total', 'ies_intrusion', 'ies_avoidance', 'ies_hyperarousal']
+    # IES-R columns (excluding total)
+    ies_cols = ['ies_intrusion', 'ies_avoidance', 'ies_hyperarousal']
     scale_cols.extend([c for c in ies_cols if c in summary_df.columns])
 
-    # Task performance columns
-    perf_cols = [
-        'accuracy_overall',
-        'accuracy_low_load',
-        'accuracy_high_load',
-        'mean_rt_overall',
-        'learning_slope',
-        'learning_improvement_early_to_late',
-        'performance_drop_post_reversal',
-        'adaptation_rate_post_reversal'
-    ]
-    scale_cols.extend([c for c in perf_cols if c in summary_df.columns])
+    # Task performance columns (EXCLUDED - commented out)
+    # perf_cols = [
+    #     'accuracy_overall',
+    #     'accuracy_low_load',
+    #     'accuracy_high_load',
+    #     'mean_rt_overall',
+    #     'learning_slope',
+    #     'learning_improvement_early_to_late',
+    #     'performance_drop_post_reversal',
+    #     'adaptation_rate_post_reversal'
+    # ]
+    # scale_cols.extend([c for c in perf_cols if c in summary_df.columns])
 
     # Filter to available columns with data
     available_cols = [c for c in scale_cols if c in summary_df.columns and summary_df[c].notna().sum() >= 2]
@@ -114,19 +114,25 @@ def plot_scale_correlations(summary_df, save_dir):
         center=0,
         square=True,
         linewidths=0.5,
-        cbar_kws={'label': 'Correlation Coefficient'},
+        cbar_kws={'label': 'Correlation Coefficient', 'shrink': 0.8},
         vmin=-1,
         vmax=1,
-        ax=ax
+        ax=ax,
+        annot_kws={'size': 16}
     )
 
-    # Format labels
+    # Format labels with larger font
     labels = [c.replace('_', ' ').replace('lec ', 'LEC-5 ').replace('ies ', 'IES-R ').title()
              for c in available_cols]
-    ax.set_xticklabels(labels, rotation=45, ha='right')
-    ax.set_yticklabels(labels, rotation=0)
+    ax.set_xticklabels(labels, rotation=45, ha='right', fontsize=14)
+    ax.set_yticklabels(labels, rotation=0, fontsize=14)
+    
+    # Increase colorbar label size
+    cbar = ax.collections[0].colorbar
+    cbar.ax.tick_params(labelsize=14)
+    cbar.set_label('Correlation Coefficient', fontsize=14)
 
-    plt.title(f'Scale & Performance Correlation Matrix (N={n_participants})', fontsize=14, fontweight='bold', pad=20)
+    plt.title(f'Subscale Correlation Matrix (N={n_participants})', fontsize=20, fontweight='bold', pad=20)
     plt.tight_layout()
 
     # Save
