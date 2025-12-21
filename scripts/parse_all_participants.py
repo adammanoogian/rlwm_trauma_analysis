@@ -211,14 +211,14 @@ if all_survey1 and all_survey2:
     print("CREATING SUMMARY WITH SURVEY DATA")
     print("=" * 80)
 
-    # Get LEC-5 summary scores
-    lec_summary = survey1_df[['sona_id', 'lec_total_events', 'lec_personal_events', 'lec_sum_exposures']]
+    # Get LESS summary scores
+    less_summary = survey1_df[['sona_id', 'less_total_events', 'less_personal_events']]
 
     # Get IES-R summary scores
     ies_summary = survey2_df[['sona_id', 'ies_total', 'ies_intrusion', 'ies_avoidance', 'ies_hyperarousal']]
 
     # Merge survey data
-    summary_df = lec_summary.merge(ies_summary, on='sona_id', how='outer')
+    summary_df = less_summary.merge(ies_summary, on='sona_id', how='outer')
 
     # Add basic task metrics if available
     if all_task_trials and len(task_df) > 0:
