@@ -12,9 +12,9 @@ AVOIDANCE_ITEMS = [5, 7, 8, 11, 12, 13, 17, 22]
 HYPERAROUSAL_ITEMS = [2, 4, 10, 15, 18, 19, 21]
 
 
-def score_lec5(survey1_df):
+def score_less(survey1_df):
     """
-    Calculate LEC-5 (Life Events Checklist) summary scores.
+    Calculate LESS (Life Events Scale - Short) summary scores.
 
     Parameters:
     -----------
@@ -32,9 +32,8 @@ def score_lec5(survey1_df):
     personal_cols = [col for col in result_df.columns if col.endswith('_personal')]
 
     # Calculate summary scores
-    result_df['lec_total_events'] = result_df[any_exposure_cols].sum(axis=1)
-    result_df['lec_personal_events'] = result_df[personal_cols].sum(axis=1)
-    result_df['lec_sum_exposures'] = result_df[any_exposure_cols + personal_cols].sum(axis=1)
+    result_df['less_total_events'] = result_df[any_exposure_cols].sum(axis=1)
+    result_df['less_personal_events'] = result_df[personal_cols].sum(axis=1)
 
     return result_df
 
