@@ -66,6 +66,8 @@ def main():
         ("Generating scale distributions", "python scripts/analysis/visualize_scale_distributions.py"),
         ("Generating scale correlations", "python scripts/analysis/visualize_scale_correlations.py"),
         ("Creating summary report", "python scripts/analysis/summarize_behavioral_data.py"),
+        ("Generating descriptive statistics tables", "python scripts/generate_descriptive_tables.py"),
+        ("Running statistical analyses (ANOVAs & regressions)", "python scripts/run_statistical_analyses.py"),
     ])
 
     total_steps = len(steps)
@@ -85,6 +87,8 @@ def main():
     print("=" * 50)
     print("\nOutputs generated in:")
     print("  - output/*.csv")
+    print("  - output/descriptives/*.csv (demographic & task performance tables)")
+    print("  - output/statistical_analyses/*.csv (ANOVA & regression results)")
     print("  - figures/behavioral_summary/*.png")
     print("  - output/behavioral_summary/data_summary_report.txt")
 
