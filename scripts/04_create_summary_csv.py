@@ -23,7 +23,7 @@ import numpy as np
 sys.path.append(os.path.join(os.path.dirname(__file__), 'utils'))
 
 from scoring_functions import (
-    score_lec5,
+    score_less,
     score_ies_r,
     calculate_all_task_metrics
 )
@@ -65,14 +65,14 @@ def main():
     print(f"[OK] Loaded task trials: {len(task_trials)} trials")
     print()
 
-    # Calculate LEC-5 scores
+    # Calculate LESS scores
     print("-" * 60)
-    print("Calculating LEC-5 (Survey 1) summary scores...")
-    survey1_scored = score_lec5(survey1)
-    lec_summary = survey1_scored[['sona_id', 'lec_total_events', 'lec_personal_events', 'lec_sum_exposures']]
-    print(f"[OK] Calculated LEC-5 scores for {len(lec_summary)} participants")
-    print(f"  Mean total events: {lec_summary['lec_total_events'].mean():.2f}")
-    print(f"  Mean personal events: {lec_summary['lec_personal_events'].mean():.2f}")
+    print("Calculating LESS (Survey 1) summary scores...")
+    survey1_scored = score_less(survey1)
+    less_summary = survey1_scored[['sona_id', 'less_total_events', 'less_personal_events']]
+    print(f"[OK] Calculated LESS scores for {len(less_summary)} participants")
+    print(f"  Mean total events: {less_summary['less_total_events'].mean():.2f}")
+    print(f"  Mean personal events: {less_summary['less_personal_events'].mean():.2f}")
     print()
 
     # Calculate IES-R scores
@@ -130,9 +130,9 @@ def main():
     summary = demographics.copy()
     print(f"Starting with demographics: {len(summary)} rows")
 
-    # Merge LEC-5 scores
-    summary = summary.merge(lec_summary, on='sona_id', how='left')
-    print(f"After merging LEC-5 scores: {len(summary)} rows, {len(summary.columns)} columns")
+    # Merge LESS scores
+    summary = summary.merge(less_summary, on='sona_id', how='left')
+    print(f"After merging LESS scores: {len(summary)} rows, {len(summary.columns)} columns")
 
     # Merge IES-R scores
     summary = summary.merge(ies_summary, on='sona_id', how='left')
@@ -212,7 +212,7 @@ def main():
     print("Sample of summary data (first 3 participants, key columns):")
     display_cols = [col for col in [
         'sona_id', 'age_years', 'gender',
-        'lec_total_events', 'ies_total',
+        'less_total_events', 'ies_total',
         'accuracy_overall', 'mean_rt_overall',
         'accuracy_low_load', 'accuracy_high_load'
     ] if col in summary.columns]
