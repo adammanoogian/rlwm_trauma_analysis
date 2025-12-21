@@ -19,7 +19,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 # Import parsing and scoring functions
 sys.path.append(str(Path(__file__).resolve().parent / 'utils'))
 from data_cleaning import extract_survey1_data, extract_survey2_data
-from scoring_functions import score_lec5, score_ies_r
+from scoring_functions import score_less, score_ies_r
 
 # Load ID mapping
 mapping_file = Path('data/participant_id_mapping.json')
@@ -182,8 +182,8 @@ print("=" * 80)
 
 if all_survey1:
     survey1_df = pd.concat(all_survey1, ignore_index=True)
-    # Score LEC-5
-    survey1_df = score_lec5(survey1_df)
+    # Score LESS
+    survey1_df = score_less(survey1_df)
 
     output_path = Path('output') / 'parsed_survey1_all.csv'
     survey1_df.to_csv(output_path, index=False)
