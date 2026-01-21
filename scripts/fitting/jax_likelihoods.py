@@ -10,11 +10,13 @@ Key differences from PyTensor version:
 - Cleaner functional API
 - Works seamlessly with NumPyro for Bayesian inference
 
-Mathematical Background:
------------------------
+Mathematical Background (following Senta et al., 2025):
+------------------------------------------------------
 Q-learning update: Q(s,a) ← Q(s,a) + α * (r - Q(s,a))
 Softmax policy: P(a|s) = exp(β*Q(s,a)) / Σ exp(β*Q(s,a'))
+Epsilon noise: P_noisy(a|s) = ε/nA + (1-ε)*P(a|s)
 Asymmetric learning: α = α+ if δ > 0 else α-
+Fixed β = 50 during learning (for parameter identifiability)
 
 Block-aware processing:
 - Q-values reset at each block boundary
@@ -22,6 +24,7 @@ Block-aware processing:
 
 Author: Generated for RLWM trauma analysis project
 Date: 2025-11-22
+Updated: 2026-01-20 - Added epsilon noise, fixed beta=50
 """
 
 import jax
@@ -29,6 +32,13 @@ import jax.numpy as jnp
 from jax import lax
 from typing import Tuple, Dict, Any
 import numpy as np
+
+# =============================================================================
+# CONSTANTS (following Senta et al., 2025)
+# =============================================================================
+FIXED_BETA = 50.0  # Fixed inverse temperature during learning for identifiability
+DEFAULT_EPSILON = 0.05  # Default epsilon noise
+NUM_ACTIONS = 3  # Number of possible actions
 
 
 def softmax_policy(q_values: jnp.ndarray, beta: float) -> jnp.ndarray:
@@ -51,6 +61,36 @@ def softmax_policy(q_values: jnp.ndarray, beta: float) -> jnp.ndarray:
     q_scaled = beta * (q_values - jnp.max(q_values))
     exp_q = jnp.exp(q_scaled)
     return exp_q / jnp.sum(exp_q)
+
+
+def apply_epsilon_noise(probs: jnp.ndarray, epsilon: float, num_actions: int = NUM_ACTIONS) -> jnp.ndarray:
+    """
+    Apply epsilon-greedy noise to action probabilities.
+
+    Following Senta et al. (2025): p_noisy(a|s) = ε/nA + (1-ε)*p(a|s)
+
+    This adds a small probability of random action selection to account for:
+    - Motor noise
+    - Attentional lapses
+    - Other sources of response variability
+
+    Parameters
+    ----------
+    probs : array, shape (num_actions,)
+        Base action probabilities (from softmax)
+    epsilon : float
+        Noise parameter (0-1). Probability of random action.
+    num_actions : int
+        Number of possible actions (default: 3)
+
+    Returns
+    -------
+    array, shape (num_actions,)
+        Noisy action probabilities
+    """
+    uniform_prob = 1.0 / num_actions
+    noisy_probs = epsilon * uniform_prob + (1 - epsilon) * probs
+    return noisy_probs
 
 
 def q_learning_step(
@@ -129,7 +169,7 @@ def q_learning_block_likelihood(
     rewards: jnp.ndarray,
     alpha_pos: float,
     alpha_neg: float,
-    beta: float,
+    epsilon: float = DEFAULT_EPSILON,
     num_stimuli: int = 6,
     num_actions: int = 3,
     q_init: float = 0.5
@@ -139,6 +179,10 @@ def q_learning_block_likelihood(
 
     This processes one block of trials (typically 30-90 trials) with
     Q-values initialized at the start of the block.
+
+    Following Senta et al. (2025):
+    - Beta is fixed at 50 for parameter identifiability
+    - Epsilon noise is applied to capture random responding
 
     Parameters
     ----------
@@ -152,8 +196,8 @@ def q_learning_block_likelihood(
         Learning rate for positive prediction errors
     alpha_neg : float
         Learning rate for negative prediction errors
-    beta : float
-        Inverse temperature
+    epsilon : float
+        Epsilon noise parameter (probability of random action)
     num_stimuli : int
         Number of possible stimuli
     num_actions : int
@@ -173,7 +217,7 @@ def q_learning_block_likelihood(
     >>> rewards = jnp.array([1.0, 0.0, 1.0, 1.0, 0.0])
     >>> log_lik = q_learning_block_likelihood(
     ...     stimuli, actions, rewards,
-    ...     alpha_pos=0.3, alpha_neg=0.1, beta=2.0
+    ...     alpha_pos=0.3, alpha_neg=0.1, epsilon=0.05
     ... )
     """
     # Initialize Q-table
@@ -190,10 +234,14 @@ def q_learning_block_likelihood(
         Q_table, log_lik_accum = carry
         stimulus, action, reward = inputs
 
-        # Get Q-values and compute probabilities
+        # Get Q-values and compute probabilities with fixed beta
         q_vals = Q_table[stimulus]
-        probs = softmax_policy(q_vals, beta)
-        log_prob = jnp.log(probs[action] + 1e-8)
+        base_probs = softmax_policy(q_vals, FIXED_BETA)
+
+        # Apply epsilon noise: p_noisy = ε/nA + (1-ε)*p
+        noisy_probs = apply_epsilon_noise(base_probs, epsilon, num_actions)
+
+        log_prob = jnp.log(noisy_probs[action] + 1e-8)
 
         # Compute prediction error and update
         q_current = Q_table[stimulus, action]
@@ -219,7 +267,7 @@ def q_learning_multiblock_likelihood(
     rewards_blocks: list,
     alpha_pos: float,
     alpha_neg: float,
-    beta: float,
+    epsilon: float = DEFAULT_EPSILON,
     num_stimuli: int = 6,
     num_actions: int = 3,
     q_init: float = 0.5,
@@ -232,6 +280,10 @@ def q_learning_multiblock_likelihood(
     This is the main likelihood function for a single participant.
     Q-values reset at each block boundary (matches experimental design).
 
+    Following Senta et al. (2025):
+    - Beta is fixed at 50 (not a parameter)
+    - Epsilon noise captures random responding
+
     Parameters
     ----------
     stimuli_blocks : list of arrays
@@ -240,8 +292,12 @@ def q_learning_multiblock_likelihood(
         List of action sequences, one per block
     rewards_blocks : list of arrays
         List of reward sequences, one per block
-    alpha_pos, alpha_neg, beta : float
-        Model parameters
+    alpha_pos : float
+        Learning rate for positive prediction errors
+    alpha_neg : float
+        Learning rate for negative prediction errors
+    epsilon : float
+        Epsilon noise parameter (probability of random action)
     num_stimuli, num_actions : int
         State/action space dimensions
     q_init : float
@@ -264,7 +320,7 @@ def q_learning_multiblock_likelihood(
     >>> rewards_blocks = [jnp.array([1,0,1]), jnp.array([0,1,1])]
     >>> log_lik = q_learning_multiblock_likelihood(
     ...     stimuli_blocks, actions_blocks, rewards_blocks,
-    ...     alpha_pos=0.3, alpha_neg=0.1, beta=2.0
+    ...     alpha_pos=0.3, alpha_neg=0.1, epsilon=0.05
     ... )
     """
     total_log_lik = 0.0
@@ -285,7 +341,7 @@ def q_learning_multiblock_likelihood(
             rewards=rew_block,
             alpha_pos=alpha_pos,
             alpha_neg=alpha_neg,
-            beta=beta,
+            epsilon=epsilon,
             num_stimuli=num_stimuli,
             num_actions=num_actions,
             q_init=q_init
@@ -304,7 +360,7 @@ def q_learning_multiblock_likelihood(
 # JIT-compile for performance
 q_learning_block_likelihood_jit = jax.jit(
     q_learning_block_likelihood,
-    static_argnums=(6, 7, 8)  # num_stimuli, num_actions, q_init are static
+    static_argnums=(6, 7, 8)  # num_stimuli, num_actions, q_init are static (epsilon is at index 5)
 )
 
 
@@ -374,6 +430,7 @@ def prepare_block_data(
 def test_single_block():
     """Test Q-learning likelihood on a single block."""
     print("Testing single block Q-learning likelihood...")
+    print(f"  (Using fixed beta={FIXED_BETA}, epsilon noise enabled)")
 
     # Create synthetic block (30 trials)
     key = jax.random.PRNGKey(42)
@@ -383,15 +440,15 @@ def test_single_block():
     actions = jax.random.randint(key, (n_trials,), 0, 3)
     rewards = jax.random.bernoulli(key, 0.7, (n_trials,)).astype(jnp.float32)
 
-    # Test parameters
+    # Test parameters (no beta - it's fixed at 50)
     alpha_pos = 0.3
     alpha_neg = 0.1
-    beta = 2.0
+    epsilon = 0.05
 
     # Compute likelihood
     log_lik = q_learning_block_likelihood(
         stimuli, actions, rewards,
-        alpha_pos, alpha_neg, beta
+        alpha_pos, alpha_neg, epsilon
     )
 
     print(f"✓ Single block log-likelihood: {log_lik:.2f}")
@@ -400,7 +457,7 @@ def test_single_block():
     # Test JIT compilation
     log_lik_jit = q_learning_block_likelihood_jit(
         stimuli, actions, rewards,
-        alpha_pos, alpha_neg, beta
+        alpha_pos, alpha_neg, epsilon
     )
 
     print(f"✓ JIT-compiled result matches: {jnp.allclose(log_lik, log_lik_jit)}")
@@ -411,6 +468,7 @@ def test_single_block():
 def test_multiblock():
     """Test Q-learning likelihood on multiple blocks."""
     print("\nTesting multi-block Q-learning likelihood...")
+    print(f"  (Using fixed beta={FIXED_BETA}, epsilon noise enabled)")
 
     key = jax.random.PRNGKey(42)
 
@@ -430,15 +488,15 @@ def test_multiblock():
         key, subkey = jax.random.split(key)
         rewards_blocks.append(jax.random.bernoulli(subkey, 0.7, (size,)).astype(jnp.float32))
 
-    # Test parameters
+    # Test parameters (no beta - it's fixed at 50)
     alpha_pos = 0.3
     alpha_neg = 0.1
-    beta = 2.0
+    epsilon = 0.05
 
     # Compute likelihood
     log_lik = q_learning_multiblock_likelihood(
         stimuli_blocks, actions_blocks, rewards_blocks,
-        alpha_pos, alpha_neg, beta
+        alpha_pos, alpha_neg, epsilon
     )
 
     total_trials = sum(block_sizes)
@@ -448,7 +506,7 @@ def test_multiblock():
 
     # Verify it equals sum of individual blocks
     manual_sum = sum([
-        q_learning_block_likelihood(stim, act, rew, alpha_pos, alpha_neg, beta)
+        q_learning_block_likelihood(stim, act, rew, alpha_pos, alpha_neg, epsilon)
         for stim, act, rew in zip(stimuli_blocks, actions_blocks, rewards_blocks)
     ])
     print(f"✓ Matches manual block summation: {jnp.allclose(log_lik, manual_sum)}")
@@ -467,18 +525,22 @@ def wmrl_block_likelihood(
     set_sizes: jnp.ndarray,
     alpha_pos: float,
     alpha_neg: float,
-    beta: float,
-    beta_wm: float,
     phi: float,
     rho: float,
     capacity: float,
+    epsilon: float = DEFAULT_EPSILON,
     num_stimuli: int = 6,
     num_actions: int = 3,
     q_init: float = 0.5,
-    wm_init: float = 0.5
+    wm_init: float = 1.0 / 3.0  # WM baseline = 1/nA (uniform)
 ) -> float:
     """
     Compute log-likelihood for WM-RL hybrid model on a SINGLE BLOCK.
+
+    Following Senta et al. (2025):
+    - Beta is fixed at 50 for both WM and RL (parameter identifiability)
+    - Epsilon noise is applied to the final hybrid policy
+    - WM baseline = 1/nA (uniform probability)
 
     Model combines:
     1. Working Memory (WM): Immediate encoding with decay
@@ -488,8 +550,9 @@ def wmrl_block_likelihood(
     Update sequence per trial:
     1. Decay WM: WM ← (1-φ)WM + φ·WM_0
     2. Compute hybrid policy: p = ω·p_WM + (1-ω)·p_RL
-    3. Update WM: WM(s,a) ← r (immediate overwrite)
-    4. Update Q: Q(s,a) ← Q(s,a) + α·(r - Q(s,a))
+    3. Apply epsilon noise: p_noisy = ε/nA + (1-ε)·p
+    4. Update WM: WM(s,a) ← r (immediate overwrite)
+    5. Update Q: Q(s,a) ← Q(s,a) + α·(r - Q(s,a))
 
     Parameters
     ----------
@@ -505,16 +568,14 @@ def wmrl_block_likelihood(
         RL learning rate for positive PE
     alpha_neg : float
         RL learning rate for negative PE
-    beta : float
-        RL inverse temperature
-    beta_wm : float
-        WM inverse temperature
     phi : float
         WM decay rate (0-1)
     rho : float
         Base WM reliance (0-1)
     capacity : float
         WM capacity (for adaptive weighting)
+    epsilon : float
+        Epsilon noise parameter (probability of random action)
     num_stimuli : int
         Number of possible stimuli
     num_actions : int
@@ -522,7 +583,7 @@ def wmrl_block_likelihood(
     q_init : float
         Initial Q-values
     wm_init : float
-        Initial WM values (baseline)
+        Initial WM values (baseline = 1/nA for uniform)
 
     Returns
     -------
@@ -550,15 +611,15 @@ def wmrl_block_likelihood(
         WM_decayed = (1 - phi) * WM_table + phi * WM_baseline
 
         # =================================================================
-        # 2. COMPUTE HYBRID POLICY
+        # 2. COMPUTE HYBRID POLICY (with fixed beta)
         # =================================================================
-        # RL policy: softmax(β * Q(s,:))
+        # RL policy: softmax(β * Q(s,:)) with β=50
         q_vals = Q_table[stimulus]
-        rl_probs = softmax_policy(q_vals, beta)
+        rl_probs = softmax_policy(q_vals, FIXED_BETA)
 
-        # WM policy: softmax(β_WM * WM(s,:))
+        # WM policy: softmax(β * WM(s,:)) with β=50
         wm_vals = WM_decayed[stimulus]
-        wm_probs = softmax_policy(wm_vals, beta_wm)
+        wm_probs = softmax_policy(wm_vals, FIXED_BETA)
 
         # Adaptive weight: ω = ρ * min(1, K/N_s)
         omega = rho * jnp.minimum(1.0, capacity / set_size)
@@ -569,16 +630,21 @@ def wmrl_block_likelihood(
         # Normalize (numerical stability)
         hybrid_probs = hybrid_probs / jnp.sum(hybrid_probs)
 
+        # =================================================================
+        # 3. APPLY EPSILON NOISE: p_noisy = ε/nA + (1-ε)*p
+        # =================================================================
+        noisy_probs = apply_epsilon_noise(hybrid_probs, epsilon, num_actions)
+
         # Log probability of observed action
-        log_prob = jnp.log(hybrid_probs[action] + 1e-8)
+        log_prob = jnp.log(noisy_probs[action] + 1e-8)
 
         # =================================================================
-        # 3. UPDATE WM: Immediate overwrite
+        # 4. UPDATE WM: Immediate overwrite
         # =================================================================
         WM_updated = WM_decayed.at[stimulus, action].set(reward)
 
         # =================================================================
-        # 4. UPDATE Q-TABLE: Asymmetric learning
+        # 5. UPDATE Q-TABLE: Asymmetric learning
         # =================================================================
         q_current = Q_table[stimulus, action]
         delta = reward - q_current
@@ -604,15 +670,14 @@ def wmrl_multiblock_likelihood(
     set_sizes_blocks: list,
     alpha_pos: float,
     alpha_neg: float,
-    beta: float,
-    beta_wm: float,
     phi: float,
     rho: float,
     capacity: float,
+    epsilon: float = DEFAULT_EPSILON,
     num_stimuli: int = 6,
     num_actions: int = 3,
     q_init: float = 0.5,
-    wm_init: float = 0.5,
+    wm_init: float = 1.0 / 3.0,  # WM baseline = 1/nA (uniform)
     verbose: bool = False,
     participant_id: str = None
 ) -> float:
@@ -620,6 +685,10 @@ def wmrl_multiblock_likelihood(
     Compute log-likelihood for WM-RL across MULTIPLE BLOCKS.
 
     Q-values and WM reset at each block boundary.
+
+    Following Senta et al. (2025):
+    - Beta is fixed at 50 (not a parameter)
+    - Epsilon noise captures random responding
 
     Parameters
     ----------
@@ -631,12 +700,24 @@ def wmrl_multiblock_likelihood(
         Reward sequences per block
     set_sizes_blocks : list of arrays
         Set sizes per trial per block
-    alpha_pos, alpha_neg, beta, beta_wm, phi, rho, capacity : float
-        Model parameters
+    alpha_pos : float
+        RL learning rate for positive PE
+    alpha_neg : float
+        RL learning rate for negative PE
+    phi : float
+        WM decay rate (0-1)
+    rho : float
+        Base WM reliance (0-1)
+    capacity : float
+        WM capacity (for adaptive weighting)
+    epsilon : float
+        Epsilon noise parameter (probability of random action)
     num_stimuli, num_actions : int
         State/action space dimensions
-    q_init, wm_init : float
-        Initial values
+    q_init : float
+        Initial Q-values
+    wm_init : float
+        Initial WM values (baseline = 1/nA for uniform)
     verbose : bool
         Print progress
     participant_id : str
@@ -668,11 +749,10 @@ def wmrl_multiblock_likelihood(
             set_sizes=set_block,
             alpha_pos=alpha_pos,
             alpha_neg=alpha_neg,
-            beta=beta,
-            beta_wm=beta_wm,
             phi=phi,
             rho=rho,
             capacity=capacity,
+            epsilon=epsilon,
             num_stimuli=num_stimuli,
             num_actions=num_actions,
             q_init=q_init,
@@ -692,7 +772,7 @@ def wmrl_multiblock_likelihood(
 # JIT-compile WM-RL for performance
 wmrl_block_likelihood_jit = jax.jit(
     wmrl_block_likelihood,
-    static_argnums=(11, 12, 13, 14)  # num_stimuli, num_actions, q_init, wm_init are static
+    static_argnums=(10, 11, 12, 13)  # num_stimuli, num_actions, q_init, wm_init are static
 )
 
 
@@ -703,6 +783,7 @@ wmrl_block_likelihood_jit = jax.jit(
 def test_wmrl_single_block():
     """Test WM-RL likelihood on a single block."""
     print("\nTesting WM-RL single block likelihood...")
+    print(f"  (Using fixed beta={FIXED_BETA}, epsilon noise enabled)")
 
     # Create synthetic block (30 trials)
     key = jax.random.PRNGKey(42)
@@ -715,15 +796,14 @@ def test_wmrl_single_block():
     rewards = jax.random.bernoulli(subkey, 0.7, (n_trials,)).astype(jnp.float32)
     set_sizes = jnp.ones((n_trials,)) * 5  # Set size of 5
 
-    # Test parameters
+    # Test parameters (no beta/beta_wm - they're fixed at 50)
     params = {
         'alpha_pos': 0.3,
         'alpha_neg': 0.1,
-        'beta': 2.0,
-        'beta_wm': 3.0,
         'phi': 0.1,
         'rho': 0.7,
-        'capacity': 4.0
+        'capacity': 4.0,
+        'epsilon': 0.05
     }
 
     # Compute likelihood
@@ -747,6 +827,7 @@ def test_wmrl_single_block():
 def test_wmrl_multiblock():
     """Test WM-RL likelihood on multiple blocks."""
     print("\nTesting WM-RL multi-block likelihood...")
+    print(f"  (Using fixed beta={FIXED_BETA}, epsilon noise enabled)")
 
     key = jax.random.PRNGKey(42)
 
@@ -769,15 +850,14 @@ def test_wmrl_multiblock():
 
         set_sizes_blocks.append(jnp.ones((size,)) * 5)
 
-    # Test parameters
+    # Test parameters (no beta/beta_wm - they're fixed at 50)
     params = {
         'alpha_pos': 0.3,
         'alpha_neg': 0.1,
-        'beta': 2.0,
-        'beta_wm': 3.0,
         'phi': 0.1,
         'rho': 0.7,
-        'capacity': 4.0
+        'capacity': 4.0,
+        'epsilon': 0.05
     }
 
     # Compute likelihood

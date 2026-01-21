@@ -89,7 +89,13 @@ class TaskParams:
 # ============================================================================
 
 class ModelParams:
-    """Default hyperparameters for RL models."""
+    """
+    Default hyperparameters for RL models.
+
+    Following Senta et al. (2025):
+    - Beta is FIXED at 50 during learning for parameter identifiability
+    - Epsilon noise captures random responding (motor noise, lapses)
+    """
 
     # Q-learning parameters (asymmetric learning rates)
     ALPHA_POS_DEFAULT = 0.3  # Learning rate for positive PE (correct trials)
@@ -97,13 +103,19 @@ class ModelParams:
     ALPHA_MIN = 0.0
     ALPHA_MAX = 1.0
 
-    BETA_DEFAULT = 2.0  # Inverse temperature (softmax) (>0)
-    BETA_MIN = 0.01
-    BETA_MAX = 20.0
+    # Inverse temperature - FIXED at 50 for identifiability (Senta et al., 2025)
+    BETA_FIXED = 50.0  # Fixed inverse temperature during learning
+    BETA_DEFAULT = 50.0  # Alias for backwards compatibility
 
     GAMMA_DEFAULT = 0.0  # Discount factor (fixed at 0 for this task)
     GAMMA_MIN = 0.0
     GAMMA_MAX = 1.0
+
+    # Epsilon noise parameter (Senta et al., 2025)
+    # Captures random responding: p_noisy = ε/nA + (1-ε)*p
+    EPSILON_DEFAULT = 0.05  # Default epsilon noise (5% random)
+    EPSILON_MIN = 0.0
+    EPSILON_MAX = 1.0
 
     # Working Memory + RL Hybrid parameters
     WM_CAPACITY_DEFAULT = 4  # WM capacity for adaptive weighting
@@ -118,18 +130,10 @@ class ModelParams:
     RHO_MIN = 0.0
     RHO_MAX = 1.0
 
-    BETA_WM_DEFAULT = 3.0  # WM inverse temperature (>0)
-    BETA_WM_MIN = 0.01
-    BETA_WM_MAX = 20.0
-
-    # Exploration parameters
-    EPSILON_DEFAULT = 0.1  # Epsilon-greedy exploration (0-1)
-    EPSILON_MIN = 0.0
-    EPSILON_MAX = 1.0
-
     # Initialization
     Q_INIT_VALUE = 0.5  # Initial Q-values (optimistic initialization)
-    WM_INIT_VALUE = 0.0  # Initial WM values (baseline)
+    WM_INIT_VALUE = 1.0 / 3.0  # Initial WM values (1/nA for uniform baseline)
+    NUM_ACTIONS = 3  # Number of possible actions
 
 # ============================================================================
 # PYMC SAMPLING PARAMETERS
@@ -308,6 +312,7 @@ def print_config_summary():
     """Print a summary of the current configuration."""
     print("=" * 80)
     print("RLWM TRAUMA ANALYSIS - CONFIGURATION SUMMARY")
+    print("Following Senta et al. (2025) model specifications")
     print("=" * 80)
     print(f"\nProject Root: {PROJECT_ROOT}")
     print(f"Version: {VERSION}")
@@ -316,12 +321,15 @@ def print_config_summary():
     print(f"  - Set Sizes: {TaskParams.SET_SIZES}")
     print(f"  - Reversal Range: [{TaskParams.REVERSAL_MIN}, {TaskParams.REVERSAL_MAX}]")
     print(f"  - Reward: Correct={TaskParams.REWARD_CORRECT}, Incorrect={TaskParams.REWARD_INCORRECT}")
-    print(f"\nModel Defaults:")
+    print(f"\nModel Defaults (Senta et al., 2025):")
     print(f"  - Learning Rate (α_pos): {ModelParams.ALPHA_POS_DEFAULT}")
     print(f"  - Learning Rate (α_neg): {ModelParams.ALPHA_NEG_DEFAULT}")
-    print(f"  - Inverse Temperature (β): {ModelParams.BETA_DEFAULT}")
+    print(f"  - Inverse Temperature (β): {ModelParams.BETA_FIXED} (FIXED)")
+    print(f"  - Epsilon Noise (ε): {ModelParams.EPSILON_DEFAULT}")
     print(f"  - Discount Factor (γ): {ModelParams.GAMMA_DEFAULT}")
-    print(f"  - WM Capacity: {ModelParams.WM_CAPACITY_DEFAULT}")
+    print(f"  - WM Capacity (K): {ModelParams.WM_CAPACITY_DEFAULT}")
+    print(f"  - WM Decay (φ): {ModelParams.PHI_DEFAULT}")
+    print(f"  - WM Reliance (ρ): {ModelParams.RHO_DEFAULT}")
     print(f"\nPyMC Sampling:")
     print(f"  - Chains: {PyMCParams.NUM_CHAINS}")
     print(f"  - Samples: {PyMCParams.NUM_SAMPLES}")

@@ -3,7 +3,11 @@ NumPyro Hierarchical Bayesian Models for RL Parameter Estimation
 
 This module implements hierarchical Bayesian models using NumPyro for:
 1. Q-learning with asymmetric learning rates
-2. WM-RL hybrid model (future implementation)
+2. WM-RL hybrid model
+
+Following Senta et al. (2025):
+- Beta is fixed at 50 (not estimated) for parameter identifiability
+- Epsilon noise parameter is estimated to capture random responding
 
 NumPyro provides:
 - NUTS sampler (gradient-based, efficient for continuous parameters)
@@ -14,14 +18,15 @@ NumPyro provides:
 Model Structure:
 ---------------
 Hierarchical (3-level):
-1. Population level: μ_α+, σ_α+, μ_α-, σ_α-, μ_β, σ_β
-2. Individual level: α+_i, α-_i, β_i for each participant
+1. Population level: μ_α+, σ_α+, μ_α-, σ_α-, μ_ε, σ_ε
+2. Individual level: α+_i, α-_i, ε_i for each participant
 3. Observations: Actions given stimuli and rewards
 
 Non-centered parameterization used for better sampling efficiency.
 
 Author: Generated for RLWM trauma analysis project
 Date: 2025-11-22
+Updated: 2026-01-20 - Added epsilon noise, fixed beta=50
 """
 
 import sys
@@ -56,6 +61,10 @@ def qlearning_hierarchical_model(
     """
     Hierarchical Bayesian Q-learning model for multiple participants.
 
+    Following Senta et al. (2025):
+    - Beta is FIXED at 50 (not estimated) for parameter identifiability
+    - Epsilon noise parameter is estimated to capture random responding
+
     Model Structure:
     ---------------
     # Group-level (population) parameters
@@ -63,8 +72,8 @@ def qlearning_hierarchical_model(
     σ_α+ ~ HalfNormal(0.3) # Variability in α+
     μ_α- ~ Beta(2, 3)      # Mean negative learning rate ~ 0.4
     σ_α- ~ HalfNormal(0.3) # Variability in α-
-    μ_β ~ Gamma(2, 1)      # Mean inverse temperature ~ 2
-    σ_β ~ HalfNormal(2.0)  # Variability in β
+    μ_ε ~ Beta(1, 19)      # Mean epsilon noise ~ 0.05
+    σ_ε ~ HalfNormal(0.1)  # Variability in ε
 
     # Individual-level parameters (non-centered)
     z_α+_i ~ Normal(0, 1)
@@ -73,11 +82,11 @@ def qlearning_hierarchical_model(
     z_α-_i ~ Normal(0, 1)
     α-_i = logit^(-1)(logit(μ_α-) + σ_α- * z_α-_i)
 
-    z_β_i ~ Normal(0, 1)
-    β_i = exp(log(μ_β) + σ_β * z_β_i)
+    z_ε_i ~ Normal(0, 1)
+    ε_i = logit^(-1)(logit(μ_ε) + σ_ε * z_ε_i)
 
-    # Likelihood
-    actions_i ~ Softmax(Q-values; α+_i, α-_i, β_i)
+    # Likelihood (beta=50 fixed)
+    actions_i ~ Softmax(Q-values; α+_i, α-_i, β=50, ε_i)
 
     Parameters
     ----------
@@ -113,9 +122,10 @@ def qlearning_hierarchical_model(
     mu_alpha_neg = numpyro.sample('mu_alpha_neg', dist.Beta(2, 3))
     sigma_alpha_neg = numpyro.sample('sigma_alpha_neg', dist.HalfNormal(0.3))
 
-    # Inverse temperature: positive
-    mu_beta = numpyro.sample('mu_beta', dist.Gamma(2.0, 1.0))
-    sigma_beta = numpyro.sample('sigma_beta', dist.HalfNormal(2.0))
+    # Epsilon noise: bounded [0, 1], prior centered around 0.05
+    # Beta(1, 19) gives mean of 1/20 = 0.05
+    mu_epsilon = numpyro.sample('mu_epsilon', dist.Beta(1, 19))
+    sigma_epsilon = numpyro.sample('sigma_epsilon', dist.HalfNormal(0.1))
 
     # ========================================================================
     # INDIVIDUAL-LEVEL PARAMETERS (NON-CENTERED)
@@ -125,7 +135,7 @@ def qlearning_hierarchical_model(
         # Sample standard normal offsets
         z_alpha_pos = numpyro.sample('z_alpha_pos', dist.Normal(0, 1))
         z_alpha_neg = numpyro.sample('z_alpha_neg', dist.Normal(0, 1))
-        z_beta = numpyro.sample('z_beta', dist.Normal(0, 1))
+        z_epsilon = numpyro.sample('z_epsilon', dist.Normal(0, 1))
 
         # Transform to constrained space
         # For Beta-distributed parameters: use logit transformation
@@ -141,11 +151,11 @@ def qlearning_hierarchical_model(
                 jax.scipy.special.logit(mu_alpha_neg) + sigma_alpha_neg * z_alpha_neg
             )
         )
-
-        # For Gamma-distributed parameters: use log transformation
-        beta = numpyro.deterministic(
-            'beta',
-            jnp.exp(jnp.log(mu_beta) + sigma_beta * z_beta)
+        epsilon = numpyro.deterministic(
+            'epsilon',
+            jax.scipy.special.expit(
+                jax.scipy.special.logit(mu_epsilon) + sigma_epsilon * z_epsilon
+            )
         )
 
     # ========================================================================
@@ -158,16 +168,17 @@ def qlearning_hierarchical_model(
         # Get individual parameters
         alpha_pos_i = alpha_pos[i]
         alpha_neg_i = alpha_neg[i]
-        beta_i = beta[i]
+        epsilon_i = epsilon[i]
 
         # Compute log-likelihood across all blocks for this participant
+        # Note: beta is fixed at 50 inside the likelihood function
         log_lik = q_learning_multiblock_likelihood(
             stimuli_blocks=pdata['stimuli_blocks'],
             actions_blocks=pdata['actions_blocks'],
             rewards_blocks=pdata['rewards_blocks'],
             alpha_pos=alpha_pos_i,
             alpha_neg=alpha_neg_i,
-            beta=beta_i,
+            epsilon=epsilon_i,
             num_stimuli=num_stimuli,
             num_actions=num_actions,
             q_init=q_init
@@ -182,10 +193,14 @@ def wmrl_hierarchical_model(
     num_stimuli: int = 6,
     num_actions: int = 3,
     q_init: float = 0.5,
-    wm_init: float = 0.5
+    wm_init: float = 1.0 / 3.0  # WM baseline = 1/nA (uniform)
 ):
     """
     Hierarchical Bayesian WM-RL hybrid model for multiple participants.
+
+    Following Senta et al. (2025):
+    - Beta is FIXED at 50 for both WM and RL (not estimated)
+    - Epsilon noise parameter is estimated to capture random responding
 
     Model Structure:
     ---------------
@@ -194,22 +209,20 @@ def wmrl_hierarchical_model(
     σ_α+ ~ HalfNormal(0.3)    # Variability in α+
     μ_α- ~ Beta(2, 3)         # Mean negative learning rate ~ 0.4
     σ_α- ~ HalfNormal(0.3)    # Variability in α-
-    μ_β ~ Gamma(2, 1)         # Mean RL inverse temperature ~ 2
-    σ_β ~ HalfNormal(2.0)     # Variability in β
-    μ_β_WM ~ Gamma(3, 1)      # Mean WM inverse temperature ~ 3
-    σ_β_WM ~ HalfNormal(2.0)  # Variability in β_WM
     μ_φ ~ Beta(2, 8)          # Mean WM decay rate ~ 0.2
     σ_φ ~ HalfNormal(0.3)     # Variability in φ
     μ_ρ ~ Beta(5, 2)          # Mean WM reliance ~ 0.7
     σ_ρ ~ HalfNormal(0.3)     # Variability in ρ
     μ_K ~ TruncatedNormal(4, 1.5, low=1, high=7)  # Mean WM capacity ~ 4
     σ_K ~ HalfNormal(1.0)     # Variability in K
+    μ_ε ~ Beta(1, 19)         # Mean epsilon noise ~ 0.05
+    σ_ε ~ HalfNormal(0.1)     # Variability in ε
 
     # Individual-level parameters (non-centered)
-    Similar to Q-learning model, but with additional WM parameters
+    All parameters transformed via logit/log for Beta/bounded distributions
 
-    # Likelihood
-    actions_i ~ Hybrid(WM, RL; all parameters)
+    # Likelihood (beta=50 fixed)
+    actions_i ~ Hybrid(WM, RL; all parameters, β=50)
 
     Parameters
     ----------
@@ -227,7 +240,7 @@ def wmrl_hierarchical_model(
     q_init : float
         Initial Q-value for all state-action pairs
     wm_init : float
-        Initial WM values (baseline)
+        Initial WM values (baseline = 1/nA for uniform)
 
     Notes
     -----
@@ -248,14 +261,6 @@ def wmrl_hierarchical_model(
     mu_alpha_neg = numpyro.sample('mu_alpha_neg', dist.Beta(2, 3))
     sigma_alpha_neg = numpyro.sample('sigma_alpha_neg', dist.HalfNormal(0.3))
 
-    # RL inverse temperature: positive
-    mu_beta = numpyro.sample('mu_beta', dist.Gamma(2.0, 1.0))
-    sigma_beta = numpyro.sample('sigma_beta', dist.HalfNormal(2.0))
-
-    # WM inverse temperature: positive
-    mu_beta_wm = numpyro.sample('mu_beta_wm', dist.Gamma(3.0, 1.0))
-    sigma_beta_wm = numpyro.sample('sigma_beta_wm', dist.HalfNormal(2.0))
-
     # WM decay rate: bounded [0, 1]
     mu_phi = numpyro.sample('mu_phi', dist.Beta(2, 8))
     sigma_phi = numpyro.sample('sigma_phi', dist.HalfNormal(0.3))
@@ -268,6 +273,10 @@ def wmrl_hierarchical_model(
     mu_capacity = numpyro.sample('mu_capacity', dist.TruncatedNormal(4.0, 1.5, low=1.0, high=7.0))
     sigma_capacity = numpyro.sample('sigma_capacity', dist.HalfNormal(1.0))
 
+    # Epsilon noise: bounded [0, 1], prior centered around 0.05
+    mu_epsilon = numpyro.sample('mu_epsilon', dist.Beta(1, 19))
+    sigma_epsilon = numpyro.sample('sigma_epsilon', dist.HalfNormal(0.1))
+
     # ========================================================================
     # INDIVIDUAL-LEVEL PARAMETERS (NON-CENTERED)
     # ========================================================================
@@ -276,11 +285,10 @@ def wmrl_hierarchical_model(
         # Sample standard normal offsets
         z_alpha_pos = numpyro.sample('z_alpha_pos', dist.Normal(0, 1))
         z_alpha_neg = numpyro.sample('z_alpha_neg', dist.Normal(0, 1))
-        z_beta = numpyro.sample('z_beta', dist.Normal(0, 1))
-        z_beta_wm = numpyro.sample('z_beta_wm', dist.Normal(0, 1))
         z_phi = numpyro.sample('z_phi', dist.Normal(0, 1))
         z_rho = numpyro.sample('z_rho', dist.Normal(0, 1))
         z_capacity = numpyro.sample('z_capacity', dist.Normal(0, 1))
+        z_epsilon = numpyro.sample('z_epsilon', dist.Normal(0, 1))
 
         # Transform to constrained space
         # For Beta-distributed parameters: use logit transformation
@@ -308,15 +316,11 @@ def wmrl_hierarchical_model(
                 jax.scipy.special.logit(mu_rho) + sigma_rho * z_rho
             )
         )
-
-        # For Gamma-distributed parameters: use log transformation
-        beta = numpyro.deterministic(
-            'beta',
-            jnp.exp(jnp.log(mu_beta) + sigma_beta * z_beta)
-        )
-        beta_wm = numpyro.deterministic(
-            'beta_wm',
-            jnp.exp(jnp.log(mu_beta_wm) + sigma_beta_wm * z_beta_wm)
+        epsilon = numpyro.deterministic(
+            'epsilon',
+            jax.scipy.special.expit(
+                jax.scipy.special.logit(mu_epsilon) + sigma_epsilon * z_epsilon
+            )
         )
 
         # For capacity: use clipped normal transformation
@@ -335,13 +339,13 @@ def wmrl_hierarchical_model(
         # Get individual parameters
         alpha_pos_i = alpha_pos[i]
         alpha_neg_i = alpha_neg[i]
-        beta_i = beta[i]
-        beta_wm_i = beta_wm[i]
         phi_i = phi[i]
         rho_i = rho[i]
         capacity_i = capacity[i]
+        epsilon_i = epsilon[i]
 
         # Compute log-likelihood across all blocks for this participant
+        # Note: beta is fixed at 50 inside the likelihood function
         log_lik = wmrl_multiblock_likelihood(
             stimuli_blocks=pdata['stimuli_blocks'],
             actions_blocks=pdata['actions_blocks'],
@@ -349,11 +353,10 @@ def wmrl_hierarchical_model(
             set_sizes_blocks=pdata['set_sizes_blocks'],
             alpha_pos=alpha_pos_i,
             alpha_neg=alpha_neg_i,
-            beta=beta_i,
-            beta_wm=beta_wm_i,
             phi=phi_i,
             rho=rho_i,
             capacity=capacity_i,
+            epsilon=epsilon_i,
             num_stimuli=num_stimuli,
             num_actions=num_actions,
             q_init=q_init,
@@ -455,16 +458,17 @@ def test_likelihood_compilation(
     if verbose:
         print("\n>> Testing likelihood compilation...")
         print("   This will compile JAX functions (first time only)")
+        print("   (Using fixed beta=50, epsilon noise enabled)")
 
     # Get first participant
     first_pid = list(participant_data.keys())[0]
     pdata = participant_data[first_pid]
 
-    # Test parameters
+    # Test parameters (no beta - it's fixed at 50)
     test_params = {
         'alpha_pos': 0.3,
         'alpha_neg': 0.1,
-        'beta': 2.0
+        'epsilon': 0.05
     }
 
     if verbose:
@@ -479,7 +483,7 @@ def test_likelihood_compilation(
         rewards_blocks=pdata['rewards_blocks'],
         alpha_pos=test_params['alpha_pos'],
         alpha_neg=test_params['alpha_neg'],
-        beta=test_params['beta'],
+        epsilon=test_params['epsilon'],
         verbose=verbose,
         participant_id=str(first_pid)
     )
@@ -630,26 +634,29 @@ def test_model_with_synthetic_data():
     """
     print("=" * 80)
     print("TESTING HIERARCHICAL Q-LEARNING MODEL WITH SYNTHETIC DATA")
+    print("(Beta fixed at 50, epsilon noise enabled)")
     print("=" * 80)
 
     # Create synthetic data for 2 participants, 3 blocks each
     key = jax.random.PRNGKey(42)
 
     # True parameters (what we want to recover)
+    # Note: beta is fixed at 50 (not estimated)
     true_params = {
         'mu_alpha_pos': 0.6,
         'mu_alpha_neg': 0.4,
-        'mu_beta': 2.0,
+        'mu_epsilon': 0.05,
         'participants': [
-            {'alpha_pos': 0.55, 'alpha_neg': 0.35, 'beta': 1.8},
-            {'alpha_pos': 0.65, 'alpha_neg': 0.45, 'beta': 2.2},
+            {'alpha_pos': 0.55, 'alpha_neg': 0.35, 'epsilon': 0.04},
+            {'alpha_pos': 0.65, 'alpha_neg': 0.45, 'epsilon': 0.06},
         ]
     }
 
     print(f"\nTrue parameters:")
     print(f"  μ_α+: {true_params['mu_alpha_pos']}")
     print(f"  μ_α-: {true_params['mu_alpha_neg']}")
-    print(f"  μ_β: {true_params['mu_beta']}")
+    print(f"  μ_ε: {true_params['mu_epsilon']}")
+    print(f"  β (fixed): 50")
 
     # Generate synthetic data
     participant_data = {}
@@ -717,7 +724,7 @@ def test_model_with_synthetic_data():
     print("\nPosterior estimates (should be near true values):")
     print(f"  μ_α+ posterior mean: {samples['mu_alpha_pos'].mean():.3f} (true: {true_params['mu_alpha_pos']})")
     print(f"  μ_α- posterior mean: {samples['mu_alpha_neg'].mean():.3f} (true: {true_params['mu_alpha_neg']})")
-    print(f"  μ_β posterior mean: {samples['mu_beta'].mean():.3f} (true: {true_params['mu_beta']})")
+    print(f"  μ_ε posterior mean: {samples['mu_epsilon'].mean():.3f} (true: {true_params['mu_epsilon']})")
 
     print("\n" + "=" * 80)
     print("TEST COMPLETE!")

@@ -1,584 +1,825 @@
-# RL Model Reference
+# Model Mathematics and Fitting Reference
 
-Complete documentation for the reinforcement learning models implemented for the RLWM task.
-
-## Overview
-
-Two models are implemented:
-1. **Q-Learning**: Standard model-free RL baseline
-2. **WM-RL Hybrid**: Combines working memory with Q-learning
-
-Both models can be fitted to human data using hierarchical Bayesian inference with PyMC.
-
-## Implementation Approaches
-
-Two parallel implementations are available:
-
-1. **Agent-Based (PyMC)**: Uses agent classes from `models/` for simulation and fitting
-   - Pros: Clean separation, interpretable, consistent with simulations
-   - Cons: Slower sampling (Metropolis), no gradients
-   - Files: `models/q_learning.py`, `fitting/pymc_models.py`
-
-2. **Functional (JAX/NumPyro)**: Pure functional likelihoods with JIT compilation
-   - Pros: 10-100x faster, gradient-based NUTS sampler, native JAX operations
-   - Cons: Separate implementation from agent classes
-   - Files: `scripts/fitting/jax_likelihoods.py`, `scripts/fitting/numpyro_models.py`
-
-**Recommendation**: Use JAX/NumPyro for production fitting (faster, better sampling). Use agent-based approach for parameter exploration and validation.
+Complete documentation for the RLWM computational models, mathematical formulations, and Bayesian fitting procedures.
 
 ---
 
-## Model 1: Q-Learning
+## 1. Model Overview
 
-**File**: `models/q_learning.py`
+Two models are implemented for fitting human behavioral data:
 
-### Mathematical Formulation
+| Model | Description | Free Parameters |
+|-------|-------------|-----------------|
+| **Q-Learning** | Model-free RL baseline with asymmetric learning rates | 3: α₊, α₋, ε |
+| **WM-RL Hybrid** | Combines working memory and RL systems | 6: α₊, α₋, φ, ρ, K, ε |
+
+**Key Design Principles:**
+- **Learning phase only**: This task has no separate testing phase
+- **Fixed β = 50**: Inverse temperature fixed during learning for identifiability
+- **Epsilon noise**: Small random exploration term for robustness
+- **Asymmetric learning**: Separate rates for positive/negative prediction errors
+
+---
+
+## 2. Q-Learning Model
+
+### 2.1 Mathematical Formulation
 
 #### Q-Value Update
 
-Temporal difference learning rule with **asymmetric learning rates**:
+Temporal difference learning with asymmetric learning rates:
 
 ```
-Prediction Error (PE) = r - Q(s,a)
+Prediction Error: δ = r - Q(s,a)
 
-If PE > 0:  Q(s,a) ← Q(s,a) + α_pos · PE  (positive PE, correct trials)
-If PE ≤ 0:  Q(s,a) ← Q(s,a) + α_neg · PE  (negative PE, incorrect trials)
+If δ > 0:  Q(s,a) ← Q(s,a) + α₊ · δ  (positive PE, correct trials)
+If δ ≤ 0:  Q(s,a) ← Q(s,a) + α₋ · δ  (negative PE, incorrect trials)
 ```
 
 For this task, γ=0 (no bootstrapping), so the update simplifies to learning from immediate rewards only.
 
 #### Action Selection
 
-Softmax policy:
+Softmax policy with epsilon noise:
 
 ```
-P(a|s) = exp(β·Q(s,a)) / Σ_a' exp(β·Q(s,a'))
+p_softmax(a|s) = exp(β·Q(s,a)) / Σ_a' exp(β·Q(s,a'))
+
+p(a|s) = ε/nA + (1-ε)·p_softmax(a|s)
 ```
 
-### Parameters
+Where:
+- β = 50 (fixed)
+- nA = 3 (number of actions)
+- ε = epsilon noise parameter (fitted)
 
-| Parameter | Symbol | Range | Default | Description |
-|-----------|--------|-------|---------|-------------|
-| Learning rate (positive PE) | α₊ | [0, 1] | 0.3 | How quickly Q-values increase from correct trials |
-| Learning rate (negative PE) | α₋ | [0, 1] | 0.1 | How quickly Q-values decrease from incorrect trials |
-| Inverse temperature | β | (0, ∞) | 2.0 | Exploration vs exploitation |
-| Discount factor | γ | [0, 1] | 0.0 | Future reward weighting (fixed at 0) |
-| Initial Q-value | Q₀ | ℝ | 0.5 | Optimistic initialization |
+### 2.2 Parameters
 
-### Implementation
+| Parameter | Symbol | Range | Prior | Description |
+|-----------|--------|-------|-------|-------------|
+| Learning rate (positive PE) | α₊ | [0, 1] | Beta(3, 2) | How quickly Q-values increase from correct trials |
+| Learning rate (negative PE) | α₋ | [0, 1] | Beta(2, 3) | How quickly Q-values decrease from incorrect trials |
+| Epsilon noise | ε | [0, 1] | Beta(1, 19) | Random exploration probability |
+| Inverse temperature | β | **50 (fixed)** | — | Exploitation sharpness (not fitted) |
+| Initial Q-value | Q₀ | 0.5 | — | Optimistic initialization (not fitted) |
 
-#### Class: QLearningAgent
-
-```python
-QLearningAgent(
-    num_stimuli: int = 6,
-    num_actions: int = 3,
-    alpha_pos: float = 0.3,    # Learning rate for positive PE
-    alpha_neg: float = 0.1,    # Learning rate for negative PE
-    beta: float = 2.0,
-    gamma: float = 0.0,
-    q_init: float = 0.5,
-    seed: Optional[int] = None
-)
-```
-
-#### Key Methods
-
-**choose_action(stimulus)**
-```python
-action = agent.choose_action(stimulus)
-# Returns: int (0, 1, or 2)
-```
-
-**update(stimulus, action, reward, next_stimulus)**
-```python
-agent.update(stimulus, action, reward, next_stimulus)
-# Updates Q-table based on observed reward
-```
-
-**get_action_probs(stimulus)**
-```python
-probs = agent.get_action_probs(stimulus)
-# Returns: np.ndarray of shape (3,) with action probabilities
-```
-
-### Usage Example
-
-```python
-from environments.rlwm_env import create_rlwm_env
-from models.q_learning import create_q_learning_agent
-
-# Create environment and agent
-env = create_rlwm_env(set_size=3, seed=42)
-agent = create_q_learning_agent(alpha_pos=0.3, alpha_neg=0.1, beta=3.0, seed=42)
-
-# Reset
-obs, info = env.reset()
-agent.reset()
-
-# Run learning episode
-for trial in range(100):
-    stimulus = obs['stimulus']
-
-    # Agent chooses action
-    action = agent.choose_action(stimulus)
-
-    # Environment responds
-    obs, reward, terminated, truncated, info = env.step(action)
-
-    # Agent learns
-    next_stimulus = obs['stimulus'] if not truncated else None
-    agent.update(stimulus, action, reward, next_stimulus)
-
-    if truncated:
-        break
-
-# Check learned Q-values
-print("Final Q-table:")
-print(agent.get_q_table())
-```
-
-### Parameter Interpretation
+### 2.3 Parameter Interpretation
 
 **Asymmetric Learning Rates (α₊, α₋)**
-- **α₊ (positive PE)**: Controls how quickly the agent learns from correct responses
-  - High α₊: Fast learning from successes
-  - Low α₊: Slower, more stable learning from positive outcomes
-- **α₋ (negative PE)**: Controls how quickly the agent learns from incorrect responses
-  - High α₋: Fast learning from mistakes
-  - Low α₋: Less sensitive to negative feedback
-- **Asymmetry**: α₊ > α₋ represents optimistic learning (faster from rewards than punishments)
-- Trauma effects: May show altered asymmetry (e.g., heightened α₋, reflecting increased sensitivity to negative outcomes)
+- **α₊ > α₋**: Optimistic learning (faster from rewards than punishments)
+- **α₊ < α₋**: Pessimistic learning (faster from punishments)
+- **Trauma hypothesis**: May show altered asymmetry (e.g., heightened α₋)
 
-**Inverse Temperature (β)**
-- **Low β (0.1-1)**: Exploratory. More random choices.
-- **High β (5-20)**: Exploitative. Strong preference for best option.
-- Related to decision confidence and certainty
+**Epsilon Noise (ε)**
+- Captures random errors, lapses in attention, motor noise
+- Typical values: 0.01-0.10 (1-10% random choices)
+- Higher ε indicates less reliable responding
 
 ---
 
-## Model 2: WM-RL Hybrid
+## 3. WM-RL Hybrid Model
 
-**File**: `models/wm_rl_hybrid.py`
+### 3.1 Mathematical Formulation
 
-### Mathematical Formulation
+The WM-RL model combines two learning systems with adaptive weighting.
 
-#### Components
-
-1. **Working Memory**: Matrix-based distributed value storage (one-shot learning)
-2. **Q-Learning**: Asymmetric learning rates (same as Model 1)
-3. **Hybrid Decision**: Adaptively weighted combination based on capacity and set size
-
-#### Working Memory (Matrix-Based)
+#### 3.1.1 Working Memory Module
 
 **WM Matrix**: State-action value matrix `WM[s, a]` storing immediate reward outcomes.
 
-**Update Rule** (one-shot learning, α=1):
+**Global Decay** (applied before update, every trial):
 ```
-WM_{t+1}(s,a) ← r_{t+1}  (immediate overwrite)
+∀s,a: WM(s,a) ← (1 - φ)·WM(s,a) + φ·WM₀
 ```
+Where WM₀ is the baseline value (typically 1/nA = 0.333).
 
-**Global Decay** (before update, every trial):
+**WM Update** (one-shot learning, α=1):
 ```
-∀s,a: WM_{t+1}(s,a) ← (1 - φ)·WM_{t+1}(s,a) + φ·WM_0(s,a)
+WM(s,a) ← r
 ```
-Where WM_0 is the baseline value (typically 0.0).
+This is an immediate overwrite with the observed reward.
 
 **WM Policy**:
 ```
-P_WM(a|s) = softmax(β_WM · WM(s,:))
-P_WM(a|s) = exp(β_WM·WM(s,a)) / Σ_a' exp(β_WM·WM(s,a'))
+p_WM(a|s) = softmax(β · WM(s,:))
 ```
+Where β = 50 (fixed).
 
-#### RL Component
+#### 3.1.2 RL Module
 
-Same asymmetric Q-learning as Model 1:
+Same asymmetric Q-learning as the standalone model:
 ```
-Q(s,a) ← Q(s,a) + α_pos/neg · [r - Q(s,a)]
+δ = r - Q(s,a)
+α = α₊ if δ > 0 else α₋
+Q(s,a) ← Q(s,a) + α · δ
 ```
 
 **RL Policy**:
 ```
-P_RL(a|s) = softmax(β · Q(s,:))
+p_RL(a|s) = softmax(β · Q(s,:))
 ```
+Where β = 50 (fixed).
 
-#### Adaptive Hybrid Decision
+#### 3.1.3 Adaptive Hybrid Decision
 
 **Adaptive Weighting**:
 ```
-ω = ρ · min(1, K/N_s)
+ω = ρ · min(1, K/Ns)
 ```
 Where:
-- ρ: Base WM reliance parameter
+- ρ: Base WM reliance parameter (0-1)
 - K: WM capacity
-- N_s: Current set size
+- Ns: Current set size (number of stimuli in block)
 
-**Final Policy**:
+**Hybrid Policy** (before epsilon noise):
 ```
-P(a|s) = ω·P_WM(a|s) + (1 - ω)·P_RL(a|s)
-```
-
-The weight ω increases when set size is within capacity (K ≥ N_s), allowing WM to dominate. When set size exceeds capacity, ω decreases, shifting reliance to RL.
-
-### Parameters
-
-| Parameter | Symbol | Range | Default | Description |
-|-----------|--------|-------|---------|-------------|
-| Learning rate (positive PE) | α₊ | [0, 1] | 0.3 | RL update rate for correct trials |
-| Learning rate (negative PE) | α₋ | [0, 1] | 0.1 | RL update rate for incorrect trials |
-| RL inverse temperature | β | (0, ∞) | 2.0 | RL exploitation |
-| WM inverse temperature | β_WM | (0, ∞) | 3.0 | WM exploitation (typically higher) |
-| WM capacity | K | {1,...,7} | 4 | Capacity for adaptive weighting |
-| WM decay rate | φ | [0, 1] | 0.1 | Global decay toward baseline |
-| Base WM reliance | ρ | [0, 1] | 0.7 | Base WM weight in adaptive formula |
-| Discount factor | γ | [0, 1] | 0.0 | Future rewards (fixed at 0) |
-| WM baseline | WM_0 | ℝ | 0.0 | Decay target value |
-
-### Implementation
-
-#### Class: WMRLHybridAgent
-
-```python
-WMRLHybridAgent(
-    num_stimuli: int = 6,
-    num_actions: int = 3,
-    alpha_pos: float = 0.3,        # RL learning rate (positive PE)
-    alpha_neg: float = 0.1,        # RL learning rate (negative PE)
-    beta: float = 2.0,             # RL inverse temperature
-    beta_wm: float = 3.0,          # WM inverse temperature
-    capacity: int = 4,             # WM capacity (K)
-    phi: float = 0.1,              # WM global decay rate
-    rho: float = 0.7,              # Base WM reliance
-    gamma: float = 0.0,
-    q_init: float = 0.5,
-    wm_init: float = 0.0,          # WM baseline
-    seed: Optional[int] = None
-)
+p_hybrid(a|s) = ω·p_WM(a|s) + (1-ω)·p_RL(a|s)
 ```
 
-#### Key Methods
-
-**choose_action(stimulus, set_size)**
-```python
-action = agent.choose_action(stimulus, set_size)
-# Returns: int (0, 1, or 2)
-# Note: set_size required for adaptive weighting
+**Final Policy** (with epsilon noise):
+```
+p(a|s) = ε/nA + (1-ε)·p_hybrid(a|s)
 ```
 
-**choose_action(stimulus, set_size, return_info=True)**
-```python
-action, info = agent.choose_action(stimulus, set_size, return_info=True)
-# Returns: (action, decision_info_dict)
-```
+### 3.2 Trial Sequence
 
-Decision info includes:
-- `probs`: Hybrid probabilities
-- `wm_probs`: WM component probabilities
-- `rl_probs`: RL component probabilities
-- `omega`: Adaptive weight (ω = ρ · min(1, K/N_s))
+The order of operations within each trial is:
 
-**update(stimulus, action, reward, next_stimulus)**
-```python
-agent.update(stimulus, action, reward, next_stimulus)
-# Updates both Q-table and WM matrix (with decay)
-```
+1. **Decay WM**: `WM ← (1-φ)WM + φ·WM₀`
+2. **Compute hybrid policy**: Use decayed WM and current Q for choice probabilities
+3. **Update WM**: `WM(s,a) ← r` (after observing reward)
+4. **Update Q**: `Q(s,a) ← Q(s,a) + α·(r - Q(s,a))`
 
-**get_wm_matrix()**
-```python
-wm_matrix = agent.get_wm_matrix()
-# Returns: np.ndarray of shape (num_stimuli, num_actions)
-```
+### 3.3 Parameters
 
-**get_hybrid_probs(stimulus, set_size)**
-```python
-hybrid_info = agent.get_hybrid_probs(stimulus, set_size)
-# Returns: Dict with 'probs', 'wm_probs', 'rl_probs', 'omega'
-```
+| Parameter | Symbol | Range | Prior | Description |
+|-----------|--------|-------|-------|-------------|
+| RL learning rate (positive) | α₊ | [0, 1] | Beta(3, 2) | RL update rate for correct trials |
+| RL learning rate (negative) | α₋ | [0, 1] | Beta(2, 3) | RL update rate for incorrect trials |
+| WM decay rate | φ | [0, 1] | Beta(2, 8) | Global decay toward baseline |
+| Base WM reliance | ρ | [0, 1] | Beta(5, 2) | Base WM weight in adaptive formula |
+| WM capacity | K | [1, 7] | TruncNorm(4, 1.5) | Capacity for adaptive weighting |
+| Epsilon noise | ε | [0, 1] | Beta(1, 19) | Random exploration probability |
+| Inverse temperature | β | **50 (fixed)** | — | Shared by WM and RL (not fitted) |
+| WM baseline | WM₀ | 1/nA | — | Decay target (not fitted) |
+| Initial Q-value | Q₀ | 0.5 | — | Optimistic initialization (not fitted) |
 
-### Usage Example
-
-```python
-from environments.rlwm_env import create_rlwm_env
-from models.wm_rl_hybrid import create_wm_rl_agent
-
-# Create environment and agent
-env = create_rlwm_env(set_size=5, seed=42)  # Larger set size
-agent = create_wm_rl_agent(
-    alpha_pos=0.3,
-    alpha_neg=0.1,
-    beta=2.0,
-    beta_wm=3.0,
-    capacity=4,
-    phi=0.1,
-    rho=0.7,
-    seed=42
-)
-
-# Run episode
-obs, info = env.reset()
-agent.reset()
-
-for trial in range(100):
-    stimulus = obs['stimulus']
-    set_size = int(obs['set_size'].item())  # Extract from observation
-
-    # Choose action (get decision info)
-    action, decision_info = agent.choose_action(stimulus, set_size, return_info=True)
-
-    # Environment step
-    obs, reward, terminated, truncated, info = env.step(action)
-
-    # Update agent
-    next_stimulus = obs['stimulus'] if not truncated else None
-    agent.update(stimulus, action, reward, next_stimulus)
-
-    # Track adaptive weighting
-    omega = decision_info['omega']
-    print(f"Trial {trial}: set_size={set_size}, omega={omega:.2f}, "
-          f"WM_weight={omega:.2%}, RL_weight={(1-omega):.2%}")
-
-    if truncated:
-        break
-
-# Inspect WM matrix
-print("\nFinal WM matrix:")
-wm_matrix = agent.get_wm_matrix()
-print(wm_matrix)
-```
-
-### Parameter Interpretation
+### 3.4 Parameter Interpretation
 
 **WM Capacity (K)**
-- Determines adaptive weighting via ω = ρ · min(1, K/N_s)
+- Determines adaptive weighting via ω = ρ · min(1, K/Ns)
 - When K ≥ set_size: Full WM reliance possible (ω = ρ)
-- When K < set_size: Reduced WM reliance (ω = ρ·K/N_s)
-- Individual differences: Lower capacity → stronger set-size effects
-- Trauma effects: WM capacity deficits predicted
+- When K < set_size: Reduced WM reliance (ω = ρ·K/Ns)
+- **Trauma hypothesis**: WM capacity deficits expected
 
 **WM Decay Rate (φ)**
-- **Low φ (0.0-0.1)**: Slow global decay. WM values persist toward rewards.
-- **High φ (0.3-1.0)**: Fast decay. WM values quickly return to baseline.
+- **Low φ (0.0-0.1)**: Slow global decay; WM values persist
+- **High φ (0.3-1.0)**: Fast decay; WM values quickly return to baseline
 - Controls forgetting rate of all stimulus-action associations
-- Different from buffer-based models: Decay is global, not age-based
 
 **Base WM Reliance (ρ)**
 - **ρ ≈ 0**: Minimal WM use (RL-dominant)
-- **ρ ≈ 0.5**: Moderate WM reliance
-- **ρ ≈ 1**: Maximal WM use (WM-dominant when K ≥ N_s)
-- Combined with capacity: Final weight ω = ρ · min(1, K/N_s)
+- **ρ ≈ 1**: Maximal WM use (WM-dominant when K ≥ Ns)
 - Reflects individual preference for one-shot vs. incremental learning
 
-**WM vs. RL Inverse Temperatures (β_WM, β)**
-- **β_WM typically > β**: WM retrieval is more deterministic than RL
-- Reflects certainty: WM provides immediate outcome info, RL accumulates noisy evidence
-- Separate temperatures allow different exploration strategies per system
+### 3.5 Step-by-Step Pseudocode
+
+This section provides detailed algorithms for both models, showing exactly how each quantity is computed and updated.
+
+#### 3.5.1 Q-Learning Algorithm
+
+```
+ALGORITHM: Q-Learning Trial Loop
+════════════════════════════════════════════════════════════════════════
+
+INPUTS:
+    α₊         = learning rate for positive prediction errors
+    α₋         = learning rate for negative prediction errors
+    β          = 50 (fixed inverse temperature)
+    ε          = epsilon noise for random exploration
+    nA         = 3 (number of actions)
+
+INITIALIZATION (start of block):
+    Q[s, a] = 0.5 for all s ∈ {0..5}, a ∈ {0, 1, 2}    # Optimistic init
+
+FOR each trial t:
+    ┌─────────────────────────────────────────────────────────────────┐
+    │ STEP 1: Observe stimulus                                        │
+    │─────────────────────────────────────────────────────────────────│
+    │   s = current_stimulus                                          │
+    └─────────────────────────────────────────────────────────────────┘
+
+    ┌─────────────────────────────────────────────────────────────────┐
+    │ STEP 2: Compute action probabilities (softmax policy)           │
+    │─────────────────────────────────────────────────────────────────│
+    │   FOR each action a:                                            │
+    │       exp_Q[a] = exp(β × Q[s, a])                               │
+    │                                                                 │
+    │   sum_exp = exp_Q[0] + exp_Q[1] + exp_Q[2]                      │
+    │                                                                 │
+    │   FOR each action a:                                            │
+    │       p_softmax[a] = exp_Q[a] / sum_exp                         │
+    └─────────────────────────────────────────────────────────────────┘
+
+    ┌─────────────────────────────────────────────────────────────────┐
+    │ STEP 3: Apply epsilon noise                                     │
+    │─────────────────────────────────────────────────────────────────│
+    │   FOR each action a:                                            │
+    │       p[a] = ε/nA + (1-ε) × p_softmax[a]                        │
+    │            = ε/3 + (1-ε) × p_softmax[a]                         │
+    │                                                                 │
+    │   # This ensures p[a] ≥ ε/3 for all actions (exploration floor) │
+    └─────────────────────────────────────────────────────────────────┘
+
+    ┌─────────────────────────────────────────────────────────────────┐
+    │ STEP 4: Agent chooses action, environment returns reward        │
+    │─────────────────────────────────────────────────────────────────│
+    │   a_chosen ~ Categorical(p)     # Sampled from policy           │
+    │   r = env.step(a_chosen)        # r ∈ {0, 1}                    │
+    └─────────────────────────────────────────────────────────────────┘
+
+    ┌─────────────────────────────────────────────────────────────────┐
+    │ STEP 5: Compute prediction error                                │
+    │─────────────────────────────────────────────────────────────────│
+    │   δ = r - Q[s, a_chosen]                                        │
+    │                                                                 │
+    │   # If r=1 (correct) and Q≈0.5:  δ ≈ +0.5 (positive PE)        │
+    │   # If r=0 (incorrect) and Q≈0.5: δ ≈ -0.5 (negative PE)       │
+    └─────────────────────────────────────────────────────────────────┘
+
+    ┌─────────────────────────────────────────────────────────────────┐
+    │ STEP 6: Update Q-value with asymmetric learning rate            │
+    │─────────────────────────────────────────────────────────────────│
+    │   IF δ > 0:                                                     │
+    │       α = α₊                     # Use positive learning rate   │
+    │   ELSE:                                                         │
+    │       α = α₋                     # Use negative learning rate   │
+    │                                                                 │
+    │   Q[s, a_chosen] ← Q[s, a_chosen] + α × δ                       │
+    │                                                                 │
+    │   # Example: Q=0.5, r=1, α₊=0.3                                 │
+    │   #   δ = 1 - 0.5 = 0.5                                         │
+    │   #   Q ← 0.5 + 0.3 × 0.5 = 0.65                                │
+    └─────────────────────────────────────────────────────────────────┘
+
+    ┌─────────────────────────────────────────────────────────────────┐
+    │ STEP 7: Record log-likelihood (for model fitting)               │
+    │─────────────────────────────────────────────────────────────────│
+    │   log_lik_t = log(p[a_chosen])                                  │
+    │                                                                 │
+    │   # This is computed BEFORE the Q-update (using choice probs    │
+    │   # that generated the action)                                  │
+    └─────────────────────────────────────────────────────────────────┘
+
+END FOR
+
+RETURN: sum(log_lik_t) for all trials
+```
+
+#### 3.5.2 WM-RL Hybrid Algorithm
+
+```
+ALGORITHM: WM-RL Hybrid Trial Loop
+════════════════════════════════════════════════════════════════════════
+
+INPUTS:
+    α₊         = RL learning rate for positive prediction errors
+    α₋         = RL learning rate for negative prediction errors
+    β          = 50 (fixed inverse temperature)
+    φ          = WM global decay rate
+    ρ          = base WM reliance
+    K          = WM capacity
+    ε          = epsilon noise for random exploration
+    nA         = 3 (number of actions)
+    Ns         = current set size (stimuli in block)
+
+INITIALIZATION (start of block):
+    Q[s, a]  = 0.5     for all s ∈ {0..5}, a ∈ {0, 1, 2}  # RL values
+    WM[s, a] = 1/nA    for all s ∈ {0..5}, a ∈ {0, 1, 2}  # WM values
+                       = 0.333...                          # (uniform)
+
+COMPUTE adaptive weight (constant for block):
+    ω = ρ × min(1, K/Ns)
+
+    # Examples:
+    #   Ns=3, K=4: ω = ρ × min(1, 4/3) = ρ × 1 = ρ
+    #   Ns=6, K=4: ω = ρ × min(1, 4/6) = ρ × 0.667
+
+FOR each trial t:
+    ┌─────────────────────────────────────────────────────────────────┐
+    │ STEP 1: Observe stimulus                                        │
+    │─────────────────────────────────────────────────────────────────│
+    │   s = current_stimulus                                          │
+    │   Ns = current_set_size                                         │
+    └─────────────────────────────────────────────────────────────────┘
+
+    ┌─────────────────────────────────────────────────────────────────┐
+    │ STEP 2: Apply global WM decay (BEFORE computing policy)         │
+    │─────────────────────────────────────────────────────────────────│
+    │   FOR all stimuli s' ∈ {0..5}:                                  │
+    │       FOR all actions a' ∈ {0, 1, 2}:                           │
+    │           WM[s', a'] ← (1 - φ) × WM[s', a'] + φ × (1/nA)        │
+    │                                                                 │
+    │   # Decay pulls ALL WM values toward 1/3 (uniform baseline)     │
+    │   # High φ → fast forgetting; Low φ → persistent memory         │
+    │                                                                 │
+    │   # Example: WM=0.9, φ=0.1, baseline=0.333                      │
+    │   #   WM ← 0.9 × 0.9 + 0.1 × 0.333 = 0.81 + 0.033 = 0.843      │
+    └─────────────────────────────────────────────────────────────────┘
+
+    ┌─────────────────────────────────────────────────────────────────┐
+    │ STEP 3: Compute WM policy (softmax over decayed WM)             │
+    │─────────────────────────────────────────────────────────────────│
+    │   FOR each action a:                                            │
+    │       exp_WM[a] = exp(β × WM[s, a])                             │
+    │                                                                 │
+    │   sum_exp_WM = exp_WM[0] + exp_WM[1] + exp_WM[2]                │
+    │                                                                 │
+    │   FOR each action a:                                            │
+    │       p_WM[a] = exp_WM[a] / sum_exp_WM                          │
+    └─────────────────────────────────────────────────────────────────┘
+
+    ┌─────────────────────────────────────────────────────────────────┐
+    │ STEP 4: Compute RL policy (softmax over Q-values)               │
+    │─────────────────────────────────────────────────────────────────│
+    │   FOR each action a:                                            │
+    │       exp_Q[a] = exp(β × Q[s, a])                               │
+    │                                                                 │
+    │   sum_exp_Q = exp_Q[0] + exp_Q[1] + exp_Q[2]                    │
+    │                                                                 │
+    │   FOR each action a:                                            │
+    │       p_RL[a] = exp_Q[a] / sum_exp_Q                            │
+    └─────────────────────────────────────────────────────────────────┘
+
+    ┌─────────────────────────────────────────────────────────────────┐
+    │ STEP 5: Compute adaptive weight                                 │
+    │─────────────────────────────────────────────────────────────────│
+    │   ω = ρ × min(1, K/Ns)                                          │
+    │                                                                 │
+    │   # ω determines WM vs RL contribution to final policy          │
+    │   # High ω → WM-dominant; Low ω → RL-dominant                   │
+    └─────────────────────────────────────────────────────────────────┘
+
+    ┌─────────────────────────────────────────────────────────────────┐
+    │ STEP 6: Combine WM and RL policies (hybrid)                     │
+    │─────────────────────────────────────────────────────────────────│
+    │   FOR each action a:                                            │
+    │       p_hybrid[a] = ω × p_WM[a] + (1 - ω) × p_RL[a]             │
+    │                                                                 │
+    │   # Linear interpolation between the two systems                │
+    └─────────────────────────────────────────────────────────────────┘
+
+    ┌─────────────────────────────────────────────────────────────────┐
+    │ STEP 7: Apply epsilon noise                                     │
+    │─────────────────────────────────────────────────────────────────│
+    │   FOR each action a:                                            │
+    │       p[a] = ε/nA + (1-ε) × p_hybrid[a]                         │
+    │            = ε/3 + (1-ε) × p_hybrid[a]                          │
+    └─────────────────────────────────────────────────────────────────┘
+
+    ┌─────────────────────────────────────────────────────────────────┐
+    │ STEP 8: Agent chooses action, environment returns reward        │
+    │─────────────────────────────────────────────────────────────────│
+    │   a_chosen ~ Categorical(p)     # Sampled from policy           │
+    │   r = env.step(a_chosen)        # r ∈ {0, 1}                    │
+    └─────────────────────────────────────────────────────────────────┘
+
+    ┌─────────────────────────────────────────────────────────────────┐
+    │ STEP 9: Update WM (immediate overwrite, one-shot learning)      │
+    │─────────────────────────────────────────────────────────────────│
+    │   WM[s, a_chosen] ← r                                           │
+    │                                                                 │
+    │   # If correct (r=1): WM[s,a] = 1.0 (remember: this works!)     │
+    │   # If incorrect (r=0): WM[s,a] = 0.0 (remember: avoid this!)   │
+    │   # No learning rate — immediate overwrite (α_WM = 1)           │
+    └─────────────────────────────────────────────────────────────────┘
+
+    ┌─────────────────────────────────────────────────────────────────┐
+    │ STEP 10: Update RL Q-value (prediction error learning)          │
+    │─────────────────────────────────────────────────────────────────│
+    │   δ = r - Q[s, a_chosen]                                        │
+    │                                                                 │
+    │   IF δ > 0:                                                     │
+    │       α = α₊                                                    │
+    │   ELSE:                                                         │
+    │       α = α₋                                                    │
+    │                                                                 │
+    │   Q[s, a_chosen] ← Q[s, a_chosen] + α × δ                       │
+    └─────────────────────────────────────────────────────────────────┘
+
+    ┌─────────────────────────────────────────────────────────────────┐
+    │ STEP 11: Record log-likelihood (for model fitting)              │
+    │─────────────────────────────────────────────────────────────────│
+    │   log_lik_t = log(p[a_chosen])                                  │
+    │                                                                 │
+    │   # Computed using choice probabilities BEFORE updates          │
+    └─────────────────────────────────────────────────────────────────┘
+
+END FOR
+
+RETURN: sum(log_lik_t) for all trials
+```
+
+#### 3.5.3 Worked Example: WM-RL First 3 Trials
+
+```
+WORKED EXAMPLE: Set size = 2, Stimuli = {0, 1}
+═══════════════════════════════════════════════════════════════════════
+
+Parameters: α₊=0.3, α₋=0.1, β=50, φ=0.1, ρ=0.8, K=4, ε=0.05
+
+Initial values:
+    Q  = [[0.5, 0.5, 0.5], [0.5, 0.5, 0.5], ...]  # All 0.5
+    WM = [[0.33, 0.33, 0.33], ...]                 # All 1/3
+
+Adaptive weight: ω = 0.8 × min(1, 4/2) = 0.8 × 1 = 0.8
+
+───────────────────────────────────────────────────────────────────────
+TRIAL 1: stimulus=0, correct_action=1
+───────────────────────────────────────────────────────────────────────
+
+1. DECAY WM (all entries):
+   WM[0,0] = 0.9×0.33 + 0.1×0.33 = 0.33  (no change at baseline)
+   (same for all)
+
+2. COMPUTE POLICIES:
+   WM[0,:] = [0.33, 0.33, 0.33]
+   p_WM = softmax(50×[0.33,0.33,0.33]) = [0.33, 0.33, 0.33] (uniform)
+
+   Q[0,:] = [0.5, 0.5, 0.5]
+   p_RL = softmax(50×[0.5,0.5,0.5]) = [0.33, 0.33, 0.33] (uniform)
+
+3. HYBRID + EPSILON:
+   p_hybrid = 0.8×[0.33,0.33,0.33] + 0.2×[0.33,0.33,0.33] = [0.33,0.33,0.33]
+   p = 0.05/3 + 0.95×[0.33,0.33,0.33] ≈ [0.33, 0.33, 0.33]
+
+4. CHOICE: Agent randomly selects action=2 (incorrect)
+   Reward: r=0
+
+5. UPDATE WM:
+   WM[0,2] = 0  (remember: action 2 was wrong for stimulus 0)
+
+6. UPDATE Q:
+   δ = 0 - 0.5 = -0.5 (negative PE)
+   Q[0,2] = 0.5 + 0.1×(-0.5) = 0.45
+
+State after trial 1:
+    WM[0,:] = [0.33, 0.33, 0.00]  ← Updated
+    Q[0,:]  = [0.50, 0.50, 0.45]  ← Updated
+
+───────────────────────────────────────────────────────────────────────
+TRIAL 2: stimulus=1, correct_action=0
+───────────────────────────────────────────────────────────────────────
+
+1. DECAY WM (all entries):
+   WM[0,0] = 0.9×0.33 + 0.1×0.33 = 0.33
+   WM[0,1] = 0.9×0.33 + 0.1×0.33 = 0.33
+   WM[0,2] = 0.9×0.00 + 0.1×0.33 = 0.033  ← Decay from 0 toward baseline
+   (stimulus 1 still at baseline)
+
+2. COMPUTE POLICIES for stimulus=1:
+   WM[1,:] = [0.33, 0.33, 0.33]  → p_WM = [0.33, 0.33, 0.33]
+   Q[1,:]  = [0.50, 0.50, 0.50]  → p_RL = [0.33, 0.33, 0.33]
+
+3. HYBRID + EPSILON:
+   p ≈ [0.33, 0.33, 0.33] (still uniform for stimulus 1)
+
+4. CHOICE: Agent selects action=0 (correct!)
+   Reward: r=1
+
+5. UPDATE WM:
+   WM[1,0] = 1  (remember: action 0 was correct for stimulus 1)
+
+6. UPDATE Q:
+   δ = 1 - 0.5 = 0.5 (positive PE)
+   Q[1,0] = 0.5 + 0.3×0.5 = 0.65
+
+State after trial 2:
+    WM[1,:] = [1.00, 0.33, 0.33]  ← Updated
+    Q[1,:]  = [0.65, 0.50, 0.50]  ← Updated
+
+───────────────────────────────────────────────────────────────────────
+TRIAL 3: stimulus=0, correct_action=1 (same stimulus as trial 1)
+───────────────────────────────────────────────────────────────────────
+
+1. DECAY WM:
+   WM[0,0] = 0.9×0.33 + 0.1×0.33 = 0.33
+   WM[0,1] = 0.9×0.33 + 0.1×0.33 = 0.33
+   WM[0,2] = 0.9×0.033 + 0.1×0.33 = 0.063  ← Continues recovering
+   WM[1,0] = 0.9×1.00 + 0.1×0.33 = 0.933   ← Decays from 1
+   WM[1,1] = 0.9×0.33 + 0.1×0.33 = 0.33
+   WM[1,2] = 0.9×0.33 + 0.1×0.33 = 0.33
+
+2. COMPUTE POLICIES for stimulus=0:
+   WM[0,:] = [0.33, 0.33, 0.063]
+
+   exp(50×WM) ≈ [exp(16.5), exp(16.5), exp(3.15)]
+              ≈ [1.5e7, 1.5e7, 23]
+
+   p_WM ≈ [0.50, 0.50, 0.00]  ← Now avoids action 2!
+
+   Q[0,:] = [0.50, 0.50, 0.45]
+   p_RL ≈ [0.37, 0.37, 0.26]  ← Slight bias away from action 2
+
+3. HYBRID + EPSILON:
+   p_hybrid = 0.8×[0.50,0.50,0.00] + 0.2×[0.37,0.37,0.26]
+            = [0.47, 0.47, 0.05]
+
+   p = 0.05/3 + 0.95×[0.47,0.47,0.05]
+     = [0.46, 0.46, 0.07]
+
+4. NOW agent is much more likely to avoid action 2!
+
+KEY INSIGHT: WM quickly learned to avoid action 2 after one trial,
+while RL is still catching up. The hybrid model leverages both systems.
+```
 
 ---
 
-## Simulation Utilities
+## 4. Comparison to Senta et al. (2025)
 
-### For Q-Learning
+This implementation is based on Senta et al. (2025), "Dual process impairments in reinforcement learning and working memory systems underlie learning deficits in physiological anxiety."
 
-```python
-from models.q_learning import simulate_agent_on_env
+### 4.1 Key Alignments
 
-results = simulate_agent_on_env(
-    agent=agent,
-    env=env,
-    num_trials=100,
-    log_history=True
-)
+| Component | Senta et al. (2025) | Our Implementation | Match |
+|-----------|---------------------|-------------------|-------|
+| WM Update | WM(s,a) ← r (immediate overwrite) | WM(s,a) ← r | ✓ |
+| WM Decay | (1-φ)WM + φ·baseline | (1-φ)WM + φ·WM₀ | ✓ |
+| Adaptive Weight | ω = ρ · min(1, K/ns) | ω = ρ · min(1, K/Ns) | ✓ |
+| Hybrid Policy | ω·p_WM + (1-ω)·p_RL | ω·p_WM + (1-ω)·p_RL | ✓ |
+| Asymmetric Learning | α₊ for δ>0, α₋ for δ≤0 | Same | ✓ |
+| Fixed β | β = 50 during learning | β = 50 | ✓ |
+| Epsilon Noise | ε/nA + (1-ε)·p | ε/nA + (1-ε)·p | ✓ |
 
-# Results dict contains:
-# - stimuli, actions, rewards, correct
-# - accuracy, total_reward, num_trials
+### 4.2 Intentional Simplifications
+
+Our implementation focuses on the **basic WM-RL model** without the following extensions from Senta et al.:
+
+| Feature | Senta et al. | Our Implementation | Reason |
+|---------|--------------|-------------------|--------|
+| Information sharing (i) | RL receives scaled WM info | Not included | Adds complexity; start simple |
+| Negative feedback bias (η) | Scales α₋ for WM-initiated | Not included | Advanced variant |
+| Split WM confidence (ρ_low, ρ_high) | Separate ρ for low/high load | Single ρ | Start with basic model |
+| Testing phase | Separate β_test | Not included | Task has no testing phase |
+| Lapse rate | η for WM errors | Epsilon covers this | Simplified |
+
+### 4.3 References
+
+**Primary Reference:**
+> Senta, D., et al. (2025). Dual process impairments in reinforcement learning and working memory systems underlie learning deficits in physiological anxiety.
+
+**Model Equations** (from paper, pages 17-19):
+- Equation 1: WM update with decay
+- Equation 2: Adaptive weighting
+- Equation 3: Hybrid policy
+- Equation 4: Epsilon-noisy choice
+
+### 4.4 Implementation Comparison: Senta et al. vs Ours
+
+This section details the methodological differences between our implementation and the original Senta et al. (2025) approach across four key areas.
+
+#### 4.4.1 Model Fitting
+
+| Aspect | Senta et al. (2025) | Our Implementation |
+|--------|---------------------|-------------------|
+| **Framework** | Maximum Likelihood Estimation (MLE) | Hierarchical Bayesian Inference |
+| **Software** | MATLAB `fmincon` | NumPyro/JAX with NUTS sampler |
+| **Optimization** | Point estimate via gradient-free search | Full posterior distribution via MCMC |
+| **Starting points** | 20 random starting points per participant | Not applicable (MCMC explores full space) |
+| **Regularization** | None (pure MLE) | Informative priors on parameters |
+| **Hierarchical** | Individual fits, no pooling | Hierarchical with partial pooling |
+| **Output** | Single best-fit parameter per participant | Posterior distribution per participant |
+| **Uncertainty** | Bootstrap or Hessian-based SEs | Posterior credible intervals |
+
+**Why Hierarchical Bayesian?**
+- **Partial pooling**: Shrinks extreme individual estimates toward group mean, reducing overfitting
+- **Principled uncertainty**: Credible intervals reflect parameter uncertainty without additional bootstrapping
+- **Better for small N**: Borrowing strength across participants helps with limited data
+- **Priors encode knowledge**: Domain knowledge (e.g., learning rates likely 0.1-0.5) regularizes estimates
+
+**Trade-offs:**
+- Bayesian: More computationally expensive, requires prior specification
+- MLE: Faster, simpler, but point estimates can be noisy with limited data
+
+#### 4.4.2 Model Comparison
+
+| Aspect | Senta et al. (2025) | Our Implementation |
+|--------|---------------------|-------------------|
+| **Metric** | AIC (Akaike Information Criterion) | LOO-CV (Leave-One-Out Cross-Validation) and WAIC |
+| **Computation** | AIC = 2k - 2·log(L) | LOO via Pareto-smoothed importance sampling (PSIS) |
+| **Penalty** | Fixed penalty (2 per parameter) | Effective number of parameters (p_eff) |
+| **Aggregation** | Sum AIC across participants | Compute per-participant, sum elpd |
+| **Selection rule** | Lower AIC wins | Higher elpd (lower LOO) wins |
+
+**AIC Formula (Senta):**
+```
+AIC = 2k - 2·ln(L_max)
+
+where:
+  k = number of free parameters
+  L_max = maximum likelihood value
 ```
 
-### For WM-RL Hybrid
-
-```python
-from models.wm_rl_hybrid import simulate_wm_rl_on_env
-
-results = simulate_wm_rl_on_env(
-    agent=agent,
-    env=env,
-    num_trials=100,
-    log_history=True
-)
-
-# Additional in results:
-# - wm_retrieved, wm_retrieval_rate
+**LOO-CV Formula (Ours):**
 ```
+elpd_loo = Σᵢ log p(yᵢ | y₋ᵢ)
+
+Estimated via PSIS-LOO without refitting:
+  elpd_loo ≈ Σᵢ log( Σₛ wᵢₛ · p(yᵢ|θₛ) )
+
+where:
+  wᵢₛ = Pareto-smoothed importance weights
+  θₛ = posterior samples
+```
+
+**Why LOO over AIC?**
+- **Better for Bayesian**: Uses full posterior, not just point estimate
+- **More robust**: Less sensitive to model misspecification
+- **Diagnostics**: Pareto-k diagnostic flags problematic observations
+- **Predictive focus**: Directly estimates out-of-sample prediction accuracy
+
+#### 4.4.3 Parameter Recovery
+
+| Aspect | Senta et al. (2025) | Our Implementation |
+|--------|---------------------|-------------------|
+| **Approach** | Simulate → Fit → Correlate | Simulate → Fit → Compare posteriors |
+| **Data generation** | Use fit parameters as "true" values | Specify known ground-truth parameters |
+| **N simulated** | Same as empirical sample size | Flexible (typically 20-100 synthetic participants) |
+| **Success criterion** | r ≥ 0.80 between true and recovered | Posterior contains true value (coverage) |
+| **Metrics** | Pearson correlation | Correlation + bias + coverage + RMSE |
+
+**Senta et al. Procedure:**
+```
+1. Fit model to real data → θ̂ᵢ for each participant
+2. Simulate synthetic data using θ̂ᵢ as generative parameters
+3. Fit model to synthetic data → θ̂'ᵢ (recovered)
+4. Compute correlation: r = cor(θ̂, θ̂')
+5. Accept if r ≥ 0.80
+```
+
+**Our Procedure:**
+```
+1. Define ground-truth parameters θ_true (either fixed or sampled from prior)
+2. Simulate synthetic datasets using generative model
+3. Fit model to synthetic data → posterior p(θ|data)
+4. Compute recovery metrics:
+   - Correlation: cor(θ_true, E[θ|data])
+   - Bias: mean(E[θ|data] - θ_true)
+   - Coverage: proportion of 95% CIs containing θ_true
+   - RMSE: sqrt(mean((E[θ|data] - θ_true)²))
+5. Accept if correlation ≥ 0.80 AND coverage ≈ 0.95
+```
+
+**Key Difference:** We check both correlation (identifiability) and coverage (calibration). A model can have high correlation but poor coverage if uncertainty is systematically under/overestimated.
+
+#### 4.4.4 Model Validation
+
+| Aspect | Senta et al. (2025) | Our Implementation |
+|--------|---------------------|-------------------|
+| **Approach** | Posterior predictive checks | Same conceptual approach |
+| **Focus** | Learning curves by set size | Learning curves + behavioral patterns |
+| **Aggregation** | Group-level patterns | Individual + group |
+| **Key patterns** | (1) Learning curves (2) Low vs high load difference | Same |
+
+**Senta et al. Validation Criteria:**
+```
+The winning model should replicate:
+1. Learning curves: Accuracy increases over trials within blocks
+2. Set size effect: Performance higher for low (2,3) vs high (5,6) set sizes
+3. Low-high difference during learning: Larger gap early, convergence late
+```
+
+**Our Validation Approach:**
+```python
+# 1. Generate posterior predictive samples
+for each posterior sample θ:
+    simulated_data = simulate_experiment(θ)
+
+# 2. Compute summary statistics
+for simulated_data in posterior_predictive:
+    learning_curve_sim = compute_learning_curve(simulated_data)
+    set_size_effect_sim = compute_set_size_effect(simulated_data)
+
+# 3. Compare to observed data
+plot_posterior_predictive_check(observed, simulated)
+```
+
+**Shared Philosophy:** Both approaches use generative model simulations to verify the model captures key behavioral patterns, not just fits well numerically.
+
+#### 4.4.5 Summary Comparison Table
+
+| Component | Senta et al. (2025) | Our Implementation | Rationale for Difference |
+|-----------|---------------------|-------------------|--------------------------|
+| **Fitting** | MLE (fmincon, 20 starts) | Hierarchical Bayesian (NUTS) | Better uncertainty quantification |
+| **Priors** | None | Informative (Beta, TruncNorm) | Regularization + domain knowledge |
+| **Pooling** | None (individual fits) | Partial (hierarchical) | Reduces overfitting |
+| **Model comparison** | AIC | LOO-CV (PSIS) | Better for Bayesian, more robust |
+| **Recovery metric** | Correlation ≥ 0.80 | Correlation + Coverage | Checks calibration too |
+| **Validation** | Posterior predictive | Same | — |
+| **Testing phase** | Yes (β_test fitted) | No | Task doesn't have testing |
+| **Software** | MATLAB | Python (JAX/NumPyro) | Open source, GPU-accelerated |
 
 ---
 
-## Bayesian Model Fitting
+## 5. Fitting Implementation
 
-### Two Fitting Approaches
+### 5.1 Approach: Hierarchical Bayesian Inference
 
-#### Approach 1: PyMC (Agent-Based)
+We use NumPyro with the NUTS sampler for gradient-based Bayesian inference.
 
-Uses agent classes from `models/` directory for simulation within PyMC likelihood.
-
-**Hierarchical Structure**:
-
-**Group Level** (population):
-- μ_α, σ_α: Mean and SD of learning rate distribution
-- μ_β, σ_β: Mean and SD of inverse temperature distribution
-- (WM-RL only: μ_K, σ_K, μ_w, σ_w)
-
-**Individual Level**:
-- α_i ~ Normal(μ_α, σ_α) for each participant
-- β_i ~ Gamma(shape, rate)
-- Bounded transformations ensure valid ranges
-
-**Likelihood**:
+**Hierarchical Structure:**
 ```
-P(choice_t | model) = Categorical(softmax(Q-values))
+Group-level: μ_θ, σ_θ (population mean/SD for each parameter θ)
+    ↓
+Individual-level: θ_i ~ Normal(μ_θ, σ_θ) (participant parameters)
+    ↓
+Likelihood: actions_i ~ Softmax(Q-values; θ_i)
 ```
 
-Trial-by-trial simulation computes action probabilities, then log-likelihood summed over trials.
-
-**Fitting Script**:
-
-```bash
-# Fit Q-learning model
-python fitting/fit_to_data.py --model qlearning --chains 4 --samples 2000
-
-# Fit WM-RL hybrid model
-python fitting/fit_to_data.py --model wmrl --chains 4 --samples 2000
-
-# Fit both and compare
-python fitting/fit_to_data.py --model both
-```
-
-**PyMC Model Building**:
-
+**Non-centered Parameterization** (for better sampling):
 ```python
-from fitting.pymc_models import build_qlearning_model
-import pymc as pm
-
-# Load data
-data = pd.read_csv('output/task_trials_long.csv')
-
-# Build and fit
-with build_qlearning_model(data) as model:
-    trace = pm.sample(2000, tune=1000, chains=4)
-
-# Analyze posteriors
-import arviz as az
-summary = az.summary(trace)
-print(summary)
+z_θ_i ~ Normal(0, 1)
+θ_i = transform(μ_θ + σ_θ * z_θ_i)
 ```
 
-**Note**: PyMC approach uses Metropolis sampler (no gradients) since agent classes are not differentiable. This is slower but maintains consistency between simulation and fitting.
+### 5.2 Key Files
 
-#### Approach 2: JAX/NumPyro (Functional)
+| File | Purpose |
+|------|---------|
+| `scripts/fitting/jax_likelihoods.py` | Pure JAX likelihood functions |
+| `scripts/fitting/numpyro_models.py` | Hierarchical Bayesian models |
+| `scripts/fitting/fit_with_jax.py` | Main fitting script |
+| `scripts/fitting/fit_both_models.py` | Fit and compare both models |
 
-**Files**:
-- `scripts/fitting/jax_likelihoods.py` - Pure functional likelihoods
-- `scripts/fitting/numpyro_models.py` - Hierarchical Bayesian models
-- `scripts/fitting/fit_with_jax.py` - Main fitting script
+### 5.3 JAX Likelihood Functions
 
-**Key Advantages**:
-- **10-100x faster compilation** via XLA
-- **NUTS sampler** (gradient-based, efficient for continuous parameters)
-- **JIT compilation** for trial-by-trial operations
-- **Block-structured processing** with automatic reset
+The core likelihoods use `jax.lax.scan()` for efficient sequential operations:
 
-**Hierarchical Structure** (Q-Learning):
-
+**Q-Learning Block Likelihood:**
 ```python
-# Group-level priors
-μ_α+ ~ Beta(3, 2)           # Mean positive learning rate ~ 0.6
-σ_α+ ~ HalfNormal(0.3)      # Variability in α+
-μ_α- ~ Beta(2, 3)           # Mean negative learning rate ~ 0.4
-σ_α- ~ HalfNormal(0.3)      # Variability in α-
-μ_β ~ Gamma(2, 1)           # Mean inverse temperature ~ 2
-σ_β ~ HalfNormal(2.0)       # Variability in β
+from scripts.fitting.jax_likelihoods import q_learning_block_likelihood
 
-# Individual-level (non-centered parameterization)
-z_α+_i ~ Normal(0, 1)
-α+_i = logit⁻¹(logit(μ_α+) + σ_α+ * z_α+_i)
-
-z_α-_i ~ Normal(0, 1)
-α-_i = logit⁻¹(logit(μ_α-) + σ_α- * z_α-_i)
-
-z_β_i ~ Normal(0, 1)
-β_i = exp(log(μ_β) + σ_β * z_β_i)
-
-# Likelihood (computed via JAX scan)
-actions_i ~ Softmax(Q-values; α+_i, α-_i, β_i)
-```
-
-**WM-RL Additional Parameters**:
-
-```python
-# WM-specific group-level priors
-μ_β_WM ~ Gamma(3, 1)              # Mean WM inverse temperature ~ 3
-σ_β_WM ~ HalfNormal(2.0)
-μ_φ ~ Beta(2, 8)                  # Mean WM decay rate ~ 0.2
-σ_φ ~ HalfNormal(0.3)
-μ_ρ ~ Beta(5, 2)                  # Mean WM reliance ~ 0.7
-σ_ρ ~ HalfNormal(0.3)
-μ_K ~ TruncatedNormal(4, 1.5, 1, 7)  # Mean WM capacity ~ 4
-σ_K ~ HalfNormal(1.0)
-```
-
-**JAX Likelihood Functions**:
-
-The core of the JAX implementation uses `jax.lax.scan()` for efficient sequential operations:
-
-```python
-from scripts.fitting.jax_likelihoods import q_learning_multiblock_likelihood
-
-# Compute log-likelihood for a participant across all blocks
-log_lik = q_learning_multiblock_likelihood(
-    stimuli_blocks=[block1_stim, block2_stim, ...],  # List of arrays
-    actions_blocks=[block1_act, block2_act, ...],
-    rewards_blocks=[block1_rew, block2_rew, ...],
+log_lik = q_learning_block_likelihood(
+    stimuli=jnp.array([0, 1, 0, 2, 1]),
+    actions=jnp.array([0, 1, 0, 2, 1]),
+    rewards=jnp.array([1.0, 0.0, 1.0, 1.0, 0.0]),
     alpha_pos=0.3,
     alpha_neg=0.1,
-    beta=2.0,
-    num_stimuli=6,
-    num_actions=3,
-    q_init=0.5
+    beta=50.0,
+    epsilon=0.05
 )
 ```
 
-**Key Implementation Details**:
+**WM-RL Block Likelihood:**
+```python
+from scripts.fitting.jax_likelihoods import wmrl_block_likelihood
 
-1. **Block-aware processing**: Q-values reset at each block boundary (matches experimental design)
-2. **Asymmetric learning**: Uses `jnp.where(delta > 0, alpha_pos, alpha_neg)` for conditional updates
-3. **Numerical stability**: Softmax uses `exp(beta * (Q - max(Q)))` to prevent overflow
-4. **Functional updates**: Uses `.at[].set()` for immutable array updates (JAX requirement)
-
-**Fitting Script**:
-
-```bash
-# Basic usage (4 chains, NUTS sampler)
-python scripts/fitting/fit_with_jax.py \
-    --data output/task_trials_long_all_participants.csv \
-    --chains 4 \
-    --warmup 1000 \
-    --samples 2000 \
-    --save-plots
-
-# Quick test (fewer samples)
-python scripts/fitting/fit_with_jax.py \
-    --data output/task_trials_long.csv \
-    --chains 2 \
-    --warmup 500 \
-    --samples 1000
-
-# Custom output location
-python scripts/fitting/fit_with_jax.py \
-    --data output/task_trials_long.csv \
-    --output output/v1/ \
-    --seed 42
+log_lik = wmrl_block_likelihood(
+    stimuli=stim_array,
+    actions=act_array,
+    rewards=rew_array,
+    set_sizes=set_array,
+    alpha_pos=0.3,
+    alpha_neg=0.1,
+    beta=50.0,  # Fixed
+    phi=0.1,
+    rho=0.7,
+    capacity=4.0,
+    epsilon=0.05
+)
 ```
 
-**Programmatic Usage**:
+### 5.4 Running Fitting
+
+**Basic Usage:**
+```bash
+# Fit Q-learning model
+python scripts/fitting/fit_with_jax.py \
+    --model qlearning \
+    --data output/task_trials_long.csv \
+    --chains 4 \
+    --warmup 1000 \
+    --samples 2000
+
+# Fit WM-RL model
+python scripts/fitting/fit_with_jax.py \
+    --model wmrl \
+    --data output/task_trials_long.csv \
+    --chains 4 \
+    --warmup 1000 \
+    --samples 2000
+```
+
+**Fit Both Models:**
+```bash
+python scripts/fitting/fit_both_models.py \
+    --data output/task_trials_long.csv \
+    --chains 4 \
+    --output output/v1/
+```
+
+### 5.5 Programmatic Usage
 
 ```python
 from scripts.fitting.numpyro_models import (
@@ -590,14 +831,7 @@ import pandas as pd
 
 # Load and prepare data
 data = pd.read_csv('output/task_trials_long.csv')
-participant_data = prepare_data_for_numpyro(
-    data,
-    participant_col='sona_id',
-    block_col='block',
-    stimulus_col='stimulus',
-    action_col='key_press',
-    reward_col='reward'
-)
+participant_data = prepare_data_for_numpyro(data)
 
 # Run MCMC inference
 mcmc = run_inference(
@@ -611,9 +845,9 @@ mcmc = run_inference(
 
 # Get samples
 samples = mcmc.get_samples()
-print(f"μ_α+: {samples['mu_alpha_pos'].mean():.3f}")
-print(f"μ_α-: {samples['mu_alpha_neg'].mean():.3f}")
-print(f"μ_β: {samples['mu_beta'].mean():.3f}")
+print(f"μ_α₊: {samples['mu_alpha_pos'].mean():.3f}")
+print(f"μ_α₋: {samples['mu_alpha_neg'].mean():.3f}")
+print(f"μ_ε: {samples['mu_epsilon'].mean():.3f}")
 
 # Save results
 import arviz as az
@@ -621,125 +855,148 @@ idata = az.from_numpyro(mcmc)
 idata.to_netcdf('output/v1/posterior.nc')
 ```
 
-**Performance Comparison**:
+### 5.6 Prior Specifications
 
-| Metric | PyMC (Metropolis) | JAX/NumPyro (NUTS) |
-|--------|-------------------|---------------------|
-| Compilation time | ~5 min | ~30 sec |
-| Sampling (2000 samples, 4 chains) | ~2-4 hours | ~20-40 min |
-| Effective sample size | Lower (no gradients) | Higher (gradient-based) |
-| Convergence | Slower (random walk) | Faster (Hamiltonian) |
-| Divergences | N/A | Rare with good priors |
+**Q-Learning Model Priors:**
+```python
+# Group-level
+mu_alpha_pos ~ Beta(3, 2)        # Mean ~ 0.6
+mu_alpha_neg ~ Beta(2, 3)        # Mean ~ 0.4
+mu_epsilon ~ Beta(1, 19)         # Mean ~ 0.05
+sigma_alpha_pos ~ HalfNormal(0.3)
+sigma_alpha_neg ~ HalfNormal(0.3)
+sigma_epsilon ~ HalfNormal(0.1)
 
-**When to Use Each**:
+# Individual-level (non-centered)
+z_i ~ Normal(0, 1)
+alpha_pos_i = logit⁻¹(logit(mu_alpha_pos) + sigma_alpha_pos * z_i)
+```
 
-- **JAX/NumPyro**: Production fitting, large datasets, need speed
-- **PyMC**: Validation, debugging, need agent class consistency
+**WM-RL Additional Priors:**
+```python
+mu_phi ~ Beta(2, 8)              # Mean ~ 0.2 (slow decay)
+mu_rho ~ Beta(5, 2)              # Mean ~ 0.7 (WM preference)
+mu_capacity ~ TruncNorm(4, 1.5, low=1, high=7)
+```
 
 ---
 
-## Model Comparison
+## 6. Model Comparison
 
-### Information Criteria
+### 6.1 Information Criteria
 
 - **WAIC** (Watanabe-Akaike Information Criterion)
-- **LOO** (Leave-One-Out Cross-Validation)
+- **LOO** (Leave-One-Out Cross-Validation via PSIS)
 
 Lower values indicate better predictive performance.
 
-### Running Comparison
+### 6.2 Running Comparison
 
 ```python
-from fitting.pymc_models import compute_model_comparison
+import arviz as az
 
-comparison = compute_model_comparison({
-    'qlearning': trace_qlearning,
-    'wmrl': trace_wmrl
-})
+# Load posteriors
+qlearning_idata = az.from_netcdf('output/v1/qlearning_posterior.nc')
+wmrl_idata = az.from_netcdf('output/v1/wmrl_posterior.nc')
+
+# Compare models
+comparison = az.compare({
+    'qlearning': qlearning_idata,
+    'wmrl': wmrl_idata
+}, ic='loo')
 
 print(comparison)
 ```
 
-Output:
-```
-          rank    elpd_loo  ...       weight
-qlearning    1   -5234.2   ...         0.85
-wmrl         2   -5256.8   ...         0.15
-```
-
 ---
 
-## Parameter Recovery
+## 7. Parameter Recovery
 
-Test whether fitting procedure can recover known parameters:
-
-1. Generate synthetic data with known parameters
-2. Fit model to synthetic data
-3. Compare fitted vs. true parameters
+Validate that the fitting procedure can recover known parameters:
 
 ```python
-# Generate data with known params
 from simulations.generate_data import generate_dataset
+from scripts.fitting.numpyro_models import qlearning_hierarchical_model
 
-true_params = [{'alpha': 0.3, 'beta': 3.0, 'gamma': 0.0} for _ in range(50)]
-data = generate_dataset(50, 'qlearning', true_params)
+# Generate synthetic data with known parameters
+true_params = {'alpha_pos': 0.3, 'alpha_neg': 0.1, 'epsilon': 0.05}
+synthetic_data = generate_dataset(n_participants=50, model='qlearning', params=true_params)
 
 # Fit model
-from fitting.pymc_models import build_qlearning_model
-with build_qlearning_model(data) as model:
-    trace = pm.sample(2000)
+mcmc = run_inference(qlearning_hierarchical_model, {'participant_data': synthetic_data})
 
-# Compare posteriors to true values
-import arviz as az
-az.plot_posterior(trace, var_names=['alpha'], ref_val=0.3)
+# Compare recovered vs true
+samples = mcmc.get_samples()
+recovered_alpha_pos = samples['mu_alpha_pos'].mean()
+print(f"True α₊: {true_params['alpha_pos']:.3f}, Recovered: {recovered_alpha_pos:.3f}")
 ```
 
 ---
 
-## Extensions and Future Models
+## 8. Trauma-Specific Hypotheses
 
-### Potential Extensions
+Based on the literature, we predict the following parameter differences in trauma-affected individuals:
 
-1. **Decay RL**: Q-values decay over time
-   - Q(s,a) ← (1-δ)·Q(s,a) + α[r - Q(s,a)]
-
-2. **Asymmetric Learning**: Different α for positive vs negative outcomes
-   - α_+ for rewards, α_- for no-rewards
-
-3. **Perseveration**: Sticky choice (win-stay/lose-shift)
-   - P(a|s) ∝ exp(β·Q(s,a) + ρ·I(a = prev_action))
-
-4. **Attention-Weighted RL**: Modulate α by attention
-   - α_effective = α · attention(stimulus)
-
-5. **Bayesian RL**: Maintain distributions over Q-values
-   - Account for uncertainty explicitly
-
-### Trauma-Specific Hypotheses
-
-- **Altered learning rates**: Trauma → increased α (heightened sensitivity)
-- **WM capacity deficits**: Trauma → lower K (PTSD cognitive effects)
-- **Exploration changes**: Trauma → altered β (avoidance/hypervigilance)
-- **Decay effects**: Trauma → higher λ (memory consolidation deficits)
+| Parameter | Hypothesis | Mechanism |
+|-----------|------------|-----------|
+| α₊ | Decreased | Reduced learning from positive outcomes (anhedonia) |
+| α₋ | Increased | Heightened sensitivity to negative outcomes (hypervigilance) |
+| K (capacity) | Decreased | WM impairments associated with PTSD |
+| ρ (WM reliance) | Decreased | Less confidence in WM, more reliance on slow RL |
+| φ (decay) | Increased | Faster forgetting, consolidation deficits |
+| ε (noise) | Increased | Attentional lapses, concentration difficulties |
 
 ---
 
-## Testing
+## 9. Code Structure
 
-Run built-in tests:
+```
+scripts/fitting/
+├── jax_likelihoods.py      # Pure JAX likelihood functions
+│   ├── softmax_policy()
+│   ├── q_learning_block_likelihood()
+│   ├── q_learning_multiblock_likelihood()
+│   ├── wmrl_block_likelihood()
+│   └── wmrl_multiblock_likelihood()
+│
+├── numpyro_models.py       # Hierarchical Bayesian models
+│   ├── qlearning_hierarchical_model()
+│   ├── wmrl_hierarchical_model()
+│   ├── prepare_data_for_numpyro()
+│   └── run_inference()
+│
+├── fit_with_jax.py         # CLI for fitting single model
+├── fit_both_models.py      # CLI for fitting both models
+└── pymc_models.py          # Alternative PyMC implementation
+```
+
+---
+
+## 10. Testing
+
+Run likelihood tests:
 
 ```bash
-# Test Q-learning
-python models/q_learning.py
+python scripts/fitting/jax_likelihoods.py
+```
 
-# Test WM-RL hybrid
-python models/wm_rl_hybrid.py
+Expected output:
+```
+JAX Q-LEARNING LIKELIHOOD TESTS
+✓ Single block log-likelihood: -XX.XX
+✓ JIT-compiled result matches: True
+
+JAX WM-RL LIKELIHOOD TESTS
+✓ WM-RL single block log-likelihood: -XX.XX
+✓ JIT-compiled result matches: True
+
+ALL TESTS PASSED!
 ```
 
 ---
 
 ## See Also
 
-- **Environment Reference**: `docs/ENVIRONMENT_REFERENCE.md`
-- **Analysis Pipeline**: `docs/ANALYSIS_PIPELINE.md`
+- **Task/Environment**: `docs/TASK_AND_ENVIRONMENT.md`
 - **Configuration**: `config.py`
+- **Agent Classes**: `models/q_learning.py`, `models/wm_rl_hybrid.py`
