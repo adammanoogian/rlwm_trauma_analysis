@@ -66,39 +66,34 @@ def load_participant_data():
 
 def create_hypothesis_groups(df):
     """
-    Create 3-group classification based on median splits.
+    Create trauma groups based on LESS endorsement and IES-R cutoff.
 
-    Groups:
-    - Group A (Low-Low): Low LEC, Low IES
-    - Group B (High-Low): High LEC, Low IES
-    - Group C (High-High): High LEC, High IES
+    CORRECT GROUPING CRITERIA:
+    - No Trauma Exposure: LESS = 0 (no endorsed events)
+    - Trauma Exposure - No Ongoing Impact: LESS ≥ 1 AND IES-R < 24
+    - Trauma Exposure - Ongoing Impact: LESS ≥ 1 AND IES-R ≥ 24
 
-    Note: Low LEC + High IES is theoretically inconsistent, so excluded if present
+    Note: LESS is a low-risk adaptation of the LEC-5
     """
-    # Calculate medians
-    lec_median = df['lec_total_events'].median()
-    ies_median = df['ies_total'].median()
+    # Define cutoff for IES-R
+    IES_CUTOFF = 24
 
     print("\n" + "=" * 80)
-    print("HYPOTHESIS-DRIVEN GROUPING (MEDIAN SPLITS)")
+    print("HYPOTHESIS-DRIVEN GROUPING (LESS ENDORSEMENT + IES-R CUTOFF)")
     print("=" * 80)
-    print(f"\nLEC-5 Total Events Median: {lec_median}")
-    print(f"IES-R Total Score Median: {ies_median}")
-
-    # Create binary splits
-    df['lec_high'] = (df['lec_total_events'] >= lec_median).astype(int)
-    df['ies_high'] = (df['ies_total'] >= ies_median).astype(int)
+    print(f"\nCriteria:")
+    print(f"  - No Trauma Exposure: LESS = 0")
+    print(f"  - Trauma - No Ongoing Impact: LESS ≥ 1 AND IES-R < {IES_CUTOFF}")
+    print(f"  - Trauma - Ongoing Impact: LESS ≥ 1 AND IES-R ≥ {IES_CUTOFF}")
 
     # Create group labels
     def assign_group(row):
-        if row['lec_high'] == 0 and row['ies_high'] == 0:
-            return 'No Trauma'
-        elif row['lec_high'] == 1 and row['ies_high'] == 0:
-            return 'Trauma - No Ongoing Impact'
-        elif row['lec_high'] == 1 and row['ies_high'] == 1:
-            return 'Trauma - Ongoing Impact'
-        else:  # Low LEC, High IES - theoretically inconsistent
-            return 'Excluded_Low_High'
+        if row['lec_total_events'] == 0:
+            return 'No Trauma Exposure'
+        elif row['lec_total_events'] >= 1 and row['ies_total'] < IES_CUTOFF:
+            return 'Trauma Exposure - No Ongoing Impact'
+        else:  # LESS >= 1 and IES >= 24
+            return 'Trauma Exposure - Ongoing Impact'
 
     df['hypothesis_group'] = df.apply(assign_group, axis=1)
 
@@ -108,15 +103,9 @@ def create_hypothesis_groups(df):
     for group, count in group_counts.items():
         print(f"  {group}: n={count}")
 
-    # Warn if any Low-High participants
-    n_excluded = (df['hypothesis_group'] == 'Excluded_Low_High').sum()
-    if n_excluded > 0:
-        print(f"\nWARNING: {n_excluded} participant(s) with Low LEC + High IES")
-        print("This pattern is theoretically inconsistent (PTSD without trauma exposure)")
-
     # Print group characteristics
     print("\nGroup Characteristics (Mean ± SD):")
-    for group in ['No Trauma', 'Trauma - No Ongoing Impact', 'Trauma - Ongoing Impact']:
+    for group in ['No Trauma Exposure', 'Trauma Exposure - No Ongoing Impact', 'Trauma Exposure - Ongoing Impact']:
         if group in df['hypothesis_group'].values:
             group_data = df[df['hypothesis_group'] == group]
             lec_mean = group_data['lec_total_events'].mean()
@@ -128,7 +117,7 @@ def create_hypothesis_groups(df):
             print(f"    LEC: {lec_mean:.2f} ± {lec_std:.2f}")
             print(f"    IES-R: {ies_mean:.2f} ± {ies_std:.2f}")
 
-    return df, lec_median, ies_median
+    return df
 
 def perform_hierarchical_clustering(df, k_range=[2, 3, 4]):
     """
@@ -230,29 +219,18 @@ def plot_hypothesis_groups(df, lec_median, ies_median):
             linewidth=ScatterPlotConfig.EDGE_WIDTH
         )
 
-    # Add median lines
-    ax.axvline(lec_median, color='black', linestyle='--', alpha=0.5, linewidth=1, label=f'LEC Median ({lec_median})')
-    ax.axhline(ies_median, color='black', linestyle='--', alpha=0.5, linewidth=1, label=f'IES-R Median ({ies_median})')
+    # Add IES-R cutoff line (24) - no longer using LEC median split
+    if ies_median is not None:
+        ax.axhline(ies_median, color='red', linestyle='--', alpha=0.7, linewidth=2, label=f'IES-R Cutoff = {ies_median}')
 
     # Formatting - use PlotConfig for font sizes
-    ax.set_xlabel('LEC-5 Total Events', fontsize=PlotConfig.AXIS_LABEL_SIZE, fontweight='bold')
+    ax.set_xlabel('LEC-5 Total Events (LESS)', fontsize=PlotConfig.AXIS_LABEL_SIZE, fontweight='bold')
     ax.set_ylabel('IES-R Total Score', fontsize=PlotConfig.AXIS_LABEL_SIZE, fontweight='bold')
-    ax.set_title('Hypothesis-Driven Trauma Grouping\n(Median Split Classification)',
+    ax.set_title('Hypothesis-Driven Trauma Grouping\n(LESS Endorsement + IES-R ≥ 24)',
                  fontsize=PlotConfig.TITLE_SIZE, fontweight='bold', pad=PlotConfig.PAD)
     ax.legend(loc='upper left', fontsize=PlotConfig.LEGEND_SIZE, framealpha=0.9)
     ax.grid(True, alpha=PlotConfig.GRID_ALPHA)
     ax.tick_params(axis='both', which='major', labelsize=PlotConfig.TICK_LABEL_SIZE)
-
-    # Add quadrant labels
-    ax.text(0.02, 0.98, 'Low Exposure\nLow Symptoms',
-            transform=ax.transAxes, fontsize=PlotConfig.ANNOTATION_SIZE, alpha=0.5,
-            verticalalignment='top', horizontalalignment='left')
-    ax.text(0.98, 0.98, 'High Exposure\nLow Symptoms',
-            transform=ax.transAxes, fontsize=PlotConfig.ANNOTATION_SIZE, alpha=0.5,
-            verticalalignment='top', horizontalalignment='right')
-    ax.text(0.98, 0.02, 'High Exposure\nHigh Symptoms',
-            transform=ax.transAxes, fontsize=PlotConfig.ANNOTATION_SIZE, alpha=0.5,
-            verticalalignment='bottom', horizontalalignment='right')
 
     plt.tight_layout()
 
@@ -446,7 +424,7 @@ def compare_grouping_methods(df, optimal_k):
 
     return crosstab
 
-def save_results(df, silhouette_scores, optimal_k, lec_median, ies_median):
+def save_results(df, silhouette_scores, optimal_k, lec_median=None, ies_median=24):
     """Save all grouping results to CSV files."""
     print("\n" + "=" * 80)
     print("SAVING RESULTS")
@@ -512,9 +490,9 @@ def save_results(df, silhouette_scores, optimal_k, lec_median, ies_median):
 
     # Save cutoff values
     cutoffs_data = {
-        'measure': ['LEC-5 Total Events', 'IES-R Total Score'],
-        'cutoff_type': ['median', 'median'],
-        'cutoff_value': [lec_median, ies_median]
+        'measure': ['IES-R Total Score'],
+        'cutoff_type': ['clinical'],
+        'cutoff_value': [24]
     }
     cutoffs_df = pd.DataFrame(cutoffs_data)
     cutoffs_path = OUTPUT_DIR / 'cutoff_values.csv'
@@ -527,7 +505,7 @@ def main():
     print("TRAUMA-BASED PARTICIPANT GROUPING ANALYSIS")
     print("=" * 80)
     print("\nThis script implements two grouping approaches:")
-    print("1. Hypothesis-driven: Median split on LEC + IES-R")
+    print("1. Hypothesis-driven: LESS endorsement (≥1) + IES-R cutoff (24)")
     print("2. Unsupervised: Hierarchical clustering")
     print()
 
@@ -535,7 +513,7 @@ def main():
     df = load_participant_data()
 
     # Hypothesis-driven grouping
-    df, lec_median, ies_median = create_hypothesis_groups(df)
+    df = create_hypothesis_groups(df)
 
     # Hierarchical clustering
     df, linkage_matrix, features_scaled, silhouette_scores, optimal_k = \
@@ -546,7 +524,7 @@ def main():
     print("GENERATING VISUALIZATIONS")
     print("=" * 80)
 
-    plot_hypothesis_groups(df, lec_median, ies_median)
+    plot_hypothesis_groups(df, lec_median=None, ies_median=24)
     plot_dendrogram(linkage_matrix, df)
     plot_cluster_comparison(df, features_scaled, optimal_k)
     plot_silhouette_analysis(df, features_scaled, silhouette_scores)
@@ -555,7 +533,7 @@ def main():
     crosstab = compare_grouping_methods(df, optimal_k)
 
     # Save results
-    save_results(df, silhouette_scores, optimal_k, lec_median, ies_median)
+    save_results(df, silhouette_scores, optimal_k, lec_median=None, ies_median=24)
 
     print("\n" + "=" * 80)
     print("ANALYSIS COMPLETE")

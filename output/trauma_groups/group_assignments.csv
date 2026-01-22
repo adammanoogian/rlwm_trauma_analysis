@@ -1,18 +1,54 @@
 sona_id,lec_total_events,ies_total,hypothesis_group,cluster_k2,cluster_k3,cluster_k4
-9187,11,22,Trauma - Ongoing Impact,1,1,2
-10000,4,40,Excluded_Low_High,2,3,4
-10001,9,3,No Trauma,2,2,3
-10002,11,0,Trauma - No Ongoing Impact,2,2,3
-10003,13,28,Trauma - Ongoing Impact,1,1,2
-10004,8,9,No Trauma,2,2,3
-10005,6,10,No Trauma,2,2,3
-10006,9,1,No Trauma,2,2,3
-10007,13,17,Trauma - No Ongoing Impact,1,1,1
-10012,11,1,Trauma - No Ongoing Impact,2,2,3
-10016,10,21,Excluded_Low_High,1,1,2
-10017,13,38,Trauma - Ongoing Impact,1,1,2
-10018,13,39,Trauma - Ongoing Impact,1,1,2
-10024,15,1,Trauma - No Ongoing Impact,1,1,1
-10025,13,35,Trauma - Ongoing Impact,1,1,2
-10027,15,18,Trauma - Ongoing Impact,1,1,1
-10028,11,31,Trauma - Ongoing Impact,1,1,2
+9187,11,22.0,Trauma Exposure - No Ongoing Impact,2,3,4
+10000,4,40.0,Trauma Exposure - Ongoing Impact,1,1,1
+10001,9,3.0,Trauma Exposure - No Ongoing Impact,2,2,2
+10002,11,0.0,Trauma Exposure - No Ongoing Impact,2,2,2
+10003,13,28.0,Trauma Exposure - Ongoing Impact,2,3,4
+10004,8,9.0,Trauma Exposure - No Ongoing Impact,2,2,2
+10005,6,10.0,Trauma Exposure - No Ongoing Impact,2,2,2
+10006,9,1.0,Trauma Exposure - No Ongoing Impact,2,2,2
+10007,13,17.0,Trauma Exposure - No Ongoing Impact,2,3,3
+10012,11,1.0,Trauma Exposure - No Ongoing Impact,2,2,2
+10016,10,21.0,Trauma Exposure - No Ongoing Impact,2,3,4
+10017,13,38.0,Trauma Exposure - Ongoing Impact,2,3,4
+10018,13,39.0,Trauma Exposure - Ongoing Impact,2,3,4
+10024,15,1.0,Trauma Exposure - No Ongoing Impact,2,3,3
+10025,13,35.0,Trauma Exposure - Ongoing Impact,2,3,4
+10027,15,18.0,Trauma Exposure - No Ongoing Impact,2,3,3
+10028,11,31.0,Trauma Exposure - Ongoing Impact,2,3,4
+10029,15,24.0,Trauma Exposure - Ongoing Impact,2,3,3
+10030,10,35.0,Trauma Exposure - Ongoing Impact,2,3,4
+10031,7,51.0,Trauma Exposure - Ongoing Impact,1,1,1
+10035,12,16.0,Trauma Exposure - No Ongoing Impact,2,3,4
+10036,13,42.0,Trauma Exposure - Ongoing Impact,2,3,4
+10039,15,14.0,Trauma Exposure - No Ongoing Impact,2,3,3
+10040,6,56.0,Trauma Exposure - Ongoing Impact,1,1,1
+10041,12,60.0,Trauma Exposure - Ongoing Impact,2,3,4
+10043,12,33.0,Trauma Exposure - Ongoing Impact,2,3,4
+10044,12,33.0,Trauma Exposure - Ongoing Impact,2,3,4
+10045,13,28.0,Trauma Exposure - Ongoing Impact,2,3,4
+10047,15,38.0,Trauma Exposure - Ongoing Impact,2,3,4
+10048,10,9.0,Trauma Exposure - No Ongoing Impact,2,2,2
+10049,7,55.0,Trauma Exposure - Ongoing Impact,1,1,1
+10050,14,16.0,Trauma Exposure - No Ongoing Impact,2,3,3
+10051,2,28.0,Trauma Exposure - Ongoing Impact,1,1,1
+10052,10,37.0,Trauma Exposure - Ongoing Impact,2,3,4
+10053,15,22.0,Trauma Exposure - No Ongoing Impact,2,3,3
+10055,7,0.0,Trauma Exposure - No Ongoing Impact,2,2,2
+10057,6,2.0,Trauma Exposure - No Ongoing Impact,2,2,2
+10058,10,23.0,Trauma Exposure - No Ongoing Impact,2,3,4
+10059,7,64.0,Trauma Exposure - Ongoing Impact,1,1,1
+10062,12,24.0,Trauma Exposure - Ongoing Impact,2,3,4
+10063,9,18.0,Trauma Exposure - No Ongoing Impact,2,3,4
+10064,9,20.0,Trauma Exposure - No Ongoing Impact,2,3,4
+10065,9,7.0,Trauma Exposure - No Ongoing Impact,2,2,2
+10066,15,35.0,Trauma Exposure - Ongoing Impact,2,3,4
+10067,13,12.0,Trauma Exposure - No Ongoing Impact,2,3,3
+10071,8,8.0,Trauma Exposure - No Ongoing Impact,2,2,2
+10072,6,50.0,Trauma Exposure - Ongoing Impact,1,1,1
+10073,6,50.0,Trauma Exposure - Ongoing Impact,1,1,1
+10074,9,1.0,Trauma Exposure - No Ongoing Impact,2,2,2
+10075,11,18.0,Trauma Exposure - No Ongoing Impact,2,3,4
+10076,13,8.0,Trauma Exposure - No Ongoing Impact,2,3,3
+10077,13,23.0,Trauma Exposure - No Ongoing Impact,2,3,4
+10078,6,0.0,Trauma Exposure - No Ongoing Impact,2,2,2
