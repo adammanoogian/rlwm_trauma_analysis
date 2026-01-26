@@ -69,11 +69,19 @@ def load_data() -> tuple:
     """Load and merge MLE fits with survey/group data."""
     # Load survey data
     surveys = pd.read_csv(OUTPUT_DIR / "participant_surveys.csv")
-    groups = pd.read_csv(OUTPUT_DIR / "trauma_group_assignments.csv")
+    groups = pd.read_csv(PROJECT_ROOT / "output" / "trauma_groups" / "group_assignments.csv")
+    
+    # Convert sona_id to string for consistent merging (handles both numeric and anon IDs)
+    surveys['sona_id'] = surveys['sona_id'].astype(str)
+    groups['sona_id'] = groups['sona_id'].astype(str)
 
     # Load MLE fits
     qlearning = pd.read_csv(OUTPUT_DIR / "qlearning_individual_fits.csv")
     wmrl = pd.read_csv(OUTPUT_DIR / "wmrl_individual_fits.csv")
+    
+    # Convert participant_id to string for consistent merging
+    qlearning['participant_id'] = qlearning['participant_id'].astype(str)
+    wmrl['participant_id'] = wmrl['participant_id'].astype(str)
 
     # Merge with surveys
     qlearning = qlearning.merge(
@@ -81,7 +89,7 @@ def load_data() -> tuple:
     )
     qlearning = qlearning.merge(
         groups[['sona_id', 'hypothesis_group']],
-        left_on='participant_id', right_on='sona_id', how='left'
+        on='sona_id', how='left'
     )
 
     wmrl = wmrl.merge(
@@ -89,7 +97,7 @@ def load_data() -> tuple:
     )
     wmrl = wmrl.merge(
         groups[['sona_id', 'hypothesis_group']],
-        left_on='participant_id', right_on='sona_id', how='left'
+        on='sona_id', how='left'
     )
 
     print(f"Q-learning participants with surveys: {len(qlearning)}")
@@ -332,6 +340,109 @@ def ols_regression(df: pd.DataFrame, params: list, model_name: str) -> pd.DataFr
     return pd.DataFrame(results)
 
 
+def ols_regression_extended(df: pd.DataFrame, params: list, model_name: str) -> pd.DataFrame:
+    """
+    Run extended OLS regressions with LESS and IES-R total scores.
+    
+    Models tested:
+    1. param ~ lec_total_events (LESS exposure)
+    2. param ~ ies_total (PTSD symptom severity)
+    3. param ~ lec_total_events + ies_total (both - disentangle effects)
+    
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Data with fitted parameters and trauma scales
+    params : list
+        Outcome parameters to regress
+    model_name : str
+        Model name (Q-Learning or WM-RL)
+        
+    Returns
+    -------
+    pd.DataFrame
+        Regression results for all models
+    """
+    # Define predictor specifications
+    predictor_specs = [
+        (['lec_total'], 'LESS'),
+        (['ies_total'], 'IES-R'),
+        (['lec_total', 'ies_total'], 'LESS + IES-R'),
+    ]
+    
+    results = []
+    
+    print(f"\n{model_name} Extended OLS Regressions")
+    print(f"{'='*60}")
+    
+    for param in params:
+        print(f"\n{param}:")
+        
+        for predictors, model_spec in predictor_specs:
+            # Prepare data
+            mask = ~df[param].isna()
+            for pred in predictors:
+                mask &= ~df[pred].isna()
+            
+            y = df.loc[mask, param].values
+            X = df.loc[mask, predictors].values
+            X = sm.add_constant(X)
+            
+            if len(y) < 10:
+                print(f"  {model_spec}: Insufficient data (n={len(y)})")
+                continue
+            
+            try:
+                model = sm.OLS(y, X).fit()
+                
+                # Store results for intercept
+                results.append({
+                    'model': model_name,
+                    'outcome': param,
+                    'predictor_set': model_spec,
+                    'predictor': 'intercept',
+                    'beta': model.params[0],
+                    'se': model.bse[0],
+                    'ci_lower': model.conf_int()[0, 0],
+                    'ci_upper': model.conf_int()[0, 1],
+                    't': model.tvalues[0],
+                    'p': model.pvalues[0],
+                    'r2': model.rsquared,
+                    'r2_adj': model.rsquared_adj,
+                    'n': len(y),
+                })
+                
+                # Store results for each predictor
+                for i, pred in enumerate(predictors):
+                    results.append({
+                        'model': model_name,
+                        'outcome': param,
+                        'predictor_set': model_spec,
+                        'predictor': pred,
+                        'beta': model.params[i + 1],
+                        'se': model.bse[i + 1],
+                        'ci_lower': model.conf_int()[i + 1, 0],
+                        'ci_upper': model.conf_int()[i + 1, 1],
+                        't': model.tvalues[i + 1],
+                        'p': model.pvalues[i + 1],
+                        'r2': model.rsquared,
+                        'r2_adj': model.rsquared_adj,
+                        'n': len(y),
+                    })
+                
+                # Print summary
+                print(f"  {model_spec}: R² = {model.rsquared:.3f}, R²_adj = {model.rsquared_adj:.3f}, n = {len(y)}")
+                for i, pred in enumerate(predictors):
+                    p = model.pvalues[i + 1]
+                    sig = "***" if p < 0.001 else "**" if p < 0.01 else "*" if p < 0.05 else ""
+                    print(f"    {pred}: β = {model.params[i+1]:.4f} [{model.conf_int()[i+1, 0]:.4f}, {model.conf_int()[i+1, 1]:.4f}], p = {p:.4f} {sig}")
+                    
+            except Exception as e:
+                print(f"  {model_spec}: Error - {e}")
+    
+    return pd.DataFrame(results)
+
+
 def plot_parameters_by_group(df: pd.DataFrame, params: list, model_name: str,
                              figsize: tuple = None) -> plt.Figure:
     """
@@ -545,6 +656,10 @@ def main():
     ols_results_ql = ols_regression(qlearning, QLEARNING_PARAMS, 'Q-Learning')
     all_ols_results.append(ols_results_ql)
 
+    # Extended regressions (LESS + IES-R total)
+    ols_extended_ql = ols_regression_extended(qlearning, QLEARNING_PARAMS, 'Q-Learning')
+    all_ols_results.append(ols_extended_ql)
+
     # ========================================
     # WM-RL Analysis
     # ========================================
@@ -561,6 +676,10 @@ def main():
 
     ols_results_wmrl = ols_regression(wmrl, WMRL_PARAMS, 'WM-RL')
     all_ols_results.append(ols_results_wmrl)
+
+    # Extended regressions (LESS + IES-R total)
+    ols_extended_wmrl = ols_regression_extended(wmrl, WMRL_PARAMS, 'WM-RL')
+    all_ols_results.append(ols_extended_wmrl)
 
     # ========================================
     # Save Results
