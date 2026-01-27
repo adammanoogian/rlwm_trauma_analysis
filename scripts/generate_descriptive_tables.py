@@ -14,7 +14,9 @@ import sys
 
 # Add scripts directory to path
 sys.path.append(str(Path(__file__).parent))
+sys.path.append(str(Path(__file__).parent.parent))
 
+from config import EXCLUDED_PARTICIPANTS
 from analysis.visualize_load_by_trauma_group import create_trauma_groups
 
 
@@ -36,7 +38,12 @@ def calculate_demographics_by_group(summary_df, trials_df):
     """
     # Create trauma groups
     df_grouped, _, _ = create_trauma_groups(summary_df)
-    df_clean = df_grouped[df_grouped['trauma_group'] != 'Excluded'].copy()
+    
+    # Exclude participants
+    df_clean = df_grouped[
+        (~df_grouped['sona_id'].isin(EXCLUDED_PARTICIPANTS)) &
+        (df_grouped['trauma_group'] != 'Excluded')
+    ].copy()
     
     # Demographic columns to analyze
     demo_cols = {
@@ -126,7 +133,10 @@ def calculate_trauma_scores_by_group(summary_df):
         Trauma scores table
     """
     df_grouped, _, _ = create_trauma_groups(summary_df)
-    df_clean = df_grouped[df_grouped['trauma_group'] != 'Excluded'].copy()
+    df_clean = df_grouped[
+        (~df_grouped['sona_id'].isin(EXCLUDED_PARTICIPANTS)) &
+        (df_grouped['trauma_group'] != 'Excluded')
+    ].copy()
     
     groups = ['No Trauma', 'Trauma - No Ongoing Impact', 'Trauma - Ongoing Impact']
     
@@ -189,7 +199,10 @@ def calculate_task_performance_by_group_and_load(summary_df, trials_df):
     
     # Add trauma groups to summary
     df_grouped, _, _ = create_trauma_groups(summary_df)
-    df_clean = df_grouped[df_grouped['trauma_group'] != 'Excluded'].copy()
+    df_clean = df_grouped[
+        (~df_grouped['sona_id'].isin(EXCLUDED_PARTICIPANTS)) &
+        (df_grouped['trauma_group'] != 'Excluded')
+    ].copy()
     
     # Merge trauma group info with trials
     exp_trials = exp_trials.merge(
@@ -274,7 +287,10 @@ def calculate_additional_metrics_by_group(summary_df):
         Additional metrics table
     """
     df_grouped, _, _ = create_trauma_groups(summary_df)
-    df_clean = df_grouped[df_grouped['trauma_group'] != 'Excluded'].copy()
+    df_clean = df_grouped[
+        (~df_grouped['sona_id'].isin(EXCLUDED_PARTICIPANTS)) &
+        (df_grouped['trauma_group'] != 'Excluded')
+    ].copy()
     
     groups = ['No Trauma', 'Trauma - No Ongoing Impact', 'Trauma - Ongoing Impact']
     

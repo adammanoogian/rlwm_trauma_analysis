@@ -28,6 +28,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy import stats
+import sys
+
+# Add parent directory for imports
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from config import EXCLUDED_PARTICIPANTS
 import warnings
 
 # Try statsmodels for regression
@@ -76,6 +81,9 @@ def load_integrated_data(params_path: Path, model_type: str = 'qlearning') -> pd
     
     # Load full participant data to get IES-R subscales
     participant_data = pd.read_csv('output/summary_participant_metrics_all.csv')
+    
+    # Exclude participants based on data quality
+    participant_data = participant_data[~participant_data['sona_id'].isin(EXCLUDED_PARTICIPANTS)].copy()
     
     # Merge to get subscales
     merge_cols = ['sona_id', 'lec_total_events', 'lec_personal_events', 

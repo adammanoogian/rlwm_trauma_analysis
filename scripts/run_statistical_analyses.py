@@ -15,7 +15,9 @@ import sys
 
 # Add scripts directory to path
 sys.path.append(str(Path(__file__).parent))
+sys.path.append(str(Path(__file__).parent.parent))
 
+from config import EXCLUDED_PARTICIPANTS
 from utils.statistical_tests import (
     check_normality,
     check_homogeneity_of_variance,
@@ -49,7 +51,18 @@ def prepare_long_format_data(summary_df, trials_df):
     """
     # Add trauma groups
     df_grouped, _, _ = create_trauma_groups(summary_df)
-    df_clean = df_grouped[df_grouped['trauma_group'] != 'Excluded'].copy()
+    
+    # Exclude participants based on data quality and duplicates
+    df_clean = df_grouped[
+        (~df_grouped['sona_id'].isin(EXCLUDED_PARTICIPANTS)) &
+        (df_grouped['trauma_group'] != 'Excluded')
+    ].copy()
+    
+    print(f"\nParticipant filtering:")
+    print(f"  Total in summary: {len(summary_df)}")
+    print(f"  After trauma grouping: {len(df_grouped)}")
+    print(f"  Excluded for data quality: {len([p for p in EXCLUDED_PARTICIPANTS if p in df_grouped['sona_id'].values])}")
+    print(f"  Final sample: {len(df_clean)}")
     
     # Filter to experimental blocks
     exp_trials = trials_df[trials_df['block'] >= 3].copy()

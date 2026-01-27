@@ -30,6 +30,9 @@ from tqdm import tqdm
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
+# Import config for exclusions
+from config import EXCLUDED_PARTICIPANTS
+
 # Import JAX likelihood functions
 from scripts.fitting.jax_likelihoods import (
     q_learning_multiblock_likelihood,
@@ -551,9 +554,18 @@ def main():
     # Load data
     print("Loading data...")
     data = load_and_prepare_data(args.data)
+    
+    # Exclude participants based on data quality
+    initial_n = data['sona_id'].nunique()
+    data = data[~data['sona_id'].isin(EXCLUDED_PARTICIPANTS)].copy()
     n_participants = data['sona_id'].nunique()
+    n_excluded = initial_n - n_participants
+    
     n_trials = len(data)
-    print(f"  Participants: {n_participants}")
+    print(f"  Total participants in data: {initial_n}")
+    if n_excluded > 0:
+        print(f"  Excluded participants: {n_excluded} (insufficient data/duplicates)")
+    print(f"  Final sample: {n_participants}")
     print(f"  Total trials: {n_trials}")
     print()
 

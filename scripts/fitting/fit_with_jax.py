@@ -43,6 +43,9 @@ import numpy as np
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
+# Import config for exclusions
+from config import EXCLUDED_PARTICIPANTS
+
 import jax
 import jax.numpy as jnp
 import numpyro
@@ -87,8 +90,16 @@ def load_and_prepare_data(
 
     # Remove rows with NaN participant IDs
     df = df.dropna(subset=['sona_id']).copy()
+    
+    # Exclude participants based on data quality
+    initial_n = df['sona_id'].nunique()
+    df = df[~df['sona_id'].isin(EXCLUDED_PARTICIPANTS)].copy()
+    n_excluded = initial_n - df['sona_id'].nunique()
 
-    print(f"  ✓ Loaded {len(df)} trials from {df['sona_id'].nunique()} participants")
+    print(f"  ✓ Loaded {len(df)} trials from {initial_n} participants")
+    if n_excluded > 0:
+        print(f"  ✓ Excluded {n_excluded} participants (insufficient data/duplicates)")
+        print(f"  ✓ Final sample: {df['sona_id'].nunique()} participants")
 
     # Filter blocks
     if min_block is not None:

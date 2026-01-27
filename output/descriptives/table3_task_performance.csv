@@ -1,5 +1,5 @@
 Metric,Load,Trauma - No Ongoing Impact,Trauma - Ongoing Impact
-Accuracy (%),High Load,71.09 ± 16.11,67.92 ± 14.17
-Accuracy (%),Low Load,80.83 ± 9.91,81.58 ± 12.99
-Median RT (ms),High Load,574 ± 167,640 ± 121
-Median RT (ms),Low Load,456 ± 122,526 ± 42
+Accuracy (%),High Load,70.04 ± 13.33,69.33 ± 12.86
+Accuracy (%),Low Load,83.20 ± 7.47,82.51 ± 10.06
+Median RT (ms),High Load,627 ± 130,672 ± 111
+Median RT (ms),Low Load,493 ± 91,540 ± 77

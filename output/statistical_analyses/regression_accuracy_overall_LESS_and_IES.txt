@@ -1,25 +1,25 @@
                             OLS Regression Results                            
 ==============================================================================
-Dep. Variable:       accuracy_overall   R-squared:                       0.036
-Model:                            OLS   Adj. R-squared:                 -0.093
-Method:                 Least Squares   F-statistic:                    0.2783
-Date:                Tue, 16 Dec 2025   Prob (F-statistic):              0.761
-Time:                        21:20:04   Log-Likelihood:                 13.772
-No. Observations:                  18   AIC:                            -21.54
-Df Residuals:                      15   BIC:                            -18.87
+Dep. Variable:       accuracy_overall   R-squared:                       0.034
+Model:                            OLS   Adj. R-squared:                 -0.009
+Method:                 Least Squares   F-statistic:                    0.7926
+Date:                Tue, 27 Jan 2026   Prob (F-statistic):              0.459
+Time:                        18:57:39   Log-Likelihood:                 43.993
+No. Observations:                  48   AIC:                            -81.99
+Df Residuals:                      45   BIC:                            -76.37
 Df Model:                           2                                         
 Covariance Type:            nonrobust                                         
 =====================================================================================
                         coef    std err          t      P>|t|      [0.025      0.975]
 -------------------------------------------------------------------------------------
-Intercept             0.7521      0.117      6.402      0.000       0.502       1.002
-less_total_events     0.0017      0.010      0.170      0.867      -0.019       0.022
-ies_total            -0.0016      0.002     -0.735      0.473      -0.006       0.003
+Intercept             0.7904      0.054     14.711      0.000       0.682       0.899
+less_total_events    -0.0030      0.005     -0.650      0.519      -0.012       0.006
+ies_total            -0.0009      0.001     -1.060      0.295      -0.003       0.001
 ==============================================================================
-Omnibus:                        4.975   Durbin-Watson:                   2.247
-Prob(Omnibus):                  0.083   Jarque-Bera (JB):                3.598
-Skew:                          -1.094   Prob(JB):                        0.165
-Kurtosis:                       2.918   Cond. No.                         108.
+Omnibus:                        7.001   Durbin-Watson:                   2.312
+Prob(Omnibus):                  0.030   Jarque-Bera (JB):                6.857
+Skew:                          -0.926   Prob(JB):                       0.0324
+Kurtosis:                       2.959   Cond. No.                         107.
 ==============================================================================
 
 Notes:
