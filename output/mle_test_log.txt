@@ -1,0 +1,18 @@
+[20:19:33] Starting small MLE test...
+[20:19:35] Loading data...
+[20:19:35] Testing with 3 participants: ['anon_64040', '9187', 'anon_27556']
+[20:19:35] Data shape: (2097, 13)
+[20:19:35] Trials per participant: {'9187': 990, 'anon_27556': 119, 'anon_64040': 988}
+[20:19:35] Importing fitting modules...
+[20:19:40] Starting fitting (3 participants, 10 starts each)...
+[20:32:53] === Results ===
+[20:32:53]   participant_id  alpha_pos  alpha_neg   epsilon         nll          aic          bic         aicc  n_trials  converged  n_successful_starts at_bounds
+0     anon_64040   0.265226   0.861491  0.442425  820.037659  1646.075317  1660.762365  1646.099708       988      False                    9        []
+1           9187   0.862193   0.803913  0.454534  891.390564  1788.781128  1803.474243  1788.805469       990      False                   10        []
+2     anon_27556   0.630504   0.774392  0.746577  125.592216   257.184433   265.521803   257.393129       119      False                   10        []
+[20:32:53] === Summary ===
+[20:32:53] Converged: 0/3
+[20:32:53] Mean alpha_pos: 0.586
+[20:32:53] Mean alpha_neg: 0.813
+[20:32:53] Mean epsilon: 0.548
+[20:32:53] Test complete!
