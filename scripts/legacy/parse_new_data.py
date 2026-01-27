@@ -152,12 +152,20 @@ def main():
     if 'key_press' in combined_df.columns:
         combined_df['key_press'] = pd.to_numeric(combined_df['key_press'], errors='coerce').fillna(-1).astype(int)
 
-    # Filter out invalid trials (key_press == -1 or stimulus < 0)
+    # === DATA CLEANING FILTERS ===
+    # 1. Remove practice trials (blocks 1-2, keep experimental blocks >= 3)
+    n_before = len(combined_df)
+    combined_df = combined_df[combined_df['block'] >= 3].copy()
+    n_practice = n_before - len(combined_df)
+    if n_practice > 0:
+        print(f"\nRemoved {n_practice} practice trials (blocks 1-2)")
+
+    # 2. Filter out invalid trials (key_press == -1 or stimulus < 0)
     n_before = len(combined_df)
     combined_df = combined_df[(combined_df['key_press'] >= 0) & (combined_df['stimulus'] >= 0)]
     n_removed = n_before - len(combined_df)
     if n_removed > 0:
-        print(f"\nRemoved {n_removed} invalid trials (no response or invalid stimulus)")
+        print(f"Removed {n_removed} invalid trials (no response or invalid stimulus)")
 
     # Infer set_size if not present (stimulus is now 0-indexed, so max+1 = set_size)
     if 'set_size' not in combined_df.columns or combined_df['set_size'].isna().all():
@@ -210,6 +218,22 @@ def main():
     if 'correct' in combined_df.columns:
         acc = combined_df['correct'].mean()
         print(f"\nOverall accuracy: {acc:.2%}")
+
+        # Participant-level performance check
+        participant_acc = combined_df.groupby('sona_id')['correct'].mean()
+        print(f"\nParticipant-level accuracy:")
+        print(f"  Mean: {participant_acc.mean():.2%}")
+        print(f"  Std:  {participant_acc.std():.2%}")
+        print(f"  Min:  {participant_acc.min():.2%}")
+        print(f"  Max:  {participant_acc.max():.2%}")
+
+        # Show lowest 25% of performers (bottom quartile)
+        q25_cutoff = participant_acc.quantile(0.25)
+        lowest_quartile = participant_acc[participant_acc <= q25_cutoff].sort_values()
+        print(f"\n  Bottom 25% (n={len(lowest_quartile)}, cutoff={q25_cutoff:.2%}):")
+        for pid, p_acc in lowest_quartile.items():
+            n_trials = len(combined_df[combined_df['sona_id'] == pid])
+            print(f"    {pid}: {p_acc:.2%} ({n_trials} trials)")
 
     print("\n" + "=" * 80)
     print("PARSING COMPLETE")

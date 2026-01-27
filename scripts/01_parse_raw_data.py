@@ -1,173 +1,439 @@
 """
-Parse raw jsPsych experiment data and extract demographics, surveys, and task data.
+Parse raw jsPsych experiment data: extract task trials, surveys, and demographics.
 
-This script:
-1. Loads all raw CSV files from the data/ directory
-2. Extracts and parses demographics data
-3. Extracts and parses Survey 1 (LEC-5) with multi-select responses
-4. Extracts and parses Survey 2 (IES-R) from JSON
-5. Extracts task trial data
-6. Saves intermediate cleaned data files
+This consolidated script combines best practices from multiple parsing approaches:
+- Robust data cleaning (practice trial removal, invalid response filtering)
+- Survey extraction and scoring (LEC-5 → LESS, IES-R → subscales)
+- Consistent participant ID mapping
+- Detailed summary statistics
 
 Usage:
     python scripts/01_parse_raw_data.py
+
+Outputs:
+    output/task_trials_long_all_participants.csv  - Main trial-level data (cleaned)
+    output/participant_info.csv                    - Participant summary info
+    output/parsed_survey1.csv                      - LEC-5 with LESS scores
+    output/parsed_survey2.csv                      - IES-R with subscale scores
+    output/parsed_demographics.csv                 - Demographics data
+    output/summary_participant_metrics.csv         - Combined participant metrics
 """
 
 import os
 import sys
+import json
 import pandas as pd
 import numpy as np
-import glob
+from pathlib import Path
+from tqdm import tqdm
+
+# Add project root to path for imports
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 # Add utils to path
-sys.path.append(os.path.join(os.path.dirname(__file__), 'utils'))
-
+sys.path.append(str(Path(__file__).resolve().parent / 'utils'))
 from data_cleaning import (
     extract_demographics,
     extract_survey1_data,
     extract_survey2_data,
-    extract_task_trials,
-    validate_data
 )
+from scoring_functions import score_less, score_ies_r, calculate_all_task_metrics
+
+# Import config for excluded participants
+try:
+    from config import EXCLUDED_PARTICIPANTS
+except ImportError:
+    EXCLUDED_PARTICIPANTS = []
+
+# ============================================================================
+# Configuration
+# ============================================================================
+DATA_DIR = Path('data')
+OUTPUT_DIR = Path('output')
+MAPPING_FILE = DATA_DIR / 'participant_id_mapping.json'
+
+# Minimum trials to include a participant (exclude incomplete sessions)
+MIN_TRIALS = 100
+
+
+def load_participant_mapping():
+    """Load participant ID mapping from JSON file."""
+    if not MAPPING_FILE.exists():
+        print(f"Warning: No ID mapping file found at {MAPPING_FILE}")
+        print("Will use sona_id from data files directly.")
+        return None
+
+    with open(MAPPING_FILE, 'r') as f:
+        return json.load(f)
+
+
+def parse_single_file(filepath: Path, assigned_id: int = None) -> dict:
+    """
+    Parse all data from a single participant CSV file.
+
+    Returns dict with task_trials, demographics, survey1, survey2 DataFrames.
+    """
+    result = {
+        'task_trials': None,
+        'demographics': None,
+        'survey1': None,
+        'survey2': None,
+        'n_trials': 0,
+        'sona_id': assigned_id
+    }
+
+    try:
+        df = pd.read_csv(filepath, low_memory=False)
+
+        # Determine participant ID
+        if assigned_id is not None:
+            sona_id = assigned_id
+        elif 'sona_id' in df.columns:
+            sona_values = df['sona_id'].dropna().unique()
+            valid_sona = [s for s in sona_values if s and str(s).strip() and str(s) != 'nan']
+            sona_id = int(valid_sona[0]) if valid_sona else None
+        else:
+            sona_id = None
+
+        if sona_id is None:
+            # Generate anonymous ID from filename hash
+            sona_id = abs(hash(filepath.name)) % 100000
+
+        result['sona_id'] = sona_id
+        df['sona_id'] = sona_id
+
+        # ---- Extract Task Trials ----
+        if 'trial_type' in df.columns:
+            task_data = df[df['trial_type'] == 'categorize-html'].copy()
+
+            if len(task_data) > 0:
+                task_data['sona_id'] = sona_id
+                task_data['source_file'] = filepath.name
+                task_data['trial_in_experiment'] = range(1, len(task_data) + 1)
+
+                # Handle block column
+                if 'block' not in task_data.columns or task_data['block'].isna().all():
+                    task_data['block'] = (task_data['trial_in_experiment'] // 50) + 3
+
+                # Map key_answer to key_press if needed
+                if 'key_answer' in task_data.columns and 'key_press' not in task_data.columns:
+                    task_data['key_press'] = task_data['key_answer']
+
+                # Select columns
+                task_cols = ['sona_id', 'trial_in_experiment', 'block', 'stimulus',
+                            'key_press', 'correct', 'rt', 'time_elapsed', 'set_size',
+                            'load_condition', 'source_file']
+                cols_available = [c for c in task_cols if c in task_data.columns]
+
+                result['task_trials'] = task_data[cols_available].copy()
+                result['n_trials'] = len(task_data)
+
+        # ---- Extract Demographics ----
+        demographics = extract_demographics(df)
+        if len(demographics) > 0:
+            demographics['sona_id'] = sona_id
+            result['demographics'] = demographics
+
+        # ---- Extract Survey 1 (LEC-5) ----
+        survey1 = extract_survey1_data(df)
+        if len(survey1) > 0:
+            survey1['sona_id'] = sona_id
+            result['survey1'] = survey1
+
+        # ---- Extract Survey 2 (IES-R) ----
+        survey2 = extract_survey2_data(df)
+        if len(survey2) > 0:
+            survey2['sona_id'] = sona_id
+            result['survey2'] = survey2
+
+    except Exception as e:
+        print(f"  Error parsing {filepath.name}: {e}")
+
+    return result
+
+
+def clean_task_data(task_df: pd.DataFrame) -> pd.DataFrame:
+    """Apply data cleaning filters to task data."""
+    if len(task_df) == 0:
+        return task_df
+
+    df = task_df.copy()
+    n_original = len(df)
+
+    # Ensure correct data types
+    if 'stimulus' in df.columns:
+        df['stimulus'] = pd.to_numeric(df['stimulus'], errors='coerce').fillna(-1).astype(int)
+        # Convert to 0-indexed if needed (stimulus 1-6 becomes 0-5)
+        if df['stimulus'].min() >= 1:
+            df['stimulus'] = df['stimulus'] - 1
+        df.loc[df['stimulus'] < 0, 'stimulus'] = -1
+
+    if 'correct' in df.columns:
+        df['correct'] = pd.to_numeric(df['correct'], errors='coerce')
+
+    if 'block' in df.columns:
+        df['block'] = pd.to_numeric(df['block'], errors='coerce').astype(int)
+
+    if 'key_press' in df.columns:
+        df['key_press'] = pd.to_numeric(df['key_press'], errors='coerce').fillna(-1).astype(int)
+
+    # 1. Remove practice trials (blocks 1-2, keep experimental blocks >= 3)
+    df = df[df['block'] >= 3].copy()
+    n_after_practice = len(df)
+
+    # 2. Filter out invalid trials (key_press == -1 or stimulus < 0)
+    df = df[(df['key_press'] >= 0) & (df['stimulus'] >= 0)]
+    n_after_invalid = len(df)
+
+    # Add derived columns
+    df['trial_in_block'] = df.groupby(['sona_id', 'block']).cumcount() + 1
+
+    # Add reward column
+    if 'correct' in df.columns:
+        df['reward'] = df['correct'].astype(float)
+
+    # Infer set_size if not present
+    if 'set_size' not in df.columns or df['set_size'].isna().all():
+        df['set_size'] = df.groupby(['sona_id', 'block'])['stimulus'].transform('max') + 1
+
+    # Add load_condition if not present
+    if 'load_condition' not in df.columns or df['load_condition'].isna().all():
+        df['load_condition'] = df['set_size'].apply(
+            lambda x: 'low' if x <= 3 else 'high' if x >= 4 else 'unknown'
+        )
+
+    # Report cleaning stats
+    n_practice = n_original - n_after_practice
+    n_invalid = n_after_practice - n_after_invalid
+    if n_practice > 0 or n_invalid > 0:
+        print(f"  Cleaned: removed {n_practice} practice + {n_invalid} invalid trials")
+
+    return df
 
 
 def main():
-    print("=" * 60)
-    print("STEP 1: Parsing Raw jsPsych Data")
-    print("=" * 60)
+    print("=" * 80)
+    print("STEP 1: Parsing Raw jsPsych Data (Consolidated)")
+    print("=" * 80)
     print()
 
-    # Paths
-    data_dir = 'data'
-    output_dir = 'output'
+    # Create output directory
+    OUTPUT_DIR.mkdir(exist_ok=True)
 
-    # Create output directory if it doesn't exist
-    os.makedirs(output_dir, exist_ok=True)
+    # Load ID mapping
+    id_mapping = load_participant_mapping()
 
-    # Check if data directory exists
-    if not os.path.exists(data_dir):
-        print(f"ERROR: Data directory not found at {data_dir}")
-        print("Please ensure the data/ directory exists with CSV files.")
-        sys.exit(1)
-
-    # Find all CSV files in the data directory
-    csv_files = glob.glob(os.path.join(data_dir, '*.csv'))
-    
-    if len(csv_files) == 0:
-        print(f"ERROR: No CSV files found in {data_dir}/")
-        print("Please add CSV files to the data/ directory.")
-        sys.exit(1)
-
-    print(f"Found {len(csv_files)} CSV file(s) in {data_dir}/")
-    for csv_file in csv_files:
-        print(f"  - {os.path.basename(csv_file)}")
-    print()
-
-    # Load and concatenate all CSV files
-    print("Loading and combining all CSV files...")
-    dfs = []
-    for csv_file in csv_files:
-        try:
-            temp_df = pd.read_csv(csv_file)
-            dfs.append(temp_df)
-            print(f"  Loaded {os.path.basename(csv_file)}: {len(temp_df)} rows")
-        except Exception as e:
-            print(f"  WARNING: Could not load {os.path.basename(csv_file)}: {e}")
-    
-    if len(dfs) == 0:
-        print("ERROR: Could not load any CSV files successfully.")
-        sys.exit(1)
-    
-    df = pd.concat(dfs, ignore_index=True)
-    print(f"\nCombined dataset: {len(df)} rows, {len(df.columns)} columns")
-    print()
-
-    # Display basic info
-    if 'sona_id' in df.columns:
-        n_participants = df['sona_id'].nunique()
-        print(f"Number of unique participants: {n_participants}")
-
-    if 'section' in df.columns:
-        print(f"\nSections found: {df['section'].unique()}")
-    print()
-
-    # Extract demographics
-    print("-" * 60)
-    print("Extracting demographics...")
-    demographics = extract_demographics(df)
-    print(f"Demographics extracted for {len(demographics)} participants")
-    print(f"Columns: {list(demographics.columns)}")
-    print()
-
-    # Extract Survey 1
-    print("-" * 60)
-    print("Extracting and parsing Survey 1 (LEC-5)...")
-    survey1 = extract_survey1_data(df)
-    print(f"Survey 1 extracted for {len(survey1)} participants")
-    print(f"Columns: {len(survey1.columns)} columns")
-    print()
-
-    # Extract Survey 2
-    print("-" * 60)
-    print("Extracting and parsing Survey 2 (IES-R)...")
-    survey2 = extract_survey2_data(df)
-    print(f"Survey 2 extracted for {len(survey2)} participants")
-    print(f"Columns: {list(survey2.columns)}")
-    print()
-
-    # Extract task trials
-    print("-" * 60)
-    print("Extracting task trials...")
-    task_trials = extract_task_trials(df)
-    print(f"Task trials extracted: {len(task_trials)} trials")
-
-    if len(task_trials) > 0:
-        n_task_participants = task_trials['sona_id'].nunique()
-        print(f"Participants with task data: {n_task_participants}")
-
-        if 'block' in task_trials.columns:
-            print(f"Blocks: {sorted(task_trials['block'].unique())}")
-
-        if 'set_size' in task_trials.columns:
-            print(f"Set sizes: {sorted(task_trials['set_size'].unique())}")
-    print()
-
-    # Validate data
-    print("-" * 60)
-    print("Validating data...")
-    validation = validate_data(demographics)
-    print(f"Total participants: {validation['n_participants']}")
-
-    if validation['warnings']:
-        print("\nWarnings:")
-        for warning in validation['warnings']:
-            print(f"  - {warning}")
+    # Find CSV files to process
+    if id_mapping:
+        csv_files = [(DATA_DIR / filename, info['assigned_id'])
+                     for filename, info in id_mapping.items()]
+        print(f"Using ID mapping: {len(csv_files)} participants")
     else:
-        print("No validation issues found")
-    print()
+        csv_files = [(f, None) for f in sorted(DATA_DIR.glob('rlwm_trauma_*.csv'))]
+        print(f"Found {len(csv_files)} CSV files in {DATA_DIR}")
 
-    # Save intermediate files
-    print("-" * 60)
-    print("Saving intermediate cleaned data files...")
+    if len(csv_files) == 0:
+        print("ERROR: No participant files found!")
+        return
 
-    demographics.to_csv(os.path.join(output_dir, 'parsed_demographics.csv'), index=False)
-    print(f"[SAVED] {output_dir}/parsed_demographics.csv")
+    # Parse each file
+    all_task_trials = []
+    all_demographics = []
+    all_survey1 = []
+    all_survey2 = []
+    participant_info = []
 
-    survey1.to_csv(os.path.join(output_dir, 'parsed_survey1.csv'), index=False)
-    print(f"[SAVED] {output_dir}/parsed_survey1.csv")
+    print("\nParsing files...")
+    for filepath, assigned_id in tqdm(csv_files, desc='Parsing', unit='file'):
+        if not filepath.exists():
+            continue
 
-    survey2.to_csv(os.path.join(output_dir, 'parsed_survey2.csv'), index=False)
-    print(f"[SAVED] {output_dir}/parsed_survey2.csv")
+        # Skip excluded participants
+        if assigned_id in EXCLUDED_PARTICIPANTS:
+            continue
 
-    task_trials.to_csv(os.path.join(output_dir, 'parsed_task_trials.csv'), index=False)
-    print(f"[SAVED] {output_dir}/parsed_task_trials.csv")
+        result = parse_single_file(filepath, assigned_id)
 
-    print()
-    print("=" * 60)
+        # Only include participants with sufficient trials
+        if result['task_trials'] is not None and result['n_trials'] >= MIN_TRIALS:
+            all_task_trials.append(result['task_trials'])
+
+            participant_info.append({
+                'sona_id': result['sona_id'],
+                'filename': filepath.name,
+                'n_trials_raw': result['n_trials'],
+                'has_survey1': result['survey1'] is not None,
+                'has_survey2': result['survey2'] is not None,
+                'has_demographics': result['demographics'] is not None
+            })
+
+        if result['demographics'] is not None:
+            all_demographics.append(result['demographics'])
+
+        if result['survey1'] is not None:
+            all_survey1.append(result['survey1'])
+
+        if result['survey2'] is not None:
+            all_survey2.append(result['survey2'])
+
+    print(f"\nSuccessfully parsed: {len(all_task_trials)} participants (>={MIN_TRIALS} trials)")
+
+    # ========================================================================
+    # Combine and save task trials
+    # ========================================================================
+    if all_task_trials:
+        print("\n" + "-" * 80)
+        print("Processing task data...")
+
+        task_df = pd.concat(all_task_trials, ignore_index=True)
+        task_df = clean_task_data(task_df)
+
+        # Update participant info with cleaned trial counts
+        for info in participant_info:
+            pid = info['sona_id']
+            info['n_trials_clean'] = len(task_df[task_df['sona_id'] == pid])
+            info['status'] = 'complete' if info['n_trials_clean'] >= 700 else 'partial'
+
+        # Save task trials
+        output_path = OUTPUT_DIR / 'task_trials_long_all_participants.csv'
+        task_df.to_csv(output_path, index=False)
+        print(f"[SAVED] {output_path}")
+        print(f"  {len(task_df):,} trials from {task_df['sona_id'].nunique()} participants")
+
+    # ========================================================================
+    # Save participant info
+    # ========================================================================
+    if participant_info:
+        info_df = pd.DataFrame(participant_info)
+        info_path = OUTPUT_DIR / 'participant_info.csv'
+        info_df.to_csv(info_path, index=False)
+        print(f"[SAVED] {info_path}")
+
+    # ========================================================================
+    # Combine and save Survey 1 (LEC-5) with LESS scores
+    # ========================================================================
+    if all_survey1:
+        print("\n" + "-" * 80)
+        print("Processing Survey 1 (LEC-5 → LESS scores)...")
+
+        survey1_df = pd.concat(all_survey1, ignore_index=True)
+        survey1_df = score_less(survey1_df)
+
+        output_path = OUTPUT_DIR / 'parsed_survey1.csv'
+        survey1_df.to_csv(output_path, index=False)
+        print(f"[SAVED] {output_path}")
+        print(f"  {len(survey1_df)} participants with LEC-5 data")
+
+    # ========================================================================
+    # Combine and save Survey 2 (IES-R) with subscale scores
+    # ========================================================================
+    if all_survey2:
+        print("\n" + "-" * 80)
+        print("Processing Survey 2 (IES-R → subscale scores)...")
+
+        survey2_df = pd.concat(all_survey2, ignore_index=True)
+        survey2_df = score_ies_r(survey2_df)
+
+        output_path = OUTPUT_DIR / 'parsed_survey2.csv'
+        survey2_df.to_csv(output_path, index=False)
+        print(f"[SAVED] {output_path}")
+        print(f"  {len(survey2_df)} participants with IES-R data")
+
+    # ========================================================================
+    # Combine and save demographics
+    # ========================================================================
+    if all_demographics:
+        print("\n" + "-" * 80)
+        print("Processing demographics...")
+
+        demo_df = pd.concat(all_demographics, ignore_index=True)
+        demo_df = demo_df.drop_duplicates(subset=['sona_id'], keep='first')
+
+        output_path = OUTPUT_DIR / 'parsed_demographics.csv'
+        demo_df.to_csv(output_path, index=False)
+        print(f"[SAVED] {output_path}")
+        print(f"  {len(demo_df)} participants with demographics")
+
+    # ========================================================================
+    # Create summary metrics file
+    # ========================================================================
+    if all_survey1 and all_survey2:
+        print("\n" + "-" * 80)
+        print("Creating summary participant metrics...")
+
+        # Get LESS summary scores
+        less_cols = ['sona_id', 'less_total_events', 'less_personal_events']
+        less_summary = survey1_df[[c for c in less_cols if c in survey1_df.columns]]
+
+        # Get IES-R summary scores
+        ies_cols = ['sona_id', 'ies_total', 'ies_intrusion', 'ies_avoidance', 'ies_hyperarousal']
+        ies_summary = survey2_df[[c for c in ies_cols if c in survey2_df.columns]]
+
+        # Merge survey data
+        summary_df = less_summary.merge(ies_summary, on='sona_id', how='outer')
+
+        # Add task metrics if available
+        if all_task_trials and len(task_df) > 0:
+            task_metrics = task_df.groupby('sona_id').agg({
+                'correct': ['mean', 'count'],
+                'rt': 'mean'
+            }).reset_index()
+            task_metrics.columns = ['sona_id', 'accuracy_overall', 'n_trials_total', 'mean_rt_overall']
+            summary_df = summary_df.merge(task_metrics, on='sona_id', how='left')
+
+        # Save
+        output_path = OUTPUT_DIR / 'summary_participant_metrics.csv'
+        summary_df.to_csv(output_path, index=False)
+        print(f"[SAVED] {output_path}")
+        print(f"  {len(summary_df)} participants with combined metrics")
+
+    # ========================================================================
+    # Print summary statistics
+    # ========================================================================
+    if all_task_trials:
+        print("\n" + "=" * 80)
+        print("SUMMARY STATISTICS")
+        print("=" * 80)
+
+        n_participants = task_df['sona_id'].nunique()
+        trials_per_participant = task_df.groupby('sona_id').size()
+
+        print(f"\nTotal participants: {n_participants}")
+        print(f"Total trials: {len(task_df):,}")
+        print(f"\nTrials per participant:")
+        print(f"  Mean: {trials_per_participant.mean():.1f}")
+        print(f"  Min:  {trials_per_participant.min()}")
+        print(f"  Max:  {trials_per_participant.max()}")
+
+        # Complete vs partial
+        complete = (trials_per_participant >= 700).sum()
+        partial = ((trials_per_participant >= MIN_TRIALS) & (trials_per_participant < 700)).sum()
+        print(f"\nComplete participants (>=700 trials): {complete}")
+        print(f"Partial participants ({MIN_TRIALS}-699 trials): {partial}")
+
+        # Accuracy summary
+        if 'correct' in task_df.columns:
+            acc = task_df['correct'].mean()
+            print(f"\nOverall accuracy: {acc:.2%}")
+
+            participant_acc = task_df.groupby('sona_id')['correct'].mean()
+            print(f"\nParticipant-level accuracy:")
+            print(f"  Mean: {participant_acc.mean():.2%}")
+            print(f"  Std:  {participant_acc.std():.2%}")
+            print(f"  Min:  {participant_acc.min():.2%}")
+            print(f"  Max:  {participant_acc.max():.2%}")
+
+    print("\n" + "=" * 80)
     print("STEP 1 COMPLETE: Raw data parsing finished successfully")
-    print("=" * 60)
-    print()
-    print("Next step: Run 02_create_collated_csv.py to create the collated dataset")
+    print("=" * 80)
+    print("\nOutputs created:")
+    print("  - output/task_trials_long_all_participants.csv")
+    print("  - output/participant_info.csv")
+    print("  - output/parsed_survey1.csv (LEC-5 + LESS scores)")
+    print("  - output/parsed_survey2.csv (IES-R + subscale scores)")
+    print("  - output/parsed_demographics.csv")
+    print("  - output/summary_participant_metrics.csv")
+    print("\nNext step: Run 02_create_collated_csv.py")
     print()
 
 

@@ -52,49 +52,128 @@ sns.set_context("paper", font_scale=1.2)
 plt.rcParams['figure.dpi'] = 300
 
 
-def load_integrated_data(params_path: Path, model_type: str = 'qlearning') -> pd.DataFrame:
+def load_integrated_data(params_path: Path, model_type: str = 'qlearning',
+                         min_accuracy: float = None, max_epsilon: float = None) -> pd.DataFrame:
     """
     Load integrated dataset with parameters and trauma scales.
-    
-    Uses the integrated_parameters.csv if available, otherwise creates it.
+
+    Loads parameters directly from params_path and merges with participant data.
+
+    Args:
+        params_path: Path to fitted parameters CSV
+        model_type: 'qlearning' or 'wmrl'
+        min_accuracy: Optional minimum accuracy threshold (0-1) for inclusion
     """
-    # Check for pre-computed integrated file
-    integrated_path = Path('figures/trauma_groups/integrated_parameters.csv')
-    
-    if integrated_path.exists():
-        print(f"✓ Loading pre-integrated data from: {integrated_path}")
-        df = pd.read_csv(integrated_path)
+    # Load parameters directly from the provided path
+    print(f"Loading fitted parameters from: {params_path}")
+    params_df = pd.read_csv(params_path)
+
+    # Standardize participant ID column name
+    if 'participant_id' in params_df.columns:
+        params_df = params_df.rename(columns={'participant_id': 'sona_id'})
+
+    # Convert sona_id to string for consistent merging
+    params_df['sona_id'] = params_df['sona_id'].astype(str)
+
+    # Rename parameter columns to match expected format (add _mean suffix)
+    param_rename = {}
+    if model_type == 'qlearning':
+        if 'alpha_pos' in params_df.columns:
+            param_rename['alpha_pos'] = 'alpha_pos_mean'
+        if 'alpha_neg' in params_df.columns:
+            param_rename['alpha_neg'] = 'alpha_neg_mean'
+        if 'beta' in params_df.columns:
+            param_rename['beta'] = 'beta_mean'
+        if 'epsilon' in params_df.columns:
+            param_rename['epsilon'] = 'epsilon_mean'
+    else:  # wmrl
+        if 'alpha_pos' in params_df.columns:
+            param_rename['alpha_pos'] = 'alpha_pos_mean'
+        if 'alpha_neg' in params_df.columns:
+            param_rename['alpha_neg'] = 'alpha_neg_mean'
+        if 'phi' in params_df.columns:
+            param_rename['phi'] = 'phi_mean'
+        if 'rho' in params_df.columns:
+            param_rename['rho'] = 'rho_mean'
+        if 'capacity' in params_df.columns:
+            param_rename['capacity'] = 'wm_capacity_mean'
+        if 'epsilon' in params_df.columns:
+            param_rename['epsilon'] = 'epsilon_mean'
+
+    params_df = params_df.rename(columns=param_rename)
+    print(f"  Loaded {len(params_df)} participant fits")
+
+    # Load trauma scales from participant_surveys.csv (uses same IDs as MLE fits)
+    surveys_path = Path('output/mle/participant_surveys.csv')
+    if surveys_path.exists():
+        participant_data = pd.read_csv(surveys_path)
+        # Rename columns to match expected names
+        rename_map = {
+            'lec_total': 'lec_total_events',
+            'lec_personal': 'lec_personal_events'
+        }
+        participant_data = participant_data.rename(columns=rename_map)
     else:
-        print("Creating integrated dataset...")
-        # Import the analysis script functions
-        import sys
-        sys.path.insert(0, str(Path(__file__).parent))
-        from analyze_parameters_by_trauma_group import (
-            load_trauma_groups, 
-            get_participant_order, 
-            load_fitted_parameters
-        )
-        
-        trauma_groups = load_trauma_groups()
-        participant_order = get_participant_order()
-        df = load_fitted_parameters(params_path, participant_order, trauma_groups)
-    
-    # Load full participant data to get IES-R subscales
-    participant_data = pd.read_csv('output/summary_participant_metrics_all.csv')
-    
-    # Exclude participants based on data quality
-    participant_data = participant_data[~participant_data['sona_id'].isin(EXCLUDED_PARTICIPANTS)].copy()
-    
-    # Merge to get subscales
-    merge_cols = ['sona_id', 'lec_total_events', 'lec_personal_events', 
-                  'ies_total', 'ies_intrusion', 'ies_avoidance', 'ies_hyperarousal']
+        # Fallback to summary_participant_metrics_all.csv
+        participant_data = pd.read_csv('output/summary_participant_metrics_all.csv')
+    participant_data['sona_id'] = participant_data['sona_id'].astype(str)
+
+    # Load accuracy data separately (from task_trials to compute per-participant accuracy)
+    accuracy_data = None
+    trials_path = Path('output/task_trials_long_all_participants.csv')
+    if trials_path.exists():
+        trials_df = pd.read_csv(trials_path)
+        trials_df['sona_id'] = trials_df['sona_id'].astype(str)
+        accuracy_data = trials_df.groupby('sona_id')['correct'].mean().reset_index()
+        accuracy_data.columns = ['sona_id', 'accuracy_overall']
+        # Merge accuracy into participant_data
+        participant_data = participant_data.merge(accuracy_data, on='sona_id', how='left')
+
+    # Exclude participants based on data quality (convert to string for comparison)
+    excluded_str = [str(x) for x in EXCLUDED_PARTICIPANTS]
+    participant_data = participant_data[~participant_data['sona_id'].isin(excluded_str)].copy()
+    print(f"  {len(participant_data)} participants after data quality exclusions")
+
+    # Optional accuracy-based exclusion
+    if min_accuracy is not None:
+        if 'accuracy_overall' not in participant_data.columns:
+            print(f"  Warning: accuracy_overall column not found, cannot apply {min_accuracy:.0%} cutoff")
+        else:
+            low_accuracy_mask = participant_data['accuracy_overall'] < min_accuracy
+            low_accuracy_ids = participant_data.loc[low_accuracy_mask, 'sona_id'].tolist()
+            low_accuracy_values = participant_data.loc[low_accuracy_mask, ['sona_id', 'accuracy_overall']]
+            print(f"  Excluding {len(low_accuracy_ids)} participants below {min_accuracy:.0%} accuracy:")
+            for _, row in low_accuracy_values.iterrows():
+                print(f"    - {row['sona_id']}: {row['accuracy_overall']:.2%}")
+            # Exclude from both dataframes
+            params_df = params_df[~params_df['sona_id'].isin(low_accuracy_ids)]
+            participant_data = participant_data[~participant_data['sona_id'].isin(low_accuracy_ids)]
+
+    # Optional epsilon-based exclusion (alternative performance filter using MLE epsilon parameter)
+    if max_epsilon is not None:
+        if 'epsilon' in params_df.columns or 'epsilon_mean' in params_df.columns:
+            eps_col = 'epsilon' if 'epsilon' in params_df.columns else 'epsilon_mean'
+            high_epsilon_mask = params_df[eps_col] > max_epsilon
+            high_epsilon_ids = params_df.loc[high_epsilon_mask, 'sona_id'].tolist()
+            high_epsilon_values = params_df.loc[high_epsilon_mask, ['sona_id', eps_col]]
+            print(f"  Excluding {len(high_epsilon_ids)} participants with epsilon > {max_epsilon:.2f}:")
+            for _, row in high_epsilon_values.iterrows():
+                print(f"    - {row['sona_id']}: epsilon={row[eps_col]:.3f}")
+            # Exclude from params_df (participant_data doesn't have epsilon)
+            params_df = params_df[~params_df['sona_id'].isin(high_epsilon_ids)]
+        else:
+            print(f"  Warning: epsilon column not found, cannot apply max_epsilon={max_epsilon:.2f} filter")
+
+    # Merge parameters with participant data
+    merge_cols = ['sona_id', 'lec_total_events', 'lec_personal_events',
+                  'ies_total', 'ies_intrusion', 'ies_avoidance', 'ies_hyperarousal',
+                  'accuracy_overall']
     merge_cols = [c for c in merge_cols if c in participant_data.columns]
-    
-    df = df.merge(
+
+    df = params_df.merge(
         participant_data[merge_cols],
         on='sona_id',
-        how='left',
-        suffixes=('', '_full')
+        how='inner'
     )
     
     print(f"\n✓ Loaded data for {len(df)} participants")
@@ -334,9 +413,16 @@ def plot_regression_scatter(df: pd.DataFrame, param_name: str, predictor: str,
 def format_label(col_name: str) -> str:
     """Format column name for plotting."""
     label_map = {
-        'alpha_pos_mean': 'α+ (Positive Learning Rate)',
-        'alpha_neg_mean': 'α- (Negative Learning Rate)',
-        'beta_mean': 'β (Inverse Temperature)',
+        # Q-learning parameters
+        'alpha_pos_mean': 'alpha+ (Positive Learning Rate)',
+        'alpha_neg_mean': 'alpha- (Negative Learning Rate)',
+        'beta_mean': 'beta (Inverse Temperature)',
+        'epsilon_mean': 'epsilon (Random Responding)',
+        # WM-RL parameters
+        'phi_mean': 'phi (WM Decay Rate)',
+        'rho_mean': 'rho (WM Weight)',
+        'wm_capacity_mean': 'K (WM Capacity)',
+        # Trauma scales
         'lec_total_events': 'LEC-5 Total Events',
         'lec_personal_events': 'LEC-5 Personal Events',
         'ies_total': 'IES-R Total Score',
@@ -347,13 +433,20 @@ def format_label(col_name: str) -> str:
     return label_map.get(col_name, col_name)
 
 
-def plot_regression_matrix(df: pd.DataFrame, results_dict: dict, output_dir: Path):
+def plot_regression_matrix(df: pd.DataFrame, results_dict: dict, output_dir: Path,
+                           param_cols: list = None):
     """Create matrix of all regression scatter plots."""
-    
-    param_cols = ['alpha_pos_mean', 'alpha_neg_mean', 'beta_mean']
-    predictor_cols = ['lec_total_events', 'ies_total', 
+
+    # Default param_cols for backwards compatibility
+    if param_cols is None:
+        param_cols = ['alpha_pos_mean', 'alpha_neg_mean', 'beta_mean']
+
+    # Filter to available params
+    param_cols = [p for p in param_cols if p in df.columns]
+
+    predictor_cols = ['lec_total_events', 'ies_total',
                      'ies_intrusion', 'ies_avoidance', 'ies_hyperarousal']
-    
+
     # Filter to available predictors
     predictor_cols = [p for p in predictor_cols if p in df.columns]
     
@@ -443,7 +536,19 @@ def main():
         default='output/regressions',
         help='Output directory for results'
     )
-    
+    parser.add_argument(
+        '--min-accuracy',
+        type=float,
+        default=None,
+        help='Minimum accuracy threshold (0-1) for participant inclusion'
+    )
+    parser.add_argument(
+        '--max-epsilon',
+        type=float,
+        default=None,
+        help='Maximum epsilon threshold for participant inclusion (alternative to min-accuracy)'
+    )
+
     args = parser.parse_args()
     
     # Setup
@@ -454,16 +559,21 @@ def main():
     print("=" * 80)
     print("REGRESSION ANALYSIS: PARAMETERS ON TRAUMA SCALES")
     print("=" * 80)
-    
+    if args.min_accuracy is not None:
+        print(f"[!] Accuracy filter: excluding participants below {args.min_accuracy:.0%}")
+    if args.max_epsilon is not None:
+        print(f"[!] Epsilon filter: excluding participants with epsilon > {args.max_epsilon:.2f}")
+
     # Load data
-    df = load_integrated_data(params_path, args.model)
+    df = load_integrated_data(params_path, args.model, args.min_accuracy, args.max_epsilon)
     
     # Define parameter and predictor columns
     if args.model == 'qlearning':
         param_cols = ['alpha_pos_mean', 'alpha_neg_mean', 'beta_mean']
     else:  # wmrl
-        param_cols = ['alpha_pos_mean', 'alpha_neg_mean', 'beta_mean', 
-                     'wm_capacity_mean', 'wm_weight_mean']
+        # WM-RL parameters: alpha+, alpha-, phi (WM decay), rho (WM weight), capacity, epsilon
+        param_cols = ['alpha_pos_mean', 'alpha_neg_mean', 'phi_mean', 'rho_mean',
+                      'wm_capacity_mean', 'epsilon_mean']
     
     # Only use parameters that exist in the data
     param_cols = [p for p in param_cols if p in df.columns]
@@ -519,7 +629,7 @@ def main():
     print("\n" + df_table.to_string(index=False))
     
     # Create matrix plot
-    plot_regression_matrix(df, results_dict, output_dir)
+    plot_regression_matrix(df, results_dict, output_dir, param_cols)
     
     # Multiple regressions with IES-R subscales
     if HAS_STATSMODELS and all(c in df.columns for c in ['ies_intrusion', 'ies_avoidance', 'ies_hyperarousal']):
