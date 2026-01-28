@@ -96,8 +96,8 @@ def parse_single_file(filepath: Path, assigned_id: int = None) -> dict:
             sona_id = None
 
         if sona_id is None:
-            # Generate anonymous ID from filename hash
-            sona_id = abs(hash(filepath.name)) % 100000
+            # Deterministic fallback: use filename stem (stable across runs)
+            sona_id = f"anon_{filepath.stem}"
 
         result['sona_id'] = sona_id
         df['sona_id'] = sona_id

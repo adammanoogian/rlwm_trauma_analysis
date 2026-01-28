@@ -1,50 +1,50 @@
 sona_id,hypothesis_group,high_lec,high_ies,lec_total,ies_total
-anon_64040,Low Exposure-High Symptoms,False,True,4,40
+10000,Low Exposure-High Symptoms,False,True,4,40
 9187,No Trauma,False,False,11,22
-anon_27556,No Trauma,False,False,9,3
-anon_13249,No Trauma,False,False,11,0
-anon_61254,Trauma-Ongoing Impact,True,True,13,28
-anon_39017,No Trauma,False,False,8,9
-anon_29034,No Trauma,False,False,6,10
-anon_77770,No Trauma,False,False,9,1
-anon_95434,Trauma-No Impact,True,False,13,17
-anon_65099,No Trauma,False,False,10,21
-anon_51978,Trauma-Ongoing Impact,True,True,13,38
-anon_17429,Trauma-Ongoing Impact,True,True,13,39
-anon_88951,Trauma-No Impact,True,False,15,1
-anon_94162,Trauma-Ongoing Impact,True,True,13,35
-anon_8297,Trauma-No Impact,True,False,15,18
-anon_75,Low Exposure-High Symptoms,False,True,11,31
-anon_31035,Trauma-Ongoing Impact,True,True,15,24
-anon_99156,Low Exposure-High Symptoms,False,True,10,35
-anon_5423,Low Exposure-High Symptoms,False,True,7,51
-anon_47544,Trauma-No Impact,True,False,12,16
-anon_79988,Trauma-Ongoing Impact,True,True,13,42
-anon_43359,Trauma-No Impact,True,False,15,14
-anon_12026,Trauma-Ongoing Impact,True,True,12,60
-anon_59025,Trauma-Ongoing Impact,True,True,12,33
-anon_97618,Trauma-Ongoing Impact,True,True,12,33
-8968,Trauma-Ongoing Impact,True,True,15,38
-8932,No Trauma,False,False,10,9
-anon_81766,Trauma-No Impact,True,False,14,16
-anon_78002,Low Exposure-High Symptoms,False,True,2,28
-9175,Low Exposure-High Symptoms,False,True,10,37
-8959,Trauma-No Impact,True,False,15,22
-anon_63897,No Trauma,False,False,7,0
-anon_46443,No Trauma,False,False,6,2
-anon_92898,Low Exposure-High Symptoms,False,True,10,23
-anon_64162,Low Exposure-High Symptoms,False,True,7,64
-anon_33198,Trauma-Ongoing Impact,True,True,12,24
-8944,No Trauma,False,False,9,18
-anon_24085,No Trauma,False,False,9,20
-anon_74265,No Trauma,False,False,9,7
-anon_96709,Trauma-Ongoing Impact,True,True,15,35
-anon_55472,Trauma-No Impact,True,False,13,12
-anon_44829,No Trauma,False,False,8,8
-anon_41414,Low Exposure-High Symptoms,False,True,6,50
-anon_7818,Low Exposure-High Symptoms,False,True,6,50
-anon_72374,No Trauma,False,False,9,1
-anon_68976,No Trauma,False,False,11,18
-anon_17800,Trauma-No Impact,True,False,13,8
-anon_76131,Trauma-Ongoing Impact,True,True,13,23
-anon_41308,No Trauma,False,False,6,0
+10001,No Trauma,False,False,9,3
+10002,No Trauma,False,False,11,0
+10003,Trauma-Ongoing Impact,True,True,13,28
+10004,No Trauma,False,False,8,9
+10005,No Trauma,False,False,6,10
+10006,No Trauma,False,False,9,1
+10007,Trauma-No Impact,True,False,13,17
+10016,No Trauma,False,False,10,21
+10017,Trauma-Ongoing Impact,True,True,13,38
+10018,Trauma-Ongoing Impact,True,True,13,39
+10024,Trauma-No Impact,True,False,15,1
+10025,Trauma-Ongoing Impact,True,True,13,35
+10027,Trauma-No Impact,True,False,15,18
+10028,Low Exposure-High Symptoms,False,True,11,31
+10029,Trauma-Ongoing Impact,True,True,15,24
+10030,Low Exposure-High Symptoms,False,True,10,35
+10031,Low Exposure-High Symptoms,False,True,7,51
+10035,Trauma-No Impact,True,False,12,16
+10036,Trauma-Ongoing Impact,True,True,13,42
+10039,Trauma-No Impact,True,False,15,14
+10041,Trauma-Ongoing Impact,True,True,12,60
+10043,Trauma-Ongoing Impact,True,True,12,33
+10044,Trauma-Ongoing Impact,True,True,12,33
+10047,Trauma-Ongoing Impact,True,True,15,38
+10048,No Trauma,False,False,10,9
+10050,Trauma-No Impact,True,False,14,16
+10051,Low Exposure-High Symptoms,False,True,2,28
+10052,Low Exposure-High Symptoms,False,True,10,37
+10053,Trauma-No Impact,True,False,15,22
+10055,No Trauma,False,False,7,0
+10057,No Trauma,False,False,6,2
+10058,Low Exposure-High Symptoms,False,True,10,23
+10059,Low Exposure-High Symptoms,False,True,7,64
+10062,Trauma-Ongoing Impact,True,True,12,24
+10063,No Trauma,False,False,9,18
+10064,No Trauma,False,False,9,20
+10065,No Trauma,False,False,9,7
+10066,Trauma-Ongoing Impact,True,True,15,35
+10067,Trauma-No Impact,True,False,13,12
+10071,No Trauma,False,False,8,8
+10072,Low Exposure-High Symptoms,False,True,6,50
+10073,Low Exposure-High Symptoms,False,True,6,50
+10074,No Trauma,False,False,9,1
+10075,No Trauma,False,False,11,18
+10076,Trauma-No Impact,True,False,13,8
+10077,Trauma-Ongoing Impact,True,True,13,23
+10078,No Trauma,False,False,6,0

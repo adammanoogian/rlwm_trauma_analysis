@@ -1,5 +1,8 @@
 .claude/
 
+# Regression figures (can be regenerated, large file count)
+output/regressions/**/*.png
+
 # Raw participant data (contains potentially sensitive information)
 data/rlwm_trauma_PARTICIPANT_SESSION_*.csv
 data/backup_*.csv
