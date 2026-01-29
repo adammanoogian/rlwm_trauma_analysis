@@ -768,9 +768,9 @@ def test_wm_rl_agent():
 
     print(f"\nAgent parameters: {agent.get_parameters()}")
     print(f"  WM capacity K = {agent.capacity}")
-    print(f"  Base WM reliance ρ = {agent.rho:.2f}")
+    print(f"  Base WM reliance rho = {agent.rho:.2f}")
     print(f"  Set size N_s = 5")
-    print(f"  Expected ω = ρ * min(1, K/N_s) = {agent.rho:.2f} * min(1, 4/5) = {agent.rho * 0.8:.2f}")
+    print(f"  Expected omega = rho * min(1, K/N_s) = {agent.rho:.2f} * min(1, 4/5) = {agent.rho * 0.8:.2f}")
 
     # Run simulation
     print("\nRunning 100-trial simulation...")
@@ -780,7 +780,7 @@ def test_wm_rl_agent():
     print(f"  Accuracy: {results['accuracy']:.3f}")
     print(f"  Total reward: {results['total_reward']:.0f}")
     print(f"  Trials completed: {results['num_trials']}")
-    print(f"  Mean ω (WM weight): {results['mean_omega']:.3f}")
+    print(f"  Mean omega (WM weight): {results['mean_omega']:.3f}")
 
     # Show final matrices
     print(f"\nFinal Q-table (first 3 stimuli):")
@@ -815,5 +815,76 @@ def test_wm_rl_agent():
     print("Test complete!")
 
 
+def test_wm_rl_m3_agent():
+    """Test WM-RL M3 agent with perseveration parameter."""
+    print("\nTesting WM-RL M3 Agent (with Perseveration)")
+    print("=" * 80)
+
+    # Create M3 agent with kappa > 0
+    agent_m3 = create_wm_rl_agent(
+        alpha_pos=0.3,
+        alpha_neg=0.1,
+        beta=2.0,
+        beta_wm=3.0,
+        capacity=4,
+        phi=0.1,
+        rho=0.7,
+        kappa=0.3,  # Perseveration enabled
+        seed=42
+    )
+
+    # Create M2 agent (kappa=0) for comparison
+    agent_m2 = create_wm_rl_agent(
+        alpha_pos=0.3,
+        alpha_neg=0.1,
+        beta=2.0,
+        beta_wm=3.0,
+        capacity=4,
+        phi=0.1,
+        rho=0.7,
+        kappa=0.0,  # M2 behavior
+        seed=42
+    )
+
+    print(f"\nM3 agent parameters: kappa={agent_m3.kappa}")
+    print(f"M2 agent parameters: kappa={agent_m2.kappa}")
+
+    # Test that perseveration affects probabilities
+    stimulus = 0
+    set_size = 5
+
+    # Simulate a previous action
+    agent_m3.last_action = 1
+    agent_m2.last_action = 1
+
+    probs_m3 = agent_m3.get_hybrid_probs(stimulus, set_size)
+    probs_m2 = agent_m2.get_hybrid_probs(stimulus, set_size)
+
+    print(f"\nWith last_action=1:")
+    print(f"  M2 probs: {probs_m2['probs']}")
+    print(f"  M3 probs: {probs_m3['probs']}")
+
+    # M3 should have higher probability for action 1 (the repeated action)
+    if agent_m3.kappa > 0:
+        print(f"  M3 bonus for action 1: {probs_m3['probs'][1] - probs_m2['probs'][1]:.4f}")
+
+    # Test reset clears last_action
+    agent_m3.reset()
+    assert agent_m3.last_action is None, "reset() should clear last_action"
+    print("\n  reset() correctly clears last_action")
+
+    # Test that without last_action, M3 == M2
+    probs_m3_no_last = agent_m3.get_hybrid_probs(stimulus, set_size)
+    agent_m2.reset()
+    probs_m2_no_last = agent_m2.get_hybrid_probs(stimulus, set_size)
+
+    diff = np.abs(probs_m3_no_last['probs'] - probs_m2_no_last['probs']).max()
+    print(f"  M3 (no last_action) vs M2: max diff = {diff:.6f}")
+
+    print("\n" + "=" * 80)
+    print("M3 Agent Test Complete!")
+
+
 if __name__ == "__main__":
     test_wm_rl_agent()
+    test_wm_rl_m3_agent()
