@@ -10,28 +10,28 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 ## Current Position
 
 Phase: 1 of 3 (Core Implementation)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: In progress
-Last activity: 2026-01-29 — Completed 01-01-PLAN.md (M3 likelihood functions)
+Last activity: 2026-01-29 — Completed 01-02-PLAN.md (M3 agent integration)
 
-Progress: [███░░░░░░░] 33% (Phase 1: 1/3 plans)
+Progress: [██████░░░░] 67% (Phase 1: 2/3 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 1
-- Average duration: 23 min
-- Total execution time: 0.4 hours
+- Total plans completed: 2
+- Average duration: 30 min
+- Total execution time: 1.0 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-core-implementation | 1 | 23 min | 23 min |
+| 01-core-implementation | 2 | 59 min | 30 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (23min)
-- Trend: First plan complete
+- Last 5 plans: 01-01 (23min), 01-02 (36min)
+- Trend: Stable velocity (23-36min range)
 
 *Updated after each plan completion*
 
@@ -61,6 +61,12 @@ Recent decisions affecting current work:
 - Perseveration in value space — Added before softmax, not to probabilities
 - Carry extends M2 pattern — Minimal modification (4-tuple → 5-tuple)
 
+**From 01-02 (M3 Agent):**
+- Conditional execution path for backward compatibility — M2 mode (kappa=0) vs M3 mode (kappa>0)
+- last_action=None in agent (not -1) — Python convention, reset() clears to None
+- Perseveration in value space confirmed — V_hybrid + kappa*Rep(a) → softmax
+- Block boundary reset pattern — reset() clears last_action like Q/WM matrices
+
 ### Pending Todos
 
 None yet.
@@ -72,7 +78,7 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-01-29 (plan execution)
-Stopped at: Completed 01-01-PLAN.md (M3 likelihood functions)
+Stopped at: Completed 01-02-PLAN.md (M3 agent integration)
 Resume file: None
 
-**Next:** 01-02-PLAN.md (WMRLHybridAgent kappa parameter)
+**Next:** 01-03-PLAN.md (M3 fitting infrastructure)
