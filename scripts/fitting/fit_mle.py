@@ -10,6 +10,7 @@ Following Senta et al. (2025) methodology:
 Usage:
     python scripts/fitting/fit_mle.py --model qlearning --data output/task_trials_long.csv
     python scripts/fitting/fit_mle.py --model wmrl --data output/task_trials_long.csv
+    python scripts/fitting/fit_mle.py --model wmrl_m3 --data output/task_trials_long.csv
 """
 
 import os
@@ -597,8 +598,8 @@ def main():
         description='MLE fitting for RLWM models (Senta et al. methodology)'
     )
     parser.add_argument('--model', type=str, required=True,
-                        choices=['qlearning', 'wmrl'],
-                        help='Model to fit')
+                        choices=['qlearning', 'wmrl', 'wmrl_m3'],
+                        help='Model to fit (qlearning=M1, wmrl=M2, wmrl_m3=M3)')
     parser.add_argument('--data', type=str, required=True,
                         help='Path to trial data CSV')
     parser.add_argument('--output', type=str, default='output/mle/',
@@ -673,7 +674,14 @@ def main():
 
     print(f"\nGroup Statistics (n={n_converged}):")
     print("-" * 50)
-    param_names = QLEARNING_PARAMS if args.model == 'qlearning' else WMRL_PARAMS
+    if args.model == 'qlearning':
+        param_names = QLEARNING_PARAMS
+    elif args.model == 'wmrl':
+        param_names = WMRL_PARAMS
+    elif args.model == 'wmrl_m3':
+        param_names = WMRL_M3_PARAMS
+    else:
+        param_names = []
     for param in param_names:
         row = summary_df[summary_df['parameter'] == param].iloc[0]
         print(f"  {param:12s}: {row['mean']:.3f} +/- {row['se']:.3f}  (SD={row['sd']:.3f})")
