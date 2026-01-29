@@ -31,9 +31,23 @@ WMRL_BOUNDS = {
     'epsilon': (0.001, 0.999),
 }
 
+# WM-RL M3 parameter bounds (includes kappa perseveration)
+WMRL_M3_BOUNDS = {
+    'alpha_pos': (0.001, 0.999),
+    'alpha_neg': (0.001, 0.999),
+    'phi': (0.001, 0.999),
+    'rho': (0.001, 0.999),
+    'capacity': (1.0, 7.0),
+    'kappa': (0.0, 1.0),      # Perseveration parameter - NOTE: 0.0 allowed (M2 equivalence)
+    'epsilon': (0.001, 0.999),
+}
+
 # Parameter names in order (for array-dict conversion)
 QLEARNING_PARAMS = ['alpha_pos', 'alpha_neg', 'epsilon']
 WMRL_PARAMS = ['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'epsilon']
+# CRITICAL: Order must match wmrl_m3_multiblock_likelihood() signature
+# Signature: alpha_pos, alpha_neg, phi, rho, capacity, kappa, epsilon
+WMRL_M3_PARAMS = ['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'kappa', 'epsilon']
 
 
 # =============================================================================
