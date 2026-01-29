@@ -71,13 +71,14 @@ class WMRLHybridAgent:
         alpha_pos: float = ModelParams.ALPHA_POS_DEFAULT,
         alpha_neg: float = ModelParams.ALPHA_NEG_DEFAULT,
         beta: float = ModelParams.BETA_DEFAULT,
-        beta_wm: float = ModelParams.BETA_WM_DEFAULT,
+        beta_wm: float = ModelParams.BETA_DEFAULT,
         gamma: float = 0.0,
         capacity: int = ModelParams.WM_CAPACITY_DEFAULT,
         phi: float = ModelParams.PHI_DEFAULT,
         rho: float = ModelParams.RHO_DEFAULT,
         q_init: float = ModelParams.Q_INIT_VALUE,
         wm_init: float = ModelParams.WM_INIT_VALUE,
+        kappa: float = 0.0,
         seed: Optional[int] = None,
     ):
         """
@@ -109,6 +110,9 @@ class WMRLHybridAgent:
             Initial Q-values
         wm_init : float
             Initial WM values (baseline)
+        kappa : float
+            Perseveration parameter (0-1). Adds bonus to repeating previous action.
+            When kappa=0 (default), agent behaves identically to M2.
         seed : int, optional
             Random seed
         """
@@ -124,6 +128,8 @@ class WMRLHybridAgent:
         self.rho = rho
         self.q_init = q_init
         self.wm_init = wm_init
+        self.kappa = kappa
+        self.last_action = None  # Track for perseveration (None = no previous action)
 
         # Random state
         self.rng = np.random.RandomState(seed)
@@ -147,6 +153,7 @@ class WMRLHybridAgent:
             'hybrid_probs': [],
             'omega': [],  # Adaptive weight
             'prediction_errors': [],
+            'last_actions': [],  # Track action repetition
         }
 
     def reset(self, q_init: Optional[float] = None, wm_init: Optional[float] = None):
@@ -555,7 +562,7 @@ def create_wm_rl_agent(
     alpha_pos: float = ModelParams.ALPHA_POS_DEFAULT,
     alpha_neg: float = ModelParams.ALPHA_NEG_DEFAULT,
     beta: float = ModelParams.BETA_DEFAULT,
-    beta_wm: float = ModelParams.BETA_WM_DEFAULT,
+    beta_wm: float = ModelParams.BETA_DEFAULT,
     capacity: int = ModelParams.WM_CAPACITY_DEFAULT,
     phi: float = ModelParams.PHI_DEFAULT,
     rho: float = ModelParams.RHO_DEFAULT,
