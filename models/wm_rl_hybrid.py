@@ -166,6 +166,8 @@ class WMRLHybridAgent:
             Initial Q-values. If None, uses self.q_init.
         wm_init : float, optional
             Initial WM values. If None, uses self.wm_init.
+
+        Note: Also resets last_action for perseveration tracking (block boundary behavior).
         """
         if q_init is not None:
             self.q_init = q_init
@@ -178,6 +180,9 @@ class WMRLHybridAgent:
         # Reset WM matrix and baseline
         self.WM.fill(self.wm_init)
         self.WM_0.fill(self.wm_init)
+
+        # Reset perseveration tracking (block boundary)
+        self.last_action = None
 
         # Clear history
         self.history = {
