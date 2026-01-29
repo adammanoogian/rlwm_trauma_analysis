@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-29)
 
 **Core value:** Correctly dissociate perseverative responding from learning-rate effects (α₋) to accurately identify whether post-reversal failures reflect motor perseveration or outcome insensitivity
-**Current focus:** Phase 1 - Core Implementation
+**Current focus:** Phase 2 - MLE Infrastructure
 
 ## Current Position
 
-Phase: 1 of 3 (Core Implementation)
-Plan: 2 of 3 in current phase
-Status: In progress
-Last activity: 2026-01-29 — Completed 01-02-PLAN.md (M3 agent integration)
+Phase: 2 of 3 (MLE Infrastructure)
+Plan: 0 of TBD in current phase
+Status: Ready to plan
+Last activity: 2026-01-29 — Phase 1 complete (Core Implementation)
 
-Progress: [██████░░░░] 67% (Phase 1: 2/3 plans)
+Progress: [███░░░░░░░] 33%
 
 ## Performance Metrics
 
@@ -27,11 +27,11 @@ Progress: [██████░░░░] 67% (Phase 1: 2/3 plans)
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-core-implementation | 2 | 59 min | 30 min |
+| 1 | 2 | 59 min | 30 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (23min), 01-02 (36min)
-- Trend: Stable velocity (23-36min range)
+- Last 5 plans: 01-01 (23 min), 01-02 (36 min)
+- Trend: First phase complete
 
 *Updated after each plan completion*
 
@@ -55,17 +55,21 @@ Recent decisions affecting current work:
 - Reset last_action at block boundaries — Matches existing Q/WM reset pattern
 - Infrastructure only — User runs fits on cluster
 
-**From 01-01 (M3 Likelihoods):**
-- last_action=-1 sentinel at block start — Indicates no previous action
-- Rep(a) via one-hot encoding — jnp.eye(num_actions)[last_action]
-- Perseveration in value space — Added before softmax, not to probabilities
-- Carry extends M2 pattern — Minimal modification (4-tuple → 5-tuple)
+### Phase 1 Summary (Complete)
 
-**From 01-02 (M3 Agent):**
-- Conditional execution path for backward compatibility — M2 mode (kappa=0) vs M3 mode (kappa>0)
-- last_action=None in agent (not -1) — Python convention, reset() clears to None
-- Perseveration in value space confirmed — V_hybrid + kappa*Rep(a) → softmax
-- Block boundary reset pattern — reset() clears last_action like Q/WM matrices
+**Completed 2026-01-29**
+
+Key implementations:
+- `wmrl_m3_block_likelihood()` at scripts/fitting/jax_likelihoods.py:666
+- `wmrl_m3_multiblock_likelihood()` at scripts/fitting/jax_likelihoods.py:947
+- WMRLHybridAgent extended with kappa parameter at models/wm_rl_hybrid.py:81
+- Backward compatibility verified: kappa=0 produces identical M2 results
+
+Technical decisions:
+- last_action=-1 sentinel in JAX (block start indicator)
+- last_action=None in agent class (Python convention)
+- Perseveration added in value space before softmax
+- Rep(a) via one-hot encoding: jnp.eye(num_actions)[last_action]
 
 ### Pending Todos
 
@@ -73,12 +77,10 @@ None yet.
 
 ### Blockers/Concerns
 
-None yet.
+None.
 
 ## Session Continuity
 
-Last session: 2026-01-29 (plan execution)
-Stopped at: Completed 01-02-PLAN.md (M3 agent integration)
+Last session: 2026-01-29 (Phase 1 execution)
+Stopped at: Phase 1 complete, ready for Phase 2 planning
 Resume file: None
-
-**Next:** 01-03-PLAN.md (M3 fitting infrastructure)

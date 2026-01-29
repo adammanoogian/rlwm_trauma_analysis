@@ -14,15 +14,15 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Likelihood Function
 
-- [ ] **LIK-01**: JAX likelihood function `wmrl_m3_block_likelihood()` computes log-likelihood for M3 on a single block
-- [ ] **LIK-02**: Likelihood includes κ·Rep(a) additive term in softmax: P(a) ∝ exp(V(s,a) + κ·Rep(a))
-- [ ] **LIK-03**: Rep(a) tracks whether action matches previous trial's action (global, not stimulus-specific)
-- [ ] **LIK-04**: Last action resets to None at start of each block
-- [ ] **LIK-05**: Multi-block wrapper `wmrl_m3_multiblock_likelihood()` sums across blocks
+- [x] **LIK-01**: JAX likelihood function `wmrl_m3_block_likelihood()` computes log-likelihood for M3 on a single block ✓
+- [x] **LIK-02**: Likelihood includes κ·Rep(a) additive term in softmax: P(a) ∝ exp(V(s,a) + κ·Rep(a)) ✓
+- [x] **LIK-03**: Rep(a) tracks whether action matches previous trial's action (global, not stimulus-specific) ✓
+- [x] **LIK-04**: Last action resets to None at start of each block ✓
+- [x] **LIK-05**: Multi-block wrapper `wmrl_m3_multiblock_likelihood()` sums across blocks ✓
 
 ### Agent Integration
 
-- [ ] **AGT-01**: WMRLHybridAgent extended with optional `kappa` parameter (default=0 preserves M2 behavior)
+- [x] **AGT-01**: WMRLHybridAgent extended with optional `kappa` parameter (default=0 preserves M2 behavior) ✓
 
 ### Parameter Infrastructure
 
@@ -75,12 +75,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| LIK-01 | Phase 1 | Pending |
-| LIK-02 | Phase 1 | Pending |
-| LIK-03 | Phase 1 | Pending |
-| LIK-04 | Phase 1 | Pending |
-| LIK-05 | Phase 1 | Pending |
-| AGT-01 | Phase 1 | Pending |
+| LIK-01 | Phase 1 | Complete ✓ |
+| LIK-02 | Phase 1 | Complete ✓ |
+| LIK-03 | Phase 1 | Complete ✓ |
+| LIK-04 | Phase 1 | Complete ✓ |
+| LIK-05 | Phase 1 | Complete ✓ |
+| AGT-01 | Phase 1 | Complete ✓ |
 | PAR-01 | Phase 2 | Pending |
 | PAR-02 | Phase 2 | Pending |
 | PAR-03 | Phase 2 | Pending |
@@ -98,4 +98,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-28*
-*Last updated: 2026-01-29 after roadmap adjustment*
+*Last updated: 2026-01-29 — Phase 1 complete*
