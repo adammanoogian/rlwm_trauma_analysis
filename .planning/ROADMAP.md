@@ -36,8 +36,8 @@ This roadmap extends the existing WM-RL model (M2) with a perseveration paramete
   6. Agent's `get_hybrid_probs()` includes κ·Rep(a) when kappa > 0
 
 Plans:
-- [ ] 01-01: TBD
-- [ ] 01-02: TBD
+- [ ] 01-01-PLAN.md - JAX M3 likelihood functions with kappa perseveration
+- [ ] 01-02-PLAN.md - WMRLHybridAgent extension with optional kappa parameter
 
 ### Phase 2: MLE Infrastructure
 **Goal**: MLE fitting utilities support wmrl_m3 model type
@@ -74,6 +74,6 @@ Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Core Implementation | 0/TBD | Not started | - |
+| 1. Core Implementation | 0/2 | Ready | - |
 | 2. MLE Infrastructure | 0/TBD | Not started | - |
 | 3. Validation & Comparison | 0/TBD | Not started | - |
