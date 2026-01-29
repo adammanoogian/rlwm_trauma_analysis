@@ -86,13 +86,22 @@ def params_to_unconstrained(params: Dict[str, float], model: str) -> np.ndarray:
 
     Args:
         params: Dictionary of parameter values
-        model: 'qlearning' or 'wmrl'
+        model: 'qlearning', 'wmrl', or 'wmrl_m3'
 
     Returns:
         Unconstrained parameter array
     """
-    bounds = QLEARNING_BOUNDS if model == 'qlearning' else WMRL_BOUNDS
-    param_names = QLEARNING_PARAMS if model == 'qlearning' else WMRL_PARAMS
+    if model == 'qlearning':
+        bounds = QLEARNING_BOUNDS
+        param_names = QLEARNING_PARAMS
+    elif model == 'wmrl':
+        bounds = WMRL_BOUNDS
+        param_names = WMRL_PARAMS
+    elif model == 'wmrl_m3':
+        bounds = WMRL_M3_BOUNDS
+        param_names = WMRL_M3_PARAMS
+    else:
+        raise ValueError(f"Unknown model: {model}")
 
     x = []
     for name in param_names:
@@ -108,13 +117,22 @@ def unconstrained_to_params(x: np.ndarray, model: str) -> Dict[str, float]:
 
     Args:
         x: Unconstrained parameter array
-        model: 'qlearning' or 'wmrl'
+        model: 'qlearning', 'wmrl', or 'wmrl_m3'
 
     Returns:
         Dictionary of bounded parameter values
     """
-    bounds = QLEARNING_BOUNDS if model == 'qlearning' else WMRL_BOUNDS
-    param_names = QLEARNING_PARAMS if model == 'qlearning' else WMRL_PARAMS
+    if model == 'qlearning':
+        bounds = QLEARNING_BOUNDS
+        param_names = QLEARNING_PARAMS
+    elif model == 'wmrl':
+        bounds = WMRL_BOUNDS
+        param_names = WMRL_PARAMS
+    elif model == 'wmrl_m3':
+        bounds = WMRL_M3_BOUNDS
+        param_names = WMRL_M3_PARAMS
+    else:
+        raise ValueError(f"Unknown model: {model}")
 
     params = {}
     for i, name in enumerate(param_names):
@@ -132,7 +150,7 @@ def get_default_params(model: str) -> Dict[str, float]:
             'alpha_neg': 0.1,
             'epsilon': 0.05
         }
-    else:  # wmrl
+    elif model == 'wmrl':
         return {
             'alpha_pos': 0.3,
             'alpha_neg': 0.1,
@@ -141,6 +159,18 @@ def get_default_params(model: str) -> Dict[str, float]:
             'capacity': 4.0,
             'epsilon': 0.05
         }
+    elif model == 'wmrl_m3':
+        return {
+            'alpha_pos': 0.3,
+            'alpha_neg': 0.1,
+            'phi': 0.1,
+            'rho': 0.7,
+            'capacity': 4.0,
+            'kappa': 0.0,  # Default to M2 behavior (no perseveration)
+            'epsilon': 0.05
+        }
+    else:
+        raise ValueError(f"Unknown model: {model}")
 
 
 def sample_random_start(model: str, rng: np.random.Generator) -> np.ndarray:
@@ -149,8 +179,23 @@ def sample_random_start(model: str, rng: np.random.Generator) -> np.ndarray:
 
     Uses Normal(0, 1) which maps to roughly uniform in bounded space
     (centered around 0.5 for (0,1) bounds).
+
+    Args:
+        model: 'qlearning', 'wmrl', or 'wmrl_m3'
+        rng: NumPy random generator
+
+    Returns:
+        Unconstrained parameter array
     """
-    n_params = len(QLEARNING_PARAMS) if model == 'qlearning' else len(WMRL_PARAMS)
+    if model == 'qlearning':
+        n_params = len(QLEARNING_PARAMS)
+    elif model == 'wmrl':
+        n_params = len(WMRL_PARAMS)
+    elif model == 'wmrl_m3':
+        n_params = len(WMRL_M3_PARAMS)
+    else:
+        raise ValueError(f"Unknown model: {model}")
+
     return rng.normal(0, 1.5, size=n_params)  # SD=1.5 gives reasonable spread
 
 
@@ -217,8 +262,12 @@ def get_n_params(model: str) -> int:
     """Get number of free parameters for a model."""
     if model == 'qlearning':
         return 3  # alpha_pos, alpha_neg, epsilon
-    else:  # wmrl
+    elif model == 'wmrl':
         return 6  # alpha_pos, alpha_neg, phi, rho, capacity, epsilon
+    elif model == 'wmrl_m3':
+        return 7  # alpha_pos, alpha_neg, phi, rho, capacity, kappa, epsilon
+    else:
+        raise ValueError(f"Unknown model: {model}")
 
 
 # =============================================================================
@@ -270,12 +319,19 @@ def summarize_all_parameters(
 
     Args:
         fits_df: DataFrame with individual fit results
-        model: 'qlearning' or 'wmrl'
+        model: 'qlearning', 'wmrl', or 'wmrl_m3'
 
     Returns:
         Nested dict: {param_name: {mean, sd, se, ci_lower, ci_upper}}
     """
-    param_names = QLEARNING_PARAMS if model == 'qlearning' else WMRL_PARAMS
+    if model == 'qlearning':
+        param_names = QLEARNING_PARAMS
+    elif model == 'wmrl':
+        param_names = WMRL_PARAMS
+    elif model == 'wmrl_m3':
+        param_names = WMRL_M3_PARAMS
+    else:
+        raise ValueError(f"Unknown model: {model}")
 
     summary = {}
     for param in param_names:
@@ -344,9 +400,22 @@ def check_at_bounds(
     """
     Check if any parameters are at their bounds.
 
-    Returns list of parameter names that hit bounds.
+    Args:
+        params: Parameter dictionary
+        model: 'qlearning', 'wmrl', or 'wmrl_m3'
+        tolerance: Distance from bound to consider "at bound"
+
+    Returns:
+        List of parameter names that hit bounds.
     """
-    bounds = QLEARNING_BOUNDS if model == 'qlearning' else WMRL_BOUNDS
+    if model == 'qlearning':
+        bounds = QLEARNING_BOUNDS
+    elif model == 'wmrl':
+        bounds = WMRL_BOUNDS
+    elif model == 'wmrl_m3':
+        bounds = WMRL_M3_BOUNDS
+    else:
+        raise ValueError(f"Unknown model: {model}")
 
     at_bounds = []
     for name, value in params.items():
