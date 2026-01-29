@@ -37,6 +37,7 @@ from config import EXCLUDED_PARTICIPANTS
 from scripts.fitting.jax_likelihoods import (
     q_learning_multiblock_likelihood,
     wmrl_multiblock_likelihood,
+    wmrl_m3_multiblock_likelihood,
     prepare_block_data,
 )
 
@@ -55,6 +56,7 @@ from scripts.fitting.mle_utils import (
     check_at_bounds,
     QLEARNING_PARAMS,
     WMRL_PARAMS,
+    WMRL_M3_PARAMS,
 )
 
 # Suppress JAX warnings
@@ -136,6 +138,49 @@ def _objective_wmrl(
             phi=params['phi'],
             rho=params['rho'],
             capacity=params['capacity'],
+            epsilon=params['epsilon']
+        )
+        return -float(log_lik)
+    except Exception as e:
+        return np.inf
+
+
+def _objective_wmrl_m3(
+    x: np.ndarray,
+    stimuli_blocks: List[np.ndarray],
+    actions_blocks: List[np.ndarray],
+    rewards_blocks: List[np.ndarray],
+    set_sizes_blocks: List[np.ndarray],
+) -> float:
+    """
+    Negative log-likelihood objective for WM-RL M3 model (with kappa perseveration).
+
+    Args:
+        x: Unconstrained parameter array [alpha_pos, alpha_neg, phi, rho, capacity, kappa, epsilon]
+        stimuli_blocks: List of stimulus arrays per block
+        actions_blocks: List of action arrays per block
+        rewards_blocks: List of reward arrays per block
+        set_sizes_blocks: List of set size arrays per block
+
+    Returns:
+        Negative log-likelihood (for minimization)
+
+    Note: Beta is fixed at 50 inside the likelihood function.
+    """
+    params = unconstrained_to_params(x, 'wmrl_m3')
+
+    try:
+        log_lik = wmrl_m3_multiblock_likelihood(
+            stimuli_blocks=stimuli_blocks,
+            actions_blocks=actions_blocks,
+            rewards_blocks=rewards_blocks,
+            set_sizes_blocks=set_sizes_blocks,
+            alpha_pos=params['alpha_pos'],
+            alpha_neg=params['alpha_neg'],
+            phi=params['phi'],
+            rho=params['rho'],
+            capacity=params['capacity'],
+            kappa=params['kappa'],
             epsilon=params['epsilon']
         )
         return -float(log_lik)
