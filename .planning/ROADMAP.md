@@ -18,7 +18,7 @@ This roadmap extends the existing WM-RL model (M2) with a perseveration paramete
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
 - [x] **Phase 1: Core Implementation** - Likelihood function and agent extension with κ parameter
-- [ ] **Phase 2: MLE Infrastructure** - Parameter bounds, transformations, fitting integration
+- [x] **Phase 2: MLE Infrastructure** - Parameter bounds, transformations, fitting integration
 - [ ] **Phase 3: Validation & Comparison** - Tests and model comparison (M2 vs M3)
 
 ## Phase Details
@@ -54,8 +54,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 02-01-PLAN.md - Add wmrl_m3 parameter infrastructure to mle_utils.py
-- [ ] 02-02-PLAN.md - Add wmrl_m3 fitting support to fit_mle.py
+- [x] 02-01-PLAN.md - Add wmrl_m3 parameter infrastructure to mle_utils.py
+- [x] 02-02-PLAN.md - Add wmrl_m3 fitting support to fit_mle.py
 
 ### Phase 3: Validation & Comparison
 **Goal**: Researcher can validate M3 and compare against M2 baseline
@@ -78,5 +78,5 @@ Phases execute in numeric order: 1 → 2 → 3
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Core Implementation | 2/2 | Complete | 2026-01-29 |
-| 2. MLE Infrastructure | 0/2 | Ready | - |
-| 3. Validation & Comparison | 0/TBD | Not started | - |
+| 2. MLE Infrastructure | 2/2 | Complete | 2026-01-29 |
+| 3. Validation & Comparison | 0/TBD | Ready | - |

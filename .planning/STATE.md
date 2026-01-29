@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-29)
 
 **Core value:** Correctly dissociate perseverative responding from learning-rate effects (α₋) to accurately identify whether post-reversal failures reflect motor perseveration or outcome insensitivity
-**Current focus:** Phase 2 - MLE Infrastructure
+**Current focus:** Phase 3 - Validation & Comparison
 
 ## Current Position
 
-Phase: 2 of 3 (MLE Infrastructure)
-Plan: 2 of TBD in current phase
-Status: In progress
-Last activity: 2026-01-29 — Completed 02-02-PLAN.md
+Phase: 3 of 3 (Validation & Comparison)
+Plan: 0 of TBD in current phase
+Status: Ready to plan
+Last activity: 2026-01-29 — Phase 2 complete (MLE Infrastructure)
 
-Progress: [████░░░░░░] 44%
+Progress: [██████░░░░] 67%
 
 ## Performance Metrics
 
@@ -78,23 +78,23 @@ Technical decisions:
 - Perseveration added in value space before softmax
 - Rep(a) via one-hot encoding: jnp.eye(num_actions)[last_action]
 
-### Phase 2 Progress
+### Phase 2 Summary (Complete)
 
-**Plan 02-01: MLE Parameter Infrastructure (Complete 2026-01-29)**
+**Completed 2026-01-29**
 
-Key additions:
-- WMRL_M3_BOUNDS constant with kappa: (0.0, 1.0) at scripts/fitting/mle_utils.py:35
+Key implementations:
+- WMRL_M3_BOUNDS constant with kappa: (0.0, 1.0) at scripts/fitting/mle_utils.py:41
 - WMRL_M3_PARAMS list with 7-parameter ordering at scripts/fitting/mle_utils.py:50
-- Extended 7 utility functions to support wmrl_m3 model type
-- Verified parameter ordering matches wmrl_m3_multiblock_likelihood signature
+- Extended 7 utility functions in mle_utils.py for wmrl_m3 model type
+- _objective_wmrl_m3() function at scripts/fitting/fit_mle.py:157
+- CLI accepts --model wmrl_m3 at scripts/fitting/fit_mle.py:601
+- Model dispatch extended across all fitting functions
 
-**Plan 02-02: MLE CLI Integration (Complete 2026-01-29)**
-
-Key additions:
-- fit_mle.py accepts --model wmrl_m3 with CLI integration complete
-- _objective_wmrl_m3() function for 7-parameter negative log-likelihood
-- Model dispatch extended across fit_participant_mle(), prepare_participant_data(), fit_all_participants()
-- CLI help text shows M1/M2/M3 naming convention
+Technical decisions:
+- kappa bounds (0.0, 1.0) allow M2 equivalence at kappa=0
+- Parameter ordering matches likelihood signature exactly
+- Default kappa=0.0 provides M2 baseline behavior
+- Extended if/else to if/elif/else pattern for three-model dispatch
 
 ### Pending Todos
 
@@ -107,5 +107,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-29 (Phase 2 execution)
-Stopped at: Completed 02-02-PLAN.md (MLE CLI Integration)
+Stopped at: Phase 2 complete, ready for Phase 3 planning
 Resume file: None
