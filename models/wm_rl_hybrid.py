@@ -390,6 +390,7 @@ class WMRLHybridAgent:
         1. Decay all WM values toward baseline: WM ← (1-φ)WM + φ·WM_0
         2. Overwrite WM cell with current reward: WM(s,a) ← r
         3. Update Q-table with asymmetric learning: Q(s,a) ← Q(s,a) + α·δ
+        4. Track action for perseveration: last_action ← action
 
         Parameters
         ----------
@@ -435,6 +436,11 @@ class WMRLHybridAgent:
 
         # Q-value update
         self.Q[stimulus, action] += alpha * prediction_error
+
+        # =================================================================
+        # 4. TRACK ACTION FOR PERSEVERATION
+        # =================================================================
+        self.last_action = action
 
     def log_trial(
         self,
