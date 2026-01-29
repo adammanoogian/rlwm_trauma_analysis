@@ -279,9 +279,14 @@ class WMRLHybridAgent:
         """
         Compute hybrid action probabilities combining WM and RL.
 
-        p(a|s) = ω·p_WM(a|s) + (1-ω)·p_RL(a|s)
+        p(a|s) = softmax(V_hybrid(s,a) + kappa * Rep(a))
 
-        Where ω = ρ * min(1, K/N_s) adapts to task demands.
+        Where:
+        - V_hybrid = omega * WM(s,a) + (1-omega) * Q(s,a)
+        - Rep(a) = 1 if a == last_action, else 0
+        - omega = rho * min(1, K/N_s)
+
+        When kappa=0, this reduces to standard M2 behavior.
 
         Parameters
         ----------
@@ -294,29 +299,49 @@ class WMRLHybridAgent:
         -------
         dict
             Dictionary with:
-            - 'probs': hybrid probabilities
+            - 'probs': final action probabilities (with perseveration if kappa > 0)
             - 'wm_probs': WM-only probabilities
             - 'rl_probs': RL-only probabilities
             - 'omega': adaptive weight used
+            - 'hybrid_vals': hybrid values before perseveration (for debugging)
         """
-        # Get component probabilities
+        # Get component values
+        q_vals = self.Q[stimulus, :]
+        wm_vals = self.WM[stimulus, :]
+
+        # Compute component probabilities (for reporting)
         rl_probs = self.get_rl_probs(stimulus)
         wm_probs = self.get_wm_probs(stimulus)
 
         # Adaptive weight
         omega = self.get_adaptive_weight(set_size)
 
-        # Weighted combination
-        hybrid_probs = omega * wm_probs + (1 - omega) * rl_probs
+        # Two paths for backward compatibility
+        if self.kappa == 0 or self.last_action is None:
+            # Original M2 behavior: weighted average of probabilities
+            hybrid_probs = omega * wm_probs + (1 - omega) * rl_probs
+            hybrid_probs /= hybrid_probs.sum()
+            hybrid_vals = omega * wm_vals + (1 - omega) * q_vals
+        else:
+            # M3 behavior: work with values, add perseveration, then softmax
+            hybrid_vals = omega * wm_vals + (1 - omega) * q_vals
 
-        # Normalize (should already sum to 1, but ensure numerical stability)
-        hybrid_probs /= hybrid_probs.sum()  # Use .sum() for PyTensor compatibility
+            # Create repetition indicator: bonus for last_action only
+            rep_bonus = np.zeros(self.num_actions)
+            rep_bonus[self.last_action] = self.kappa
+            hybrid_vals_persev = hybrid_vals + rep_bonus
+
+            # Apply softmax with beta
+            vals_scaled = self.beta * (hybrid_vals_persev - np.max(hybrid_vals_persev))
+            exp_vals = np.exp(vals_scaled)
+            hybrid_probs = exp_vals / exp_vals.sum()
 
         return {
             'probs': hybrid_probs,
             'wm_probs': wm_probs,
             'rl_probs': rl_probs,
             'omega': omega,
+            'hybrid_vals': hybrid_vals,  # Before perseveration, for debugging
         }
 
     def choose_action(
