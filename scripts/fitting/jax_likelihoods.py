@@ -663,6 +663,181 @@ def wmrl_block_likelihood(
     return log_lik_total
 
 
+def wmrl_m3_block_likelihood(
+    stimuli: jnp.ndarray,
+    actions: jnp.ndarray,
+    rewards: jnp.ndarray,
+    set_sizes: jnp.ndarray,
+    alpha_pos: float,
+    alpha_neg: float,
+    phi: float,
+    rho: float,
+    capacity: float,
+    kappa: float,  # NEW: perseveration parameter
+    epsilon: float = DEFAULT_EPSILON,
+    num_stimuli: int = 6,
+    num_actions: int = 3,
+    q_init: float = 0.5,
+    wm_init: float = 1.0 / 3.0  # WM baseline = 1/nA (uniform)
+) -> float:
+    """
+    Compute log-likelihood for WM-RL M3 model with perseveration on a SINGLE BLOCK.
+
+    This extends the WM-RL M2 model by adding a perseveration parameter (kappa) that
+    captures outcome-insensitive action repetition (motor-level response stickiness).
+
+    Following Senta et al. (2025):
+    - Beta is fixed at 50 for both WM and RL (parameter identifiability)
+    - Epsilon noise is applied to the final hybrid policy
+    - WM baseline = 1/nA (uniform probability)
+    - Perseveration term kappa * Rep(a) added to hybrid values before softmax
+    - Rep(a) = I[a = a_{t-1}] is global (not stimulus-specific)
+    - last_action resets to -1 at block start (no previous action)
+
+    When kappa=0, this reduces exactly to wmrl_block_likelihood (M2 model).
+
+    Model combines:
+    1. Working Memory (WM): Immediate encoding with decay
+    2. Q-Learning (RL): Gradual learning with asymmetric rates
+    3. Hybrid decision: Adaptive weighting based on capacity
+    4. Perseveration: Motor-level response stickiness
+
+    Update sequence per trial:
+    1. Decay WM: WM ← (1-φ)WM + φ·WM_0
+    2. Compute hybrid values: v = ω·WM + (1-ω)·Q
+    3. Add perseveration bonus: v_persev = v + κ·Rep(a)
+    4. Compute policy: p = softmax(β * v_persev)
+    5. Apply epsilon noise: p_noisy = ε/nA + (1-ε)·p
+    6. Update WM: WM(s,a) ← r (immediate overwrite)
+    7. Update Q: Q(s,a) ← Q(s,a) + α·(r - Q(s,a))
+
+    Parameters
+    ----------
+    stimuli : array, shape (n_trials,)
+        Stimulus sequence
+    actions : array, shape (n_trials,)
+        Action sequence
+    rewards : array, shape (n_trials,)
+        Reward sequence (0 or 1)
+    set_sizes : array, shape (n_trials,)
+        Set size for each trial (for adaptive weighting)
+    alpha_pos : float
+        RL learning rate for positive PE
+    alpha_neg : float
+        RL learning rate for negative PE
+    phi : float
+        WM decay rate (0-1)
+    rho : float
+        Base WM reliance (0-1)
+    capacity : float
+        WM capacity (for adaptive weighting)
+    kappa : float
+        Perseveration parameter (0-1) - captures motor-level action stickiness
+    epsilon : float
+        Epsilon noise parameter (probability of random action)
+    num_stimuli : int
+        Number of possible stimuli
+    num_actions : int
+        Number of possible actions
+    q_init : float
+        Initial Q-values
+    wm_init : float
+        Initial WM values (baseline = 1/nA for uniform)
+
+    Returns
+    -------
+    float
+        Total log-likelihood for this block
+    """
+    # Initialize Q-table and WM matrix
+    Q_init = jnp.ones((num_stimuli, num_actions)) * q_init
+    WM_init = jnp.ones((num_stimuli, num_actions)) * wm_init
+    WM_0 = jnp.ones((num_stimuli, num_actions)) * wm_init  # Baseline for decay
+
+    # Initial carry: (Q, WM, WM_0, log_likelihood, last_action)
+    # last_action = -1 (no previous action at block start)
+    init_carry = (Q_init, WM_init, WM_0, 0.0, -1)
+
+    # Prepare inputs
+    scan_inputs = (stimuli, actions, rewards, set_sizes)
+
+    def step_fn(carry, inputs):
+        Q_table, WM_table, WM_baseline, log_lik_accum, last_action = carry
+        stimulus, action, reward, set_size = inputs
+
+        # =================================================================
+        # 1. DECAY WM: All values move toward baseline
+        # =================================================================
+        WM_decayed = (1 - phi) * WM_table + phi * WM_baseline
+
+        # =================================================================
+        # 2. COMPUTE HYBRID VALUES (before softmax)
+        # =================================================================
+        q_vals = Q_table[stimulus]
+        wm_vals = WM_decayed[stimulus]
+
+        # Adaptive weight: ω = ρ * min(1, K/N_s)
+        omega = rho * jnp.minimum(1.0, capacity / set_size)
+
+        # Weighted combination of values
+        hybrid_vals = omega * wm_vals + (1 - omega) * q_vals
+
+        # =================================================================
+        # 3. ADD PERSEVERATION BONUS (in value space, before softmax)
+        # =================================================================
+        # Compute repetition indicator for each action
+        # rep_indicators[a] = 1.0 if a == last_action, else 0.0
+        rep_indicators = jnp.where(
+            last_action >= 0,  # Valid last action exists
+            jnp.eye(num_actions)[last_action],  # One-hot for last_action
+            jnp.zeros(num_actions)  # No previous action
+        )
+
+        # Add perseveration bonus (kappa * Rep(a))
+        hybrid_vals_persev = hybrid_vals + kappa * rep_indicators
+
+        # =================================================================
+        # 4. COMPUTE POLICY (softmax with fixed beta)
+        # =================================================================
+        hybrid_probs = softmax_policy(hybrid_vals_persev, FIXED_BETA)
+
+        # Normalize (numerical stability)
+        hybrid_probs = hybrid_probs / jnp.sum(hybrid_probs)
+
+        # =================================================================
+        # 5. APPLY EPSILON NOISE: p_noisy = ε/nA + (1-ε)*p
+        # =================================================================
+        noisy_probs = apply_epsilon_noise(hybrid_probs, epsilon, num_actions)
+
+        # Log probability of observed action
+        log_prob = jnp.log(noisy_probs[action] + 1e-8)
+
+        # =================================================================
+        # 6. UPDATE WM: Immediate overwrite
+        # =================================================================
+        WM_updated = WM_decayed.at[stimulus, action].set(reward)
+
+        # =================================================================
+        # 7. UPDATE Q-TABLE: Asymmetric learning
+        # =================================================================
+        q_current = Q_table[stimulus, action]
+        delta = reward - q_current
+        alpha = jnp.where(delta > 0, alpha_pos, alpha_neg)
+        q_updated = q_current + alpha * delta
+        Q_updated = Q_table.at[stimulus, action].set(q_updated)
+
+        # Accumulate log-likelihood
+        log_lik_new = log_lik_accum + log_prob
+
+        # Return updated carry with current action as last_action for next trial
+        return (Q_updated, WM_updated, WM_baseline, log_lik_new, action), log_prob
+
+    # Run scan over trials
+    (Q_final, WM_final, _, log_lik_total, _), log_probs = lax.scan(step_fn, init_carry, scan_inputs)
+
+    return log_lik_total
+
+
 def wmrl_multiblock_likelihood(
     stimuli_blocks: list,
     actions_blocks: list,
@@ -752,6 +927,124 @@ def wmrl_multiblock_likelihood(
             phi=phi,
             rho=rho,
             capacity=capacity,
+            epsilon=epsilon,
+            num_stimuli=num_stimuli,
+            num_actions=num_actions,
+            q_init=q_init,
+            wm_init=wm_init
+        )
+        total_log_lik += block_log_lik
+
+        if verbose and block_idx == 0:
+            print(f"     [Block 1/{num_blocks}] Compiled! Log-lik: {float(block_log_lik):.2f}", flush=True)
+
+    if verbose:
+        print(f"  >> Total log-likelihood: {float(total_log_lik):.2f} ({num_blocks} blocks)\n", flush=True)
+
+    return total_log_lik
+
+
+def wmrl_m3_multiblock_likelihood(
+    stimuli_blocks: list,
+    actions_blocks: list,
+    rewards_blocks: list,
+    set_sizes_blocks: list,
+    alpha_pos: float,
+    alpha_neg: float,
+    phi: float,
+    rho: float,
+    capacity: float,
+    kappa: float,  # NEW: perseveration parameter
+    epsilon: float = DEFAULT_EPSILON,
+    num_stimuli: int = 6,
+    num_actions: int = 3,
+    q_init: float = 0.5,
+    wm_init: float = 1.0 / 3.0,  # WM baseline = 1/nA (uniform)
+    verbose: bool = False,
+    participant_id: str = None
+) -> float:
+    """
+    Compute log-likelihood for WM-RL M3 (with perseveration) across MULTIPLE BLOCKS.
+
+    Q-values, WM, and last_action reset at each block boundary.
+
+    Following Senta et al. (2025):
+    - Beta is fixed at 50 (not a parameter)
+    - Epsilon noise captures random responding
+    - Kappa captures motor-level perseveration (global action stickiness)
+
+    Each block is independent:
+    - Q-values reset to q_init
+    - WM resets to wm_init
+    - last_action resets to -1 (no previous action)
+
+    When kappa=0, results match wmrl_multiblock_likelihood exactly (M2 model).
+
+    Parameters
+    ----------
+    stimuli_blocks : list of arrays
+        Stimulus sequences per block
+    actions_blocks : list of arrays
+        Action sequences per block
+    rewards_blocks : list of arrays
+        Reward sequences per block
+    set_sizes_blocks : list of arrays
+        Set sizes per trial per block
+    alpha_pos : float
+        RL learning rate for positive PE
+    alpha_neg : float
+        RL learning rate for negative PE
+    phi : float
+        WM decay rate (0-1)
+    rho : float
+        Base WM reliance (0-1)
+    capacity : float
+        WM capacity (for adaptive weighting)
+    kappa : float
+        Perseveration parameter (0-1) - captures motor-level action stickiness
+    epsilon : float
+        Epsilon noise parameter (probability of random action)
+    num_stimuli, num_actions : int
+        State/action space dimensions
+    q_init : float
+        Initial Q-values
+    wm_init : float
+        Initial WM values (baseline = 1/nA for uniform)
+    verbose : bool
+        Print progress
+    participant_id : str
+        For verbose output
+
+    Returns
+    -------
+    float
+        Total log-likelihood summed across blocks
+    """
+    total_log_lik = 0.0
+    num_blocks = len(stimuli_blocks)
+
+    if verbose:
+        print(f"\n  >> Processing {num_blocks} blocks for participant {participant_id}...")
+
+    for block_idx, (stim_block, act_block, rew_block, set_block) in enumerate(
+        zip(stimuli_blocks, actions_blocks, rewards_blocks, set_sizes_blocks)
+    ):
+        if verbose and block_idx == 0:
+            print(f"     [Block 1/{num_blocks}] Compiling WM-RL M3 JAX likelihood (first time only)...", flush=True)
+        elif verbose and block_idx % 5 == 0:
+            print(f"     [Block {block_idx+1}/{num_blocks}] Processing...", flush=True)
+
+        block_log_lik = wmrl_m3_block_likelihood(
+            stimuli=stim_block,
+            actions=act_block,
+            rewards=rew_block,
+            set_sizes=set_block,
+            alpha_pos=alpha_pos,
+            alpha_neg=alpha_neg,
+            phi=phi,
+            rho=rho,
+            capacity=capacity,
+            kappa=kappa,
             epsilon=epsilon,
             num_stimuli=num_stimuli,
             num_actions=num_actions,
@@ -881,6 +1174,84 @@ def test_wmrl_multiblock():
     return log_lik
 
 
+def test_wmrl_m3_single_block():
+    """Test WM-RL M3 likelihood on a single block."""
+    print("\nTesting WM-RL M3 single block likelihood...")
+    print(f"  (Using fixed beta={FIXED_BETA}, with perseveration kappa)")
+
+    # Create synthetic block (30 trials)
+    key = jax.random.PRNGKey(42)
+    n_trials = 30
+
+    stimuli = jax.random.randint(key, (n_trials,), 0, 6)
+    key, subkey = jax.random.split(key)
+    actions = jax.random.randint(subkey, (n_trials,), 0, 3)
+    key, subkey = jax.random.split(key)
+    rewards = jax.random.bernoulli(subkey, 0.7, (n_trials,)).astype(jnp.float32)
+    set_sizes = jnp.ones((n_trials,)) * 5
+
+    params = {
+        'alpha_pos': 0.3,
+        'alpha_neg': 0.1,
+        'phi': 0.1,
+        'rho': 0.7,
+        'capacity': 4.0,
+        'epsilon': 0.05,
+        'kappa': 0.3  # Moderate perseveration
+    }
+
+    log_lik = wmrl_m3_block_likelihood(
+        stimuli, actions, rewards, set_sizes, **params
+    )
+
+    print(f"  WM-RL M3 single block log-likelihood: {log_lik:.2f}")
+    print(f"  Average log-prob per trial: {log_lik / n_trials:.3f}")
+
+    return log_lik
+
+
+def test_wmrl_m3_backward_compatibility():
+    """Verify M3 with kappa=0 matches M2 exactly."""
+    print("\nTesting WM-RL M3 backward compatibility (kappa=0 == M2)...")
+
+    key = jax.random.PRNGKey(123)
+    n_trials = 50
+
+    stimuli = jax.random.randint(key, (n_trials,), 0, 6)
+    key, subkey = jax.random.split(key)
+    actions = jax.random.randint(subkey, (n_trials,), 0, 3)
+    key, subkey = jax.random.split(key)
+    rewards = jax.random.bernoulli(subkey, 0.7, (n_trials,)).astype(jnp.float32)
+    set_sizes = jnp.ones((n_trials,)) * 5
+
+    params_m2 = {
+        'alpha_pos': 0.3,
+        'alpha_neg': 0.1,
+        'phi': 0.1,
+        'rho': 0.7,
+        'capacity': 4.0,
+        'epsilon': 0.05
+    }
+
+    # M2 likelihood
+    log_lik_m2 = wmrl_block_likelihood(
+        stimuli, actions, rewards, set_sizes, **params_m2
+    )
+
+    # M3 with kappa=0 (should match M2)
+    log_lik_m3 = wmrl_m3_block_likelihood(
+        stimuli, actions, rewards, set_sizes, **params_m2, kappa=0.0
+    )
+
+    match = jnp.allclose(log_lik_m2, log_lik_m3, rtol=1e-5)
+    print(f"  M2 log-likelihood: {log_lik_m2:.6f}")
+    print(f"  M3 (kappa=0) log-likelihood: {log_lik_m3:.6f}")
+    print(f"  Backward compatibility verified: {match}")
+
+    assert match, "M3 with kappa=0 should match M2 exactly!"
+    return match
+
+
 if __name__ == "__main__":
     print("=" * 80)
     print("JAX Q-LEARNING LIKELIHOOD TESTS")
@@ -895,6 +1266,13 @@ if __name__ == "__main__":
 
     test_wmrl_single_block()
     test_wmrl_multiblock()
+
+    print("\n" + "=" * 80)
+    print("JAX WM-RL M3 (PERSEVERATION) LIKELIHOOD TESTS")
+    print("=" * 80)
+
+    test_wmrl_m3_single_block()
+    test_wmrl_m3_backward_compatibility()
 
     print("\n" + "=" * 80)
     print("ALL TESTS PASSED!")
