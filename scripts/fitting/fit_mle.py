@@ -211,8 +211,8 @@ def fit_participant_mle(
         stimuli_blocks: List of stimulus arrays per block
         actions_blocks: List of action arrays per block
         rewards_blocks: List of reward arrays per block
-        set_sizes_blocks: List of set size arrays per block (WM-RL only)
-        model: 'qlearning' or 'wmrl'
+        set_sizes_blocks: List of set size arrays per block (WM-RL/M3 only)
+        model: 'qlearning', 'wmrl', or 'wmrl_m3'
         n_starts: Number of random starting points
         seed: Random seed for reproducibility
 
@@ -234,7 +234,7 @@ def fit_participant_mle(
             rewards_blocks=rewards_blocks,
         )
         n_params = 3
-    else:  # wmrl
+    elif model == 'wmrl':
         if set_sizes_blocks is None:
             raise ValueError("set_sizes_blocks required for WM-RL model")
         objective = partial(
@@ -245,6 +245,19 @@ def fit_participant_mle(
             set_sizes_blocks=set_sizes_blocks,
         )
         n_params = 6
+    elif model == 'wmrl_m3':
+        if set_sizes_blocks is None:
+            raise ValueError("set_sizes_blocks required for WM-RL M3 model")
+        objective = partial(
+            _objective_wmrl_m3,
+            stimuli_blocks=stimuli_blocks,
+            actions_blocks=actions_blocks,
+            rewards_blocks=rewards_blocks,
+            set_sizes_blocks=set_sizes_blocks,
+        )
+        n_params = 7
+    else:
+        raise ValueError(f"Unknown model: {model}")
 
     # Run optimization from multiple starting points
     results = []
@@ -267,7 +280,14 @@ def fit_participant_mle(
 
     if not results or convergence_info['best_nll'] == np.inf:
         # All optimizations failed
-        param_names = QLEARNING_PARAMS if model == 'qlearning' else WMRL_PARAMS
+        if model == 'qlearning':
+            param_names = QLEARNING_PARAMS
+        elif model == 'wmrl':
+            param_names = WMRL_PARAMS
+        elif model == 'wmrl_m3':
+            param_names = WMRL_M3_PARAMS
+        else:
+            param_names = []
         return {
             **{p: np.nan for p in param_names},
             'nll': np.nan,
@@ -341,7 +361,7 @@ def prepare_participant_data(
         actions_blocks.append(block_data['key_press'].values.astype(np.int32))
         rewards_blocks.append(block_data['reward'].values.astype(np.float32))
 
-        if model == 'wmrl' and 'set_size' in block_data.columns:
+        if model in ('wmrl', 'wmrl_m3') and 'set_size' in block_data.columns:
             set_sizes_blocks.append(block_data['set_size'].values.astype(np.int32))
 
     result = {
@@ -350,7 +370,7 @@ def prepare_participant_data(
         'rewards_blocks': rewards_blocks,
     }
 
-    if model == 'wmrl':
+    if model in ('wmrl', 'wmrl_m3'):
         result['set_sizes_blocks'] = set_sizes_blocks
 
     return result
@@ -368,7 +388,7 @@ def fit_all_participants(
 
     Args:
         data: DataFrame with columns [sona_id, block, stimulus, key_press, reward, set_size]
-        model: 'qlearning' or 'wmrl'
+        model: 'qlearning', 'wmrl', or 'wmrl_m3'
         n_starts: Number of random starting points per participant
         seed: Random seed
         verbose: Show progress bar
@@ -458,7 +478,16 @@ def fit_all_participants(
     df = pd.DataFrame(results)
 
     # Reorder columns
-    cols = ['participant_id'] + (QLEARNING_PARAMS if model == 'qlearning' else WMRL_PARAMS)
+    if model == 'qlearning':
+        param_cols = QLEARNING_PARAMS
+    elif model == 'wmrl':
+        param_cols = WMRL_PARAMS
+    elif model == 'wmrl_m3':
+        param_cols = WMRL_M3_PARAMS
+    else:
+        param_cols = []
+
+    cols = ['participant_id'] + param_cols
     cols += ['nll', 'aic', 'bic', 'aicc', 'n_trials', 'converged', 'n_successful_starts', 'at_bounds']
     df = df[[c for c in cols if c in df.columns]]
 
