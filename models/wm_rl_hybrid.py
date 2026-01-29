@@ -531,6 +531,7 @@ class WMRLHybridAgent:
         phi: Optional[float] = None,
         rho: Optional[float] = None,
         capacity: Optional[int] = None,
+        kappa: Optional[float] = None,
     ):
         """
         Set model parameters.
@@ -551,6 +552,8 @@ class WMRLHybridAgent:
             Base WM reliance
         capacity : int, optional
             WM capacity
+        kappa : float, optional
+            Perseveration parameter
         """
         if alpha_pos is not None:
             self.alpha_pos = alpha_pos
@@ -566,6 +569,8 @@ class WMRLHybridAgent:
             self.rho = rho
         if capacity is not None:
             self.capacity = capacity
+        if kappa is not None:
+            self.kappa = kappa
 
     def get_parameters(self) -> Dict[str, float]:
         """
@@ -587,6 +592,7 @@ class WMRLHybridAgent:
             'rho': self.rho,
             'q_init': self.q_init,
             'wm_init': self.wm_init,
+            'kappa': self.kappa,
         }
 
 
@@ -603,6 +609,7 @@ def create_wm_rl_agent(
     phi: float = ModelParams.PHI_DEFAULT,
     rho: float = ModelParams.RHO_DEFAULT,
     gamma: float = 0.0,
+    kappa: float = 0.0,
     seed: Optional[int] = None,
     **kwargs
 ) -> WMRLHybridAgent:
@@ -627,6 +634,8 @@ def create_wm_rl_agent(
         Base WM reliance
     gamma : float
         Discount factor (typically 0.0)
+    kappa : float
+        Perseveration parameter (0-1). Default 0 = M2 behavior.
     seed : int, optional
         Random seed
     **kwargs
@@ -646,6 +655,7 @@ def create_wm_rl_agent(
         phi=phi,
         rho=rho,
         gamma=gamma,
+        kappa=kappa,
         seed=seed,
         **kwargs
     )
