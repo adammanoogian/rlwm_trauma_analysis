@@ -129,6 +129,122 @@ def compute_akaike_weights(aic_ql: float, aic_wmrl: float) -> Tuple[float, float
     return exp_ql / total, exp_wmrl / total
 
 
+def compute_akaike_weights_n(aic_values: Dict[str, float]) -> Dict[str, float]:
+    """
+    Compute Akaike weights for N models.
+
+    Args:
+        aic_values: Dictionary mapping model names to aggregate AIC values
+
+    Returns:
+        Dictionary mapping model names to Akaike weights (sum to 1.0)
+
+    Following Burnham & Anderson (2002):
+        w_i = exp(-0.5 * delta_i) / sum(exp(-0.5 * delta_j))
+    """
+    min_aic = min(aic_values.values())
+    deltas = {model: aic - min_aic for model, aic in aic_values.items()}
+
+    exp_values = {model: np.exp(-0.5 * delta) for model, delta in deltas.items()}
+    total = sum(exp_values.values())
+
+    weights = {model: exp_val / total for model, exp_val in exp_values.items()}
+
+    return weights
+
+
+def compare_models(
+    fits_dict: Dict[str, pd.DataFrame],
+    metric: str = 'aic'
+) -> pd.DataFrame:
+    """
+    Compare N models using aggregate information criteria.
+
+    Args:
+        fits_dict: Dictionary mapping model names (e.g., 'M1', 'M2', 'M3') to fit DataFrames
+        metric: Information criterion to use ('aic' or 'bic')
+
+    Returns:
+        DataFrame with columns: model, aggregate_ic, delta_ic, relative_likelihood
+    """
+    # Compute aggregate IC for each model
+    agg_ics = {}
+    for model_name, fits_df in fits_dict.items():
+        agg_ics[model_name] = compute_aggregate_ic(fits_df, metric)
+
+    # Find best model (minimum IC)
+    min_ic = min(agg_ics.values())
+
+    # Compute deltas and relative likelihoods
+    results = []
+    for model_name, agg_ic in agg_ics.items():
+        delta = agg_ic - min_ic
+        rel_likelihood = np.exp(-0.5 * delta)
+        results.append({
+            'model': model_name,
+            f'aggregate_{metric}': agg_ic,
+            f'delta_{metric}': delta,
+            'relative_likelihood': rel_likelihood
+        })
+
+    df = pd.DataFrame(results)
+    df = df.sort_values(f'aggregate_{metric}')  # Best model first
+
+    return df
+
+
+def count_participant_wins_n(
+    fits_dict: Dict[str, pd.DataFrame],
+    metric: str = 'aic'
+) -> pd.DataFrame:
+    """
+    Count per-participant model wins for N models.
+
+    Args:
+        fits_dict: Dictionary mapping model names to fit DataFrames
+        metric: Information criterion to use ('aic' or 'bic')
+
+    Returns:
+        DataFrame with participant-level comparison and winner counts
+    """
+    # Merge all models on participant_id
+    merged = None
+    for model_name, fits_df in fits_dict.items():
+        model_df = fits_df[['participant_id', metric, 'converged']].rename(
+            columns={metric: f'{metric}_{model_name}', 'converged': f'converged_{model_name}'}
+        )
+        if merged is None:
+            merged = model_df
+        else:
+            merged = pd.merge(merged, model_df, on='participant_id', how='inner')
+
+    # Filter to participants where all models converged
+    converged_cols = [col for col in merged.columns if col.startswith('converged_')]
+    all_converged = merged[converged_cols].all(axis=1)
+    merged = merged[all_converged]
+
+    # For each participant, find winning model (lowest IC)
+    ic_cols = [col for col in merged.columns if col.startswith(f'{metric}_')]
+    merged['winner'] = merged[ic_cols].idxmin(axis=1).str.replace(f'{metric}_', '')
+
+    # Count wins per model
+    win_counts = merged['winner'].value_counts().to_dict()
+
+    # Build summary DataFrame
+    summary = []
+    for model_name in fits_dict.keys():
+        summary.append({
+            'model': model_name,
+            'wins': win_counts.get(model_name, 0),
+            'win_pct': 100 * win_counts.get(model_name, 0) / len(merged) if len(merged) > 0 else 0
+        })
+
+    summary_df = pd.DataFrame(summary)
+    summary_df['total'] = len(merged)
+
+    return summary_df
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='Compare MLE fits between Q-Learning and WM-RL models'
