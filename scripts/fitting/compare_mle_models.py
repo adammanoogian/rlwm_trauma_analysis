@@ -309,123 +309,145 @@ def main():
         print(f"  {model_name}: {len(fits_df)} participants")
 
     # Check convergence
-    ql_converged = ql_fits['converged'].sum()
-    wmrl_converged = wmrl_fits['converged'].sum()
     print(f"\nConvergence:")
-    print(f"  Q-Learning: {ql_converged}/{len(ql_fits)} ({100*ql_converged/len(ql_fits):.1f}%)")
-    print(f"  WM-RL: {wmrl_converged}/{len(wmrl_fits)} ({100*wmrl_converged/len(wmrl_fits):.1f}%)")
+    for model_name, fits_df in fits_dict.items():
+        n_converged = fits_df['converged'].sum()
+        print(f"  {model_name}: {n_converged}/{len(fits_df)} ({100*n_converged/len(fits_df):.1f}%)")
 
-    print(f"\n{'='*60}")
+    print(f"\n{'='*70}")
     print("MODEL COMPARISON")
-    print(f"{'='*60}")
+    print(f"{'='*70}")
 
-    # Aggregate AIC
-    agg_aic_ql = compute_aggregate_ic(ql_fits, 'aic')
-    agg_aic_wmrl = compute_aggregate_ic(wmrl_fits, 'aic')
-    delta_aic = agg_aic_wmrl - agg_aic_ql
-
-    # Aggregate BIC
-    agg_bic_ql = compute_aggregate_ic(ql_fits, 'bic')
-    agg_bic_wmrl = compute_aggregate_ic(wmrl_fits, 'bic')
-    delta_bic = agg_bic_wmrl - agg_bic_ql
-
+    # 1. Aggregate AIC comparison
     print(f"\n1. AGGREGATE INFORMATION CRITERIA")
-    print("-" * 50)
-    print(f"{'Metric':<15} {'Q-Learning':>15} {'WM-RL':>15} {'Delta':>12}")
-    print("-" * 50)
-    print(f"{'Sum AIC':<15} {agg_aic_ql:>15.2f} {agg_aic_wmrl:>15.2f} {delta_aic:>+12.2f}")
-    print(f"{'Sum BIC':<15} {agg_bic_ql:>15.2f} {agg_bic_wmrl:>15.2f} {delta_bic:>+12.2f}")
+    print("-" * 70)
 
-    # Interpretation
-    print(f"\nInterpretation:")
-    if delta_aic < 0:
-        print(f"  AIC favors WM-RL (delta = {delta_aic:.2f})")
-        print(f"  Evidence strength: {interpret_delta_aic(delta_aic)}")
-    else:
-        print(f"  AIC favors Q-Learning (delta = {delta_aic:.2f})")
-        print(f"  Evidence strength: {interpret_delta_aic(delta_aic)}")
+    aic_comparison = compare_models(fits_dict, metric='aic')
+    print(f"\nAIC Comparison:")
+    print(aic_comparison.to_string(index=False))
 
-    if delta_bic < 0:
-        print(f"  BIC favors WM-RL (delta = {delta_bic:.2f})")
-    else:
-        print(f"  BIC favors Q-Learning (delta = {delta_bic:.2f})")
+    # AIC interpretation
+    best_aic_model = aic_comparison.iloc[0]['model']
+    print(f"\n  Best model by AIC: {best_aic_model}")
+    for _, row in aic_comparison.iloc[1:].iterrows():
+        delta = row['delta_aic']
+        print(f"  {row['model']} vs {best_aic_model}: delta AIC = {delta:.2f} ({interpret_delta_aic(delta)})")
+
+    # Aggregate BIC comparison
+    bic_comparison = compare_models(fits_dict, metric='bic')
+    print(f"\nBIC Comparison:")
+    print(bic_comparison.to_string(index=False))
+
+    best_bic_model = bic_comparison.iloc[0]['model']
+    print(f"\n  Best model by BIC: {best_bic_model}")
 
     # Akaike weights
-    w_ql, w_wmrl = compute_akaike_weights(agg_aic_ql, agg_aic_wmrl)
+    aic_values = {row['model']: row['aggregate_aic'] for _, row in aic_comparison.iterrows()}
+    weights = compute_akaike_weights_n(aic_values)
     print(f"\nAkaike Weights:")
-    print(f"  Q-Learning: {w_ql:.4f} ({100*w_ql:.2f}%)")
-    print(f"  WM-RL:      {w_wmrl:.4f} ({100*w_wmrl:.2f}%)")
+    for model_name in sorted(weights.keys()):
+        print(f"  {model_name}: {weights[model_name]:.4f} ({100*weights[model_name]:.2f}%)")
 
-    # Per-participant comparison
+    # 2. Per-participant comparison
     print(f"\n2. PER-PARTICIPANT COMPARISON")
-    print("-" * 50)
+    print("-" * 70)
 
     for metric in ['aic', 'bic']:
-        counts = count_winning_model(ql_fits, wmrl_fits, metric)
-        print(f"\n{metric.upper()} (n={counts['total']} with both converged):")
-        print(f"  Q-Learning wins: {counts['qlearning_wins']} ({100*counts['qlearning_wins']/counts['total']:.1f}%)")
-        print(f"  WM-RL wins:      {counts['wmrl_wins']} ({100*counts['wmrl_wins']/counts['total']:.1f}%)")
-        if counts['ties'] > 0:
-            print(f"  Ties:            {counts['ties']}")
+        wins = count_participant_wins_n(fits_dict, metric)
+        print(f"\n{metric.upper()} (n={wins['total'].iloc[0]} with all models converged):")
+        for _, row in wins.iterrows():
+            print(f"  {row['model']} wins: {row['wins']} ({row['win_pct']:.1f}%)")
 
-    # Delta IC distribution
-    delta_df = compute_delta_ic(ql_fits, wmrl_fits, 'aic')
-    print(f"\nDelta AIC distribution (WMRL - QL):")
-    print(f"  Mean: {delta_df['delta_aic'].mean():.2f}")
-    print(f"  Median: {delta_df['delta_aic'].median():.2f}")
-    print(f"  SD: {delta_df['delta_aic'].std():.2f}")
-    print(f"  Range: [{delta_df['delta_aic'].min():.2f}, {delta_df['delta_aic'].max():.2f}]")
-
-    # Parameter comparison
+    # 3. Model-specific parameter summaries
     print(f"\n3. PARAMETER ESTIMATES (CONVERGED FITS)")
-    print("-" * 50)
+    print("-" * 70)
 
-    print(f"\n{'Parameter':<12} {'Q-Learning':>20} {'WM-RL':>20}")
-    print("-" * 55)
+    # Shared parameters across all models
+    shared_params = ['alpha_pos', 'alpha_neg', 'epsilon']
+    print(f"\nShared parameters:")
+    for param in shared_params:
+        param_line = f"  {param:<12} "
+        for model_name, fits_df in fits_dict.items():
+            converged = fits_df[fits_df['converged'] == True]
+            if param in converged.columns:
+                mean = converged[param].mean()
+                se = converged[param].std() / np.sqrt(len(converged))
+                param_line += f"{model_name}: {mean:.3f}±{se:.3f}  "
+        print(param_line)
 
-    # Shared parameters
-    for param in ['alpha_pos', 'alpha_neg', 'epsilon']:
-        ql_vals = ql_fits[ql_fits['converged'] == True][param]
-        wmrl_vals = wmrl_fits[wmrl_fits['converged'] == True][param]
-        print(f"{param:<12} {ql_vals.mean():>8.3f} +/- {ql_vals.std()/np.sqrt(len(ql_vals)):>5.3f}"
-              f"{wmrl_vals.mean():>10.3f} +/- {wmrl_vals.std()/np.sqrt(len(wmrl_vals)):>5.3f}")
+    # Model-specific parameters
+    if 'M2' in fits_dict or 'M3' in fits_dict:
+        print(f"\nWM-RL parameters:")
+        wmrl_params = ['phi', 'rho', 'capacity']
+        for param in wmrl_params:
+            param_line = f"  {param:<12} "
+            for model_name in ['M2', 'M3']:
+                if model_name in fits_dict:
+                    fits_df = fits_dict[model_name]
+                    converged = fits_df[fits_df['converged'] == True]
+                    if param in converged.columns:
+                        mean = converged[param].mean()
+                        se = converged[param].std() / np.sqrt(len(converged))
+                        param_line += f"{model_name}: {mean:.3f}±{se:.3f}  "
+            print(param_line)
 
-    # WM-RL specific
-    print(f"\nWM-RL specific parameters:")
-    for param in ['phi', 'rho', 'capacity']:
-        wmrl_vals = wmrl_fits[wmrl_fits['converged'] == True][param]
-        print(f"  {param:<12} {wmrl_vals.mean():.3f} +/- {wmrl_vals.std()/np.sqrt(len(wmrl_vals)):.3f}")
+    # M3-specific: kappa perseveration parameter
+    if 'M3' in fits_dict:
+        print(f"\nM3 perseveration parameter:")
+        m3_fits = fits_dict['M3']
+        m3_converged = m3_fits[m3_fits['converged'] == True]
+        if 'kappa' in m3_converged.columns:
+            kappa_mean = m3_converged['kappa'].mean()
+            kappa_se = m3_converged['kappa'].std() / np.sqrt(len(m3_converged))
+            kappa_median = m3_converged['kappa'].median()
+            print(f"  kappa:       Mean = {kappa_mean:.3f}±{kappa_se:.3f}, Median = {kappa_median:.3f}")
+            print(f"               Range = [{m3_converged['kappa'].min():.3f}, {m3_converged['kappa'].max():.3f}]")
 
     # Save results if output specified
     if args.output:
         output_path = Path(args.output)
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
-        results = {
-            'metric': ['sum_aic', 'sum_bic', 'delta_aic', 'delta_bic',
-                       'weight_ql', 'weight_wmrl',
-                       'n_ql_wins_aic', 'n_wmrl_wins_aic',
-                       'n_ql_wins_bic', 'n_wmrl_wins_bic'],
-            'qlearning': [agg_aic_ql, agg_bic_ql, None, None,
-                          w_ql, None,
-                          count_winning_model(ql_fits, wmrl_fits, 'aic')['qlearning_wins'], None,
-                          count_winning_model(ql_fits, wmrl_fits, 'bic')['qlearning_wins'], None],
-            'wmrl': [agg_aic_wmrl, agg_bic_wmrl, delta_aic, delta_bic,
-                     None, w_wmrl,
-                     None, count_winning_model(ql_fits, wmrl_fits, 'aic')['wmrl_wins'],
-                     None, count_winning_model(ql_fits, wmrl_fits, 'bic')['wmrl_wins']]
-        }
-        pd.DataFrame(results).to_csv(output_path, index=False)
+        # Combine AIC and BIC comparisons
+        comparison_results = pd.merge(
+            aic_comparison.rename(columns=lambda x: x.replace('aic', 'metric') if 'aic' in x else x),
+            bic_comparison[['model', 'aggregate_bic', 'delta_bic']],
+            on='model'
+        )
+
+        # Add Akaike weights
+        comparison_results['akaike_weight'] = comparison_results['model'].map(weights)
+
+        # Add per-participant wins
+        aic_wins = count_participant_wins_n(fits_dict, 'aic')
+        bic_wins = count_participant_wins_n(fits_dict, 'bic')
+
+        comparison_results = pd.merge(
+            comparison_results,
+            aic_wins[['model', 'wins']].rename(columns={'wins': 'aic_wins'}),
+            on='model'
+        )
+        comparison_results = pd.merge(
+            comparison_results,
+            bic_wins[['model', 'wins']].rename(columns={'wins': 'bic_wins'}),
+            on='model'
+        )
+
+        comparison_results.to_csv(output_path, index=False)
         print(f"\nResults saved to: {output_path}")
 
-    print(f"\n{'='*60}")
+    # Summary
+    print(f"\n{'='*70}")
     print("SUMMARY")
-    print(f"{'='*60}")
-    winner_aic = 'WM-RL' if delta_aic < 0 else 'Q-Learning'
-    winner_bic = 'WM-RL' if delta_bic < 0 else 'Q-Learning'
-    print(f"Preferred model (AIC): {winner_aic}")
-    print(f"Preferred model (BIC): {winner_bic}")
-    print(f"{'='*60}\n")
+    print(f"{'='*70}")
+    print(f"Preferred model (AIC): {best_aic_model}")
+    print(f"Preferred model (BIC): {best_bic_model}")
+    if best_aic_model == best_bic_model:
+        print(f"\nBoth criteria agree: {best_aic_model} is preferred")
+    else:
+        print(f"\nCriteria disagree - AIC favors {best_aic_model}, BIC favors {best_bic_model}")
+        print(f"(BIC applies stronger penalty for model complexity)")
+    print(f"{'='*70}\n")
 
 
 if __name__ == '__main__':
