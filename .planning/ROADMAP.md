@@ -19,7 +19,7 @@ This roadmap extends the existing WM-RL model (M2) with a perseveration paramete
 
 - [x] **Phase 1: Core Implementation** - Likelihood function and agent extension with κ parameter
 - [x] **Phase 2: MLE Infrastructure** - Parameter bounds, transformations, fitting integration
-- [ ] **Phase 3: Validation & Comparison** - Tests and model comparison (M2 vs M3)
+- [x] **Phase 3: Validation & Comparison** - Tests and model comparison (M2 vs M3)
 
 ## Phase Details
 
@@ -70,8 +70,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 03-01-PLAN.md - Backward compatibility pytest tests for M3 (kappa=0 matches M2)
-- [ ] 03-02-PLAN.md - Extend compare_mle_models.py for 3-way comparison (M1/M2/M3)
+- [x] 03-01-PLAN.md - Backward compatibility pytest tests for M3 (kappa=0 matches M2)
+- [x] 03-02-PLAN.md - Extend compare_mle_models.py for 3-way comparison (M1/M2/M3)
 
 ## Progress
 
@@ -82,4 +82,4 @@ Phases execute in numeric order: 1 → 2 → 3
 |-------|----------------|--------|-----------|
 | 1. Core Implementation | 2/2 | Complete | 2026-01-29 |
 | 2. MLE Infrastructure | 2/2 | Complete | 2026-01-29 |
-| 3. Validation & Comparison | 0/2 | Planned | - |
+| 3. Validation & Comparison | 2/2 | Complete | 2026-01-30 |

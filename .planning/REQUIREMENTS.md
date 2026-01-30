@@ -26,21 +26,21 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Parameter Infrastructure
 
-- [ ] **PAR-01**: κ parameter bounded to [0, 1] in mle_utils.py
-- [ ] **PAR-02**: WMRL_M3_PARAMS list and WMRL_M3_BOUNDS dict defined
-- [ ] **PAR-03**: Parameter transformation functions support 'wmrl_m3' model type
+- [x] **PAR-01**: κ parameter bounded to [0, 1] in mle_utils.py ✓
+- [x] **PAR-02**: WMRL_M3_PARAMS list and WMRL_M3_BOUNDS dict defined ✓
+- [x] **PAR-03**: Parameter transformation functions support 'wmrl_m3' model type ✓
 
 ### MLE Fitting Infrastructure
 
-- [ ] **FIT-01**: `_objective_wmrl_m3()` objective function in fit_mle.py
-- [ ] **FIT-02**: fit_mle.py CLI accepts `--model wmrl_m3` option
-- [ ] **FIT-03**: Fitting infrastructure uses same 20 random starts methodology as M1/M2
+- [x] **FIT-01**: `_objective_wmrl_m3()` objective function in fit_mle.py ✓
+- [x] **FIT-02**: fit_mle.py CLI accepts `--model wmrl_m3` option ✓
+- [x] **FIT-03**: Fitting infrastructure uses same 20 random starts methodology as M1/M2 ✓
 
 ### Validation & Comparison
 
-- [ ] **VAL-01**: κ=0 produces identical results to M2 (backward compatibility)
-- [ ] **CMP-01**: AIC/BIC computed for M3 fits (7 parameters)
-- [ ] **CMP-02**: Comparison utilities support M2 vs M3 comparison
+- [x] **VAL-01**: κ=0 produces identical results to M2 (backward compatibility) ✓
+- [x] **CMP-01**: AIC/BIC computed for M3 fits (7 parameters) ✓
+- [x] **CMP-02**: Comparison utilities support M2 vs M3 comparison ✓
 
 ## v2 Requirements
 
@@ -81,15 +81,15 @@ Which phases cover which requirements. Updated during roadmap creation.
 | LIK-04 | Phase 1 | Complete ✓ |
 | LIK-05 | Phase 1 | Complete ✓ |
 | AGT-01 | Phase 1 | Complete ✓ |
-| PAR-01 | Phase 2 | Pending |
-| PAR-02 | Phase 2 | Pending |
-| PAR-03 | Phase 2 | Pending |
-| FIT-01 | Phase 2 | Pending |
-| FIT-02 | Phase 2 | Pending |
-| FIT-03 | Phase 2 | Pending |
-| VAL-01 | Phase 3 | Pending |
-| CMP-01 | Phase 3 | Pending |
-| CMP-02 | Phase 3 | Pending |
+| PAR-01 | Phase 2 | Complete ✓ |
+| PAR-02 | Phase 2 | Complete ✓ |
+| PAR-03 | Phase 2 | Complete ✓ |
+| FIT-01 | Phase 2 | Complete ✓ |
+| FIT-02 | Phase 2 | Complete ✓ |
+| FIT-03 | Phase 2 | Complete ✓ |
+| VAL-01 | Phase 3 | Complete ✓ |
+| CMP-01 | Phase 3 | Complete ✓ |
+| CMP-02 | Phase 3 | Complete ✓ |
 
 **Coverage:**
 - v1 requirements: 15 total
@@ -98,4 +98,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-28*
-*Last updated: 2026-01-29 — Phase 1 complete*
+*Last updated: 2026-01-30 — All phases complete, milestone finished*
