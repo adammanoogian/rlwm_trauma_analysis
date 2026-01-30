@@ -1,13 +1,25 @@
 """
 Model Comparison for MLE Fits
 
-Compare Q-Learning and WM-RL models using AIC and BIC.
-Following Senta et al. (2025) methodology.
+Compare Q-Learning, WM-RL, and WM-RL+kappa models using AIC and BIC.
+Following Senta et al. (2025) and Burnham & Anderson (2002) methodology.
 
 Usage:
+    # Legacy 2-way comparison (backward compatible)
     python scripts/fitting/compare_mle_models.py \
         --qlearning output/mle/qlearning_individual_fits.csv \
         --wmrl output/mle/wmrl_individual_fits.csv
+
+    # 3-way comparison (M1 vs M2 vs M3)
+    python scripts/fitting/compare_mle_models.py \
+        --m1 output/mle/qlearning_individual_fits.csv \
+        --m2 output/mle/wmrl_individual_fits.csv \
+        --m3 output/mle/wmrl_m3_individual_fits.csv
+
+    # Focused 2-way comparison (M2 vs M3 for kappa analysis)
+    python scripts/fitting/compare_mle_models.py \
+        --m2 output/mle/wmrl_individual_fits.csv \
+        --m3 output/mle/wmrl_m3_individual_fits.csv
 """
 
 import argparse
@@ -247,24 +259,54 @@ def count_participant_wins_n(
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Compare MLE fits between Q-Learning and WM-RL models'
+        description='Compare MLE fits between Q-Learning, WM-RL, and WM-RL+kappa models'
     )
-    parser.add_argument('--qlearning', type=str, required=True,
-                        help='Path to Q-Learning individual fits CSV')
-    parser.add_argument('--wmrl', type=str, required=True,
-                        help='Path to WM-RL individual fits CSV')
+
+    # New-style arguments (explicit model naming)
+    parser.add_argument('--m1', type=str, default=None,
+                        help='Path to M1 (Q-Learning) individual fits CSV')
+    parser.add_argument('--m2', type=str, default=None,
+                        help='Path to M2 (WM-RL) individual fits CSV')
+    parser.add_argument('--m3', type=str, default=None,
+                        help='Path to M3 (WM-RL+kappa) individual fits CSV')
+
+    # Legacy arguments (backward compatible)
+    parser.add_argument('--qlearning', type=str, default=None,
+                        help='Path to Q-Learning individual fits CSV (legacy, same as --m1)')
+    parser.add_argument('--wmrl', type=str, default=None,
+                        help='Path to WM-RL individual fits CSV (legacy, same as --m2)')
+
     parser.add_argument('--output', type=str, default=None,
                         help='Output path for comparison results (optional)')
 
     args = parser.parse_args()
 
+    # Build fits_dict from provided paths
+    fits_dict = {}
+
+    # Handle legacy arguments (map to new-style)
+    if args.qlearning:
+        args.m1 = args.qlearning
+    if args.wmrl:
+        args.m2 = args.wmrl
+
+    # Load models
+    if args.m1:
+        fits_dict['M1'] = load_fits(args.m1)
+    if args.m2:
+        fits_dict['M2'] = load_fits(args.m2)
+    if args.m3:
+        fits_dict['M3'] = load_fits(args.m3)
+
+    # Require at least 2 models
+    if len(fits_dict) < 2:
+        parser.error("At least 2 models required for comparison. "
+                     "Provide --m1/--m2/--m3 or --qlearning/--wmrl")
+
     # Load fits
     print("Loading fits...")
-    ql_fits = load_fits(args.qlearning)
-    wmrl_fits = load_fits(args.wmrl)
-
-    print(f"  Q-Learning: {len(ql_fits)} participants")
-    print(f"  WM-RL: {len(wmrl_fits)} participants")
+    for model_name, fits_df in fits_dict.items():
+        print(f"  {model_name}: {len(fits_df)} participants")
 
     # Check convergence
     ql_converged = ql_fits['converged'].sum()
