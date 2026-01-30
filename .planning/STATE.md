@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 ## Current Position
 
 Phase: 3 of 3 (Validation & Comparison)
-Plan: 1 of TBD in current phase
+Plan: 2 of TBD in current phase
 Status: In progress
-Last activity: 2026-01-30 — Completed 03-02-PLAN.md
+Last activity: 2026-01-30 — Completed 03-01-PLAN.md
 
-Progress: [███████░░░] 75%
+Progress: [████████░░] 83%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5
-- Average duration: 22 min
-- Total execution time: 1.8 hours
+- Total plans completed: 6
+- Average duration: 24 min
+- Total execution time: 2.4 hours
 
 **By Phase:**
 
@@ -29,11 +29,11 @@ Progress: [███████░░░] 75%
 |-------|-------|-------|----------|
 | 1 | 2 | 59 min | 30 min |
 | 2 | 2 | 35 min | 18 min |
-| 3 | 1 | 17 min | 17 min |
+| 3 | 2 | 52 min | 26 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-02 (36 min), 02-01 (15 min), 02-02 (20 min), 03-02 (17 min)
-- Trend: Maintaining strong velocity in Phase 3
+- Last 5 plans: 02-01 (15 min), 02-02 (20 min), 03-01 (35 min), 03-02 (17 min)
+- Trend: 03-01 took longer due to critical bug discovery and fix
 
 *Updated after each plan completion*
 
@@ -62,6 +62,8 @@ Recent decisions affecting current work:
 - Extended if/else to if/elif/else pattern — 02-02: Proper handling of three models with explicit error for unknown models
 - n_params=7 for wmrl_m3 model — 02-02: Reflects addition of kappa parameter
 - CLI help text shows M1/M2/M3 naming — 02-02: Consistency with project convention
+- M3 likelihood branches on kappa=0 for backward compatibility — 03-01: Use M2 probability mixing when kappa=0, M3 value mixing+perseveration when kappa>0
+- Tests use strict rtol=1e-5 for numerical equivalence — 03-01: Not just similarity, but true backward compatibility
 - Dict-based model naming for comparison — 03-02: Enables flexible N-model comparison without hardcoding
 - Keep legacy CLI args in compare_mle_models.py — 03-02: Backward compatibility, don't break existing workflows
 
@@ -101,6 +103,24 @@ Technical decisions:
 
 ### Phase 3 Progress
 
+**Plan 03-01 Complete (2026-01-30)**
+
+Key implementations:
+- `validation/test_m3_backward_compat.py` - 24 comprehensive backward compatibility tests
+- Bug fix in `wmrl_m3_block_likelihood()` - branching logic for M2 compatibility when kappa=0
+
+Technical decisions:
+- M3 must branch on kappa=0: Use M2 probability mixing (backward compat), not M3 value mixing
+- Agent class already had this branching, but JAX likelihood didn't - bug fixed
+- Tests validated M3(kappa=0) matches M2 to rtol=1e-5 across multiple seeds, parameters, block counts
+
+Critical bug discovered and fixed:
+- M3 was always using value mixing: v = ω·WM + (1-ω)·Q, then softmax
+- M2 uses probability mixing: p = ω·softmax(WM) + (1-ω)·softmax(Q)
+- These are fundamentally different - M3(kappa=0) was NOT matching M2
+- Fix: Added branching to match agent class implementation
+- All 24 tests now pass with strict tolerance
+
 **Plan 03-02 Complete (2026-01-30)**
 
 Key implementations:
@@ -127,5 +147,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-30 (Phase 3 execution)
-Stopped at: Completed 03-02-PLAN.md
+Stopped at: Completed 03-01-PLAN.md with critical bug fix
 Resume file: None
