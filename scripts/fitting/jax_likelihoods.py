@@ -704,12 +704,14 @@ def wmrl_m3_block_likelihood(
 
     Update sequence per trial:
     1. Decay WM: WM ← (1-φ)WM + φ·WM_0
-    2. Compute hybrid values: v = ω·WM + (1-ω)·Q
-    3. Add perseveration bonus: v_persev = v + κ·Rep(a)
-    4. Compute policy: p = softmax(β * v_persev)
-    5. Apply epsilon noise: p_noisy = ε/nA + (1-ε)·p
-    6. Update WM: WM(s,a) ← r (immediate overwrite)
-    7. Update Q: Q(s,a) ← Q(s,a) + α·(r - Q(s,a))
+    2. Compute hybrid policy:
+       - If κ=0 OR no last_action: M2 path (probability mixing for backward compat)
+         p = ω·softmax(WM) + (1-ω)·softmax(Q)
+       - If κ>0 AND last_action exists: M3 path (value mixing + perseveration)
+         v = ω·WM + (1-ω)·Q + κ·Rep(a), then p = softmax(β·v)
+    3. Apply epsilon noise: p_noisy = ε/nA + (1-ε)·p
+    4. Update WM: WM(s,a) ← r (immediate overwrite)
+    5. Update Q: Q(s,a) ← Q(s,a) + α·(r - Q(s,a))
 
     Parameters
     ----------
@@ -771,38 +773,36 @@ def wmrl_m3_block_likelihood(
         WM_decayed = (1 - phi) * WM_table + phi * WM_baseline
 
         # =================================================================
-        # 2. COMPUTE HYBRID VALUES (before softmax)
+        # 2. COMPUTE HYBRID POLICY
         # =================================================================
+        # Two branches for backward compatibility:
+        # - kappa=0 OR no last_action: Use M2 probability mixing (exact backward compat)
+        # - kappa>0 AND last_action exists: Use M3 value mixing with perseveration
+
         q_vals = Q_table[stimulus]
         wm_vals = WM_decayed[stimulus]
 
         # Adaptive weight: ω = ρ * min(1, K/N_s)
         omega = rho * jnp.minimum(1.0, capacity / set_size)
 
-        # Weighted combination of values
-        hybrid_vals = omega * wm_vals + (1 - omega) * q_vals
+        # Branch: M2 (probability mixing) vs M3 (value mixing + perseveration)
+        use_m2_path = jnp.logical_or(kappa == 0.0, last_action < 0)
 
-        # =================================================================
-        # 3. ADD PERSEVERATION BONUS (in value space, before softmax)
-        # =================================================================
-        # Compute repetition indicator for each action
-        # rep_indicators[a] = 1.0 if a == last_action, else 0.0
-        rep_indicators = jnp.where(
-            last_action >= 0,  # Valid last action exists
-            jnp.eye(num_actions)[last_action],  # One-hot for last_action
-            jnp.zeros(num_actions)  # No previous action
-        )
+        # M2 path: Probability mixing (backward compatible)
+        rl_probs_m2 = softmax_policy(q_vals, FIXED_BETA)
+        wm_probs_m2 = softmax_policy(wm_vals, FIXED_BETA)
+        hybrid_probs_m2 = omega * wm_probs_m2 + (1 - omega) * rl_probs_m2
+        hybrid_probs_m2 = hybrid_probs_m2 / jnp.sum(hybrid_probs_m2)  # Normalize
 
-        # Add perseveration bonus (kappa * Rep(a))
-        hybrid_vals_persev = hybrid_vals + kappa * rep_indicators
+        # M3 path: Value mixing + perseveration
+        hybrid_vals_m3 = omega * wm_vals + (1 - omega) * q_vals
+        rep_indicators = jnp.eye(num_actions)[last_action]  # One-hot for last_action
+        hybrid_vals_persev_m3 = hybrid_vals_m3 + kappa * rep_indicators
+        hybrid_probs_m3 = softmax_policy(hybrid_vals_persev_m3, FIXED_BETA)
+        hybrid_probs_m3 = hybrid_probs_m3 / jnp.sum(hybrid_probs_m3)  # Normalize
 
-        # =================================================================
-        # 4. COMPUTE POLICY (softmax with fixed beta)
-        # =================================================================
-        hybrid_probs = softmax_policy(hybrid_vals_persev, FIXED_BETA)
-
-        # Normalize (numerical stability)
-        hybrid_probs = hybrid_probs / jnp.sum(hybrid_probs)
+        # Select correct path
+        hybrid_probs = jnp.where(use_m2_path, hybrid_probs_m2, hybrid_probs_m3)
 
         # =================================================================
         # 5. APPLY EPSILON NOISE: p_noisy = ε/nA + (1-ε)*p
