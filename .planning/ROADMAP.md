@@ -67,8 +67,11 @@ Plans:
   3. Test script validates likelihood computation matches expected behavior
   4. κ=0 produces identical results to M2 (backward compatibility)
 
+**Plans:** 2 plans
+
 Plans:
-- [ ] 03-01: TBD
+- [ ] 03-01-PLAN.md - Backward compatibility pytest tests for M3 (kappa=0 matches M2)
+- [ ] 03-02-PLAN.md - Extend compare_mle_models.py for 3-way comparison (M1/M2/M3)
 
 ## Progress
 
@@ -79,4 +82,4 @@ Phases execute in numeric order: 1 → 2 → 3
 |-------|----------------|--------|-----------|
 | 1. Core Implementation | 2/2 | Complete | 2026-01-29 |
 | 2. MLE Infrastructure | 2/2 | Complete | 2026-01-29 |
-| 3. Validation & Comparison | 0/TBD | Ready | - |
+| 3. Validation & Comparison | 0/2 | Planned | - |
