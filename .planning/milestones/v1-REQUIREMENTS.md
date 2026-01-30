@@ -1,3 +1,13 @@
+# Requirements Archive: v1 WM-RL M3 (Perseveration Extension)
+
+**Archived:** 2026-01-30
+**Status:** SHIPPED
+
+This is the archived requirements specification for v1.
+For current requirements, see `.planning/REQUIREMENTS.md` (created for next milestone).
+
+---
+
 # Requirements: WM-RL M3 (Perseveration Extension)
 
 **Defined:** 2026-01-28
@@ -97,5 +107,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 - Unmapped: 0 ✓
 
 ---
-*Requirements defined: 2026-01-28*
-*Last updated: 2026-01-30 — All phases complete, milestone finished*
+
+## Milestone Summary
+
+**Shipped:** 15 of 15 v1 requirements
+**Adjusted:** None - all requirements implemented as originally specified
+**Dropped:** None
+
+---
+*Archived: 2026-01-30 as part of v1 milestone completion*
