@@ -26,7 +26,7 @@
 #SBATCH --job-name=rlwm_mle_parallel
 #SBATCH --output=cluster/logs/mle_parallel_%j.out
 #SBATCH --error=cluster/logs/mle_parallel_%j.err
-#SBATCH --time=00:30:00
+#SBATCH --time=04:00:00
 #SBATCH --mem=80G
 #SBATCH --cpus-per-task=16
 #SBATCH --partition=comp
