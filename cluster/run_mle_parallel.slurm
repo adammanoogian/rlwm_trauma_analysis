@@ -6,14 +6,14 @@
 # Uses joblib for parallel participant fitting.
 #
 # Usage:
-#   sbatch cluster/run_mle_parallel.slurm                    # All models, 16 cores
+#   sbatch cluster/run_mle_parallel.slurm                    # All models, 8 workers
 #   sbatch --export=MODEL=wmrl_m3 cluster/run_mle_parallel.slurm  # Single model
-#   sbatch --export=NJOBS=8 cluster/run_mle_parallel.slurm   # Custom core count
+#   sbatch --export=NJOBS=4 cluster/run_mle_parallel.slurm   # Custom worker count
 #
 # Performance (approximate for 47 participants):
 #   - Sequential (1 core):  ~30 minutes per model
-#   - 4 cores:              ~8 minutes per model
-#   - 16 cores:             ~3 minutes per model
+#   - 4 workers:            ~8 minutes per model
+#   - 8 workers:            ~4 minutes per model (default, memory-safe)
 #
 # Outputs saved to:
 #   - output/mle/{model}_individual_fits.csv
@@ -27,15 +27,17 @@
 #SBATCH --output=cluster/logs/mle_parallel_%j.out
 #SBATCH --error=cluster/logs/mle_parallel_%j.err
 #SBATCH --time=04:00:00
-#SBATCH --mem=80G
-#SBATCH --cpus-per-task=16
+#SBATCH --mem=120G
+#SBATCH --cpus-per-task=8
 #SBATCH --partition=comp
 
 # =============================================================================
 # Configuration (set via --export or use defaults)
 # =============================================================================
+# Note: 8 workers is more memory-safe with JAX+joblib. Each JAX worker uses
+# ~5-8GB for JIT compilation. With 8 workers, peak usage is ~60-80GB.
 MODELS="${MODEL:-qlearning wmrl wmrl_m3}"
-NJOBS="${NJOBS:-16}"
+NJOBS="${NJOBS:-8}"
 
 # =============================================================================
 # Environment Setup (M3 specific)
