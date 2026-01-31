@@ -20,8 +20,12 @@ echo "============================================================"
 echo ""
 
 for model in qlearning wmrl wmrl_m3; do
-    jobid=$(sbatch --export=MODEL=$model --parsable cluster/run_mle_parallel.slurm)
-    echo "  $model: Job $jobid submitted"
+    jobid=$(sbatch --export=ALL,MODEL="$model" --parsable cluster/run_mle_parallel.slurm 2>&1)
+    if [[ $? -eq 0 && -n "$jobid" ]]; then
+        echo "  $model: Job $jobid submitted"
+    else
+        echo "  $model: FAILED - $jobid"
+    fi
 done
 
 echo ""
