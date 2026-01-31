@@ -27,7 +27,7 @@
 #SBATCH --output=cluster/logs/mle_parallel_%j.out
 #SBATCH --error=cluster/logs/mle_parallel_%j.err
 #SBATCH --time=00:30:00
-#SBATCH --mem=32G
+#SBATCH --mem=80G
 #SBATCH --cpus-per-task=16
 #SBATCH --partition=comp
 
@@ -66,6 +66,14 @@ conda activate rlwm
 
 # Create logs directory if needed
 mkdir -p cluster/logs
+
+# =============================================================================
+# JAX Compilation Cache (prevents redundant JIT compilation across workers)
+# =============================================================================
+export JAX_COMPILATION_CACHE_DIR="/scratch/fc37/aman0087/.jax_cache"
+export JAX_PERSISTENT_CACHE_MIN_ENTRY_SIZE_BYTES=0
+mkdir -p "$JAX_COMPILATION_CACHE_DIR"
+echo "JAX cache: $JAX_COMPILATION_CACHE_DIR"
 
 # =============================================================================
 # Run MLE Fitting (Parallel)

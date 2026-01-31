@@ -1,3 +1,4 @@
-# Ignore log files but keep directory
+# Keep directory structure
 !.gitkeep
 !.gitignore
+# Now tracking logs for debugging (removed *.out and *.err exclusions)
