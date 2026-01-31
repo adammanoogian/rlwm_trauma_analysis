@@ -1,0 +1,5 @@
+# Ignore log files but keep directory
+*.out
+*.err
+!.gitkeep
+!.gitignore
