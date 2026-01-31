@@ -6,8 +6,10 @@ pandas>=2.0.0
 numpy>=2.0.0
 
 # JAX ecosystem (for model fitting)
-jax>=0.4.0
-jaxlib>=0.4.0
+# IMPORTANT: Pin to 0.9.0 for memory optimization fixes
+# Older versions (e.g., 0.6.2 from conda-forge) cause OOM during compilation
+jax==0.9.0
+jaxlib==0.9.0
 jaxopt>=0.8.0
 
 # Optional: For enhanced analysis (already included in ds_env)

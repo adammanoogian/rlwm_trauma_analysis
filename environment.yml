@@ -20,10 +20,6 @@ dependencies:
   - pandas>=2.0.0
   - numpy>=2.0.0
 
-  # JAX ecosystem (CPU version - cluster compatible)
-  - jax>=0.4.0
-  - jaxlib>=0.4.0
-
   # Progress bars and utilities
   - tqdm
   - psutil
@@ -36,7 +32,12 @@ dependencies:
   - scikit-learn>=1.0.0
   - statsmodels>=0.14.0
 
-  # pip dependencies (not available via conda)
+  # pip dependencies
   - pip
   - pip:
+    # JAX ecosystem (from PyPI for latest versions with memory optimizations)
+    # NOTE: conda-forge JAX lags behind PyPI - v0.6.2 vs v0.9.0
+    # JAX 0.9.0 has critical XLA compiler improvements that reduce memory usage
+    - jax==0.9.0
+    - jaxlib==0.9.0
     - jaxopt>=0.8.0

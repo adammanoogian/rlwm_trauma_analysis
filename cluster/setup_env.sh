@@ -129,6 +129,21 @@ echo "============================================================"
 echo ""
 echo "Location: $CONDA_HOME/envs/rlwm"
 echo ""
+
+# Verify JAX version (critical for memory usage)
+echo "Verifying JAX installation..."
+JAX_VERSION=$(conda run -n rlwm python -c "import jax; print(jax.__version__)" 2>/dev/null)
+echo "  JAX version: $JAX_VERSION"
+
+if [[ "$JAX_VERSION" == "0.9.0" ]]; then
+    echo "  ✓ Correct version installed (0.9.0 from PyPI)"
+else
+    echo "  ⚠ WARNING: Expected JAX 0.9.0, got $JAX_VERSION"
+    echo "    This may cause OOM errors during fitting."
+    echo "    Try: conda activate rlwm && pip install --upgrade jax==0.9.0 jaxlib==0.9.0"
+fi
+
+echo ""
 echo "To activate the environment:"
 echo "  conda activate rlwm"
 echo ""
