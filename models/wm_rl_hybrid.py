@@ -279,11 +279,14 @@ class WMRLHybridAgent:
         """
         Compute hybrid action probabilities combining WM and RL.
 
-        p(a|s) = softmax(V_hybrid(s,a) + kappa * Rep(a))
+        Following Senta et al. (2025), this uses PROBABILITY MIXING:
+        - M2: P_base = omega * P_WM + (1-omega) * P_RL
+        - M3: P = (1-kappa) * P_base + kappa * Ck
 
         Where:
-        - V_hybrid = omega * WM(s,a) + (1-omega) * Q(s,a)
-        - Rep(a) = 1 if a == last_action, else 0
+        - P_WM = softmax(beta * WM(s,:))
+        - P_RL = softmax(beta * Q(s,:))
+        - Ck = one-hot(last_action) is the choice kernel
         - omega = rho * min(1, K/N_s)
 
         When kappa=0, this reduces to standard M2 behavior.
@@ -303,7 +306,7 @@ class WMRLHybridAgent:
             - 'wm_probs': WM-only probabilities
             - 'rl_probs': RL-only probabilities
             - 'omega': adaptive weight used
-            - 'hybrid_vals': hybrid values before perseveration (for debugging)
+            - 'hybrid_vals': hybrid values (for debugging)
         """
         # Get component values
         q_vals = self.Q[stimulus, :]
@@ -316,25 +319,24 @@ class WMRLHybridAgent:
         # Adaptive weight
         omega = self.get_adaptive_weight(set_size)
 
+        # Both paths start with M2 probability mixing
+        base_probs = omega * wm_probs + (1 - omega) * rl_probs
+        base_probs /= base_probs.sum()
+        hybrid_vals = omega * wm_vals + (1 - omega) * q_vals
+
         # Two paths for backward compatibility
         if self.kappa == 0 or self.last_action is None:
-            # Original M2 behavior: weighted average of probabilities
-            hybrid_probs = omega * wm_probs + (1 - omega) * rl_probs
-            hybrid_probs /= hybrid_probs.sum()
-            hybrid_vals = omega * wm_vals + (1 - omega) * q_vals
+            # M2 behavior: probability mixing (no perseveration)
+            hybrid_probs = base_probs
         else:
-            # M3 behavior: work with values, add perseveration, then softmax
-            hybrid_vals = omega * wm_vals + (1 - omega) * q_vals
+            # M3 behavior: probability mixing with choice kernel
+            # Following Senta et al.: P_M3 = (1-κ)*P_base + κ*Ck
+            # where Ck = one-hot(last_action)
+            choice_kernel = np.zeros(self.num_actions)
+            choice_kernel[self.last_action] = 1.0
 
-            # Create repetition indicator: bonus for last_action only
-            rep_bonus = np.zeros(self.num_actions)
-            rep_bonus[self.last_action] = self.kappa
-            hybrid_vals_persev = hybrid_vals + rep_bonus
-
-            # Apply softmax with beta
-            vals_scaled = self.beta * (hybrid_vals_persev - np.max(hybrid_vals_persev))
-            exp_vals = np.exp(vals_scaled)
-            hybrid_probs = exp_vals / exp_vals.sum()
+            # Probability mixing: (1-κ)*base + κ*choice_kernel
+            hybrid_probs = (1 - self.kappa) * base_probs + self.kappa * choice_kernel
 
         return {
             'probs': hybrid_probs,

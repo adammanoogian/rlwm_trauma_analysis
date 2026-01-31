@@ -91,9 +91,18 @@ class TaskParams:
     TRIAL_DURATION = 2000  # ms (maximum response time)
     FEEDBACK_DURATION = 500  # ms
 
-    # Block structure
-    NUM_PRACTICE_BLOCKS = 2  # Blocks 1-2: practice
-    NUM_MAIN_BLOCKS = 21  # Blocks 3-23: main task
+    # Block structure (verified from raw jsPsych data)
+    # Practice blocks
+    PRACTICE_STATIC_BLOCK = 1     # Block 1: static practice (no reversals)
+    PRACTICE_DYNAMIC_BLOCK = 2    # Block 2: dynamic practice (with reversals)
+    NUM_PRACTICE_BLOCKS = 2       # Blocks 1-2: practice
+
+    # Main task blocks
+    MAIN_TASK_START_BLOCK = 3     # First main task block
+    MAIN_TASK_END_BLOCK = 23      # Last main task block (maximum)
+    NUM_MAIN_BLOCKS = 21          # Blocks 3-23: main task
+
+    # Total
     TOTAL_BLOCKS = NUM_PRACTICE_BLOCKS + NUM_MAIN_BLOCKS  # 23 total
 
     # Trials per block (from actual experimental data)
@@ -206,7 +215,12 @@ class DataParams:
     PARSED_SURVEY2 = OUTPUT_DIR / 'parsed_survey2.csv'
     PARSED_TASK_TRIALS = OUTPUT_DIR / 'parsed_task_trials.csv'
     COLLATED_DATA = OUTPUT_DIR / 'collated_participant_data.csv'
-    TASK_TRIALS_LONG = OUTPUT_DIR / 'task_trials_long.csv'
+
+    # Task trial data files
+    TASK_TRIALS_LONG = OUTPUT_DIR / 'task_trials_long.csv'       # Main task only (default for fitting)
+    TASK_TRIALS_ALL = OUTPUT_DIR / 'task_trials_long_all.csv'    # All blocks including practice
+    TASK_TRIALS_LEGACY = OUTPUT_DIR / 'task_trials_long_all_participants.csv'  # Legacy filename
+
     SUMMARY_METRICS = OUTPUT_DIR / 'summary_participant_metrics.csv'
 
     # Simulated data paths

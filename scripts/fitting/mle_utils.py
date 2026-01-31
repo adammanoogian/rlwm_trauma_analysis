@@ -3,9 +3,12 @@ MLE Utility Functions for RLWM Model Fitting
 
 Parameter transformations, information criteria, and helper functions
 for Maximum Likelihood Estimation following Senta et al. (2025) methodology.
+
+Supports both numpy (for result handling) and JAX (for optimization).
 """
 
 import numpy as np
+import jax.numpy as jnp
 from scipy import stats
 from typing import Dict, Tuple, List, Optional
 
@@ -78,6 +81,67 @@ def unbounded_to_bounded(x: float, lower: float, upper: float) -> float:
     p = inv_logit(x)
     # Then scale to bounds
     return lower + p * (upper - lower)
+
+
+# =============================================================================
+# JAX-Compatible Transformations (for jaxopt optimization)
+# =============================================================================
+
+def jax_inv_logit(x):
+    """JAX-compatible inverse logit transformation."""
+    return 1 / (1 + jnp.exp(-x))
+
+
+def jax_unbounded_to_bounded(x, lower: float, upper: float):
+    """JAX-compatible unbounded to bounded transformation."""
+    p = jax_inv_logit(x)
+    return lower + p * (upper - lower)
+
+
+def jax_unconstrained_to_params_qlearning(x: jnp.ndarray) -> Tuple:
+    """
+    JAX-compatible parameter transformation for Q-learning.
+
+    Returns tuple (alpha_pos, alpha_neg, epsilon) for direct use in likelihood.
+    """
+    bounds = QLEARNING_BOUNDS
+    alpha_pos = jax_unbounded_to_bounded(x[0], *bounds['alpha_pos'])
+    alpha_neg = jax_unbounded_to_bounded(x[1], *bounds['alpha_neg'])
+    epsilon = jax_unbounded_to_bounded(x[2], *bounds['epsilon'])
+    return alpha_pos, alpha_neg, epsilon
+
+
+def jax_unconstrained_to_params_wmrl(x: jnp.ndarray) -> Tuple:
+    """
+    JAX-compatible parameter transformation for WM-RL.
+
+    Returns tuple (alpha_pos, alpha_neg, phi, rho, capacity, epsilon) for direct use.
+    """
+    bounds = WMRL_BOUNDS
+    alpha_pos = jax_unbounded_to_bounded(x[0], *bounds['alpha_pos'])
+    alpha_neg = jax_unbounded_to_bounded(x[1], *bounds['alpha_neg'])
+    phi = jax_unbounded_to_bounded(x[2], *bounds['phi'])
+    rho = jax_unbounded_to_bounded(x[3], *bounds['rho'])
+    capacity = jax_unbounded_to_bounded(x[4], *bounds['capacity'])
+    epsilon = jax_unbounded_to_bounded(x[5], *bounds['epsilon'])
+    return alpha_pos, alpha_neg, phi, rho, capacity, epsilon
+
+
+def jax_unconstrained_to_params_wmrl_m3(x: jnp.ndarray) -> Tuple:
+    """
+    JAX-compatible parameter transformation for WM-RL M3.
+
+    Returns tuple (alpha_pos, alpha_neg, phi, rho, capacity, kappa, epsilon) for direct use.
+    """
+    bounds = WMRL_M3_BOUNDS
+    alpha_pos = jax_unbounded_to_bounded(x[0], *bounds['alpha_pos'])
+    alpha_neg = jax_unbounded_to_bounded(x[1], *bounds['alpha_neg'])
+    phi = jax_unbounded_to_bounded(x[2], *bounds['phi'])
+    rho = jax_unbounded_to_bounded(x[3], *bounds['rho'])
+    capacity = jax_unbounded_to_bounded(x[4], *bounds['capacity'])
+    kappa = jax_unbounded_to_bounded(x[5], *bounds['kappa'])
+    epsilon = jax_unbounded_to_bounded(x[6], *bounds['epsilon'])
+    return alpha_pos, alpha_neg, phi, rho, capacity, kappa, epsilon
 
 
 def params_to_unconstrained(params: Dict[str, float], model: str) -> np.ndarray:

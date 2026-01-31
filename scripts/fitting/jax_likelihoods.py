@@ -688,10 +688,10 @@ def wmrl_m3_block_likelihood(
 
     Following Senta et al. (2025):
     - Beta is fixed at 50 for both WM and RL (parameter identifiability)
-    - Epsilon noise is applied to the final hybrid policy
+    - Epsilon noise is applied to the base policy before perseveration mixing
     - WM baseline = 1/nA (uniform probability)
-    - Perseveration term kappa * Rep(a) added to hybrid values before softmax
-    - Rep(a) = I[a = a_{t-1}] is global (not stimulus-specific)
+    - Perseveration uses PROBABILITY MIXING: P_M3 = (1-κ)*P_noisy + κ*Ck
+    - Ck = one-hot(a_{t-1}) is the choice kernel (global, not stimulus-specific)
     - last_action resets to -1 at block start (no previous action)
 
     When kappa=0, this reduces exactly to wmrl_block_likelihood (M2 model).
@@ -700,18 +700,17 @@ def wmrl_m3_block_likelihood(
     1. Working Memory (WM): Immediate encoding with decay
     2. Q-Learning (RL): Gradual learning with asymmetric rates
     3. Hybrid decision: Adaptive weighting based on capacity
-    4. Perseveration: Motor-level response stickiness
+    4. Perseveration: Motor-level response stickiness via probability mixing
 
     Update sequence per trial:
     1. Decay WM: WM ← (1-φ)WM + φ·WM_0
     2. Compute hybrid policy:
-       - If κ=0 OR no last_action: M2 path (probability mixing for backward compat)
-         p = ω·softmax(WM) + (1-ω)·softmax(Q)
-       - If κ>0 AND last_action exists: M3 path (value mixing + perseveration)
-         v = ω·WM + (1-ω)·Q + κ·Rep(a), then p = softmax(β·v)
-    3. Apply epsilon noise: p_noisy = ε/nA + (1-ε)·p
-    4. Update WM: WM(s,a) ← r (immediate overwrite)
-    5. Update Q: Q(s,a) ← Q(s,a) + α·(r - Q(s,a))
+       - Both paths: P_base = ω·softmax(WM) + (1-ω)·softmax(Q)
+       - Apply epsilon: P_noisy = ε/nA + (1-ε)·P_base
+       - If κ=0 OR no last_action: return P_noisy (M2 backward compat)
+       - If κ>0 AND last_action exists: P_M3 = (1-κ)*P_noisy + κ*Ck
+    3. Update WM: WM(s,a) ← r (immediate overwrite)
+    4. Update Q: Q(s,a) ← Q(s,a) + α·(r - Q(s,a))
 
     Parameters
     ----------
@@ -785,29 +784,32 @@ def wmrl_m3_block_likelihood(
         # Adaptive weight: ω = ρ * min(1, K/N_s)
         omega = rho * jnp.minimum(1.0, capacity / set_size)
 
-        # Branch: M2 (probability mixing) vs M3 (value mixing + perseveration)
+        # Branch: M2 (probability mixing) vs M3 (probability mixing + perseveration)
         use_m2_path = jnp.logical_or(kappa == 0.0, last_action < 0)
 
-        # M2 path: Probability mixing (backward compatible)
-        rl_probs_m2 = softmax_policy(q_vals, FIXED_BETA)
-        wm_probs_m2 = softmax_policy(wm_vals, FIXED_BETA)
-        hybrid_probs_m2 = omega * wm_probs_m2 + (1 - omega) * rl_probs_m2
-        hybrid_probs_m2 = hybrid_probs_m2 / jnp.sum(hybrid_probs_m2)  # Normalize
+        # =================================================================
+        # Both paths start with M2 probability mixing
+        # =================================================================
+        rl_probs = softmax_policy(q_vals, FIXED_BETA)
+        wm_probs = softmax_policy(wm_vals, FIXED_BETA)
+        base_probs = omega * wm_probs + (1 - omega) * rl_probs
+        base_probs = base_probs / jnp.sum(base_probs)  # Normalize
 
-        # M3 path: Value mixing + perseveration
-        hybrid_vals_m3 = omega * wm_vals + (1 - omega) * q_vals
-        rep_indicators = jnp.eye(num_actions)[last_action]  # One-hot for last_action
-        hybrid_vals_persev_m3 = hybrid_vals_m3 + kappa * rep_indicators
-        hybrid_probs_m3 = softmax_policy(hybrid_vals_persev_m3, FIXED_BETA)
-        hybrid_probs_m3 = hybrid_probs_m3 / jnp.sum(hybrid_probs_m3)  # Normalize
-
-        # Select correct path
-        hybrid_probs = jnp.where(use_m2_path, hybrid_probs_m2, hybrid_probs_m3)
+        # Apply epsilon noise to base policy
+        noisy_base = apply_epsilon_noise(base_probs, epsilon, num_actions)
 
         # =================================================================
-        # 5. APPLY EPSILON NOISE: p_noisy = ε/nA + (1-ε)*p
+        # M3 path: Probability mixing with choice kernel (Senta et al.)
+        # P_M3 = (1-κ)*P_noisy + κ*Ck where Ck = one-hot(last_action)
         # =================================================================
-        noisy_probs = apply_epsilon_noise(hybrid_probs, epsilon, num_actions)
+        # Choice kernel = one-hot of last action (τ=1 simplification)
+        choice_kernel = jnp.eye(num_actions)[jnp.maximum(last_action, 0)]  # Clamp for indexing
+
+        # Probability mixing: (1-κ)*noisy_base + κ*choice_kernel
+        hybrid_probs_m3 = (1 - kappa) * noisy_base + kappa * choice_kernel
+
+        # Select correct path: M2 uses noisy_base, M3 uses probability mixing
+        noisy_probs = jnp.where(use_m2_path, noisy_base, hybrid_probs_m3)
 
         # Log probability of observed action
         log_prob = jnp.log(noisy_probs[action] + 1e-8)

@@ -119,10 +119,10 @@ def parse_single_file(filepath: Path, assigned_id: int = None) -> dict:
                 if 'key_answer' in task_data.columns and 'key_press' not in task_data.columns:
                     task_data['key_press'] = task_data['key_answer']
 
-                # Select columns
+                # Select columns (including phase_type for practice/main classification)
                 task_cols = ['sona_id', 'trial_in_experiment', 'block', 'stimulus',
                             'key_press', 'correct', 'rt', 'time_elapsed', 'set_size',
-                            'load_condition', 'source_file']
+                            'load_condition', 'phase_type', 'source_file']
                 cols_available = [c for c in task_cols if c in task_data.columns]
 
                 result['task_trials'] = task_data[cols_available].copy()
@@ -152,8 +152,17 @@ def parse_single_file(filepath: Path, assigned_id: int = None) -> dict:
     return result
 
 
-def clean_task_data(task_df: pd.DataFrame) -> pd.DataFrame:
-    """Apply data cleaning filters to task data."""
+def clean_task_data(task_df: pd.DataFrame, filter_practice: bool = False) -> pd.DataFrame:
+    """
+    Apply data cleaning filters to task data.
+
+    Args:
+        task_df: Raw task trial DataFrame
+        filter_practice: If True, remove practice trials (blocks 1-2). Default False.
+
+    Returns:
+        Cleaned DataFrame with is_practice column added
+    """
     if len(task_df) == 0:
         return task_df
 
@@ -177,9 +186,21 @@ def clean_task_data(task_df: pd.DataFrame) -> pd.DataFrame:
     if 'key_press' in df.columns:
         df['key_press'] = pd.to_numeric(df['key_press'], errors='coerce').fillna(-1).astype(int)
 
-    # 1. Remove practice trials (blocks 1-2, keep experimental blocks >= 3)
-    df = df[df['block'] >= 3].copy()
-    n_after_practice = len(df)
+    # Add is_practice column (based on phase_type if available, else block number)
+    if 'phase_type' in df.columns:
+        df['is_practice'] = df['phase_type'].isin(['practice_static', 'practice_dynamic'])
+    else:
+        df['is_practice'] = df['block'] < 3
+
+    # Count practice trials before any filtering
+    n_practice_trials = df['is_practice'].sum()
+
+    # 1. Optionally remove practice trials (blocks 1-2)
+    if filter_practice:
+        df = df[~df['is_practice']].copy()
+        n_after_practice = len(df)
+    else:
+        n_after_practice = n_original
 
     # 2. Filter out invalid trials (key_press == -1 or stimulus < 0)
     df = df[(df['key_press'] >= 0) & (df['stimulus'] >= 0)]
@@ -203,10 +224,12 @@ def clean_task_data(task_df: pd.DataFrame) -> pd.DataFrame:
         )
 
     # Report cleaning stats
-    n_practice = n_original - n_after_practice
+    n_removed_practice = n_original - n_after_practice if filter_practice else 0
     n_invalid = n_after_practice - n_after_invalid
-    if n_practice > 0 or n_invalid > 0:
-        print(f"  Cleaned: removed {n_practice} practice + {n_invalid} invalid trials")
+    if n_removed_practice > 0 or n_invalid > 0:
+        print(f"  Cleaned: removed {n_removed_practice} practice + {n_invalid} invalid trials")
+    elif n_practice_trials > 0 and not filter_practice:
+        print(f"  Cleaned: {n_practice_trials} practice trials preserved (is_practice=True)")
 
     return df
 
@@ -285,20 +308,42 @@ def main():
         print("\n" + "-" * 80)
         print("Processing task data...")
 
-        task_df = pd.concat(all_task_trials, ignore_index=True)
-        task_df = clean_task_data(task_df)
+        task_df_raw = pd.concat(all_task_trials, ignore_index=True)
 
-        # Update participant info with cleaned trial counts
+        # Clean data but keep all trials (including practice) for the "all" file
+        task_df_all = clean_task_data(task_df_raw, filter_practice=False)
+
+        # Create main-task-only version (exclude practice blocks)
+        task_df_main = task_df_all[~task_df_all['is_practice']].copy()
+
+        # Update participant info with cleaned trial counts (main task only)
         for info in participant_info:
             pid = info['sona_id']
-            info['n_trials_clean'] = len(task_df[task_df['sona_id'] == pid])
+            info['n_trials_clean'] = len(task_df_main[task_df_main['sona_id'] == pid])
+            info['n_trials_all'] = len(task_df_all[task_df_all['sona_id'] == pid])
             info['status'] = 'complete' if info['n_trials_clean'] >= 700 else 'partial'
 
-        # Save task trials
-        output_path = OUTPUT_DIR / 'task_trials_long_all_participants.csv'
-        task_df.to_csv(output_path, index=False)
-        print(f"[SAVED] {output_path}")
-        print(f"  {len(task_df):,} trials from {task_df['sona_id'].nunique()} participants")
+        # Save ALL task trials (including practice, with is_practice flag)
+        output_path_all = OUTPUT_DIR / 'task_trials_long_all.csv'
+        task_df_all.to_csv(output_path_all, index=False)
+        print(f"[SAVED] {output_path_all}")
+        print(f"  {len(task_df_all):,} trials from {task_df_all['sona_id'].nunique()} participants")
+        print(f"  (includes {task_df_all['is_practice'].sum():,} practice trials)")
+
+        # Save MAIN TASK ONLY (backwards compatible with existing pipelines)
+        output_path_main = OUTPUT_DIR / 'task_trials_long.csv'
+        task_df_main.to_csv(output_path_main, index=False)
+        print(f"[SAVED] {output_path_main}")
+        print(f"  {len(task_df_main):,} trials from {task_df_main['sona_id'].nunique()} participants")
+        print(f"  (main task only, practice excluded)")
+
+        # Also save to legacy filename for compatibility
+        output_path_legacy = OUTPUT_DIR / 'task_trials_long_all_participants.csv'
+        task_df_main.to_csv(output_path_legacy, index=False)
+        print(f"[SAVED] {output_path_legacy} (legacy filename, main task only)")
+
+        # Use main task data for summary statistics
+        task_df = task_df_main
 
     # ========================================================================
     # Save participant info
@@ -427,12 +472,16 @@ def main():
     print("STEP 1 COMPLETE: Raw data parsing finished successfully")
     print("=" * 80)
     print("\nOutputs created:")
-    print("  - output/task_trials_long_all_participants.csv")
+    print("  - output/task_trials_long_all.csv      (ALL trials including practice)")
+    print("  - output/task_trials_long.csv          (Main task only, for fitting)")
+    print("  - output/task_trials_long_all_participants.csv (legacy, main task only)")
     print("  - output/participant_info.csv")
     print("  - output/parsed_survey1.csv (LEC-5 + LESS scores)")
     print("  - output/parsed_survey2.csv (IES-R + subscale scores)")
     print("  - output/parsed_demographics.csv")
     print("  - output/summary_participant_metrics.csv")
+    print("\nNote: Use task_trials_long_all.csv with --include-practice for")
+    print("      fitting models on practice data.")
     print("\nNext step: Run 02_create_collated_csv.py")
     print()
 

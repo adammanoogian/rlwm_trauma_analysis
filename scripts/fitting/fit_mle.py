@@ -373,12 +373,41 @@ def prepare_participant_data(
     return result
 
 
+def _fit_single_participant_worker(args: Tuple) -> Dict:
+    """
+    Picklable worker function for parallel fitting.
+
+    This wrapper is needed because joblib requires picklable functions.
+    The function receives all arguments as a tuple and unpacks them.
+
+    Args:
+        args: Tuple of (pid, data_dict, model, n_starts, seed)
+
+    Returns:
+        Fit result dictionary with participant_id added
+    """
+    pid, data_dict, model, n_starts, seed = args
+
+    result = fit_participant_mle(
+        stimuli_blocks=data_dict['stimuli_blocks'],
+        actions_blocks=data_dict['actions_blocks'],
+        rewards_blocks=data_dict['rewards_blocks'],
+        set_sizes_blocks=data_dict.get('set_sizes_blocks'),
+        model=model,
+        n_starts=n_starts,
+        seed=seed,
+    )
+    result['participant_id'] = pid
+    return result
+
+
 def fit_all_participants(
     data: pd.DataFrame,
     model: str = 'qlearning',
     n_starts: int = 20,
     seed: int = 42,
-    verbose: bool = True
+    verbose: bool = True,
+    n_jobs: int = 1
 ) -> Tuple[pd.DataFrame, Dict]:
     """
     Fit all participants using MLE.
@@ -389,18 +418,18 @@ def fit_all_participants(
         n_starts: Number of random starting points per participant
         seed: Random seed
         verbose: Show progress bar
+        n_jobs: Number of parallel workers (1 = sequential, -1 = all cores)
 
     Returns:
         Tuple of (DataFrame with fitted parameters, timing_info dict)
     """
     import time
+    from joblib import Parallel, delayed
 
     participants = data['sona_id'].unique()
     n_participants = len(participants)
-    results = []
 
     # Track timing for ETA estimation
-    fit_times = []
     start_time = time.time()
 
     if verbose:
@@ -409,68 +438,87 @@ def fit_all_participants(
         print(f"{'='*60}")
         print(f"Participants: {n_participants}")
         print(f"Random starts per participant: {n_starts}")
+        print(f"Parallel workers: {n_jobs if n_jobs > 0 else 'all available cores'}")
         print(f"{'='*60}\n")
 
-    # Use tqdm for progress bar with detailed stats
-    iterator = tqdm(
-        enumerate(participants),
-        total=n_participants,
-        desc=f'Fitting {model}',
-        unit='participant',
-        ncols=100,
-        bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]'
-    ) if verbose else enumerate(participants)
-
-    for i, pid in iterator:
-        fit_start = time.time()
-
-        # Prepare data
+    # Prepare all participant data upfront (needed for parallel execution)
+    if verbose:
+        print("Preparing participant data...")
+    participant_args = []
+    for i, pid in enumerate(participants):
         pdata = prepare_participant_data(data, pid, model)
-        n_trials = sum(len(s) for s in pdata['stimuli_blocks'])
+        participant_args.append((pid, pdata, model, n_starts, seed + i))
 
-        # Fit
-        fit_result = fit_participant_mle(
-            stimuli_blocks=pdata['stimuli_blocks'],
-            actions_blocks=pdata['actions_blocks'],
-            rewards_blocks=pdata['rewards_blocks'],
-            set_sizes_blocks=pdata.get('set_sizes_blocks'),
-            model=model,
-            n_starts=n_starts,
-            seed=seed + i,  # Different seed per participant
+    # Execute fitting
+    if n_jobs == 1:
+        # Sequential execution (existing behavior with tqdm progress)
+        results = []
+        fit_times = []
+
+        iterator = tqdm(
+            participant_args,
+            total=n_participants,
+            desc=f'Fitting {model}',
+            unit='participant',
+            ncols=100,
+            bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]'
+        ) if verbose else participant_args
+
+        for args in iterator:
+            fit_start = time.time()
+            result = _fit_single_participant_worker(args)
+            fit_time = time.time() - fit_start
+            fit_times.append(fit_time)
+            results.append(result)
+
+            # Update tqdm postfix with current stats
+            if verbose and hasattr(iterator, 'set_postfix'):
+                n_trials = sum(len(s) for s in args[1]['stimuli_blocks'])
+                avg_time = np.mean(fit_times)
+                iterator.set_postfix({
+                    'trials': n_trials,
+                    'NLL': f"{result['nll']:.1f}" if not np.isnan(result['nll']) else 'NaN',
+                    'conv': '✓' if result['converged'] else '✗',
+                    'avg': f"{avg_time:.1f}s"
+                })
+    else:
+        # Parallel execution using joblib
+        if verbose:
+            print(f"Running parallel fitting with {n_jobs} workers...")
+
+        # joblib handles the parallel execution
+        # verbose=10 shows progress; verbose=0 is silent
+        results = Parallel(
+            n_jobs=n_jobs,
+            verbose=10 if verbose else 0,
+            backend='loky'  # Process-based backend for true parallelism
+        )(
+            delayed(_fit_single_participant_worker)(args)
+            for args in participant_args
         )
 
-        # Track timing
-        fit_time = time.time() - fit_start
-        fit_times.append(fit_time)
-
-        # Add participant ID
-        fit_result['participant_id'] = pid
-
-        results.append(fit_result)
-
-        # Update tqdm postfix with current stats
-        if verbose and hasattr(iterator, 'set_postfix'):
-            avg_time = np.mean(fit_times)
-            remaining = (n_participants - i - 1) * avg_time
-            iterator.set_postfix({
-                'trials': n_trials,
-                'NLL': f"{fit_result['nll']:.1f}" if not np.isnan(fit_result['nll']) else 'NaN',
-                'conv': '✓' if fit_result['converged'] else '✗',
-                'avg': f"{avg_time:.1f}s"
-            })
+        # For parallel execution, we can't track individual times
+        # Use total time / n_participants as estimate
+        fit_times = []
 
     # Calculate timing (always, for timing_info return)
     total_time = time.time() - start_time
 
     # Print summary timing
     if verbose:
-        avg_time = np.mean(fit_times)
         print(f"\n{'='*60}")
         print(f"Fitting Complete!")
         print(f"{'='*60}")
         print(f"Total time: {total_time/60:.1f} minutes ({total_time:.1f} seconds)")
-        print(f"Average time per participant: {avg_time:.2f} seconds")
+        if fit_times:
+            avg_time = np.mean(fit_times)
+            print(f"Average time per participant: {avg_time:.2f} seconds")
+        else:
+            print(f"Average time per participant: {total_time/n_participants:.2f} seconds (parallel)")
         print(f"Converged: {sum(r['converged'] for r in results)}/{n_participants}")
+        if n_jobs != 1:
+            speedup = (total_time / n_participants * n_participants) / total_time
+            print(f"Effective parallelization: {n_jobs} workers")
         print(f"{'='*60}\n")
 
     # Convert to DataFrame
@@ -496,6 +544,7 @@ def fit_all_participants(
         'fit_times': fit_times,
         'jit_time': fit_times[0] if fit_times else None,
         'steady_state_times': fit_times[1:] if len(fit_times) > 1 else [],
+        'n_jobs': n_jobs,
     }
 
     return df, timing_info
@@ -620,12 +669,34 @@ def main():
                         help='Include practice blocks (1-2) in fitting. Default excludes practice.')
     parser.add_argument('--limit', type=int, default=None,
                         help='Limit to first N participants (for timing/testing)')
+    parser.add_argument('--n-jobs', type=int, default=1,
+                        help='Number of parallel workers (default: 1 = sequential)')
+    parser.add_argument('--use-gpu', action='store_true',
+                        help='Use GPU acceleration if available (requires JAX CUDA)')
 
     args = parser.parse_args()
 
     # Create output directory
     output_dir = Path(args.output)
     output_dir.mkdir(parents=True, exist_ok=True)
+
+    # GPU detection
+    gpu_available = False
+    gpu_devices = []
+    if args.use_gpu:
+        try:
+            devices = jax.devices()
+            gpu_devices = [d for d in devices if d.platform == 'gpu']
+            gpu_available = len(gpu_devices) > 0
+            if gpu_available:
+                # JAX will automatically use GPU when available
+                print(f"GPU detected: {gpu_devices}")
+            else:
+                print("WARNING: --use-gpu specified but no GPU found. Using CPU.")
+                print(f"Available devices: {devices}")
+        except Exception as e:
+            print(f"WARNING: GPU detection failed: {e}")
+            print("Falling back to CPU.")
 
     print(f"\n{'='*60}")
     print(f"MLE Fitting: {args.model.upper()}")
@@ -635,6 +706,9 @@ def main():
     print(f"Seed: {args.seed}")
     print(f"Output: {args.output}")
     print(f"Include practice: {args.include_practice}")
+    print(f"Parallel workers: {args.n_jobs if args.n_jobs > 0 else 'all available cores'}")
+    if args.use_gpu:
+        print(f"GPU acceleration: {'enabled' if gpu_available else 'requested but unavailable'}")
     if args.limit:
         print(f"Limit: {args.limit} participants (testing mode)")
     print(f"{'='*60}\n")
@@ -672,7 +746,8 @@ def main():
         model=args.model,
         n_starts=args.n_starts,
         seed=args.seed,
-        verbose=not args.quiet
+        verbose=not args.quiet,
+        n_jobs=args.n_jobs
     )
 
     # Compute group summary

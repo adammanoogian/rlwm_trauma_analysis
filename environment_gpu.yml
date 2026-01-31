@@ -1,0 +1,51 @@
+# Conda environment for RLWM Trauma Analysis (GPU-accelerated)
+# For use on GPU clusters like Monash M3 with NVIDIA GPUs
+#
+# Usage:
+#   # On M3 cluster:
+#   module load miniforge3
+#   module load cuda/12.1.1
+#   mamba env create -f environment_gpu.yml
+#   conda activate rlwm_gpu
+#
+# Or use the setup script:
+#   bash cluster/setup_env_gpu.sh
+#
+# GPU support uses JAX with CUDA backend for accelerated optimization.
+# The CPU environment (environment.yml) is recommended for development.
+
+name: rlwm_gpu
+channels:
+  - conda-forge
+  - nvidia
+  - defaults
+
+dependencies:
+  - python=3.10
+
+  # Data processing
+  - pandas>=2.0.0
+  - numpy>=2.0.0
+
+  # Progress bars and utilities
+  - tqdm
+  - psutil
+  - joblib>=1.3.0
+
+  # Analysis and visualization
+  - matplotlib>=3.0.0
+  - seaborn>=0.13.0
+  - scipy>=1.0.0
+  - scikit-learn>=1.0.0
+  - statsmodels>=0.14.0
+
+  # CUDA toolkit (for JAX GPU support)
+  - cuda-nvcc>=12.0
+
+  # pip dependencies
+  - pip
+  - pip:
+    # JAX with CUDA 12 support
+    # Note: jax[cuda12] installs jaxlib with CUDA support automatically
+    - jax[cuda12]>=0.4.20
+    - jaxopt>=0.8.0
