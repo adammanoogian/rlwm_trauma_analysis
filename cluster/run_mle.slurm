@@ -27,7 +27,7 @@
 #SBATCH --output=cluster/logs/mle_%j.out
 #SBATCH --error=cluster/logs/mle_%j.err
 #SBATCH --time=04:00:00
-#SBATCH --mem=32G
+#SBATCH --mem=64G
 #SBATCH --cpus-per-task=4
 #SBATCH --partition=comp
 
