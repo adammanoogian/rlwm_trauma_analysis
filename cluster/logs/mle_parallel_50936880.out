@@ -1,0 +1,59 @@
+============================================================
+RLWM Parallel MLE Fitting - M3 SLURM Job
+============================================================
+Job ID: 50936880
+Node: m3k021
+Partition: comp
+CPUs requested: 16
+Parallel workers: 16
+Project: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis
+Start time: Sun Feb  1 08:40:24 AM AEDT 2026
+============================================================
+JAX cache: /scratch/fc37/aman0087/.jax_cache
+
+============================================================
+Fitting model: qlearning (parallel with 16 workers)
+Started: Sun Feb  1 08:40:24 AM AEDT 2026
+============================================================
+
+============================================================
+MLE Fitting: QLEARNING
+============================================================
+Data: output/task_trials_long.csv
+Random starts: 20
+Seed: 42
+Output: output/mle/
+Include practice: False
+Parallel workers: 16
+============================================================
+
+Loading data...
+  Total participants in data: 47
+  Final sample: 47
+  Total trials: 35058
+
+
+============================================================
+Starting MLE fitting: QLEARNING
+============================================================
+Participants: 47
+Random starts per participant: 20
+Parallel workers: 16
+============================================================
+
+Preparing participant data...
+Warming up JAX compilation for qlearning...
+  JAX compilation cached for qlearning
+
+Running parallel fitting with 16 workers...
+Completed: Sun Feb  1 08:46:36 AM AEDT 2026
+
+============================================================
+All models complete!
+End time: Sun Feb  1 08:46:36 AM AEDT 2026
+============================================================
+
+Results saved to:
+  output/mle/*_individual_fits.csv
+  output/mle/*_group_summary.csv
+============================================================

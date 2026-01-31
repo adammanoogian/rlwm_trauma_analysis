@@ -1,0 +1,9 @@
+
+EnvironmentNameNotFound: Could not find conda environment: rlwm
+You can list all discoverable environments with `conda info --envs`.
+
+
+Traceback (most recent call last):
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/fit_mle.py", line 32, in <module>
+    import numpy as np
+ModuleNotFoundError: No module named 'numpy'

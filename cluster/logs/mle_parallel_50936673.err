@@ -1,0 +1,7 @@
+
+EnvironmentNameNotFound: Could not find conda environment: rlwm
+You can list all discoverable environments with `conda info --envs`.
+
+
+[Parallel(n_jobs=16)]: Using backend LokyBackend with 16 concurrent workers.
+[2026-02-01T08:16:26.036] error: *** JOB 50936673 ON m3k021 CANCELLED AT 2026-02-01T08:16:26 DUE TO TIME LIMIT ***

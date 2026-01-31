@@ -1,0 +1,823 @@
+
+EnvironmentNameNotFound: Could not find conda environment: rlwm
+You can list all discoverable environments with `conda info --envs`.
+
+
+[Parallel(n_jobs=8)]: Using backend LokyBackend with 8 concurrent workers.
+E0201 09:08:37.841678 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.844446 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.844544 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.844586 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.844625 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.844665 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.844702 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.844739 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.844778 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.844815 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.844852 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.844889 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.844930 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.844968 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.845005 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.845041 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.845086 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.845125 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.845163 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.845199 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.845236 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.845272 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.845310 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.845349 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.845386 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.845423 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.845460 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.845496 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.845536 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.845573 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.845610 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.845647 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.845685 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.845723 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.845760 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.845797 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.845834 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.845871 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.845908 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.845962 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.846000 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.846042 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.846088 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.846133 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.846175 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.846213 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.846250 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.846288 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.846326 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.846365 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.846403 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.846441 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.846478 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.846516 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.846554 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.846592 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.846628 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.846665 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.846703 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.846741 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.846778 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.846815 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.846853 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.846891 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.846927 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.846965 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.847002 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.847040 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.847083 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.847125 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.847163 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.847201 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.847238 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.847276 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.847313 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.847351 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.847387 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.847425 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.847462 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.847500 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.847549 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.847588 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.847626 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.847664 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.847700 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.847740 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.847781 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.847819 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.847855 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.847894 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.847931 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.847969 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.848006 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.848044 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.848093 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.848133 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.848171 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.848208 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.848247 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.848285 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.848323 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.848360 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.848398 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.848436 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.848474 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.848510 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.848548 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.848587 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.848624 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.848662 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.848701 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.848739 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.848777 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.848814 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.848851 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.848889 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.848926 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.848963 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.849000 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.849036 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.849130 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.849172 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.849210 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.849251 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.849288 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.849324 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.849363 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.849400 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.849438 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.849475 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.849512 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.849549 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.849587 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.849623 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.849662 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.849700 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.849737 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.849774 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.849812 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.849849 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.849887 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.849923 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.849961 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.849999 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.850037 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.850082 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.850122 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.850161 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.850199 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.850236 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.850273 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.850310 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.850364 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.850403 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.850440 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.850477 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.850516 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.850554 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.850590 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.850627 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.850667 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.850715 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.850752 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.850791 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.850828 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.850867 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.850903 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.850941 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.850979 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.851016 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.851053 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.851101 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.851139 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.851176 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.851213 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.851251 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.851288 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.851327 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.851364 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.851402 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.851439 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.851476 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.851512 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.851550 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.851587 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.851625 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.851664 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.851702 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.851739 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.851777 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.851816 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.851854 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.851897 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.851934 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.851971 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.852012 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.852051 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.852097 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.852135 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.852171 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.852208 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.852253 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.852291 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.852328 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.852366 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.852404 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.852441 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.852479 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.852519 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.852558 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.852595 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.852632 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.852675 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.852712 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.852750 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.852787 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.852825 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.852862 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.852899 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.852936 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.852973 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.853010 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.853047 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.853098 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.853136 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.853173 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.853212 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.853250 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.853288 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.853325 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.853362 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.853399 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.853437 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.853474 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.853513 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.853550 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.853587 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.853624 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.853661 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.853699 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.853737 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.853775 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.853822 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.853875 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.853913 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.853950 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.853988 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.854024 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.854061 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.854199 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.854238 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.854276 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.854313 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.854351 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.854388 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.854425 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.854461 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.854498 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.854535 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.854572 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.854608 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.854645 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.854683 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.854720 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.854756 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.854793 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.854831 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.854867 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.854904 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.854941 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.854979 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.855018 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.855054 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.855363 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.855422 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.855463 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.855500 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.855538 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.855576 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.855614 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.855650 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.855688 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.855736 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.855774 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.855811 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.855848 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.855885 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.855922 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.855959 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.855996 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.856033 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.856080 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.856119 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.856157 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.856195 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.856233 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.856272 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.856309 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.856347 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.856385 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.856422 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.856459 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.856498 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.856536 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.856574 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.856610 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.856650 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.856688 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.856728 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.856764 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.856802 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.856839 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.856876 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.856913 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.856950 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.856987 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.857024 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.857061 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.857106 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.857143 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.857180 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.857217 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.857257 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.857303 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.857341 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.857380 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.857418 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.857456 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.857493 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.857530 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.857567 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.857605 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.857642 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.857681 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.857719 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.857756 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.857794 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.857831 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.857868 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.857906 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.857943 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.857980 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.858017 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.858056 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.858101 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.858141 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.858178 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.858215 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.858253 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.858289 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.858325 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.858362 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.858399 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.858436 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.858473 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.858510 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.858548 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.858585 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.858622 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.858659 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.858696 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.858733 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.858769 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.858814 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.858853 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.858891 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.858927 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.858965 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.859002 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.859039 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.859087 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.859127 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.859165 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.859203 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.859239 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.859282 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.859320 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.859370 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.859419 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.859458 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.859495 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.859532 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.859575 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.859613 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.859650 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.859688 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.859725 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.859763 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.859802 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.859840 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.859877 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.859914 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.859952 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.859990 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.860027 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.860065 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.860112 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.860150 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.860187 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.860224 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.860261 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.860298 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.860336 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.860372 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.860420 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.860457 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.860495 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.860533 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.860571 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.860608 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.860646 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.860682 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.860719 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.860759 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.860797 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.860833 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.860870 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.860908 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.860946 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.860984 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.861022 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.861059 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.861106 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.861143 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.861180 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.861218 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.861255 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.861292 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.861329 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.861367 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.861405 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.861442 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.861479 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.861516 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.861553 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.861590 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.861627 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.861665 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.861703 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.861739 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.861776 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.861813 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.861849 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.861885 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.861922 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.861966 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.862004 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.862041 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.862208 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.862252 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.862291 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.862328 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.862365 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.862403 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.862440 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.862477 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.862516 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.862554 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.862592 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.862630 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.862666 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.862703 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.862740 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.862777 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.862814 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.862852 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.862889 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.862927 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.862963 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.863000 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.863038 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.863084 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.863122 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.863159 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.863196 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.863233 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.863270 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.863308 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.863345 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.863382 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.863418 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.863456 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.863493 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.863530 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.863566 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.863613 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.863651 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.863690 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.863728 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.863765 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.863802 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.863841 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.863877 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.863915 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.863953 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.863990 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.864028 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.864065 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.864110 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.864148 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.864185 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.864222 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.864259 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.864298 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.864336 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.864373 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.864411 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.864448 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.864485 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.864523 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.864561 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.864598 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.864638 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.864674 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.864712 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.864749 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.864787 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.864824 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.864860 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.864898 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.864936 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.864974 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.865012 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.865066 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.865114 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.865153 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.865199 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.865238 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.865277 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.865314 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.865353 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.865390 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.865428 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.865465 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.865504 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.865541 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.865579 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.865616 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.865654 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.865691 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.865729 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.865765 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.865802 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.865840 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.865877 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.865914 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.865965 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.866014 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.866052 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.866096 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.866135 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.866172 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.866210 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.866247 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.866283 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.866321 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.866945 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.867635 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.868249 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.868827 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.869414 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.869996 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.870777 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.871382 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.871940 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.872543 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.873298 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.873865 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.874472 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.875066 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.875697 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.876263 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.876885 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.877443 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.878014 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.878608 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.879177 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.879737 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.880324 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.880893 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.881590 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.882203 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.882769 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.883328 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.883922 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.884538 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.885137 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.885704 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:37.885831 1973769 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/compiler.py:805: UserWarning: Error reading persistent compilation cache entry for 'jit_while': XlaRuntimeError: INTERNAL: Failed to materialize symbols: { (<xla_jit_dylib_0>, { broadcast.17407_kernel }) }
+  warnings.warn(
+E0201 09:08:56.607784 1973941 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:56.608268 1973973 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:08:56.660970 1973973 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+2026-02-01 09:08:56.608409: E external/xla/xla/backends/cpu/codegen/contiguous_section_memory_manager.cc:101] allocateMappedMemory failed with error: Cannot allocate memory
+2026-02-01 09:08:56.666165: E external/xla/xla/backends/cpu/codegen/contiguous_section_memory_manager.cc:139] Failed to satisfy suballocation request for 158
+LLVM ERROR: Unable to allocate section memory!
+2026-02-01 09:08:56.666752: E external/xla/xla/backends/cpu/codegen/contiguous_section_memory_manager.cc:101] allocateMappedMemory failed with error: Cannot allocate memory
+2026-02-01 09:08:56.666804: E external/xla/xla/backends/cpu/codegen/contiguous_section_memory_manager.cc:139] Failed to satisfy suballocation request for 100
+LLVM ERROR: Unable to allocate section memory!
+Fatal Python error: Aborted
+
+Thread 0x00007fcbbaea2740 (most recent call first):
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/compiler.py", line 385 in backend_compile_and_load
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/profiler.py", line 354 in wrapper
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/compiler.py", line 768 in _compile_and_write_cache
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/compiler.py", line 500 in compile_or_get_cached
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/interpreters/pxla.py", line 2743 in _cached_compilation
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/interpreters/pxla.py", line 2952 in from_hlo
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/interpreters/pxla.py", line 2410 in compile
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/pjit.py", line 1855 in _pjit_call_impl_python
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/pjit.py", line 153 in _python_pjit_helper
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/pjit.py", line 292 in cache_miss
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/traceback_util.py", line 182 in reraise_with_filtered_traceback
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/dispatch.py", line 91 in apply_primitive
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/core.py", line 1066 in process_primitive
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/core.py", line 562 in bind_with_trace
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/core.py", line 552 in _true_bind
+  File "Fatal Python error: /scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/core.pySegmentation fault"
+
+, line 536 in bind
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/lax/control_flow/loops.py", line 916 in _scan_partial_eval
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/interpreters/partial_eval.py", line 229 in process_primitive
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/core.py", line 562 in bind_with_trace
+
+Extension modules:   File psutil._psutil_linux"/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/core.py, "numpy._core._multiarray_umath, line 552,  in numpy.linalg._umath_linalg_true_bind
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/core.py", line , 536numpy.random._common in , bindnumpy.random.bit_generator
+,   File numpy.random._bounded_integers", /scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/lax/control_flow/loops.pynumpy.random._mt19937", , line numpy.random.mtrand695,  in numpy.random._philox_scan_jvp, 
+numpy.random._pcg64  File , "numpy.random._sfc64/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/interpreters/ad.py, "numpy.random._generator, line 500,  in jaxlib.cpu_feature_guardprocess_primitive
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/core.py, "scipy._lib._ccallback_c, line 562 in bind_with_trace, 
+scipy.sparse._sparsetools  File , "_csparsetools/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/core.py", , line scipy.sparse._csparsetools552 in , _true_bindscipy.linalg._fblas
+,   File scipy.linalg._flapack", /scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/core.pyscipy.linalg.cython_lapack", , line scipy.linalg._cythonized_array_utils536,  in scipy.linalg._solve_toeplitzbind, 
+scipy.linalg._decomp_lu_cython  File , "scipy.linalg._matfuncs_sqrtm_triu/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/lax/control_flow/loops.py", , line scipy.linalg._matfuncs_expm370,  in scipy.linalg._linalg_pythranscan, 
+scipy.linalg.cython_blas  File , "scipy.linalg._decomp_update/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/traceback_util.py, "scipy.sparse.linalg._dsolve._superlu, line , 182scipy.sparse.linalg._eigen.arpack._arpack in , reraise_with_filtered_tracebackscipy.sparse.linalg._propack._spropack
+,   File scipy.sparse.linalg._propack._dpropack", /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/jax_likelihoods.pyscipy.sparse.linalg._propack._cpropack", , line scipy.sparse.linalg._propack._zpropack661,  in scipy.sparse.csgraph._toolswmrl_block_likelihood, 
+scipy.sparse.csgraph._shortest_path  File , "scipy.sparse.csgraph._traversal/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/jax_likelihoods.py, "scipy.sparse.csgraph._min_spanning_tree, line , 922scipy.sparse.csgraph._flow in , wmrl_multiblock_likelihoodscipy.sparse.csgraph._matching
+,   File scipy.sparse.csgraph._reordering", /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/fit_mle.pyscipy.spatial._ckdtree", , line scipy._lib.messagestream181,  in scipy.spatial._qhullobjective, 
+scipy.spatial._voronoi  File , "scipy.spatial._distance_wrap/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jaxopt/_src/base.py, "scipy.spatial._hausdorff, line , 70scipy.special._ufuncs_cxx in , fun_with_auxscipy.special._ufuncs
+,   File scipy.special._specfun", /scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/linear_util.pyscipy.special._comb", , line scipy.special._ellip_harm_2396,  in scipy.spatial.transform._rotation_get_result_paths_thunk, 
+scipy.optimize._group_columns  File , "scipy.optimize._trlib._trlib/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/api_util.py, "scipy.optimize._lbfgsb, line 288,  in _moduleTNC_argnums_partial, 
+scipy.optimize._moduleTNC  File , "scipy.optimize._cobyla/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/api_util.py, "scipy.optimize._slsqp, line , 106scipy.optimize._minpack in , flatten_fun_nokwargs2scipy.optimize._lsq.givens_elimination
+,   File scipy.optimize._zeros", /scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/interpreters/ad.pyscipy.optimize._cython_nnls", , line scipy._lib._uarray._uarray145,  in scipy.linalg._decomp_interpolativejvp_subtrace_aux, 
+scipy.optimize._bglu_dense  File , "scipy.optimize._lsap/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/interpreters/ad.py, "scipy.optimize._direct, line , 81scipy.integrate._odepack in , jvpfunscipy.integrate._quadpack
+,   File scipy.integrate._vode", /scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/api_util.pyscipy.integrate._dop", , line scipy.integrate._lsoda73 in , flatten_funscipy.interpolate._fitpack
+,   File scipy.interpolate._dfitpack", /scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/interpreters/partial_eval.pyscipy.interpolate._dierckx", , line scipy.interpolate._ppoly661,  in scipy.interpolate._interpnd_trace_to_subjaxpr_nounits, 
+scipy.interpolate._rbfinterp_pythran  File , "scipy.interpolate._rgi_cython/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/interpreters/partial_eval.py, "scipy.interpolate._bspl, line , 628scipy.special.cython_special in , trace_to_subjaxpr_nounitsscipy.stats._stats
+,   File scipy.stats._sobol", /scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/linear_util.pyscipy.stats._qmc_cy", , line scipy.stats._biasedurn211,  in scipy.stats._stats_pythrancall_wrapped, 
+scipy.stats._levy_stable.levyst  File , "scipy.stats._ansari_swilk_statistics/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/interpreters/partial_eval.py, "scipy.stats._mvn, line , 614scipy.stats._rcont.rcont in , trace_to_jaxpr_nounitsscipy.ndimage._nd_image
+,   File scipy.ndimage._rank_filter_1d"/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/profiler.py, "_ni_label, line , 354scipy.ndimage._ni_label in  (total: wrapper96
+)  File 
+"/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/interpreters/ad.py", line 277 in linearize
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/interpreters/ad.py"E0201 09:09:00.469670 1973991 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+2026-02-01 09:09:00.479084: E external/xla/xla/backends/cpu/codegen/contiguous_section_memory_manager.cc:101] allocateMappedMemory failed with error: Cannot allocate memory
+2026-02-01 09:09:00.479873: E external/xla/xla/backends/cpu/codegen/contiguous_section_memory_manager.cc:101] allocateMappedMemory failed with error: Cannot allocate memory
+2026-02-01 09:09:00.479925: E external/xla/xla/backends/cpu/codegen/contiguous_section_memory_manager.cc:139] Failed to satisfy suballocation request for 158
+LLVM ERROR: Unable to allocate section memory!
+2026-02-01 09:09:00.479960: E external/xla/xla/backends/cpu/codegen/contiguous_section_memory_manager.cc:139] Failed to satisfy suballocation request for 464
+LLVM ERROR: Unable to allocate section memory!
+Fatal Python error: Fatal Python error: AbortedAborted
+
+
+
+Thread 0x00007fedb1061740 (most recent call first):
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/compiler.py", line 385 in backend_compile_and_load
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/profiler.py", line 354 in wrapper
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/compiler.py", line 768 in _compile_and_write_cache
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/compiler.py", line 500 in compile_or_get_cached
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/interpreters/pxla.py", line 2743 in 
+Extension modules: _cached_compilationpsutil._psutil_linux
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/interpreters/pxla.py, "numpy._core._multiarray_umath, line 2952 in from_hlo
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/interpreters/pxla.py, "numpy.linalg._umath_linalg, line 2410 in compile
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/pjit.py", line 1855 in _pjit_call_impl_python
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/pjit.py", line 153 in , _python_pjit_helpernumpy.random._common
+  File , "numpy.random.bit_generator/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/pjit.py", , line numpy.random._bounded_integers292 in , cache_missnumpy.random._mt19937
+,   File numpy.random.mtrand", /scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/traceback_util.pynumpy.random._philox", , line numpy.random._pcg64182 in , reraise_with_filtered_tracebacknumpy.random._sfc64
+,   File numpy.random._generator"/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/dispatch.py, "jaxlib.cpu_feature_guard, line 91 in apply_primitive
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/core.py", line 1066 in process_primitive
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/core.py", line 562 in bind_with_trace
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/core.py, "scipy._lib._ccallback_c, line 552 in _true_bind
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/core.py", line 536 in bind
+,   File scipy.sparse._sparsetools"/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/lax/control_flow/loops.py, "_csparsetools, line , 916scipy.sparse._csparsetools in _scan_partial_eval
+  File , "scipy.linalg._fblas/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/interpreters/partial_eval.py, "scipy.linalg._flapack, line 229,  in scipy.linalg.cython_lapackprocess_primitive
+,   File scipy.linalg._cythonized_array_utils"/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/core.py, "scipy.linalg._solve_toeplitz, line 562,  in scipy.linalg._decomp_lu_cythonbind_with_trace
+,   File scipy.linalg._matfuncs_sqrtm_triu"/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/core.py, "scipy.linalg._matfuncs_expm, line 552,  in scipy.linalg._linalg_pythran_true_bind
+,   File scipy.linalg.cython_blas", /scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/core.pyscipy.linalg._decomp_update", line 536,  in scipy.sparse.linalg._dsolve._superlubind
+,   File scipy.sparse.linalg._eigen.arpack._arpack"/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/lax/control_flow/loops.py, "scipy.sparse.linalg._propack._spropack, line , 695scipy.sparse.linalg._propack._dpropack in _scan_jvp, 
+scipy.sparse.linalg._propack._cpropack  File ", /scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/interpreters/ad.pyscipy.sparse.linalg._propack._zpropack", line 500,  in scipy.sparse.csgraph._toolsprocess_primitive
+,   File scipy.sparse.csgraph._shortest_path"/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/core.py, "scipy.sparse.csgraph._traversal, line 562,  in scipy.sparse.csgraph._min_spanning_treebind_with_trace
+,   File scipy.sparse.csgraph._flow", /scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/core.pyscipy.sparse.csgraph._matching", line , 552scipy.sparse.csgraph._reordering in _true_bind, 
+scipy.spatial._ckdtree  File ", /scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/core.pyscipy._lib.messagestream", line , 536scipy.spatial._qhull in bind, 
+scipy.spatial._voronoi  File ", /scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/lax/control_flow/loops.pyscipy.spatial._distance_wrap", , line scipy.spatial._hausdorff370 in , scanscipy.special._ufuncs_cxx
+  File , "scipy.special._ufuncs/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/traceback_util.py", , line scipy.special._specfun182,  in scipy.special._combreraise_with_filtered_traceback
+  File , "scipy.special._ellip_harm_2/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/jax_likelihoods.py", line , 661scipy.spatial.transform._rotation in wmrl_block_likelihood
+,   File scipy.optimize._group_columns"/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/jax_likelihoods.py, "scipy.optimize._trlib._trlib, line 922 in wmrl_multiblock_likelihood, 
+scipy.optimize._lbfgsb  File ", /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/fit_mle.py_moduleTNC", , line scipy.optimize._moduleTNC181,  in scipy.optimize._cobylaobjective
+,   File scipy.optimize._slsqp"/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jaxopt/_src/base.py, "scipy.optimize._minpack, line 70,  in scipy.optimize._lsq.givens_eliminationfun_with_aux
+,   File scipy.optimize._zeros"/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/linear_util.py, "scipy.optimize._cython_nnls, line 396 in _get_result_paths_thunk, 
+scipy._lib._uarray._uarray  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/api_util.py, "scipy.linalg._decomp_interpolative, line 288,  in scipy.optimize._bglu_dense_argnums_partial, 
+scipy.optimize._lsap  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/api_util.py, "scipy.optimize._direct, line 106,  in scipy.integrate._odepackflatten_fun_nokwargs2
+,   File scipy.integrate._quadpack"/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/interpreters/ad.py, "scipy.integrate._vode, line , 145scipy.integrate._dop in , jvp_subtrace_auxscipy.integrate._lsoda
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/interpreters/ad.py, "scipy.interpolate._fitpack, line , 81scipy.interpolate._dfitpack in jvpfun, 
+scipy.interpolate._dierckx  File ", /scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/api_util.pyscipy.interpolate._ppoly", line , 73scipy.interpolate._interpnd in flatten_fun
+,   File scipy.interpolate._rbfinterp_pythran"/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/interpreters/partial_eval.py, "scipy.interpolate._rgi_cython, line 661,  in scipy.interpolate._bspl_trace_to_subjaxpr_nounits
+,   File scipy.special.cython_special", /scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/interpreters/partial_eval.pyscipy.stats._stats", line 628,  in scipy.stats._soboltrace_to_subjaxpr_nounits, 
+scipy.stats._qmc_cy  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/linear_util.py, "scipy.stats._biasedurn, line 211,  in scipy.stats._stats_pythrancall_wrapped
+,   File scipy.stats._levy_stable.levyst"/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/interpreters/partial_eval.py", , line scipy.stats._ansari_swilk_statistics614 in , trace_to_jaxpr_nounitsscipy.stats._mvn
+  File , "scipy.stats._rcont.rcont/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/profiler.py", line , 354scipy.ndimage._nd_image in wrapper, 
+scipy.ndimage._rank_filter_1d  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/interpreters/ad.py, "_ni_label, line , 277scipy.ndimage._ni_label in linearize
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/interpreters/ad.py" (total: , line 96294) in 
+vjp
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/api.py", line 2183 in E0201 09:09:01.324380 1973960 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:09:01.328276 1973962 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+2026-02-01 09:09:01.330399: E external/xla/xla/backends/cpu/codegen/contiguous_section_memory_manager.cc:101] allocateMappedMemory failed with error: Cannot allocate memory
+2026-02-01 09:09:01.334588: E external/xla/xla/backends/cpu/codegen/contiguous_section_memory_manager.cc:101] allocateMappedMemory failed with error: Cannot allocate memory
+2026-02-01 09:09:01.334629: E external/xla/xla/backends/cpu/codegen/contiguous_section_memory_manager.cc:139] Failed to satisfy suballocation request for 158
+LLVM ERROR: Unable to allocate section memory!
+Fatal Python error: Aborted
+
+Thread 0x00007f50e9845740 (most recent call first):
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/compiler.py", line 385 in backend_compile_and_load
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/profiler.py", line 354 in wrapper
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/compiler.py", line 768 in _compile_and_write_cache
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/compiler.py", line 500 in compile_or_get_cached
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/interpreters/pxla.py", line 2743 in _cached_compilation
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/interpreters/pxla.py", line 2952 in from_hlo
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/interpreters/pxla.py", line 2410 in compile
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/pjit.py", line 1855 in _pjit_call_impl_python
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/pjit.py", line 153 in _python_pjit_helper
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/pjit.py", line 292 in cache_miss
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/traceback_util.py", line 182 in reraise_with_filtered_traceback
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/dispatch.py", line 91 in apply_primitive
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/core.py", line 1066 in process_primitive
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/core.py", line 562 in bind_with_trace
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/core.py", line 552 in _true_bind
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/core.py", line 536 in bind
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/lax/control_flow/loops.py", line 916 in _scan_partial_eval
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/interpreters/partial_eval.py", line 229 in process_primitive
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/core.py", line 562 in bind_with_trace
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/core.py", line 552 in _true_bind
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/core.py", line 536 in bind
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/lax/control_flow/loops.py", line 695 in _scan_jvp
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/interpreters/ad.py", line 500 in process_primitive
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/core.py", line 562 in bind_with_trace
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/core.py", line 552 in _true_bind
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/core.py", line 536 in bind
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/lax/control_flow/loops.py", line 370 in scan
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/traceback_util.py", line 182 in reraise_with_filtered_traceback
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/jax_likelihoods.py", line 661 in wmrl_block_likelihood
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/jax_likelihoods.py", line 922 in wmrl_multiblock_likelihood
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/fit_mle.py", line 181 in objective
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jaxopt/_src/base.py", line 70 in fun_with_aux
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/linear_util.py", line 396 in _get_result_paths_thunk
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/api_util.py", line 288 in _argnums_partial
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/api_util.py", line 106 in flatten_fun_nokwargs2
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/interpreters/ad.py", line 145 in jvp_subtrace_aux
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/interpreters/ad.py", line 81 in jvpfun
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/api_util.py", line 73 in flatten_fun
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/interpreters/partial_eval.py", line 661 in _trace_to_subjaxpr_nounits
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/interpreters/partial_eval.py", line 628 in trace_to_subjaxpr_nounits
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/linear_util.py", line 211 in call_wrapped
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/interpreters/partial_eval.py", line 614 in trace_to_jaxpr_nounits
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/profiler.py", line 354 in wrapper
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/interpreters/ad.py", line 277 in linearize
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/interpreters/ad.py", line 294 in vjp
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/api.py", line 2183 in _vjp
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/api.py", line 512 in value_and_grad_f
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/traceback_util.py", line 182 in reraise_with_filtered_traceback
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jaxopt/_src/lbfgs.py", line 284 in init_state
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jaxopt/_src/base.py", line 300 in _run
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jaxopt/_src/implicit_diff.py", line 207 in solver_fun_flat
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/linear_util.py", line 396 in _get_result_paths_thunk
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/custom_derivatives.py", line 87 in _flatten_fun_nokwargs
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/linear_util.py", line 211 in call_wrapped
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/core.py", line 1087 in process_custom_vjp_call
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/custom_derivatives.py", line 987 in bind_with_trace
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/core.py", line 552 in _true_bind
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/custom_derivatives.py", line 983 in bind
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/custom_derivatives.py", line 736 in __call__
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/traceback_util.py", line 182 in reraise_with_filtered_traceback
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jaxopt/_src/implicit_diff.py", line 251 in wrapped_solver_fun
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jaxopt/_src/base.py", line 358 in run
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/fit_mle.py", line 316 in fit_participant_mle
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/fit_mle.py", line 450 in _fit_single_participant_worker
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/joblib/parallel.py", line 607 in <listcomp>
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/joblib/parallel.py", line 607 in __call__
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/joblib/externals/loky/process_executor.py", line 291 in __call__
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/joblib/externals/loky/process_executor.py", line 490 in _process_worker
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/multiprocessing/process.py", line 108 in run
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/multiprocessing/process.py", line 314 in _bootstrap
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/joblib/externals/loky/backend/popen_loky_posix.py", line 180 in <module>
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/runpy.py", line 86 in _run_code
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/runpy.py", line 196 in _run_module_as_main
+
+Extension modules: psutil._psutil_linux, numpy._core._multiarray_umath, numpy.linalg._umath_linalg, numpy.random._common, numpy.random.bit_generator, numpy.random._bounded_integers, numpy.random._mt19937, numpy.random.mtrand, numpy.random._philox, numpy.random._pcg64, numpy.random._sfc64, numpy.random._generator, jaxlib.cpu_feature_guard, scipy._lib._ccallback_c, scipy.sparse._sparsetools, _csparsetools, scipy.sparse._csparsetools, scipy.linalg._fblas, scipy.linalg._flapack, scipy.linalg.cython_lapack, scipy.linalg._cythonized_array_utils, scipy.linalg._solve_toeplitz, scipy.linalg._decomp_lu_cython, scipy.linalg._matfuncs_sqrtm_triu, scipy.linalg._matfuncs_expm, scipy.linalg._linalg_pythran, scipy.linalg.cython_blas, scipy.linalg._decomp_update, scipy.sparse.linalg._dsolve._superlu, scipy.sparse.linalg._eigen.arpack._arpack, scipy.sparse.linalg._propack._spropack, scipy.sparse.linalg._propack._dpropack, scipy.sparse.linalg._propack._cpropack, scipy.sparse.linalg._propack._zpropack, scipy.sparse.csgraph._tools, scipy.sparse.csgraph._shortest_path, scipy.sparse.csgraph._traversal, scipy.sparse.csgraph._min_spanning_tree, scipy.sparse.csgraph._flow, scipy.sparse.csgraph._matching, scipy.sparse.csgraph._reordering, scipy.spatial._ckdtree, scipy._lib.messagestream, scipy.spatial._qhull, scipy.spatial._voronoi, scipy.spatial._distance_wrap, scipy.spatial._hausdorff, scipy.special._ufuncs_cxx, scipy.special._ufuncs, scipy.special._specfun, scipy.special._comb, scipy.special._ellip_harm_2, scipy.spatial.transform._rotation, scipy.optimize._group_columns, scipy.optimize._trlib._trlib, scipy.optimize._lbfgsb, _moduleTNC, scipy.optimize._moduleTNC, scipy.optimize._cobyla, scipy.optimize._slsqp, scipy.optimize._minpack, scipy.optimize._lsq.givens_elimination, scipy.optimize._zeros, scipy.optimize._cython_nnls, scipy._lib._uarray._uarray, scipy.linalg._decomp_interpolative, scipy.optimize._bglu_dense, scipy.optimize._lsap, scipy.optimize._direct, scipy.integrate._odepack, scipy.integrate._quadpack, scipy.integrate._vode, scipy.integrate._dop, scipy.integrate._lsoda, scipy.interpolate._fitpack, scipy.interpolate._dfitpack, scipy.interpolate._dierckx, scipy.interpolate._ppoly, scipy.interpolate._interpnd, scipy.interpolate._rbfinterp_pythran, scipy.interpolate._rgi_cython, scipy.interpolate._bspl, scipy.special.cython_special, scipy.stats._stats, scipy.stats._sobol, scipy.stats._qmc_cy, scipy.stats._biasedurn, scipy.stats._stats_pythran, scipy.stats._levy_stable.levyst, scipy.stats._ansari_swilk_statistics, scipy.stats._mvn, scipy.stats._rcont.rcont, scipy.ndimage._nd_image, scipy.ndimage._rank_filter_1d, _ni_label, scipy.ndimage._ni_label (total: 96)
+Traceback (most recent call last):
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/fit_mle.py", line 947, in <module>
+    main()
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/fit_mle.py", line 824, in main
+    fits_df, timing_info = fit_all_participants(
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/fit_mle.py", line 557, in fit_all_participants
+    results = Parallel(
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/joblib/parallel.py", line 2072, in __call__
+    return output if self.return_generator else list(output)
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/joblib/parallel.py", line 1682, in _get_outputs
+    yield from self._retrieve()
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/joblib/parallel.py", line 1784, in _retrieve
+    self._raise_error_fast()
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/joblib/parallel.py", line 1859, in _raise_error_fast
+    error_job.get_result(self.timeout)
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/joblib/parallel.py", line 758, in get_result
+    return self._return_or_raise()
+  File "/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/joblib/parallel.py", line 773, in _return_or_raise
+    raise self._result
+joblib.externals.loky.process_executor.TerminatedWorkerError: A worker process managed by the executor was unexpectedly terminated. This could be caused by a segmentation fault while calling the function or by an excessive memory usage causing the Operating System to kill the worker.
+
+The exit codes of the workers are {SIGSEGV(-11)}
+Detailed tracebacks of the workers should have been printed to stderr in the executor process if faulthandler was not disabled.
