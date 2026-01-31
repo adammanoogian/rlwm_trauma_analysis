@@ -34,7 +34,6 @@ import pandas as pd
 import jax
 import jax.numpy as jnp
 from jaxopt import LBFGS
-from tqdm import tqdm
 
 # Add project root to path
 project_root = Path(__file__).parent.parent.parent
@@ -491,6 +490,12 @@ def fit_all_participants(
     # Track timing for ETA estimation
     start_time = time.time()
 
+    # Track initial memory usage
+    if HAS_PSUTIL and verbose:
+        process = psutil.Process()
+        initial_mem_gb = process.memory_info().rss / 1024**3
+        print(f"Initial memory usage: {initial_mem_gb:.2f} GB")
+
     if verbose:
         print(f"\n{'='*60}")
         print(f"Starting MLE fitting: {model.upper()}")
@@ -510,36 +515,37 @@ def fit_all_participants(
 
     # Execute fitting
     if n_jobs == 1:
-        # Sequential execution (existing behavior with tqdm progress)
+        # Sequential execution with per-participant progress
         results = []
         fit_times = []
 
-        iterator = tqdm(
-            participant_args,
-            total=n_participants,
-            desc=f'Fitting {model}',
-            unit='participant',
-            ncols=100,
-            bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]'
-        ) if verbose else participant_args
+        for i, args in enumerate(participant_args):
+            pid = args[0]
+            n_trials = sum(len(s) for s in args[1]['stimuli_blocks'])
 
-        for args in iterator:
+            if verbose:
+                # Print progress header for this participant
+                print(f"[{i+1:3d}/{n_participants}] Fitting participant {pid} ({n_trials} trials)...", end=" ", flush=True)
+
             fit_start = time.time()
             result = _fit_single_participant_worker(args)
             fit_time = time.time() - fit_start
             fit_times.append(fit_time)
             results.append(result)
 
-            # Update tqdm postfix with current stats
-            if verbose and hasattr(iterator, 'set_postfix'):
-                n_trials = sum(len(s) for s in args[1]['stimuli_blocks'])
-                avg_time = np.mean(fit_times)
-                iterator.set_postfix({
-                    'trials': n_trials,
-                    'NLL': f"{result['nll']:.1f}" if not np.isnan(result['nll']) else 'NaN',
-                    'conv': '✓' if result['converged'] else '✗',
-                    'avg': f"{avg_time:.1f}s"
-                })
+            if verbose:
+                # Print result summary
+                nll_str = f"NLL={result['nll']:.1f}" if not np.isnan(result['nll']) else "NLL=NaN"
+                conv_str = "converged" if result['converged'] else "NOT converged"
+                print(f"{nll_str}, {conv_str}, {fit_time:.1f}s")
+
+                # Every 10 participants, print a summary line
+                if (i + 1) % 10 == 0:
+                    avg_time = np.mean(fit_times)
+                    n_converged = sum(r['converged'] for r in results)
+                    remaining = (n_participants - i - 1) * avg_time
+                    print(f"    --- Progress: {i+1}/{n_participants} done, {n_converged} converged, "
+                          f"avg {avg_time:.1f}s/participant, ~{remaining/60:.1f} min remaining ---")
     else:
         # Parallel execution using joblib
 
@@ -599,6 +605,13 @@ def fit_all_participants(
         if n_jobs != 1:
             speedup = (total_time / n_participants * n_participants) / total_time
             print(f"Effective parallelization: {n_jobs} workers")
+
+        # Report peak memory usage
+        if HAS_PSUTIL:
+            process = psutil.Process()
+            peak_mem_gb = process.memory_info().rss / 1024**3
+            print(f"Peak memory usage: {peak_mem_gb:.2f} GB")
+
         print(f"{'='*60}\n")
 
     # Convert to DataFrame
