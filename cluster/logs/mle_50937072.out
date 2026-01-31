@@ -1,0 +1,70 @@
+============================================================
+RLWM MLE Fitting - M3 SLURM Job
+============================================================
+Job ID: 50937072
+Node: m3k025
+Partition: comp
+CPUs requested: 4
+Memory requested: 65536
+Parallel workers: 1
+Project: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis
+Start time: Sun Feb  1 10:00:27 AM AEDT 2026
+============================================================
+JAX cache: /scratch/fc37/aman0087/.jax_cache
+
+============================================================
+Fitting model: qlearning (workers: 1)
+Started: Sun Feb  1 10:00:28 AM AEDT 2026
+============================================================
+
+============================================================
+MLE Fitting: QLEARNING
+============================================================
+Data: output/task_trials_long.csv
+Random starts: 20
+Seed: 42
+Output: output/mle/
+Include practice: False
+Parallel workers: 1
+============================================================
+
+Loading data...
+  Total participants in data: 47
+  Final sample: 47
+  Total trials: 35058
+
+Initial memory usage: 0.12 GB
+
+============================================================
+Starting MLE fitting: QLEARNING
+============================================================
+Participants: 47
+Random starts per participant: 20
+Parallel workers: 1
+============================================================
+
+Preparing participant data...
+[  1/47] Fitting participant 10000 (988 trials)... WARNING: Model qlearning exited with code 139
+Completed: Sun Feb  1 10:11:49 AM AEDT 2026
+
+============================================================
+All models complete!
+End time: Sun Feb  1 10:11:49 AM AEDT 2026
+============================================================
+
+Results saved to:
+  output/mle/*_individual_fits.csv
+  output/mle/*_group_summary.csv
+============================================================
+
+============================================================
+JOB RESOURCE UTILIZATION
+============================================================
+JobID                JobName    Elapsed     MaxRSS  MaxVMSize     ReqMem  AllocCPUS   TotalCPU      State 
+------------ --------------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- 
+50937072            rlwm_mle   00:11:23                              64G          4   00:00:00    RUNNING 
+50937072.ba+           batch   00:11:23                                           4   00:00:00    RUNNING 
+50937072.ex+          extern   00:11:23                                           4   00:00:00    RUNNING 
+============================================================
+
+FINAL STATUS: ONE OR MORE MODELS FAILED

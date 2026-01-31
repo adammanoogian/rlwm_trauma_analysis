@@ -1,0 +1,40 @@
+
+EnvironmentNameNotFound: Could not find conda environment: rlwm
+You can list all discoverable environments with `conda info --envs`.
+
+
+E0201 09:43:49.802806 1082225 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:43:49.803303 1082225 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:43:49.803366 1082225 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:43:49.803411 1082225 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:43:49.803466 1082225 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:43:49.803512 1082225 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:43:49.803551 1082225 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:43:49.803589 1082225 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:43:49.803638 1082225 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:43:49.803681 1082225 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:43:49.803723 1082225 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:43:49.803764 1082225 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:43:49.803805 1082225 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:43:49.803845 1082225 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:43:49.803897 1082225 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:43:49.803952 1082225 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:43:49.803996 1082225 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:43:49.804042 1082225 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:43:49.804086 1082225 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:43:49.804130 1082225 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:43:49.804185 1082225 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:43:49.804231 1082225 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:43:49.804275 1082225 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:43:49.804327 1082225 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:43:49.804373 1082225 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:43:49.804421 1082225 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:43:49.804465 1082225 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:43:49.804506 1082225 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:43:49.804547 1082225 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:43:49.804596 1082225 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+E0201 09:43:49.804637 1082225 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+/scratch/fc37/aman0087/conda/envs/rlwm/lib/python3.10/site-packages/jax/_src/compiler.py:805: UserWarning: Error reading persistent compilation cache entry for 'jit_scan': XlaRuntimeError: INTERNAL: Failed to materialize symbols: { (<xla_jit_dylib_0>, { dynamic-slice_bitcast_fusion, bitcast_dynamic-update-slice_fusion.21 }) }
+  warnings.warn(
+E0201 09:43:49.946982 1082888 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+/var/spool/slurmd/job50937008/slurm_script: line 98: 1082225 Segmentation fault      (core dumped) python scripts/fitting/fit_mle.py --model "$model" --data "$DATA_FILE" --output output/mle/ --n-starts 20 --seed 42 --n-jobs "$NJOBS"

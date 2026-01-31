@@ -1,0 +1,11 @@
+
+EnvironmentNameNotFound: Could not find conda environment: rlwm
+You can list all discoverable environments with `conda info --envs`.
+
+
+2026-02-01 09:43:43.729269: E external/xla/xla/backends/cpu/codegen/contiguous_section_memory_manager.cc:101] allocateMappedMemory failed with error: Cannot allocate memory
+E0201 09:43:43.729940 2391252 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
+2026-02-01 09:43:43.732648: E external/xla/xla/backends/cpu/codegen/contiguous_section_memory_manager.cc:139] Failed to satisfy suballocation request for 56
+LLVM ERROR: Unable to allocate section memory!
+E0201 09:43:43.732852 2391253 execution_engine.cc:54] LLVM compilation error: JITDylib <xla_jit_dylib_9> is defunct
+/var/spool/slurmd/job50937006/slurm_script: line 98: 2378750 Aborted                 (core dumped) python scripts/fitting/fit_mle.py --model "$model" --data "$DATA_FILE" --output output/mle/ --n-starts 20 --seed 42 --n-jobs "$NJOBS"
