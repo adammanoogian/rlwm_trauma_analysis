@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# SLURM Batch Script: MLE Fitting for RLWM Models
+# SLURM Batch Script: MLE Fitting for RLWM Models (Monash M3)
 # =============================================================================
 # Runs MLE parameter estimation for all three models (M1, M2, M3)
 #
@@ -11,40 +11,42 @@
 # Outputs saved to:
 #   - output/mle/{model}_individual_fits.csv
 #   - output/mle/{model}_group_summary.csv
-#   - cluster/logs/mle_{model}_{jobid}.out
+#   - cluster/logs/mle_{jobid}.out
+#
+# Reference: https://docs.erc.monash.edu/old-M3/M3/slurm/partitions/
 # =============================================================================
 
 #SBATCH --job-name=rlwm_mle
-#SBATCH --output=cluster/logs/mle_%x_%j.out
-#SBATCH --error=cluster/logs/mle_%x_%j.err
+#SBATCH --output=cluster/logs/mle_%j.out
+#SBATCH --error=cluster/logs/mle_%j.err
 #SBATCH --time=04:00:00
 #SBATCH --mem=8G
 #SBATCH --cpus-per-task=4
-#SBATCH --partition=standard
+#SBATCH --partition=comp
 
 # =============================================================================
-# Environment Setup
+# Environment Setup (M3 specific)
 # =============================================================================
 
-# Load conda (adjust module name for your cluster)
-# Common options: anaconda, miniconda, anaconda3, conda
-module load anaconda 2>/dev/null || module load miniconda 2>/dev/null || true
+# Load miniforge3 (M3's conda distribution)
+module load miniforge3
 
 # Navigate to project directory
 cd "${SLURM_SUBMIT_DIR:-$(dirname "$0")/..}"
 PROJECT_ROOT="$(pwd)"
 
 echo "============================================================"
-echo "RLWM MLE Fitting - SLURM Job"
+echo "RLWM MLE Fitting - M3 SLURM Job"
 echo "============================================================"
 echo "Job ID: ${SLURM_JOB_ID:-local}"
 echo "Node: ${SLURMD_NODENAME:-$(hostname)}"
+echo "Partition: ${SLURM_JOB_PARTITION:-comp}"
 echo "Project: $PROJECT_ROOT"
 echo "Start time: $(date)"
 echo "============================================================"
 
 # Activate conda environment
-source "$(conda info --base)/etc/profile.d/conda.sh"
+# Note: Do NOT use 'conda init' on M3 - it breaks Strudel
 conda activate rlwm
 
 # Create logs directory if needed

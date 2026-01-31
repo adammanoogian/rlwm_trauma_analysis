@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# SLURM Batch Script: Single Model MLE Fitting with Timing Test
+# SLURM Batch Script: Single Model MLE Fitting with Timing (Monash M3)
 # =============================================================================
 # Runs MLE fitting for a single model. Use --limit for quick timing tests.
 #
@@ -13,15 +13,17 @@
 #
 #   # Different models: qlearning, wmrl, wmrl_m3
 #   sbatch --export=MODEL=qlearning cluster/run_mle_single.slurm
+#
+# Reference: https://docs.erc.monash.edu/old-M3/M3/slurm/partitions/
 # =============================================================================
 
 #SBATCH --job-name=rlwm_mle_single
-#SBATCH --output=cluster/logs/mle_single_%x_%j.out
-#SBATCH --error=cluster/logs/mle_single_%x_%j.err
+#SBATCH --output=cluster/logs/mle_single_%j.out
+#SBATCH --error=cluster/logs/mle_single_%j.err
 #SBATCH --time=02:00:00
 #SBATCH --mem=8G
 #SBATCH --cpus-per-task=4
-#SBATCH --partition=standard
+#SBATCH --partition=comp
 
 # =============================================================================
 # Configuration (set via --export or use defaults)
@@ -30,25 +32,27 @@ MODEL="${MODEL:-wmrl_m3}"
 LIMIT="${LIMIT:-}"
 
 # =============================================================================
-# Environment Setup
+# Environment Setup (M3 specific)
 # =============================================================================
-module load anaconda 2>/dev/null || module load miniconda 2>/dev/null || true
+
+# Load miniforge3 (M3's conda distribution)
+module load miniforge3
 
 cd "${SLURM_SUBMIT_DIR:-$(dirname "$0")/..}"
 PROJECT_ROOT="$(pwd)"
 
 echo "============================================================"
-echo "RLWM MLE Fitting - Single Model"
+echo "RLWM MLE Fitting - Single Model (M3)"
 echo "============================================================"
 echo "Job ID: ${SLURM_JOB_ID:-local}"
 echo "Node: ${SLURMD_NODENAME:-$(hostname)}"
+echo "Partition: ${SLURM_JOB_PARTITION:-comp}"
 echo "Model: $MODEL"
 echo "Limit: ${LIMIT:-full dataset}"
 echo "Start time: $(date)"
 echo "============================================================"
 
 # Activate conda environment
-source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate rlwm
 
 mkdir -p cluster/logs

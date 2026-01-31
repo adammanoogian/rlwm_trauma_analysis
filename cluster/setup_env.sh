@@ -1,37 +1,101 @@
 #!/bin/bash
 # =============================================================================
-# RLWM Trauma Analysis - Cluster Environment Setup
+# RLWM Trauma Analysis - M3 Cluster Environment Setup
 # =============================================================================
-# This script sets up the conda environment on a university cluster.
+# This script sets up the conda environment on Monash M3 (MASSIVE).
 #
 # Usage:
+#   module load miniforge3
 #   ./cluster/setup_env.sh
 #
 # Prerequisites:
-#   - conda or mamba must be available (usually via 'module load anaconda' or similar)
+#   - Must be on M3 login node
+#   - Run 'module load miniforge3' first
+#
+# Reference: https://docs.erc.monash.edu/Compute/HPC/M3/Software/Conda/
 # =============================================================================
 
 set -e  # Exit on error
 
 echo "============================================================"
-echo "RLWM Trauma Analysis - Environment Setup"
+echo "RLWM Trauma Analysis - M3 Environment Setup"
 echo "============================================================"
 
-# Check if conda is available
+# =============================================================================
+# Step 1: Check prerequisites
+# =============================================================================
+
+# Check if on M3
+if [[ ! -d "/scratch" ]]; then
+    echo "WARNING: /scratch not found. Are you on M3?"
+fi
+
+# Check if miniforge3 is loaded
 if ! command -v conda &> /dev/null; then
     echo "ERROR: conda not found!"
-    echo "Try loading the anaconda module first:"
-    echo "  module load anaconda"
-    echo "  # or: module load miniconda"
+    echo ""
+    echo "Please load the miniforge3 module first:"
+    echo "  module load miniforge3"
+    echo ""
+    echo "Then run this script again."
     exit 1
 fi
 
-# Navigate to project root (parent of cluster/)
+# Navigate to project root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 cd "$PROJECT_ROOT"
 
 echo "Project root: $PROJECT_ROOT"
+echo ""
+
+# =============================================================================
+# Step 2: Configure conda to use scratch (M3 requirement)
+# =============================================================================
+
+# Detect HPC project ID from current path or prompt
+if [[ -z "$PROJECT" ]]; then
+    # Try to detect from common paths
+    if [[ "$PROJECT_ROOT" =~ /scratch/([^/]+)/ ]]; then
+        PROJECT="${BASH_REMATCH[1]}"
+        echo "Detected HPC project: $PROJECT"
+    elif [[ "$PROJECT_ROOT" =~ /projects/([^/]+)/ ]]; then
+        PROJECT="${BASH_REMATCH[1]}"
+        echo "Detected HPC project: $PROJECT"
+    else
+        echo "Could not auto-detect HPC project ID."
+        read -p "Enter your M3 project ID (e.g., nq46): " PROJECT
+    fi
+fi
+
+if [[ -z "$PROJECT" ]]; then
+    echo "ERROR: PROJECT ID is required for M3 scratch storage."
+    exit 1
+fi
+
+# Set up conda to use scratch storage (avoids home quota issues)
+CONDA_HOME="/scratch/$PROJECT/$USER/conda"
+echo ""
+echo "Configuring conda to use scratch storage..."
+echo "  CONDA_HOME: $CONDA_HOME"
+
+# Create conda directories
+mkdir -p "$CONDA_HOME/pkgs"
+mkdir -p "$CONDA_HOME/envs"
+
+# Configure conda (if not already configured)
+if ! grep -q "$CONDA_HOME" ~/.condarc 2>/dev/null; then
+    conda config --add pkgs_dirs "$CONDA_HOME/pkgs"
+    conda config --add envs_dirs "$CONDA_HOME/envs"
+    echo "  Updated ~/.condarc"
+else
+    echo "  Conda already configured for scratch"
+fi
+
+# =============================================================================
+# Step 3: Create environment
+# =============================================================================
+
 echo ""
 
 # Check if environment already exists
@@ -41,33 +105,29 @@ if conda env list | grep -q "^rlwm "; then
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         echo "Removing existing environment..."
-        conda env remove -n rlwm -y
+        mamba env remove -n rlwm -y 2>/dev/null || conda env remove -n rlwm -y
     else
         echo "Keeping existing environment. Updating packages..."
-        conda env update -f environment.yml --prune
+        mamba env update -f environment.yml --prune 2>/dev/null || conda env update -f environment.yml --prune
         echo "Done!"
         exit 0
     fi
 fi
 
-# Create environment
+echo ""
 echo "Creating conda environment 'rlwm'..."
 echo "This may take a few minutes..."
 echo ""
 
-# Prefer mamba if available (much faster)
-if command -v mamba &> /dev/null; then
-    echo "Using mamba (faster)..."
-    mamba env create -f environment.yml
-else
-    echo "Using conda..."
-    conda env create -f environment.yml
-fi
+# Use mamba (faster, available with miniforge3)
+mamba env create -f environment.yml
 
 echo ""
 echo "============================================================"
-echo "SUCCESS! Environment created."
+echo "SUCCESS! Environment created in scratch."
 echo "============================================================"
+echo ""
+echo "Location: $CONDA_HOME/envs/rlwm"
 echo ""
 echo "To activate the environment:"
 echo "  conda activate rlwm"
@@ -75,4 +135,5 @@ echo ""
 echo "To run MLE fitting:"
 echo "  sbatch cluster/run_mle.slurm"
 echo ""
+echo "NOTE: Do NOT run 'conda init' - it breaks Strudel."
 echo "============================================================"
