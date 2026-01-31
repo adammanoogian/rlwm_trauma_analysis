@@ -553,14 +553,29 @@ def fit_all_participants(
 
         # joblib handles the parallel execution
         # verbose=10 shows progress; verbose=0 is silent
-        results = Parallel(
-            n_jobs=n_jobs,
-            verbose=10 if verbose else 0,
-            backend='loky'  # Process-based backend for true parallelism
-        )(
-            delayed(_fit_single_participant_worker)(args)
-            for args in participant_args
-        )
+        try:
+            results = Parallel(
+                n_jobs=n_jobs,
+                verbose=10 if verbose else 0,
+                backend='loky'  # Process-based backend for true parallelism
+            )(
+                delayed(_fit_single_participant_worker)(args)
+                for args in participant_args
+            )
+        except Exception as e:
+            error_msg = str(e)
+            if 'SIGKILL' in error_msg or 'TerminatedWorkerError' in str(type(e).__name__):
+                print(f"\n{'='*60}")
+                print("ERROR: Worker processes killed (likely out of memory)")
+                print(f"{'='*60}")
+                print("The parallel workers were terminated by the OS (SIGKILL).")
+                print("This typically means JAX + joblib exceeded available memory.")
+                print("\nSuggested fixes:")
+                print("  1. Reduce --n-jobs (try 8 or 4 instead of 16)")
+                print("  2. Request more memory in SLURM (--mem=64G)")
+                print("  3. Use sequential fitting (--n-jobs 1)")
+                print(f"{'='*60}\n")
+            raise
 
         # For parallel execution, we can't track individual times
         # Use total time / n_participants as estimate
@@ -910,6 +925,21 @@ def main():
     print(f"Results saved to:")
     print(f"  Individual fits: {fits_path}")
     print(f"  Group summary:   {summary_path}")
+    print(f"{'='*60}")
+
+    # Final status summary - clear indication of success/failure
+    n_failed = fits_df['nll'].isna().sum()
+    n_total = len(fits_df)
+
+    print(f"\n{'='*60}")
+    if n_failed == 0 and n_converged == n_total:
+        print(f"STATUS: SUCCESS - All {n_total} participants fit successfully")
+    elif n_failed == 0:
+        print(f"STATUS: COMPLETE - {n_total} participants fit ({n_converged} converged, {n_total - n_converged} did not converge)")
+    else:
+        print(f"STATUS: PARTIAL - {n_total - n_failed}/{n_total} participants fit, {n_failed} FAILED")
+        failed_pids = fits_df[fits_df['nll'].isna()]['participant_id'].tolist()
+        print(f"  Failed participants: {failed_pids[:10]}{'...' if len(failed_pids) > 10 else ''}")
     print(f"{'='*60}\n")
 
 
