@@ -5,7 +5,7 @@ Demonstrates how to load and visualize parameter sweep results,
 including individual model plots and comparative visualizations.
 
 Usage:
-    python scripts/simulations/example_visualize_sweeps.py
+    python tests/examples/example_visualize_sweeps.py
 """
 
 import pandas as pd
@@ -46,8 +46,8 @@ if not sweep_dir.exists():
     print(f"ERROR: Parameter sweep directory not found: {sweep_dir}")
     print()
     print("To generate sweep results, run one of:")
-    print("  python scripts/simulations/example_parameter_sweep.py")
-    print("  python scripts/simulations/parameter_sweep.py")
+    print("  python tests/examples/example_parameter_sweep.py")
+    print("  python scripts/10_run_parameter_sweep.py")
     print()
     sys.exit(1)
 
@@ -286,5 +286,5 @@ print("Next steps:")
 print("  - Review the figures to understand model behavior")
 print("  - Identify optimal parameter ranges for each model")
 print("  - Use insights to guide model fitting to behavioral data")
-print("  - Run model comparison (scripts/analysis/run_model_comparison.py)")
+print("  - Run model comparison (scripts/14_compare_models.py)")
 print()

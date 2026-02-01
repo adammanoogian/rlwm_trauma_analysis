@@ -1,8 +1,40 @@
+#!/usr/bin/env python
 """
-Visualize human behavioral data with stimulus-based learning curves.
+06: Visualize Task Performance
+==============================
+
+Creates stimulus-based learning curves and performance visualizations
+from human behavioral data.
 
 This script generates the same visualizations as the model predictions,
 but using actual human behavioral data.
+
+Inputs:
+    - output/task_trials_long.csv (or custom via --data)
+    - output/trauma_groups/group_assignments.csv (optional via --trauma-groups)
+
+Outputs:
+    - figures/behavioral_summary/human_stimulus_learning_curve.png
+    - figures/behavioral_summary/human_stimulus_encounter_performance.png
+    - figures/behavioral_summary/human_stimulus_performance_analysis.png
+    - output/behavioral_summary/human_stimulus_based_data.csv
+
+Usage:
+    # Basic visualization
+    python scripts/06_visualize_task_performance.py
+
+    # With custom data file
+    python scripts/06_visualize_task_performance.py --data output/task_trials_long_all.csv
+
+    # With trauma group comparisons
+    python scripts/06_visualize_task_performance.py --trauma-groups output/trauma_groups/group_assignments.csv
+
+    # Custom encounter threshold
+    python scripts/06_visualize_task_performance.py --threshold 5
+
+Next Steps:
+    - Run 07_analyze_trauma_groups.py to create trauma groupings
+    - Run 08_run_statistical_analyses.py for statistical tests
 """
 
 import numpy as np
@@ -13,12 +45,13 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 import sys
 from collections import defaultdict
+import argparse
 
 # Add project root to path
-project_root = Path(__file__).resolve().parents[2]
+project_root = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(project_root))
 
-from config import TaskParams, OUTPUT_DIR, FIGURES_DIR, AnalysisParams
+from config import TaskParams, DataParams, OUTPUT_DIR, FIGURES_DIR, AnalysisParams
 
 
 def process_human_data_stimulus_based(trials_df):
@@ -168,12 +201,12 @@ def plot_human_stimulus_learning_curves(
             ax.set_ylabel('Accuracy (%)', fontsize=12, fontweight='bold')
             ax.set_ylim([0, 105])
             ax.axhline(50, color='gray', linestyle='--', linewidth=1, alpha=0.5)
-            
+
             # Add reversal marker
             ax.axvline(12, color='red', linestyle=':', linewidth=2, alpha=0.7)
             if idx == 0:  # Only add text label on first subplot
                 ax.text(12.2, 100, 'Reversals\nStart', fontsize=8, color='red', va='top', fontweight='bold')
-            
+
             ax.legend(loc='lower right', fontsize=9)
             ax.grid(True, alpha=0.3)
             ax.set_title(f'Set Size {ss}', fontsize=13, fontweight='bold')
@@ -225,11 +258,11 @@ def plot_human_stimulus_learning_curves(
         ax.set_ylabel('Accuracy (%)', fontsize=12, fontweight='bold')
         ax.set_ylim([0, 105])
         ax.axhline(50, color='gray', linestyle='--', linewidth=1, alpha=0.5, label='Chance')
-        
+
         # Add reversal marker
         ax.axvline(12, color='red', linestyle=':', linewidth=2, alpha=0.7)
         ax.text(12.2, 100, 'Reversals Start', fontsize=9, color='red', va='top', fontweight='bold')
-        
+
         ax.legend(loc='best', fontsize=10)
         ax.grid(True, alpha=0.3)
         ax.set_title(f'Human Performance: Stimulus Learning Curves (N={n_participants})', fontsize=14, fontweight='bold', pad=20)
@@ -518,11 +551,11 @@ def plot_human_combined_analysis(
     ax1.set_ylabel('Accuracy (%)', fontsize=11, fontweight='bold')
     ax1.set_ylim([0, 105])
     ax1.axhline(50, color='gray', linestyle='--', linewidth=1, alpha=0.5)
-    
+
     # Add reversal marker
     ax1.axvline(12, color='red', linestyle=':', linewidth=2, alpha=0.7)
     ax1.text(12.2, 100, 'Reversals Start', fontsize=9, color='red', va='top', fontweight='bold')
-    
+
     ax1.legend(loc='best', fontsize=9)
     ax1.grid(True, alpha=0.3)
     ax1.set_title('Stimulus Learning Curves', fontsize=12, fontweight='bold')
@@ -589,8 +622,6 @@ def plot_human_combined_analysis(
 
 
 def main():
-    import argparse
-
     parser = argparse.ArgumentParser(
         description='Visualize human performance with stimulus-based learning curves'
     )
@@ -653,7 +684,6 @@ def main():
         print(f"  After merging: {len(trials_df)} trials with trauma group labels")
 
     # Filter to main task blocks only (exclude practice blocks 1-2)
-    from config import DataParams
     trials_df = trials_df[trials_df['block'] >= DataParams.MAIN_TASK_START_BLOCK].copy()
     print(f"  After filtering to main task blocks (>={DataParams.MAIN_TASK_START_BLOCK}): {len(trials_df)} trials")
 

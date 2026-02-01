@@ -4,11 +4,11 @@ Interactive Parameter Space Exploration
 Jupyter notebook-friendly tools for exploring model behavior interactively.
 
 Usage in Jupyter:
-    from simulations.interactive_exploration import explore_qlearning_interactive
+    from tests.examples.interactive_exploration import explore_qlearning_interactive
     explore_qlearning_interactive()
 
     # Or for WM-RL:
-    from simulations.interactive_exploration import explore_wmrl_interactive
+    from tests.examples.interactive_exploration import explore_wmrl_interactive
     explore_wmrl_interactive()
 """
 

@@ -20,7 +20,6 @@ from environments.rlwm_env import create_rlwm_env
 from models.q_learning import QLearningAgent
 from models.wm_rl_hybrid import WMRLHybridAgent
 from scripts.simulations.unified_simulator import simulate_agent_fixed
-# No need to import OUTPUT_VERSION_DIR anymore
 
 print("=" * 80)
 print("TINY PARAMETER SWEEP EXAMPLE")

@@ -1,66 +1,145 @@
+#!/usr/bin/env python
 """
-Simulate model predictions with multiple runs and stimulus-based learning curves.
+09_1: Simulate Model Predictions
+================================
 
-This script:
-1. Tracks encounters PER STIMULUS (not trials per block)
-2. Runs multiple simulations to capture average performance + variability
-3. Plots learning curves showing "trials per stimulus" averaged across all stimuli
-4. Categorizes performance by "Nth encounter with stimulus" (not trial position)
+Generate model predictions on human behavioral data for comparison.
+
+This script simulates how Q-learning and WM-RL models would perform
+on actual human trial sequences, useful for:
+- Model validation (do predicted patterns match human data?)
+- Understanding model behavior with reasonable parameters
+- Generating stimulus-based learning curves
+- Multi-run Monte Carlo analysis
+
+Note: This is DIFFERENT from 09_generate_synthetic_data.py which creates
+completely new synthetic participants. This script uses HUMAN data as the
+trial sequence and simulates model responses.
+
+CONSOLIDATED from:
+    - scripts/analysis/simulate_model_performance.py (single run)
+    - scripts/analysis/simulate_model_performance_multi_run.py (Monte Carlo)
+
+Inputs:
+    - output/task_trials_long.csv (human behavioral data)
+
+Outputs:
+    - output/model_performance/<model>_predictions_simulated.csv
+    - output/model_performance/<model>_predictions_stimulus_based_n<N>.csv
+    - figures/model_performance/<model>_stimulus_learning_curve.png
+    - figures/model_performance/<model>_performance_analysis.png
+
+Usage:
+    # Single run with default parameters
+    python scripts/09_1_simulate_model_predictions.py --mode single
+
+    # Multi-run Monte Carlo (recommended for averaging)
+    python scripts/09_1_simulate_model_predictions.py --mode multi --n-runs 20
+
+    # Specific models
+    python scripts/09_1_simulate_model_predictions.py --models qlearning wmrl
+
+    # Custom parameters (JSON format)
+    python scripts/09_1_simulate_model_predictions.py --params '{"alpha_pos": 0.5}'
+
+Next Steps:
+    - Compare predictions to human data
+    - Run 09_generate_synthetic_data.py for full synthetic datasets
+    - Use 10_run_parameter_sweep.py for systematic exploration
 """
+
+import argparse
+import json
+import sys
+from collections import defaultdict
+from pathlib import Path
+from typing import Dict, Optional
 
 import numpy as np
 import pandas as pd
-from pathlib import Path
-import argparse
-import sys
-from collections import defaultdict
 from tqdm import tqdm
 
 # Add project root to path
-project_root = Path(__file__).resolve().parents[2]
+project_root = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(project_root))
 
+from config import (
+    AnalysisParams,
+    OUTPUT_DIR,
+    FIGURES_DIR,
+    TaskParams
+)
 from models.q_learning import QLearningAgent
 from models.wm_rl_hybrid import WMRLHybridAgent
-from config import (
-    TaskParams,
-    OUTPUT_DIR, FIGURES_DIR
-)
 
 
-def generate_model_predictions_single_run(
+# =============================================================================
+# DEFAULT PARAMETERS
+# =============================================================================
+
+DEFAULT_PARAMS = {
+    'qlearning': {
+        'alpha_pos': 0.6,   # Moderate positive learning rate
+        'alpha_neg': 0.3,   # Lower negative learning rate (common asymmetry)
+        'beta': 2.5         # Moderate exploration/exploitation
+    },
+    'wmrl': {
+        'alpha_pos': 0.5,
+        'alpha_neg': 0.3,
+        'beta': 2.0,
+        'beta_wm': 3.0,     # Higher inverse temp for WM (more confident)
+        'capacity': 4,      # Moderate WM capacity
+        'phi': 0.2,         # Some decay
+        'rho': 0.7          # Moderate WM reliance
+    }
+}
+
+
+# =============================================================================
+# SINGLE RUN SIMULATION
+# =============================================================================
+
+def generate_predictions_single_run(
     behavioral_data: pd.DataFrame,
     model_name: str,
-    params: dict,
+    params: Dict,
+    track_stimulus_encounters: bool = False,
     seed: int = 42
 ) -> pd.DataFrame:
     """
     Generate trial-by-trial predictions from model for a single run.
 
-    Now tracks encounters PER STIMULUS instead of trial position.
-
     Parameters
     ----------
     behavioral_data : pd.DataFrame
-        Behavioral data with columns: subject_id, block, trial, set_size,
-        stimulus, response, correct
+        Behavioral data with columns: subject_id/sona_id, block, trial,
+        set_size, stimulus, response, correct
     model_name : str
         'qlearning' or 'wmrl'
     params : dict
         Model parameters
+    track_stimulus_encounters : bool
+        If True, track encounters per stimulus (for multi-run analysis)
     seed : int
         Random seed
 
     Returns
     -------
-    predictions_df : pd.DataFrame
-        Predictions with stimulus-based encounter tracking
+    pd.DataFrame
+        Predictions with performance metrics
     """
     np.random.seed(seed)
     predictions = []
 
+    # Standardize column names
+    data = behavioral_data.copy()
+    if 'sona_id' in data.columns:
+        data['subject_id'] = data['sona_id']
+    if 'key_answer' in data.columns:
+        data['response'] = data['key_answer']
+
     # Group by subject and block
-    for (subject_id, block_id), block_data in behavioral_data.groupby(['subject_id', 'block']):
+    for (subject_id, block_id), block_data in data.groupby(['subject_id', 'block']):
         block_data = block_data.sort_values('trial').reset_index(drop=True)
 
         # Initialize agent
@@ -83,21 +162,26 @@ def generate_model_predictions_single_run(
         else:
             raise ValueError(f"Unknown model: {model_name}")
 
-        # Track encounters per stimulus
+        # Track encounters (for stimulus-based analysis)
         stimulus_encounter_count = defaultdict(int)
         stimulus_reversal_occurred = defaultdict(bool)
         stimulus_encounters_since_reversal = defaultdict(int)
         stimulus_correct_streak = defaultdict(int)
 
+        # Track block-level reversals
+        correct_streak = 0
+        reversal_trial = None
+        trials_since_reversal = 0
+
         # Simulate block trial by trial
         for idx, row in block_data.iterrows():
-            # Ensure values are proper Python ints, not numpy types
-            # Note: stimulus in data is 1-indexed, but models expect 0-indexed
+            # Ensure values are proper Python ints
+            # Note: stimulus in data is 1-indexed, models expect 0-indexed
             stimulus = int(float(row['stimulus'])) - 1
             set_size = int(float(row['set_size']))
             actual_correct = int(float(row['correct']))
 
-            # Increment encounter count for this stimulus
+            # Stimulus encounter tracking
             stimulus_encounter_count[stimulus] += 1
             encounter_num = stimulus_encounter_count[stimulus]
 
@@ -122,43 +206,65 @@ def generate_model_predictions_single_run(
             else:
                 agent.update(stimulus, model_choice, model_correct)
 
-            # Track reversals PER STIMULUS
+            # Track reversals
             if actual_correct:
+                correct_streak += 1
                 stimulus_correct_streak[stimulus] += 1
-                # Check if reversal should occur for this stimulus
-                if (TaskParams.REVERSAL_MIN <= stimulus_correct_streak[stimulus] <= TaskParams.REVERSAL_MAX):
+
+                # Block-level reversal detection
+                if TaskParams.REVERSAL_MIN <= correct_streak <= TaskParams.REVERSAL_MAX:
+                    if reversal_trial is None:
+                        reversal_trial = idx
+                        trials_since_reversal = 0
+
+                # Stimulus-level reversal detection
+                if TaskParams.REVERSAL_MIN <= stimulus_correct_streak[stimulus] <= TaskParams.REVERSAL_MAX:
                     if not stimulus_reversal_occurred[stimulus]:
                         stimulus_reversal_occurred[stimulus] = True
                         stimulus_encounters_since_reversal[stimulus] = 0
             else:
+                correct_streak = 0
                 stimulus_correct_streak[stimulus] = 0
 
-            # Increment encounters since reversal for this stimulus
-            if stimulus_reversal_occurred[stimulus]:
-                stimulus_encounters_since_reversal[stimulus] += 1
-
-            # Record prediction
-            predictions.append({
+            # Build prediction record
+            pred = {
                 'subject_id': subject_id,
                 'block': block_id,
                 'trial': row['trial'],
                 'trial_num': idx + 1,
                 'set_size': set_size,
                 'stimulus': stimulus,
-                'encounter_num': encounter_num,  # NEW: Nth time seeing this stimulus
                 'model_choice': model_choice,
                 'correct': model_correct,
-                'encounters_since_reversal': stimulus_encounters_since_reversal[stimulus],
-                'is_post_reversal': stimulus_reversal_occurred[stimulus]
-            })
+                'trials_since_reversal': trials_since_reversal,
+                'is_post_reversal': reversal_trial is not None
+            }
+
+            # Add stimulus-based tracking if requested
+            if track_stimulus_encounters:
+                pred['encounter_num'] = encounter_num
+                pred['encounters_since_reversal'] = stimulus_encounters_since_reversal[stimulus]
+                pred['stimulus_post_reversal'] = stimulus_reversal_occurred[stimulus]
+
+            predictions.append(pred)
+
+            # Increment counters
+            if reversal_trial is not None:
+                trials_since_reversal += 1
+            if stimulus_reversal_occurred[stimulus]:
+                stimulus_encounters_since_reversal[stimulus] += 1
 
     return pd.DataFrame(predictions)
 
 
+# =============================================================================
+# MULTI-RUN SIMULATION (MONTE CARLO)
+# =============================================================================
+
 def run_multiple_simulations(
     behavioral_data: pd.DataFrame,
     model_name: str,
-    params: dict,
+    params: Dict,
     n_runs: int = 10,
     base_seed: int = 42
 ) -> pd.DataFrame:
@@ -180,7 +286,7 @@ def run_multiple_simulations(
 
     Returns
     -------
-    all_predictions : pd.DataFrame
+    pd.DataFrame
         Combined predictions from all runs with run_id column
     """
     all_predictions = []
@@ -188,10 +294,11 @@ def run_multiple_simulations(
     print(f"  Running {n_runs} simulations...")
     for run_id in tqdm(range(n_runs), desc="  Simulations"):
         run_seed = base_seed + run_id
-        predictions = generate_model_predictions_single_run(
+        predictions = generate_predictions_single_run(
             behavioral_data,
             model_name,
             params,
+            track_stimulus_encounters=True,
             seed=run_seed
         )
         predictions['run_id'] = run_id
@@ -200,44 +307,38 @@ def run_multiple_simulations(
     return pd.concat(all_predictions, ignore_index=True)
 
 
+# =============================================================================
+# VISUALIZATION FUNCTIONS
+# =============================================================================
+
 def plot_stimulus_learning_curves(
     predictions_df: pd.DataFrame,
     model_name: str,
     save_dir: Path
-):
+) -> None:
     """
     Plot learning curves based on encounters per stimulus.
 
     X-axis: Encounter number with stimulus (1st time, 2nd time, etc.)
     Y-axis: Accuracy
     Lines: Different set sizes
-    Averaged across all stimuli and all runs
-
-    Parameters
-    ----------
-    predictions_df : pd.DataFrame
-        Predictions with encounter_num column
-    model_name : str
-        Model name for title
-    save_dir : Path
-        Directory to save figure
     """
     import matplotlib
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
-    from config import AnalysisParams
 
     colors = AnalysisParams.COLORS_SET_SIZE
     set_sizes = sorted(predictions_df['set_size'].unique())
 
     fig, ax = plt.subplots(figsize=(12, 6))
 
-    # Group by encounter number and set size, then average
     for ss in set_sizes:
         ss_data = predictions_df[predictions_df['set_size'] == ss].copy()
 
-        # Group by encounter number, compute mean and SEM
-        grouped = ss_data.groupby('encounter_num')['correct'].agg(['mean', 'sem', 'count']).reset_index()
+        # Group by encounter number
+        grouped = ss_data.groupby('encounter_num')['correct'].agg(
+            ['mean', 'sem', 'count']
+        ).reset_index()
 
         # Only plot encounters with sufficient data
         grouped = grouped[grouped['count'] >= 5]
@@ -245,7 +346,6 @@ def plot_stimulus_learning_curves(
         if len(grouped) == 0:
             continue
 
-        # Plot line
         ax.plot(
             grouped['encounter_num'],
             grouped['mean'] * 100,
@@ -257,7 +357,6 @@ def plot_stimulus_learning_curves(
             alpha=0.8
         )
 
-        # Add confidence band
         ax.fill_between(
             grouped['encounter_num'],
             (grouped['mean'] - grouped['sem']) * 100,
@@ -266,7 +365,6 @@ def plot_stimulus_learning_curves(
             alpha=0.2
         )
 
-    # Styling
     ax.set_xlabel('Encounter with Stimulus (Nth time)', fontsize=12, fontweight='bold')
     ax.set_ylabel('Accuracy (%)', fontsize=12, fontweight='bold')
     ax.set_ylim([0, 105])
@@ -277,151 +375,22 @@ def plot_stimulus_learning_curves(
 
     plt.tight_layout()
 
-    # Save
     save_path = save_dir / f'{model_name.lower().replace(" ", "_")}_stimulus_learning_curve.png'
     plt.savefig(save_path, dpi=AnalysisParams.FIG_DPI, format=AnalysisParams.FIG_FORMAT, bbox_inches='tight')
     print(f"  [OK] Saved: {save_path}")
     plt.close()
 
 
-def plot_performance_by_stimulus_encounter(
+def plot_combined_performance_analysis(
     predictions_df: pd.DataFrame,
     model_name: str,
-    n_encounters_threshold: int,
+    n_trials_threshold: int,
     save_dir: Path
-):
-    """
-    Plot performance by stimulus encounter position.
-
-    Categories:
-    1. Early stimulus experience (< N encounters with THIS stimulus)
-    2. Late stimulus experience (>= N encounters, pre-reversal)
-    3. Early post-reversal (< N encounters since reversal)
-    4. Late post-reversal (>= N encounters since reversal)
-
-    Parameters
-    ----------
-    predictions_df : pd.DataFrame
-        Predictions
-    model_name : str
-        Model name
-    n_encounters_threshold : int
-        Threshold for early/late
-    save_dir : Path
-        Save directory
-    """
-    import matplotlib
-    matplotlib.use('Agg')
-    import matplotlib.pyplot as plt
-    from config import AnalysisParams
-
-    colors = AnalysisParams.COLORS_SET_SIZE
-    set_sizes = sorted(predictions_df['set_size'].unique())
-
-    # Categorize by stimulus encounter position
-    def categorize_encounter(row):
-        if not row['is_post_reversal']:
-            if row['encounter_num'] < n_encounters_threshold:
-                return 'Early Stimulus\nExperience'
-            else:
-                return 'Late Stimulus\nExperience'
-        else:
-            if row['encounters_since_reversal'] < n_encounters_threshold:
-                return 'Early\nPost-Reversal'
-            else:
-                return 'Late\nPost-Reversal'
-
-    df = predictions_df.copy()
-    df['encounter_position'] = df.apply(categorize_encounter, axis=1)
-
-    # Define position order
-    position_order = [
-        'Early Stimulus\nExperience',
-        'Late Stimulus\nExperience',
-        'Early\nPost-Reversal',
-        'Late\nPost-Reversal'
-    ]
-
-    # Group by set size and position
-    grouped = df.groupby(['set_size', 'encounter_position'])['correct'].agg(['mean', 'sem', 'count']).reset_index()
-
-    # Set up figure
-    fig, ax = plt.subplots(figsize=(12, 7))
-
-    n_positions = len(position_order)
-    n_set_sizes = len(set_sizes)
-    bar_width = 0.8 / n_set_sizes
-    x = np.arange(n_positions)
-
-    # Plot bars for each set size
-    for i, ss in enumerate(set_sizes):
-        ss_data = grouped[grouped['set_size'] == ss].copy()
-        ss_data = ss_data.set_index('encounter_position').reindex(position_order).reset_index()
-        ss_data['mean'] = ss_data['mean'].fillna(0)
-        ss_data['sem'] = ss_data['sem'].fillna(0)
-
-        offset = (i - n_set_sizes/2 + 0.5) * bar_width
-        bars = ax.bar(
-            x + offset,
-            ss_data['mean'] * 100,
-            bar_width,
-            label=f'Set Size {ss}',
-            color=colors[ss],
-            alpha=0.8,
-            yerr=ss_data['sem'] * 100,
-            capsize=4
-        )
-
-        # Add value labels
-        for bar, acc in zip(bars, ss_data['mean'] * 100):
-            height = bar.get_height()
-            if height > 0:
-                ax.text(
-                    bar.get_x() + bar.get_width()/2,
-                    height + 2,
-                    f'{acc:.1f}%',
-                    ha='center',
-                    va='bottom',
-                    fontsize=8,
-                    fontweight='bold'
-                )
-
-    # Styling
-    ax.set_xlabel('Stimulus Encounter Position', fontsize=12, fontweight='bold')
-    ax.set_ylabel('Accuracy (%)', fontsize=12, fontweight='bold')
-    ax.set_ylim([0, 110])
-    ax.set_xticks(x)
-    ax.set_xticklabels(position_order, fontsize=10)
-    ax.axhline(50, color='gray', linestyle='--', linewidth=1, alpha=0.5)
-    ax.legend(loc='upper right', fontsize=10, ncol=2)
-    ax.grid(True, alpha=0.3, axis='y')
-    ax.set_title(
-        f'{model_name}: Performance by Stimulus Encounter Position\n(Threshold = {n_encounters_threshold} encounters)',
-        fontsize=14,
-        fontweight='bold',
-        pad=20
-    )
-
-    plt.tight_layout()
-
-    # Save
-    save_path = save_dir / f'{model_name.lower().replace(" ", "_")}_stimulus_encounter_performance.png'
-    plt.savefig(save_path, dpi=AnalysisParams.FIG_DPI, format=AnalysisParams.FIG_FORMAT, bbox_inches='tight')
-    print(f"  [OK] Saved: {save_path}")
-    plt.close()
-
-
-def plot_combined_stimulus_analysis(
-    predictions_df: pd.DataFrame,
-    model_name: str,
-    n_encounters_threshold: int,
-    save_dir: Path
-):
+) -> None:
     """Create combined two-panel figure with stimulus-based analyses."""
     import matplotlib
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
-    from config import AnalysisParams
 
     colors = AnalysisParams.COLORS_SET_SIZE
     set_sizes = sorted(predictions_df['set_size'].unique())
@@ -432,16 +401,18 @@ def plot_combined_stimulus_analysis(
     # ===== LEFT: Learning curve by stimulus encounters =====
     ax1 = fig.add_subplot(gs[0, 0])
 
+    encounter_col = 'encounter_num' if 'encounter_num' in predictions_df.columns else 'trial_num'
+
     for ss in set_sizes:
         ss_data = predictions_df[predictions_df['set_size'] == ss].copy()
-        grouped = ss_data.groupby('encounter_num')['correct'].agg(['mean', 'sem', 'count']).reset_index()
+        grouped = ss_data.groupby(encounter_col)['correct'].agg(['mean', 'sem', 'count']).reset_index()
         grouped = grouped[grouped['count'] >= 5]
 
         if len(grouped) == 0:
             continue
 
         ax1.plot(
-            grouped['encounter_num'],
+            grouped[encounter_col],
             grouped['mean'] * 100,
             'o-',
             color=colors[ss],
@@ -452,40 +423,41 @@ def plot_combined_stimulus_analysis(
         )
 
         ax1.fill_between(
-            grouped['encounter_num'],
+            grouped[encounter_col],
             (grouped['mean'] - grouped['sem']) * 100,
             (grouped['mean'] + grouped['sem']) * 100,
             color=colors[ss],
             alpha=0.2
         )
 
-    ax1.set_xlabel('Encounter with Stimulus (Nth time)', fontsize=11, fontweight='bold')
+    xlabel = 'Encounter with Stimulus (Nth time)' if encounter_col == 'encounter_num' else 'Trial Number'
+    ax1.set_xlabel(xlabel, fontsize=11, fontweight='bold')
     ax1.set_ylabel('Accuracy (%)', fontsize=11, fontweight='bold')
     ax1.set_ylim([0, 105])
     ax1.axhline(50, color='gray', linestyle='--', linewidth=1, alpha=0.5)
     ax1.legend(loc='best', fontsize=9)
     ax1.grid(True, alpha=0.3)
-    ax1.set_title(f'{model_name}: Stimulus Learning Curves', fontsize=12, fontweight='bold')
+    ax1.set_title(f'{model_name}: Learning Curves', fontsize=12, fontweight='bold')
 
-    # ===== RIGHT: Performance by encounter position =====
+    # ===== RIGHT: Performance by position =====
     ax2 = fig.add_subplot(gs[0, 1])
 
-    def categorize_encounter(row):
+    def categorize_position(row):
         if not row['is_post_reversal']:
-            if row['encounter_num'] < n_encounters_threshold:
-                return 'Early Stim'
+            if row['trial_num'] < n_trials_threshold:
+                return 'Early Block'
             else:
-                return 'Late Stim'
+                return 'Late Block'
         else:
-            if row['encounters_since_reversal'] < n_encounters_threshold:
+            if row['trials_since_reversal'] < n_trials_threshold:
                 return 'Early Post-Rev'
             else:
                 return 'Late Post-Rev'
 
     df = predictions_df.copy()
-    df['position'] = df.apply(categorize_encounter, axis=1)
+    df['position'] = df.apply(categorize_position, axis=1)
 
-    position_order = ['Early Stim', 'Late Stim', 'Early Post-Rev', 'Late Post-Rev']
+    position_order = ['Early Block', 'Late Block', 'Early Post-Rev', 'Late Post-Rev']
     grouped = df.groupby(['set_size', 'position'])['correct'].agg(['mean', 'sem']).reset_index()
 
     n_positions = len(position_order)
@@ -511,7 +483,7 @@ def plot_combined_stimulus_analysis(
             capsize=4
         )
 
-    ax2.set_xlabel('Stimulus Encounter Position', fontsize=11, fontweight='bold')
+    ax2.set_xlabel('Trial Position', fontsize=11, fontweight='bold')
     ax2.set_ylabel('Accuracy (%)', fontsize=11, fontweight='bold')
     ax2.set_ylim([0, 110])
     ax2.set_xticks(x)
@@ -519,26 +491,36 @@ def plot_combined_stimulus_analysis(
     ax2.axhline(50, color='gray', linestyle='--', linewidth=1, alpha=0.5)
     ax2.legend(loc='upper right', fontsize=9)
     ax2.grid(True, alpha=0.3, axis='y')
-    ax2.set_title(f'{model_name}: Performance by Encounter Position', fontsize=12, fontweight='bold')
+    ax2.set_title(f'{model_name}: Performance by Position', fontsize=12, fontweight='bold')
 
-    plt.suptitle(f'{model_name} Performance Analysis (Stimulus-Based)', fontsize=14, fontweight='bold', y=1.02)
+    plt.suptitle(f'{model_name} Performance Analysis', fontsize=14, fontweight='bold', y=1.02)
 
-    # Save
-    save_path = save_dir / f'{model_name.lower().replace(" ", "_")}_stimulus_performance_analysis.png'
+    save_path = save_dir / f'{model_name.lower().replace(" ", "_")}_performance_analysis.png'
     plt.savefig(save_path, dpi=AnalysisParams.FIG_DPI, format=AnalysisParams.FIG_FORMAT, bbox_inches='tight')
     print(f"  [OK] Saved: {save_path}")
     plt.close()
 
 
+# =============================================================================
+# MAIN FUNCTION
+# =============================================================================
+
 def main():
     parser = argparse.ArgumentParser(
-        description='Simulate model predictions with stimulus-based learning curves'
+        description='Simulate model predictions on human behavioral data'
     )
     parser.add_argument(
         '--data',
         type=str,
         default='output/task_trials_long.csv',
         help='Path to behavioral data'
+    )
+    parser.add_argument(
+        '--mode',
+        type=str,
+        default='multi',
+        choices=['single', 'multi'],
+        help='Simulation mode: single run or multi-run Monte Carlo'
     )
     parser.add_argument(
         '--models',
@@ -551,19 +533,25 @@ def main():
         '--n-runs',
         type=int,
         default=20,
-        help='Number of simulation runs for averaging'
+        help='Number of simulation runs for multi mode'
     )
     parser.add_argument(
         '--threshold',
         type=int,
         default=4,
-        help='Encounter threshold for early/late classification'
+        help='Trial threshold for early/late classification'
     )
     parser.add_argument(
         '--seed',
         type=int,
         default=42,
-        help='Base random seed'
+        help='Random seed'
+    )
+    parser.add_argument(
+        '--params',
+        type=str,
+        default=None,
+        help='Custom parameters as JSON string (overrides defaults)'
     )
 
     args = parser.parse_args()
@@ -577,8 +565,12 @@ def main():
     figure_dir.mkdir(parents=True, exist_ok=True)
 
     print("=" * 80)
-    print("MODEL PERFORMANCE SIMULATION (STIMULUS-BASED, MULTI-RUN)")
+    print("MODEL PREDICTION SIMULATION")
     print("=" * 80)
+    print(f"\nMode: {args.mode}")
+    print(f"Models: {args.models}")
+    if args.mode == 'multi':
+        print(f"Runs: {args.n_runs}")
 
     # Load behavioral data
     print(f"\nLoading behavioral data: {data_path}")
@@ -594,29 +586,13 @@ def main():
     print(f"  Subjects: {behavioral_data['subject_id'].nunique()}")
     print(f"  Blocks: {behavioral_data['block'].nunique()}")
     print(f"  Set sizes: {sorted(behavioral_data['set_size'].unique())}")
-    print(f"  Number of runs: {args.n_runs}")
 
-    # Define reasonable parameter values
-    model_params = {
-        'qlearning': {
-            'alpha_pos': 0.6,
-            'alpha_neg': 0.3,
-            'beta': 2.5
-        },
-        'wmrl': {
-            'alpha_pos': 0.5,
-            'alpha_neg': 0.3,
-            'beta': 2.0,
-            'beta_wm': 3.0,
-            'capacity': 4,
-            'phi': 0.2,
-            'rho': 0.7
-        }
-    }
+    # Parse custom params if provided
+    custom_params = json.loads(args.params) if args.params else {}
 
     # Process each model
     for model_name in args.models:
-        if model_name not in model_params:
+        if model_name not in DEFAULT_PARAMS:
             print(f"\nSkipping unknown model: {model_name}")
             continue
 
@@ -624,32 +600,46 @@ def main():
         print(f"SIMULATING {model_name.upper()} MODEL")
         print("=" * 80)
 
-        params = model_params[model_name]
+        # Merge default and custom params
+        params = DEFAULT_PARAMS[model_name].copy()
+        params.update(custom_params)
+
         print(f"\nUsing parameter values:")
         for param, value in params.items():
             print(f"  {param} = {value}")
 
-        # Run multiple simulations
-        all_predictions = run_multiple_simulations(
-            behavioral_data,
-            model_name,
-            params,
-            n_runs=args.n_runs,
-            base_seed=args.seed
-        )
+        # Generate predictions
+        if args.mode == 'single':
+            predictions_df = generate_predictions_single_run(
+                behavioral_data,
+                model_name,
+                params,
+                track_stimulus_encounters=False,
+                seed=args.seed
+            )
+            filename_suffix = 'simulated'
+        else:  # multi
+            predictions_df = run_multiple_simulations(
+                behavioral_data,
+                model_name,
+                params,
+                n_runs=args.n_runs,
+                base_seed=args.seed
+            )
+            filename_suffix = f'stimulus_based_n{args.n_runs}'
 
         # Calculate performance
-        overall_acc = all_predictions['correct'].mean()
+        overall_acc = predictions_df['correct'].mean()
         print(f"\n  Overall accuracy: {overall_acc:.3f}")
 
         print(f"\n  Performance by set size:")
-        for ss in sorted(all_predictions['set_size'].unique()):
-            ss_acc = all_predictions[all_predictions['set_size'] == ss]['correct'].mean()
+        for ss in sorted(predictions_df['set_size'].unique()):
+            ss_acc = predictions_df[predictions_df['set_size'] == ss]['correct'].mean()
             print(f"    Set Size {ss}: {ss_acc:.3f}")
 
         # Save predictions
-        predictions_file = output_dir / f'{model_name}_predictions_stimulus_based_n{args.n_runs}.csv'
-        all_predictions.to_csv(predictions_file, index=False)
+        predictions_file = output_dir / f'{model_name}_predictions_{filename_suffix}.csv'
+        predictions_df.to_csv(predictions_file, index=False)
         print(f"\n  [OK] Saved predictions: {predictions_file}")
 
         # Create visualizations
@@ -660,60 +650,59 @@ def main():
             'wmrl': 'WM-RL Hybrid'
         }.get(model_name, model_name)
 
-        # Combined analysis
-        plot_combined_stimulus_analysis(
-            all_predictions,
+        # Combined analysis plot
+        plot_combined_performance_analysis(
+            predictions_df,
             model_display_name,
-            n_encounters_threshold=args.threshold,
+            n_trials_threshold=args.threshold,
             save_dir=figure_dir
         )
 
-        # Individual plots
-        plot_stimulus_learning_curves(
-            all_predictions,
-            model_display_name,
-            save_dir=figure_dir
-        )
+        # Stimulus learning curves (multi-run only)
+        if args.mode == 'multi' and 'encounter_num' in predictions_df.columns:
+            plot_stimulus_learning_curves(
+                predictions_df,
+                model_display_name,
+                save_dir=figure_dir
+            )
 
-        plot_performance_by_stimulus_encounter(
-            all_predictions,
-            model_display_name,
-            n_encounters_threshold=args.threshold,
-            save_dir=figure_dir
-        )
-
-        # Performance summary
-        def categorize_encounter(row):
+        # Performance summary by position
+        def categorize_trial(row):
             if not row['is_post_reversal']:
-                if row['encounter_num'] < args.threshold:
-                    return 'Early Stimulus Experience'
+                if row['trial_num'] < args.threshold:
+                    return 'Early Block'
                 else:
-                    return 'Late Stimulus Experience'
+                    return 'Late Block'
             else:
-                if row['encounters_since_reversal'] < args.threshold:
+                if row['trials_since_reversal'] < args.threshold:
                     return 'Early Post-Reversal'
                 else:
                     return 'Late Post-Reversal'
 
-        all_predictions['position'] = all_predictions.apply(categorize_encounter, axis=1)
+        predictions_df['position'] = predictions_df.apply(categorize_trial, axis=1)
 
-        print(f"\n  Performance by stimulus encounter position:")
-        for pos in ['Early Stimulus Experience', 'Late Stimulus Experience',
-                    'Early Post-Reversal', 'Late Post-Reversal']:
-            pos_data = all_predictions[all_predictions['position'] == pos]
+        print(f"\n  Performance by trial position:")
+        for pos in ['Early Block', 'Late Block', 'Early Post-Reversal', 'Late Post-Reversal']:
+            pos_data = predictions_df[predictions_df['position'] == pos]
             if len(pos_data) > 0:
                 acc = pos_data['correct'].mean()
-                print(f"    {pos:30s}: {acc:.3f} (n={len(pos_data)})")
+                print(f"    {pos:20s}: {acc:.3f} (n={len(pos_data)})")
 
     print("\n" + "=" * 80)
     print("SIMULATION COMPLETE")
     print("=" * 80)
     print(f"\nFigures saved to: {figure_dir}")
     print(f"Predictions saved to: {output_dir}")
-    print("\nGenerated plots:")
-    print("  - Stimulus-based learning curves (encounters per stimulus)")
-    print("  - Performance by stimulus encounter position")
-    print(f"  - Averaged over {args.n_runs} runs")
+    print("\nGenerated outputs:")
+    print("  - Performance analysis plots")
+    if args.mode == 'multi':
+        print("  - Stimulus-based learning curves")
+        print(f"  - Averaged over {args.n_runs} runs")
+    print()
+    print("Next steps:")
+    print("  - Compare predictions with human data")
+    print("  - Run 09_generate_synthetic_data.py for full synthetic datasets")
+    print("  - Run 10_run_parameter_sweep.py for systematic exploration")
     print("=" * 80)
 
 

@@ -1,7 +1,10 @@
 """
 Analysis Module for RLWM Trauma Study
 
-This module contains functions for analyzing behavioral data and generating plots.
+This module provides shared plotting utilities used across multiple scripts.
+
+Note: Library modules have been integrated into their parent numbered scripts.
+Only plotting_utils.py remains as the true shared library (used by 4+ scripts).
 """
 
 from .plotting_utils import (
@@ -11,18 +14,9 @@ from .plotting_utils import (
     plot_line_with_error
 )
 
-from .behavioral_plots import (
-    plot_accuracy_by_setsize,
-    plot_learning_curves,
-    plot_post_reversal_learning
-)
-
 __all__ = [
     'setup_plot_style',
     'save_figure',
     'aggregate_by_condition',
     'plot_line_with_error',
-    'plot_accuracy_by_setsize',
-    'plot_learning_curves',
-    'plot_post_reversal_learning',
 ]

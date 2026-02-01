@@ -8,7 +8,7 @@ This is an educational script that explains what each criterion means and
 how to use them to select the best model for your data.
 
 Usage:
-    python scripts/analysis/example_model_comparison.py
+    python tests/examples/example_model_comparison.py
 """
 
 import pandas as pd
@@ -106,12 +106,12 @@ print()
 print("To run a full model comparison, you would:")
 print()
 print("STEP 1: Fit both models to behavioral data")
-print("  $ python scripts/fitting/fit_to_data.py --model qlearning")
-print("  $ python scripts/fitting/fit_to_data.py --model wmrl")
+print("  $ python scripts/12_fit_mle.py --model qlearning")
+print("  $ python scripts/12_fit_mle.py --model wmrl")
 print()
 
 print("STEP 2: Run model comparison script")
-print("  $ python scripts/analysis/run_model_comparison.py")
+print("  $ python scripts/14_compare_models.py")
 print()
 
 print("STEP 3: Review outputs")
@@ -313,7 +313,7 @@ print("UNDERSTANDING THE VISUALIZATIONS")
 print("-" * 80)
 print()
 
-print("The run_model_comparison.py script generates two plots:")
+print("The 14_compare_models.py script generates two plots:")
 print()
 
 print("1. information_criteria_comparison.png (4-panel plot)")
@@ -430,5 +430,5 @@ print("5. Consider absolute fit, not just relative comparison")
 print()
 
 print("To run actual model comparison on your data:")
-print("  $ python scripts/analysis/run_model_comparison.py")
+print("  $ python scripts/14_compare_models.py")
 print()

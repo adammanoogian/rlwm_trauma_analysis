@@ -15,19 +15,19 @@ Defaults (from actual experimental task):
 
 Usage:
     # Serial execution with defaults (1 CPU, uses actual task parameters)
-    python scripts/simulations/explore_prior_parameter_space.py --model qlearning --n-samples 200
+    python tests/examples/explore_prior_parameter_space.py --model qlearning --n-samples 200
 
     # Parallel execution (use all CPUs, RECOMMENDED)
-    python scripts/simulations/explore_prior_parameter_space.py --model both --n-samples 200 --n-jobs -1
+    python tests/examples/explore_prior_parameter_space.py --model both --n-samples 200 --n-jobs -1
 
     # Parallel with specific number of CPUs
-    python scripts/simulations/explore_prior_parameter_space.py --model wmrl --n-samples 300 --n-jobs 4
+    python tests/examples/explore_prior_parameter_space.py --model wmrl --n-samples 300 --n-jobs 4
 
     # Quick test run (fewer samples, fewer trials)
-    python scripts/simulations/explore_prior_parameter_space.py --model qlearning --n-samples 20 --num-trials 30 --n-jobs -1
+    python tests/examples/explore_prior_parameter_space.py --model qlearning --n-samples 20 --num-trials 30 --n-jobs -1
 
     # Match exact task structure (all 4 set sizes)
-    python scripts/simulations/explore_prior_parameter_space.py --model both --n-samples 200 --set-sizes 2 3 5 6 --n-jobs -1
+    python tests/examples/explore_prior_parameter_space.py --model both --n-samples 200 --set-sizes 2 3 5 6 --n-jobs -1
 """
 
 import numpy as np

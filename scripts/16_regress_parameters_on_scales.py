@@ -1,8 +1,12 @@
+#!/usr/bin/env python
 """
-Regression Analysis: Model Parameters on Trauma Scales
+16: Regress Parameters on Scales
+================================
+
+Regression analysis of model parameters on continuous trauma scales.
 
 Performs linear regression analyses testing associations between:
-- Fitted RL model parameters (α+, α-, β) 
+- Fitted RL model parameters (α+, α-, β)
 - Trauma exposure measures (LEC-5)
 - PTSD symptom measures (IES-R total and subscales)
 
@@ -12,13 +16,59 @@ Following computational psychiatry approach (e.g., Eckstein et al., 2022):
 3. Visualization of relationships
 4. Reporting of effect sizes and confidence intervals
 
-Usage:
-    python scripts/analysis/regress_parameters_on_scales.py \
-        --params output/v1/qlearning_jax_summary_20251122_200043.csv \
-        --model qlearning
+Key Analyses:
+    1. Univariate regressions (each parameter ~ each scale)
+    2. Multivariate regressions (parameter ~ multiple predictors)
+    3. Hierarchical regressions (incremental variance explained)
+    4. Visualization of regression results
 
-Author: RLWM Trauma Analysis
-Date: 2026-01-22
+Predictors:
+    - LEC-5/LESS Total Events
+    - IES-R Total Score
+    - IES-R Subscales (Intrusion, Avoidance, Hyperarousal)
+    - Demographics (optional: age, etc.)
+
+Outcome Variables:
+    Q-Learning: α₊, α₋, ε
+    WM-RL: α₊, α₋, φ, ρ, K, ε, (κ for M3)
+
+Statistical Approach:
+    - OLS regression with robust standard errors
+    - False Discovery Rate (FDR) correction for multiple comparisons
+    - Effect size reporting (R², β coefficients)
+    - Diagnostic plots for regression assumptions
+
+Inputs:
+    - output/mle_results/<model>_individual_fits.csv
+    - output/summary_participant_metrics.csv
+
+Outputs:
+    - output/regressions/<model>_univariate_results.csv
+    - output/regressions/<model>_multivariate_results.csv
+    - figures/regressions/<model>_regression_coefficients.png
+    - figures/regressions/<model>_scatter_matrix.png
+
+Usage:
+    # Analyze Q-learning parameters
+    python scripts/16_regress_parameters_on_scales.py --model qlearning
+
+    # Analyze WM-RL parameters
+    python scripts/16_regress_parameters_on_scales.py --model wmrl
+
+    # Run all models
+    python scripts/16_regress_parameters_on_scales.py --model all
+
+    # With specific predictors
+    python scripts/16_regress_parameters_on_scales.py --model wmrl \
+        --predictors ies_total less_total_events
+
+    # Include covariates
+    python scripts/16_regress_parameters_on_scales.py --model wmrl \
+        --covariates age gender
+
+Note:
+    With small N, interpret regression results cautiously.
+    Focus on effect sizes rather than p-values alone.
 """
 
 import argparse
@@ -29,11 +79,11 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy import stats
 import sys
+import warnings
 
 # Add parent directory for imports
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 from config import EXCLUDED_PARTICIPANTS
-import warnings
 
 # Try statsmodels for regression
 try:
@@ -175,33 +225,33 @@ def load_integrated_data(params_path: Path, model_type: str = 'qlearning',
         on='sona_id',
         how='inner'
     )
-    
+
     print(f"\n✓ Loaded data for {len(df)} participants")
     print(f"  {df['alpha_pos_mean'].notna().sum()} with fitted parameters")
-    
+
     return df
 
 
 def run_simple_regression(df: pd.DataFrame, param_name: str, predictor: str) -> dict:
     """
     Run simple linear regression: param ~ predictor
-    
+
     Returns dictionary with regression results.
     """
     # Filter to complete cases
     data = df[[param_name, predictor]].dropna()
-    
+
     if len(data) < 3:
         return {'error': 'Insufficient data', 'n': len(data)}
-    
+
     X = data[predictor].values
     y = data[param_name].values
-    
+
     if HAS_STATSMODELS:
         # Use statsmodels for full output
         X_with_const = sm.add_constant(X)
         model = sm.OLS(y, X_with_const).fit()
-        
+
         results = {
             'n': len(data),
             'beta': model.params[1],
@@ -219,7 +269,7 @@ def run_simple_regression(df: pd.DataFrame, param_name: str, predictor: str) -> 
     else:
         # Use scipy for basic regression
         slope, intercept, r_value, p_value, std_err = stats.linregress(X, y)
-        
+
         results = {
             'n': len(data),
             'beta': slope,
@@ -228,39 +278,39 @@ def run_simple_regression(df: pd.DataFrame, param_name: str, predictor: str) -> 
             'r_squared': r_value**2,
             't_stat': slope / std_err if std_err > 0 else np.nan
         }
-    
+
     # Add Pearson correlation
     r, p = stats.pearsonr(X, y)
     results['r'] = r
     results['r_p'] = p
-    
+
     return results
 
 
 def run_multiple_regression(df: pd.DataFrame, param_name: str, predictors: list) -> dict:
     """
     Run multiple linear regression: param ~ predictor1 + predictor2 + ...
-    
+
     Returns dictionary with regression results.
     """
     if not HAS_STATSMODELS:
         return {'error': 'statsmodels required for multiple regression'}
-    
+
     # Filter to complete cases
     data = df[[param_name] + predictors].dropna()
-    
+
     if len(data) < len(predictors) + 2:
         return {'error': 'Insufficient data', 'n': len(data)}
-    
+
     X = data[predictors].values
     y = data[param_name].values
-    
+
     # Add constant
     X_with_const = sm.add_constant(X)
-    
+
     # Fit model
     model = sm.OLS(y, X_with_const).fit()
-    
+
     # Extract results
     results = {
         'n': len(data),
@@ -273,7 +323,7 @@ def run_multiple_regression(df: pd.DataFrame, param_name: str, predictors: list)
         'coefficients': {},
         'model': model
     }
-    
+
     # Extract coefficient info for each predictor
     for i, pred in enumerate(['Intercept'] + predictors):
         idx = i
@@ -285,27 +335,27 @@ def run_multiple_regression(df: pd.DataFrame, param_name: str, predictors: list)
             't_stat': model.tvalues[idx],
             'p_value': model.pvalues[idx]
         }
-    
+
     # Check multicollinearity (VIF)
     if len(predictors) > 1:
         vif_data = pd.DataFrame()
         vif_data['predictor'] = predictors
         vif_data['VIF'] = [variance_inflation_factor(X, i) for i in range(X.shape[1])]
         results['vif'] = vif_data
-    
+
     return results
 
 
 def create_regression_table(results_dict: dict, output_path: Path):
     """Create a formatted regression results table."""
-    
+
     rows = []
-    
+
     for param_name, param_results in results_dict.items():
         for predictor, res in param_results.items():
             if 'error' in res:
                 continue
-            
+
             row = {
                 'Parameter': param_name,
                 'Predictor': predictor,
@@ -316,21 +366,21 @@ def create_regression_table(results_dict: dict, output_path: Path):
                 'p': format_pvalue(res['p_value']),
                 'R²': f"{res['r_squared']:.3f}"
             }
-            
+
             if 'ci_lower' in res:
                 row['95% CI'] = f"[{res['ci_lower']:.3f}, {res['ci_upper']:.3f}]"
-            
+
             if 'r' in res:
                 row['r'] = f"{res['r']:.3f}"
-            
+
             rows.append(row)
-    
+
     df_table = pd.DataFrame(rows)
-    
+
     # Save to CSV
     df_table.to_csv(output_path, index=False)
     print(f"✓ Saved regression table: {output_path}")
-    
+
     return df_table
 
 
@@ -346,38 +396,38 @@ def format_pvalue(p: float) -> str:
         return f"{p:.3f}"
 
 
-def plot_regression_scatter(df: pd.DataFrame, param_name: str, predictor: str, 
+def plot_regression_scatter(df: pd.DataFrame, param_name: str, predictor: str,
                            results: dict, output_path: Path):
     """Create scatter plot with regression line."""
-    
+
     # Filter to complete cases
     data = df[[param_name, predictor]].dropna()
-    
+
     if len(data) < 3:
         print(f"Skipping plot for {param_name} ~ {predictor}: insufficient data")
         return
-    
+
     fig, ax = plt.subplots(figsize=(6, 5))
-    
+
     # Scatter plot
-    ax.scatter(data[predictor], data[param_name], 
+    ax.scatter(data[predictor], data[param_name],
               alpha=0.6, s=80, edgecolors='black', linewidths=0.5)
-    
+
     # Regression line
     X = data[predictor].values
     y = data[param_name].values
-    
+
     if HAS_STATSMODELS and 'fitted' in results:
         # Use model-fitted values
         sorted_idx = np.argsort(X)
-        ax.plot(X[sorted_idx], results['fitted'][sorted_idx], 
+        ax.plot(X[sorted_idx], results['fitted'][sorted_idx],
                'r-', linewidth=2, label='Regression line')
-        
+
         # Add confidence interval if available
         if 'model' in results:
             pred = results['model'].get_prediction()
             pred_summary = pred.summary_frame(alpha=0.05)
-            ax.fill_between(X[sorted_idx], 
+            ax.fill_between(X[sorted_idx],
                            pred_summary['obs_ci_lower'][sorted_idx],
                            pred_summary['obs_ci_upper'][sorted_idx],
                            alpha=0.2, color='red', label='95% CI')
@@ -388,25 +438,25 @@ def plot_regression_scatter(df: pd.DataFrame, param_name: str, predictor: str,
         x_line = np.array([X.min(), X.max()])
         y_line = slope * x_line + intercept
         ax.plot(x_line, y_line, 'r-', linewidth=2, label='Regression line')
-    
+
     # Labels
     ax.set_xlabel(format_label(predictor), fontsize=12)
     ax.set_ylabel(format_label(param_name), fontsize=12)
-    
+
     # Stats annotation
     stats_text = f"r = {results['r']:.3f}, p = {results['p_value']:.3f}\n"
     stats_text += f"β = {results['beta']:.3f} ± {results['se']:.3f}\n"
     stats_text += f"R² = {results['r_squared']:.3f}, n = {results['n']}"
-    
+
     ax.text(0.05, 0.95, stats_text, transform=ax.transAxes,
            fontsize=10, verticalalignment='top',
            bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
-    
+
     ax.legend(loc='lower right')
     plt.tight_layout()
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     plt.close()
-    
+
     print(f"✓ Saved plot: {output_path}")
 
 
@@ -449,38 +499,38 @@ def plot_regression_matrix(df: pd.DataFrame, results_dict: dict, output_dir: Pat
 
     # Filter to available predictors
     predictor_cols = [p for p in predictor_cols if p in df.columns]
-    
+
     n_params = len(param_cols)
     n_preds = len(predictor_cols)
-    
+
     fig, axes = plt.subplots(n_params, n_preds, figsize=(4*n_preds, 4*n_params))
-    
+
     if n_params == 1:
         axes = axes.reshape(1, -1)
     if n_preds == 1:
         axes = axes.reshape(-1, 1)
-    
+
     for i, param in enumerate(param_cols):
         for j, pred in enumerate(predictor_cols):
             ax = axes[i, j]
-            
+
             # Get data
             data = df[[param, pred]].dropna()
-            
+
             if len(data) < 3:
-                ax.text(0.5, 0.5, 'Insufficient\ndata', 
+                ax.text(0.5, 0.5, 'Insufficient\ndata',
                        transform=ax.transAxes, ha='center', va='center')
                 ax.set_xlabel(format_label(pred))
                 if j == 0:
                     ax.set_ylabel(format_label(param))
                 continue
-            
+
             # Scatter
             ax.scatter(data[pred], data[param], alpha=0.6, s=50)
-            
+
             # Get results
             results = results_dict.get(param, {}).get(pred, {})
-            
+
             if 'beta' in results:
                 # Regression line
                 X = data[pred].values
@@ -489,27 +539,27 @@ def plot_regression_matrix(df: pd.DataFrame, results_dict: dict, output_dir: Pat
                 intercept = np.mean(y) - slope * np.mean(X)
                 x_line = np.array([X.min(), X.max()])
                 y_line = slope * x_line + intercept
-                
+
                 # Color by significance
                 color = 'red' if results['p_value'] < 0.05 else 'gray'
                 linestyle = '-' if results['p_value'] < 0.05 else '--'
                 ax.plot(x_line, y_line, color=color, linestyle=linestyle, linewidth=2)
-                
+
                 # Stats text
                 stats_text = f"r={results['r']:.2f}\np={results['p_value']:.3f}"
                 ax.text(0.05, 0.95, stats_text, transform=ax.transAxes,
                        fontsize=8, verticalalignment='top',
                        bbox=dict(boxstyle='round', facecolor='white', alpha=0.7))
-            
+
             ax.set_xlabel(format_label(pred) if i == n_params-1 else '')
             if j == 0:
                 ax.set_ylabel(format_label(param))
-    
+
     plt.tight_layout()
     output_path = output_dir / 'regression_matrix_all.png'
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     plt.close()
-    
+
     print(f"✓ Saved regression matrix: {output_path}")
 
 
@@ -550,12 +600,12 @@ def main():
     )
 
     args = parser.parse_args()
-    
+
     # Setup
     params_path = Path(args.params)
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-    
+
     print("=" * 80)
     print("REGRESSION ANALYSIS: PARAMETERS ON TRAUMA SCALES")
     print("=" * 80)
@@ -566,7 +616,7 @@ def main():
 
     # Load data
     df = load_integrated_data(params_path, args.model, args.min_accuracy, args.max_epsilon)
-    
+
     # Define parameter and predictor columns
     if args.model == 'qlearning':
         param_cols = ['alpha_pos_mean', 'alpha_neg_mean', 'beta_mean']
@@ -574,42 +624,42 @@ def main():
         # WM-RL parameters: alpha+, alpha-, phi (WM decay), rho (WM weight), capacity, epsilon
         param_cols = ['alpha_pos_mean', 'alpha_neg_mean', 'phi_mean', 'rho_mean',
                       'wm_capacity_mean', 'epsilon_mean']
-    
+
     # Only use parameters that exist in the data
     param_cols = [p for p in param_cols if p in df.columns]
-    
+
     predictor_cols = ['lec_total_events', 'lec_personal_events',
                      'ies_total', 'ies_intrusion', 'ies_avoidance', 'ies_hyperarousal']
-    
+
     # Only use predictors that exist
     predictor_cols = [p for p in predictor_cols if p in df.columns]
-    
+
     print(f"\nParameters: {param_cols}")
     print(f"Predictors: {predictor_cols}")
-    
+
     # Run simple regressions
     print("\n" + "=" * 80)
     print("SIMPLE REGRESSIONS (UNIVARIATE)")
     print("=" * 80)
-    
+
     results_dict = {}
-    
+
     for param in param_cols:
         results_dict[param] = {}
         print(f"\n{format_label(param)}:")
         print("-" * 60)
-        
+
         for pred in predictor_cols:
             results = run_simple_regression(df, param, pred)
             results_dict[param][pred] = results
-            
+
             if 'error' in results:
                 print(f"  {pred}: {results['error']} (n={results.get('n', 0)})")
             else:
                 sig = '***' if results['p_value'] < 0.001 else \
                       '**' if results['p_value'] < 0.01 else \
                       '*' if results['p_value'] < 0.05 else ''
-                      
+
                 print(f"  {format_label(pred):30s}: "
                       f"β={results['beta']:7.3f} (SE={results['se']:.3f}), "
                       f"t={results['t_stat']:6.2f}, "
@@ -617,76 +667,76 @@ def main():
                       f"r={results['r']:6.3f}, "
                       f"R²={results['r_squared']:.3f}, "
                       f"n={results['n']}")
-                
+
                 # Create individual plot
                 plot_path = output_dir / f"{param}_{pred}.png"
                 plot_regression_scatter(df, param, pred, results, plot_path)
-    
+
     # Save results table
     table_path = output_dir / 'regression_results_simple.csv'
     df_table = create_regression_table(results_dict, table_path)
-    
+
     print("\n" + df_table.to_string(index=False))
-    
+
     # Create matrix plot
     plot_regression_matrix(df, results_dict, output_dir, param_cols)
-    
+
     # Multiple regressions with IES-R subscales
     if HAS_STATSMODELS and all(c in df.columns for c in ['ies_intrusion', 'ies_avoidance', 'ies_hyperarousal']):
         print("\n" + "=" * 80)
         print("MULTIPLE REGRESSION: IES-R SUBSCALES")
         print("=" * 80)
-        
+
         subscales = ['ies_intrusion', 'ies_avoidance', 'ies_hyperarousal']
-        
+
         multi_results = {}
-        
+
         for param in param_cols:
             print(f"\n{format_label(param)}:")
             print("-" * 60)
-            
+
             results = run_multiple_regression(df, param, subscales)
             multi_results[param] = results
-            
+
             if 'error' in results:
                 print(f"  Error: {results['error']}")
                 continue
-            
+
             print(f"  Model: R² = {results['r_squared']:.3f}, "
                   f"Adj R² = {results['adj_r_squared']:.3f}")
             print(f"  F({len(subscales)}, {results['n']-len(subscales)-1}) = {results['f_stat']:.2f}, "
                   f"p = {results['f_pvalue']:.4f}")
             print(f"  AIC = {results['aic']:.1f}, BIC = {results['bic']:.1f}")
             print(f"\n  Coefficients:")
-            
+
             for pred, coef_info in results['coefficients'].items():
                 if pred == 'Intercept':
                     continue
                 sig = '***' if coef_info['p_value'] < 0.001 else \
                       '**' if coef_info['p_value'] < 0.01 else \
                       '*' if coef_info['p_value'] < 0.05 else ''
-                
+
                 print(f"    {format_label(pred):30s}: "
                       f"β={coef_info['beta']:7.3f} (SE={coef_info['se']:.3f}), "
                       f"t={coef_info['t_stat']:6.2f}, "
                       f"p={coef_info['p_value']:.4f}{sig}")
-            
+
             if 'vif' in results:
                 print(f"\n  Multicollinearity (VIF):")
                 for _, row in results['vif'].iterrows():
                     warning = " (HIGH)" if row['VIF'] > 5 else ""
                     print(f"    {format_label(row['predictor']):30s}: {row['VIF']:.2f}{warning}")
-        
+
         # Save multiple regression results
         multi_rows = []
         for param, results in multi_results.items():
             if 'error' in results:
                 continue
-            
+
             for pred, coef_info in results['coefficients'].items():
                 if pred == 'Intercept':
                     continue
-                
+
                 multi_rows.append({
                     'Parameter': param,
                     'Predictor': pred,
@@ -696,12 +746,12 @@ def main():
                     't': f"{coef_info['t_stat']:.2f}",
                     'p': format_pvalue(coef_info['p_value'])
                 })
-        
+
         df_multi = pd.DataFrame(multi_rows)
         multi_path = output_dir / 'regression_results_multiple.csv'
         df_multi.to_csv(multi_path, index=False)
         print(f"\n✓ Saved multiple regression results: {multi_path}")
-    
+
     print("\n" + "=" * 80)
     print("ANALYSIS COMPLETE")
     print("=" * 80)

@@ -1,5 +1,9 @@
+#!/usr/bin/env python
 """
-Analyze MLE model parameters by trauma group.
+15: Analyze MLE by Trauma
+=========================
+
+Examines relationships between model parameters and trauma measures.
 
 This script performs:
 1. Group comparisons (Mann-Whitney U tests with Bonferroni correction)
@@ -9,14 +13,58 @@ This script performs:
 
 Based on Senta et al. (2025) methodology.
 
+Key Analyses:
+    1. Parameter comparisons across trauma groups (ANOVA/Kruskal-Wallis)
+    2. Correlations between parameters and continuous trauma scores
+    3. Visualization of parameter distributions by group
+    4. Hypothesis-specific tests (e.g., WM capacity × trauma)
+
+Parameters Analyzed:
+    Q-Learning (M1): α₊, α₋, ε
+    WM-RL (M2): α₊, α₋, φ, ρ, K, ε
+    WM-RL+κ (M3): α₊, α₋, φ, ρ, K, κ, ε
+
+Trauma Measures:
+    - LEC-5/LESS Total Events (exposure count)
+    - IES-R Total Score (symptom severity)
+    - IES-R Subscales: Intrusion, Avoidance, Hyperarousal
+
+Inputs:
+    - output/mle_results/<model>_individual_fits.csv
+    - output/summary_participant_metrics.csv (trauma scores)
+    - output/trauma_groups/group_assignments.csv (group labels)
+
+Outputs:
+    - output/mle_by_trauma/<model>_group_comparison.csv
+    - output/mle_by_trauma/<model>_correlations.csv
+    - figures/mle_by_trauma/<model>_parameters_by_group.png
+    - figures/mle_by_trauma/<model>_parameter_correlations.png
+
 Usage:
-    python scripts/analysis/analyze_mle_by_trauma.py
+    # Analyze Q-learning parameters
+    python scripts/15_analyze_mle_by_trauma.py --model qlearning
+
+    # Analyze WM-RL parameters
+    python scripts/15_analyze_mle_by_trauma.py --model wmrl
+
+    # Analyze all models
+    python scripts/15_analyze_mle_by_trauma.py --model all
+
+    # Specify custom paths
+    python scripts/15_analyze_mle_by_trauma.py --model wmrl \
+        --mle-file output/mle_results/wmrl_individual_fits.csv \
+        --trauma-file output/summary_participant_metrics.csv
+
+Next Steps:
+    - Interpret parameter-trauma relationships
+    - Run 16_regress_parameters_on_scales.py for regression analysis
 """
 
 import os
 import sys
 import warnings
 from pathlib import Path
+from itertools import combinations
 
 import numpy as np
 import pandas as pd
@@ -24,10 +72,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy import stats
 import statsmodels.api as sm
-from itertools import combinations
 
 # Add project root to path
-PROJECT_ROOT = Path(__file__).parent.parent.parent
+PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from plotting_config import PlotConfig
@@ -70,7 +117,7 @@ def load_data() -> tuple:
     # Load survey data
     surveys = pd.read_csv(OUTPUT_DIR / "participant_surveys.csv")
     groups = pd.read_csv(PROJECT_ROOT / "output" / "trauma_groups" / "group_assignments.csv")
-    
+
     # Convert sona_id to string for consistent merging (handles both numeric and anon IDs)
     surveys['sona_id'] = surveys['sona_id'].astype(str)
     groups['sona_id'] = groups['sona_id'].astype(str)
@@ -78,7 +125,7 @@ def load_data() -> tuple:
     # Load MLE fits
     qlearning = pd.read_csv(OUTPUT_DIR / "qlearning_individual_fits.csv")
     wmrl = pd.read_csv(OUTPUT_DIR / "wmrl_individual_fits.csv")
-    
+
     # Convert participant_id to string for consistent merging
     qlearning['participant_id'] = qlearning['participant_id'].astype(str)
     wmrl['participant_id'] = wmrl['participant_id'].astype(str)
@@ -343,12 +390,12 @@ def ols_regression(df: pd.DataFrame, params: list, model_name: str) -> pd.DataFr
 def ols_regression_extended(df: pd.DataFrame, params: list, model_name: str) -> pd.DataFrame:
     """
     Run extended OLS regressions with LESS and IES-R total scores.
-    
+
     Models tested:
     1. param ~ lec_total_events (LESS exposure)
     2. param ~ ies_total (PTSD symptom severity)
     3. param ~ lec_total_events + ies_total (both - disentangle effects)
-    
+
     Parameters
     ----------
     df : pd.DataFrame
@@ -357,7 +404,7 @@ def ols_regression_extended(df: pd.DataFrame, params: list, model_name: str) -> 
         Outcome parameters to regress
     model_name : str
         Model name (Q-Learning or WM-RL)
-        
+
     Returns
     -------
     pd.DataFrame
@@ -369,32 +416,32 @@ def ols_regression_extended(df: pd.DataFrame, params: list, model_name: str) -> 
         (['ies_total'], 'IES-R'),
         (['lec_total', 'ies_total'], 'LESS + IES-R'),
     ]
-    
+
     results = []
-    
+
     print(f"\n{model_name} Extended OLS Regressions")
     print(f"{'='*60}")
-    
+
     for param in params:
         print(f"\n{param}:")
-        
+
         for predictors, model_spec in predictor_specs:
             # Prepare data
             mask = ~df[param].isna()
             for pred in predictors:
                 mask &= ~df[pred].isna()
-            
+
             y = df.loc[mask, param].values
             X = df.loc[mask, predictors].values
             X = sm.add_constant(X)
-            
+
             if len(y) < 10:
                 print(f"  {model_spec}: Insufficient data (n={len(y)})")
                 continue
-            
+
             try:
                 model = sm.OLS(y, X).fit()
-                
+
                 # Store results for intercept
                 results.append({
                     'model': model_name,
@@ -411,7 +458,7 @@ def ols_regression_extended(df: pd.DataFrame, params: list, model_name: str) -> 
                     'r2_adj': model.rsquared_adj,
                     'n': len(y),
                 })
-                
+
                 # Store results for each predictor
                 for i, pred in enumerate(predictors):
                     results.append({
@@ -429,17 +476,17 @@ def ols_regression_extended(df: pd.DataFrame, params: list, model_name: str) -> 
                         'r2_adj': model.rsquared_adj,
                         'n': len(y),
                     })
-                
+
                 # Print summary
                 print(f"  {model_spec}: R² = {model.rsquared:.3f}, R²_adj = {model.rsquared_adj:.3f}, n = {len(y)}")
                 for i, pred in enumerate(predictors):
                     p = model.pvalues[i + 1]
                     sig = "***" if p < 0.001 else "**" if p < 0.01 else "*" if p < 0.05 else ""
                     print(f"    {pred}: β = {model.params[i+1]:.4f} [{model.conf_int()[i+1, 0]:.4f}, {model.conf_int()[i+1, 1]:.4f}], p = {p:.4f} {sig}")
-                    
+
             except Exception as e:
                 print(f"  {model_spec}: Error - {e}")
-    
+
     return pd.DataFrame(results)
 
 

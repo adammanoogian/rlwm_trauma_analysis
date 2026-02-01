@@ -1,11 +1,34 @@
+#!/usr/bin/env python
 """
-Summarize behavioral data and create comprehensive visualizations.
+05: Summarize Behavioral Data
+=============================
+
+Summarizes task performance, demographics, and scale metrics from processed data.
+Performs deviation checks against expected data structure.
 
 This script:
 1. Loads processed data (derivatives only, no modifications to raw data)
 2. Summarizes task performance, demographics, and scale metrics
 3. Checks for deviations from expected data structure
 4. Generates reports and visualizations
+
+Inputs:
+    - output/collated_participant_data.csv
+    - output/summary_participant_metrics.csv
+    - output/task_trials_long.csv
+    - output/parsed_demographics.csv
+    - output/parsed_survey1.csv (LEC-5)
+    - output/parsed_survey2.csv (IES-R)
+
+Outputs:
+    - output/behavioral_summary/data_summary_report.txt
+
+Usage:
+    python scripts/05_summarize_behavioral_data.py
+
+Next Steps:
+    - Run 06_visualize_task_performance.py for learning curves
+    - Run 07_analyze_trauma_groups.py for trauma grouping analysis
 """
 
 import numpy as np
@@ -19,7 +42,7 @@ import sys
 from collections import defaultdict
 
 # Add project root to path
-project_root = Path(__file__).resolve().parents[2]
+project_root = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(project_root))
 
 from config import TaskParams, DataParams, OUTPUT_DIR, FIGURES_DIR, AnalysisParams
@@ -348,9 +371,8 @@ def main():
     print("=" * 80)
     print(f"\nOutput saved to: {output_dir}")
     print("\nNext steps:")
-    print("  - Run visualize_human_performance.py to create stimulus-based learning curves")
-    print("  - Run visualize_scale_distributions.py to plot scale distributions")
-    print("  - Run visualize_scale_correlations.py to plot correlation matrices")
+    print("  - Run 06_visualize_task_performance.py to create stimulus-based learning curves")
+    print("  - Run 07_analyze_trauma_groups.py for trauma grouping analysis")
     print("=" * 80)
 
 

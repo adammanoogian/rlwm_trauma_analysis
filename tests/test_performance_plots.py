@@ -8,7 +8,7 @@ from pathlib import Path
 import sys
 
 # Add project root to path
-project_root = Path(__file__).resolve().parents[2]
+project_root = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(project_root))
 
 from scripts.analysis.visualize_model_performance import (
@@ -149,8 +149,8 @@ def main():
     print("\n" + "=" * 80)
     print(f"Test figures saved to: {test_dir}")
     print("=" * 80)
-    print("\nIf plots look good, you can use plot_winning_model.py with real data:")
-    print("  python scripts/analysis/plot_winning_model.py --model qlearning")
+    print("\nIf plots look good, you can use scripts/14_compare_models.py with real data:")
+    print("  python scripts/14_compare_models.py --model qlearning")
 
 
 if __name__ == '__main__':

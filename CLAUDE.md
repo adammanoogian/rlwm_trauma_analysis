@@ -55,15 +55,53 @@ This file contains project-specific instructions for Claude Code when working on
 
 ## Code Organization
 
-### Fitting Pipeline
+### Numbered Pipeline Scripts
+
+The analysis pipeline uses numbered scripts (01-16) for sequential processing:
+
+```
+scripts/
+├── 01-04: Data Processing
+│   ├── 01_parse_raw_data.py         # Parse raw jsPsych JSON files
+│   ├── 02_create_collated_csv.py    # Collate all participants
+│   ├── 03_create_task_trials_csv.py # Create trial-level data
+│   └── 04_create_summary_csv.py     # Create participant summaries
+│
+├── 05-08: Behavioral Analysis
+│   ├── 05_summarize_behavioral_data.py    # Behavioral summary stats
+│   ├── 06_visualize_task_performance.py   # Task performance plots
+│   ├── 07_analyze_trauma_groups.py        # Trauma grouping + validation
+│   └── 08_run_statistical_analyses.py     # ANOVAs + descriptive tables
+│
+├── 09-11: Simulations & Model Validation
+│   ├── 09_generate_synthetic_data.py      # Posterior predictive checks
+│   ├── 10_run_parameter_sweep.py          # Systematic parameter exploration
+│   └── 11_run_model_recovery.py           # Parameter recovery validation
+│
+├── 12-14: Model Fitting
+│   ├── 12_fit_mle.py                      # MLE fitting (main CLI)
+│   ├── 13_fit_bayesian.py                 # Bayesian fitting (optional)
+│   └── 14_compare_models.py               # Model comparison + winning model
+│
+├── 15-16: Results Analysis
+│   ├── 15_analyze_mle_by_trauma.py        # Parameter-trauma relationships
+│   └── 16_regress_parameters_on_scales.py # Continuous scale regressions
+│
+├── analysis/    # Library module (imported by numbered scripts)
+├── fitting/     # Library module (JAX likelihoods, MLE/Bayesian fitting)
+├── simulations/ # Library module (synthetic data generation)
+└── utils/       # Library module (data loading, plotting)
+```
+
+### Fitting Library Module
 
 ```
 scripts/fitting/
 ├── jax_likelihoods.py    # Core likelihood functions (JAX)
 ├── numpyro_models.py     # Hierarchical Bayesian models
 ├── mle_utils.py          # MLE utilities (transforms, info criteria)
-├── fit_mle.py            # CLI for MLE fitting (jaxopt.LBFGS)
-├── fit_bayesian.py       # CLI for Bayesian fitting (NumPyro NUTS)
+├── fit_mle.py            # MLE fitting implementation
+├── fit_bayesian.py       # Bayesian fitting implementation
 └── tests/                # Test suite
     ├── conftest.py       # Shared fixtures (synthetic data)
     ├── test_mle_quick.py # MLE parameter recovery tests
@@ -119,23 +157,49 @@ python scripts/fitting/fit_bayesian.py --model qlearning --data output/task_tria
 
 ## Quick Reference
 
+### Run Full Pipeline
+
+```bash
+# Data Processing (01-04)
+python scripts/01_parse_raw_data.py
+python scripts/02_create_collated_csv.py
+python scripts/03_create_task_trials_csv.py
+python scripts/04_create_summary_csv.py
+
+# Behavioral Analysis (05-08)
+python scripts/05_summarize_behavioral_data.py
+python scripts/06_visualize_task_performance.py
+python scripts/07_analyze_trauma_groups.py
+python scripts/08_run_statistical_analyses.py
+
+# Model Fitting (12-14)
+python scripts/12_fit_mle.py --model qlearning
+python scripts/12_fit_mle.py --model wmrl
+python scripts/12_fit_mle.py --model wmrl_m3
+python scripts/14_compare_models.py
+
+# Results Analysis (15-16)
+python scripts/15_analyze_mle_by_trauma.py --model all
+python scripts/16_regress_parameters_on_scales.py --model all
+```
+
 ### Run MLE Fitting (Fast, Point Estimates)
 
 ```bash
 # Q-learning (M1)
-python scripts/fitting/fit_mle.py --model qlearning --data output/task_trials_long.csv
+python scripts/12_fit_mle.py --model qlearning --data output/task_trials_long.csv
 
 # WM-RL (M2)
-python scripts/fitting/fit_mle.py --model wmrl --data output/task_trials_long.csv
+python scripts/12_fit_mle.py --model wmrl --data output/task_trials_long.csv
 
 # WM-RL with perseveration (M3)
-python scripts/fitting/fit_mle.py --model wmrl_m3 --data output/task_trials_long.csv
+python scripts/12_fit_mle.py --model wmrl_m3 --data output/task_trials_long.csv
 
 # Parallel fitting (multi-core, ~4-8x speedup)
-python scripts/fitting/fit_mle.py --model wmrl_m3 --data output/task_trials_long.csv --n-jobs 16
+python scripts/12_fit_mle.py --model wmrl_m3 --data output/task_trials_long.csv --n-jobs 16
 
 # GPU-accelerated (requires rlwm_gpu environment)
-python scripts/fitting/fit_mle.py --model wmrl_m3 --data output/task_trials_long.csv --use-gpu
+python scripts/12_fit_mle.py --model wmrl_m3 --data output/task_trials_long.csv --use-gpu
 ```
 
 ### Cluster Execution (Monash M3)
@@ -158,13 +222,26 @@ sbatch --export=MODEL=wmrl_m3,NJOBS=8 cluster/run_mle_parallel.slurm
 
 ```bash
 # Q-learning
-python scripts/fitting/fit_bayesian.py --model qlearning --data output/task_trials_long.csv
+python scripts/13_fit_bayesian.py --model qlearning --data output/task_trials_long.csv
 
 # WM-RL
-python scripts/fitting/fit_bayesian.py --model wmrl --data output/task_trials_long.csv
+python scripts/13_fit_bayesian.py --model wmrl --data output/task_trials_long.csv
 
 # With custom MCMC settings
-python scripts/fitting/fit_bayesian.py --model wmrl --data data.csv --chains 4 --warmup 1000 --samples 2000
+python scripts/13_fit_bayesian.py --model wmrl --data data.csv --chains 4 --warmup 1000 --samples 2000
+```
+
+### Model Comparison
+
+```bash
+# Compare all fitted models (AIC/BIC)
+python scripts/14_compare_models.py
+
+# Compare specific models
+python scripts/14_compare_models.py --models qlearning wmrl wmrl_m3
+
+# With Bayesian comparison (WAIC/LOO)
+python scripts/14_compare_models.py --use-waic
 ```
 
 ### Run Tests
@@ -172,6 +249,9 @@ python scripts/fitting/fit_bayesian.py --model wmrl --data data.csv --chains 4 -
 ```bash
 # Run fitting module tests
 python -m pytest scripts/fitting/tests/ -v
+
+# Run all tests (including examples)
+python -m pytest tests/ -v
 ```
 
 ### Test Likelihoods
