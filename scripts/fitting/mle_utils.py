@@ -5,12 +5,19 @@ Parameter transformations, information criteria, and helper functions
 for Maximum Likelihood Estimation following Senta et al. (2025) methodology.
 
 Supports both numpy (for result handling) and JAX (for optimization).
+
+Extended with Hessian-based diagnostics:
+- Standard errors via inverse Hessian
+- Parameter correlations
+- Condition number for identifiability
+- Pseudo-R² for model fit quality
 """
 
 import numpy as np
+import jax
 import jax.numpy as jnp
 from scipy import stats
-from typing import Dict, Tuple, List, Optional
+from typing import Dict, Tuple, List, Optional, Any
 
 
 # =============================================================================
@@ -537,6 +544,337 @@ def compare_models_aic(
         'evidence_strength': evidence,
         'preferred_model': preferred
     }
+
+
+# =============================================================================
+# Hessian-Based Diagnostics
+# =============================================================================
+
+def compute_pseudo_r2(nll: float, n_trials: int, n_actions: int = 3) -> float:
+    """
+    Compute McFadden's pseudo-R² (variance explained).
+
+    R² = 1 - (NLL_model / NLL_null)
+    where NLL_null = -n * log(1/n_actions) = n * log(n_actions)
+
+    This gives an intuitive measure of how much better the model is than
+    chance-level performance (random responding).
+
+    Args:
+        nll: Negative log-likelihood of the fitted model
+        n_trials: Number of trials
+        n_actions: Number of possible actions (default: 3)
+
+    Returns:
+        Pseudo-R² value (0 = chance, 1 = perfect fit)
+
+    Example:
+        >>> # Chance-level NLL for 988 trials = 988 * log(3) ≈ 1085
+        >>> # If model NLL = 763, pseudo-R² ≈ 0.30 (30% variance explained)
+        >>> pseudo_r2 = compute_pseudo_r2(763, 988)
+    """
+    nll_null = n_trials * np.log(n_actions)  # Chance-level NLL
+    if nll_null == 0:
+        return np.nan
+    pseudo_r2 = 1 - (nll / nll_null)
+    return float(pseudo_r2)
+
+
+def check_gradient_norm(
+    objective_fn,
+    x_opt: np.ndarray,
+    tolerance: float = 1e-4
+) -> Tuple[float, bool]:
+    """
+    Check gradient norm at optimum using JAX autodiff.
+
+    At a true optimum, the gradient should be approximately zero.
+    A large gradient indicates the optimizer didn't fully converge.
+
+    Args:
+        objective_fn: JAX-compatible objective function
+        x_opt: Optimal parameter values (unconstrained)
+        tolerance: Maximum gradient norm to consider "converged"
+
+    Returns:
+        Tuple of (gradient_norm, is_converged)
+    """
+    try:
+        grad_fn = jax.grad(objective_fn)
+        x_jax = jnp.array(x_opt)
+        g = grad_fn(x_jax)
+        grad_norm = float(jnp.linalg.norm(g))
+        is_converged = grad_norm < tolerance
+        return grad_norm, is_converged
+    except Exception as e:
+        return np.nan, False
+
+
+def compute_hessian_diagnostics(
+    objective_fn,
+    x_opt: np.ndarray,
+    model: str,
+    param_names: List[str] = None
+) -> Dict[str, Any]:
+    """
+    Compute Hessian-based diagnostics for MLE fit quality.
+
+    At the MLE optimum, the Fisher Information matrix I = E[H(NLL)]
+    The covariance of parameter estimates is approximately: Var(θ̂) ≈ I⁻¹
+    Standard errors are the square roots of the diagonal: SE(θᵢ) = √(I⁻¹ᵢᵢ)
+
+    This function computes:
+    1. Standard errors for all parameters (in unconstrained space)
+    2. Parameter correlation matrix
+    3. Condition number (for identifiability assessment)
+
+    Args:
+        objective_fn: JAX-compatible objective function (returns NLL)
+        x_opt: Optimal parameter values (unconstrained space)
+        model: Model name ('qlearning', 'wmrl', 'wmrl_m3')
+        param_names: List of parameter names (optional, will use defaults)
+
+    Returns:
+        Dictionary with:
+            'success': bool - whether computation succeeded
+            'se_unconstrained': dict - SEs in unconstrained space
+            'se_bounded': dict - SEs in bounded space (via delta method)
+            'correlations': dict - parameter correlation matrix
+            'condition_number': float - Hessian condition number
+            'hessian_invertible': bool - whether Hessian was invertible
+
+    Note:
+        High condition number (>1000) indicates poor parameter identifiability.
+        This often occurs when parameters are highly correlated (e.g., α₊ ≈ α₋).
+    """
+    # Get parameter names
+    if param_names is None:
+        if model == 'qlearning':
+            param_names = QLEARNING_PARAMS
+        elif model == 'wmrl':
+            param_names = WMRL_PARAMS
+        elif model == 'wmrl_m3':
+            param_names = WMRL_M3_PARAMS
+        else:
+            return {'success': False, 'error': f'Unknown model: {model}'}
+
+    n_params = len(param_names)
+
+    try:
+        # Compute Hessian at optimum using JAX
+        hess_fn = jax.hessian(objective_fn)
+        x_jax = jnp.array(x_opt)
+        H = hess_fn(x_jax)
+
+        # Convert to numpy for numerical operations
+        H_np = np.array(H)
+
+        # Check for NaN/Inf in Hessian
+        if not np.all(np.isfinite(H_np)):
+            return {
+                'success': False,
+                'error': 'Hessian contains NaN/Inf values',
+                'hessian_invertible': False
+            }
+
+        # Compute eigenvalues for condition number
+        eigenvalues = np.linalg.eigvalsh(H_np)
+        min_eig = np.min(eigenvalues)
+        max_eig = np.max(eigenvalues)
+
+        # Condition number (ratio of max to min eigenvalue)
+        # High values indicate near-singularity
+        if min_eig <= 0:
+            condition_number = np.inf
+            hessian_positive_definite = False
+        else:
+            condition_number = max_eig / min_eig
+            hessian_positive_definite = True
+
+        # Try to invert Hessian for covariance matrix
+        try:
+            cov_matrix = np.linalg.inv(H_np)
+            hessian_invertible = True
+        except np.linalg.LinAlgError:
+            # Hessian is singular - use pseudo-inverse
+            cov_matrix = np.linalg.pinv(H_np)
+            hessian_invertible = False
+
+        # Extract standard errors (sqrt of diagonal)
+        variances = np.diag(cov_matrix)
+
+        # Handle negative variances (numerical issues)
+        se_unconstrained = {}
+        for i, param in enumerate(param_names):
+            if variances[i] > 0:
+                se_unconstrained[param] = float(np.sqrt(variances[i]))
+            else:
+                se_unconstrained[param] = np.nan
+
+        # Compute correlation matrix
+        correlations = {}
+        std_devs = np.sqrt(np.maximum(variances, 1e-10))
+        corr_matrix = cov_matrix / np.outer(std_devs, std_devs)
+
+        # Store as nested dict for easy access
+        for i, param_i in enumerate(param_names):
+            correlations[param_i] = {}
+            for j, param_j in enumerate(param_names):
+                correlations[param_i][param_j] = float(corr_matrix[i, j])
+
+        # Transform SEs to bounded space using delta method
+        se_bounded = _transform_se_to_bounded(
+            se_unconstrained, x_opt, model, param_names
+        )
+
+        return {
+            'success': True,
+            'se_unconstrained': se_unconstrained,
+            'se_bounded': se_bounded,
+            'correlations': correlations,
+            'condition_number': float(condition_number),
+            'hessian_invertible': hessian_invertible,
+            'hessian_positive_definite': hessian_positive_definite,
+            'min_eigenvalue': float(min_eig),
+            'max_eigenvalue': float(max_eig)
+        }
+
+    except Exception as e:
+        return {
+            'success': False,
+            'error': str(e),
+            'hessian_invertible': False
+        }
+
+
+def _transform_se_to_bounded(
+    se_unconstrained: Dict[str, float],
+    x_opt: np.ndarray,
+    model: str,
+    param_names: List[str]
+) -> Dict[str, float]:
+    """
+    Transform standard errors from unconstrained to bounded space using delta method.
+
+    The delta method approximation:
+    SE_bounded ≈ SE_unconstrained * |∂(transform)/∂x|
+
+    For logit transformation: p = 1/(1+exp(-x))
+    The derivative is: dp/dx = p * (1-p)
+
+    Args:
+        se_unconstrained: SEs in unconstrained space
+        x_opt: Optimal values in unconstrained space
+        model: Model name for bounds lookup
+        param_names: Parameter names
+
+    Returns:
+        Dictionary of SEs in bounded parameter space
+    """
+    # Get bounds for model
+    if model == 'qlearning':
+        bounds = QLEARNING_BOUNDS
+    elif model == 'wmrl':
+        bounds = WMRL_BOUNDS
+    elif model == 'wmrl_m3':
+        bounds = WMRL_M3_BOUNDS
+    else:
+        return {}
+
+    se_bounded = {}
+
+    for i, param in enumerate(param_names):
+        se_unc = se_unconstrained.get(param, np.nan)
+        if np.isnan(se_unc):
+            se_bounded[param] = np.nan
+            continue
+
+        # Get bounds
+        lower, upper = bounds[param]
+
+        # Current value in unconstrained space
+        x = x_opt[i]
+
+        # Compute derivative of inverse logit (sigmoid)
+        # p = 1 / (1 + exp(-x)) = sigmoid(x)
+        # dp/dx = p * (1-p)
+        p = 1 / (1 + np.exp(-x))
+        dp_dx = p * (1 - p)
+
+        # Scale by range
+        scale = upper - lower
+        jacobian = scale * dp_dx
+
+        # Delta method: SE_bounded = |jacobian| * SE_unconstrained
+        se_bounded[param] = float(np.abs(jacobian) * se_unc)
+
+    return se_bounded
+
+
+def compute_confidence_intervals(
+    params: Dict[str, float],
+    se_bounded: Dict[str, float],
+    alpha: float = 0.05
+) -> Dict[str, Tuple[float, float]]:
+    """
+    Compute confidence intervals for fitted parameters.
+
+    Uses normal approximation: CI = θ̂ ± z_{α/2} * SE
+
+    Args:
+        params: Fitted parameter values
+        se_bounded: Standard errors in bounded space
+        alpha: Significance level (default: 0.05 for 95% CI)
+
+    Returns:
+        Dictionary of (lower, upper) tuples for each parameter
+    """
+    z_crit = stats.norm.ppf(1 - alpha / 2)
+
+    ci = {}
+    for param, value in params.items():
+        se = se_bounded.get(param, np.nan)
+        if np.isnan(se):
+            ci[param] = (np.nan, np.nan)
+        else:
+            ci[param] = (value - z_crit * se, value + z_crit * se)
+
+    return ci
+
+
+def get_high_correlations(
+    correlations: Dict[str, Dict[str, float]],
+    threshold: float = 0.9
+) -> List[Tuple[str, str, float]]:
+    """
+    Find pairs of parameters with high correlations.
+
+    High correlations (|r| > 0.9) indicate potential identifiability issues
+    where parameters trade off against each other.
+
+    Args:
+        correlations: Correlation matrix as nested dict
+        threshold: Absolute correlation threshold (default: 0.9)
+
+    Returns:
+        List of (param1, param2, correlation) tuples for high correlations
+    """
+    high_corr = []
+    seen_pairs = set()
+
+    for param1, corr_dict in correlations.items():
+        for param2, corr in corr_dict.items():
+            if param1 == param2:
+                continue
+            pair = tuple(sorted([param1, param2]))
+            if pair in seen_pairs:
+                continue
+            seen_pairs.add(pair)
+
+            if abs(corr) > threshold:
+                high_corr.append((param1, param2, corr))
+
+    return high_corr
 
 
 # =============================================================================

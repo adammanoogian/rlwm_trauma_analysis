@@ -20,8 +20,8 @@
 #SBATCH --job-name=rlwm_mle_single
 #SBATCH --output=cluster/logs/mle_single_%j.out
 #SBATCH --error=cluster/logs/mle_single_%j.err
-#SBATCH --time=02:00:00
-#SBATCH --mem=8G
+#SBATCH --time=04:00:00
+#SBATCH --mem=16G
 #SBATCH --cpus-per-task=4
 #SBATCH --partition=comp
 

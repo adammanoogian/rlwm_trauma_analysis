@@ -48,6 +48,8 @@ from scripts.fitting.jax_likelihoods import (
     wmrl_multiblock_likelihood,
     wmrl_m3_multiblock_likelihood,
     prepare_block_data,
+    pad_block_to_max,
+    MAX_TRIALS_PER_BLOCK,
 )
 
 # Import MLE utilities
@@ -69,6 +71,12 @@ from scripts.fitting.mle_utils import (
     QLEARNING_PARAMS,
     WMRL_PARAMS,
     WMRL_M3_PARAMS,
+    # New diagnostic functions
+    compute_pseudo_r2,
+    check_gradient_norm,
+    compute_hessian_diagnostics,
+    compute_confidence_intervals,
+    get_high_correlations,
 )
 
 # Suppress JAX warnings
@@ -142,12 +150,20 @@ def _make_jax_objective_qlearning(
     stimuli_blocks: List[jnp.ndarray],
     actions_blocks: List[jnp.ndarray],
     rewards_blocks: List[jnp.ndarray],
+    masks_blocks: List[jnp.ndarray] = None,
 ):
     """
     Create a JAX-compatible objective function for Q-learning.
 
     Returns a pure function that takes unconstrained parameters and returns NLL.
     This function is JIT-compilable and supports automatic differentiation.
+
+    Args:
+        stimuli_blocks: List of stimulus arrays per block
+        actions_blocks: List of action arrays per block
+        rewards_blocks: List of reward arrays per block
+        masks_blocks: List of mask arrays per block (1.0 for real trials, 0.0 for padding).
+                     When provided, enables fixed-size compilation for efficiency.
     """
     def objective(x: jnp.ndarray) -> float:
         alpha_pos, alpha_neg, epsilon = jax_unconstrained_to_params_qlearning(x)
@@ -157,7 +173,8 @@ def _make_jax_objective_qlearning(
             rewards_blocks=rewards_blocks,
             alpha_pos=alpha_pos,
             alpha_neg=alpha_neg,
-            epsilon=epsilon
+            epsilon=epsilon,
+            masks_blocks=masks_blocks
         )
         return -log_lik  # Negative for minimization
 
@@ -169,11 +186,20 @@ def _make_jax_objective_wmrl(
     actions_blocks: List[jnp.ndarray],
     rewards_blocks: List[jnp.ndarray],
     set_sizes_blocks: List[jnp.ndarray],
+    masks_blocks: List[jnp.ndarray] = None,
 ):
     """
     Create a JAX-compatible objective function for WM-RL.
 
     Returns a pure function that takes unconstrained parameters and returns NLL.
+
+    Args:
+        stimuli_blocks: List of stimulus arrays per block
+        actions_blocks: List of action arrays per block
+        rewards_blocks: List of reward arrays per block
+        set_sizes_blocks: List of set size arrays per block
+        masks_blocks: List of mask arrays per block (1.0 for real trials, 0.0 for padding).
+                     When provided, enables fixed-size compilation for efficiency.
     """
     def objective(x: jnp.ndarray) -> float:
         alpha_pos, alpha_neg, phi, rho, capacity, epsilon = jax_unconstrained_to_params_wmrl(x)
@@ -187,7 +213,8 @@ def _make_jax_objective_wmrl(
             phi=phi,
             rho=rho,
             capacity=capacity,
-            epsilon=epsilon
+            epsilon=epsilon,
+            masks_blocks=masks_blocks
         )
         return -log_lik
 
@@ -199,11 +226,20 @@ def _make_jax_objective_wmrl_m3(
     actions_blocks: List[jnp.ndarray],
     rewards_blocks: List[jnp.ndarray],
     set_sizes_blocks: List[jnp.ndarray],
+    masks_blocks: List[jnp.ndarray] = None,
 ):
     """
     Create a JAX-compatible objective function for WM-RL M3.
 
     Returns a pure function that takes unconstrained parameters and returns NLL.
+
+    Args:
+        stimuli_blocks: List of stimulus arrays per block
+        actions_blocks: List of action arrays per block
+        rewards_blocks: List of reward arrays per block
+        set_sizes_blocks: List of set size arrays per block
+        masks_blocks: List of mask arrays per block (1.0 for real trials, 0.0 for padding).
+                     When provided, enables fixed-size compilation for efficiency.
     """
     def objective(x: jnp.ndarray) -> float:
         alpha_pos, alpha_neg, phi, rho, capacity, kappa, epsilon = jax_unconstrained_to_params_wmrl_m3(x)
@@ -218,7 +254,8 @@ def _make_jax_objective_wmrl_m3(
             rho=rho,
             capacity=capacity,
             kappa=kappa,
-            epsilon=epsilon
+            epsilon=epsilon,
+            masks_blocks=masks_blocks
         )
         return -log_lik
 
@@ -242,9 +279,11 @@ def fit_participant_mle(
     actions_blocks: List[np.ndarray],
     rewards_blocks: List[np.ndarray],
     set_sizes_blocks: Optional[List[np.ndarray]] = None,
+    masks_blocks: Optional[List[np.ndarray]] = None,
     model: str = 'qlearning',
     n_starts: int = 20,
     seed: Optional[int] = None,
+    compute_diagnostics: bool = True,
 ) -> Dict:
     """
     Fit a single participant using MLE with multiple random starts.
@@ -258,28 +297,42 @@ def fit_participant_mle(
         actions_blocks: List of action arrays per block
         rewards_blocks: List of reward arrays per block
         set_sizes_blocks: List of set size arrays per block (WM-RL/M3 only)
+        masks_blocks: List of mask arrays per block (1.0 for real trials, 0.0 for padding).
+                     When provided, enables fixed-size compilation for JAX efficiency.
         model: 'qlearning', 'wmrl', or 'wmrl_m3'
         n_starts: Number of random starting points
         seed: Random seed for reproducibility
+        compute_diagnostics: Whether to compute Hessian-based diagnostics (default: True)
 
     Returns:
-        Dictionary with fitted parameters, NLL, AIC, BIC, convergence info
+        Dictionary with:
+        - Fitted parameters (alpha_pos, alpha_neg, etc.)
+        - Model fit metrics (nll, aic, bic, aicc, pseudo_r2)
+        - Convergence info (converged, n_successful_starts, at_bounds)
+        - Diagnostics (grad_norm, hessian_condition, parameter SEs and CIs)
     """
     rng = np.random.default_rng(seed)
 
-    # Count total trials
-    n_trials = sum(len(s) for s in stimuli_blocks)
+    # Count total REAL trials (accounting for masks if provided)
+    if masks_blocks is not None:
+        # Sum of mask values = number of real trials (mask=1 for real, 0 for padding)
+        n_trials = sum(int(jnp.sum(m)) for m in masks_blocks)
+    else:
+        n_trials = sum(len(s) for s in stimuli_blocks)
 
     # Convert data to JAX arrays for efficient computation
+    # Note: If data is already JAX arrays (from prepare_participant_data with padding),
+    # jnp.array() is a no-op
     stimuli_jax = [jnp.array(s, dtype=jnp.int32) for s in stimuli_blocks]
     actions_jax = [jnp.array(a, dtype=jnp.int32) for a in actions_blocks]
     rewards_jax = [jnp.array(r, dtype=jnp.float32) for r in rewards_blocks]
+    masks_jax = masks_blocks  # Already JAX arrays from prepare_participant_data, or None
 
     # Create JAX-compatible objective function
     # Note: Beta is fixed at 50 inside the likelihood functions
     if model == 'qlearning':
         objective = _make_jax_objective_qlearning(
-            stimuli_jax, actions_jax, rewards_jax
+            stimuli_jax, actions_jax, rewards_jax, masks_blocks=masks_jax
         )
         n_params = 3
     elif model == 'wmrl':
@@ -287,7 +340,7 @@ def fit_participant_mle(
             raise ValueError("set_sizes_blocks required for WM-RL model")
         set_sizes_jax = [jnp.array(s, dtype=jnp.int32) for s in set_sizes_blocks]
         objective = _make_jax_objective_wmrl(
-            stimuli_jax, actions_jax, rewards_jax, set_sizes_jax
+            stimuli_jax, actions_jax, rewards_jax, set_sizes_jax, masks_blocks=masks_jax
         )
         n_params = 6
     elif model == 'wmrl_m3':
@@ -295,7 +348,7 @@ def fit_participant_mle(
             raise ValueError("set_sizes_blocks required for WM-RL M3 model")
         set_sizes_jax = [jnp.array(s, dtype=jnp.int32) for s in set_sizes_blocks]
         objective = _make_jax_objective_wmrl_m3(
-            stimuli_jax, actions_jax, rewards_jax, set_sizes_jax
+            stimuli_jax, actions_jax, rewards_jax, set_sizes_jax, masks_blocks=masks_jax
         )
         n_params = 7
     else:
@@ -366,20 +419,61 @@ def fit_participant_mle(
     bic = compute_bic(best_nll, k, n_trials)
     aicc = compute_aicc(best_nll, k, n_trials)
 
+    # Compute pseudo-R² (variance explained)
+    pseudo_r2 = compute_pseudo_r2(best_nll, n_trials)
+
     # Check if parameters hit bounds
     at_bounds = check_at_bounds(best_params, model)
 
-    return {
+    # Build result dictionary
+    result = {
         **best_params,
         'nll': best_nll,
         'aic': aic,
         'bic': bic,
         'aicc': aicc,
+        'pseudo_r2': pseudo_r2,
         'n_trials': n_trials,
         'converged': convergence_info['converged'],
         'n_successful_starts': convergence_info['n_successful'],
         'at_bounds': at_bounds
     }
+
+    # Compute Hessian-based diagnostics if requested
+    if compute_diagnostics:
+        # Check gradient norm at optimum
+        grad_norm, grad_converged = check_gradient_norm(objective, best_result.x)
+        result['grad_norm'] = grad_norm
+
+        # Compute Hessian diagnostics (SEs, correlations, condition number)
+        hess_diag = compute_hessian_diagnostics(objective, best_result.x, model)
+
+        if hess_diag['success']:
+            result['hessian_condition'] = hess_diag['condition_number']
+            result['hessian_invertible'] = hess_diag['hessian_invertible']
+
+            # Add standard errors for each parameter
+            se_bounded = hess_diag.get('se_bounded', {})
+            for param, se in se_bounded.items():
+                result[f'{param}_se'] = se
+
+            # Compute 95% confidence intervals
+            ci = compute_confidence_intervals(best_params, se_bounded)
+            for param, (lower, upper) in ci.items():
+                result[f'{param}_ci_lower'] = lower
+                result[f'{param}_ci_upper'] = upper
+
+            # Check for high correlations (identifiability issues)
+            correlations = hess_diag.get('correlations', {})
+            high_corr = get_high_correlations(correlations, threshold=0.9)
+            result['high_correlations'] = high_corr
+        else:
+            # Hessian computation failed
+            result['hessian_condition'] = np.nan
+            result['hessian_invertible'] = False
+            result['hessian_error'] = hess_diag.get('error', 'Unknown error')
+
+    return result
 
 
 # =============================================================================
@@ -389,18 +483,28 @@ def fit_participant_mle(
 def prepare_participant_data(
     data: pd.DataFrame,
     participant_id: str,
-    model: str = 'qlearning'
+    model: str = 'qlearning',
+    pad_blocks: bool = True,
+    max_trials: int = MAX_TRIALS_PER_BLOCK
 ) -> Dict:
     """
-    Prepare data for a single participant.
+    Prepare data for a single participant with optional block padding.
+
+    Block padding standardizes all blocks to the same size, which dramatically
+    reduces JAX compilation overhead. Without padding, JAX compiles a separate
+    kernel for each unique block size (5 sizes = 5 compilations per participant).
+    With padding, JAX compiles ONE kernel that gets reused for all blocks.
 
     Args:
         data: Full DataFrame with all participants
         participant_id: ID of participant to extract
         model: Model type (determines whether to include set_sizes)
+        pad_blocks: Whether to pad blocks to fixed size (default: True)
+        max_trials: Target size for padded blocks (default: MAX_TRIALS_PER_BLOCK=100)
 
     Returns:
-        Dictionary with block-organized arrays
+        Dictionary with block-organized arrays. If pad_blocks=True, includes
+        'masks_blocks' with 1.0 for real trials and 0.0 for padding.
     """
     pdata = data[data['sona_id'] == participant_id].copy()
 
@@ -408,22 +512,53 @@ def prepare_participant_data(
     actions_blocks = []
     rewards_blocks = []
     set_sizes_blocks = []
+    masks_blocks = []
 
     for block_num in sorted(pdata['block'].unique()):
         block_data = pdata[pdata['block'] == block_num]
 
-        stimuli_blocks.append(block_data['stimulus'].values.astype(np.int32))
-        actions_blocks.append(block_data['key_press'].values.astype(np.int32))
-        rewards_blocks.append(block_data['reward'].values.astype(np.float32))
+        # Extract raw arrays
+        stimuli = jnp.array(block_data['stimulus'].values, dtype=jnp.int32)
+        actions = jnp.array(block_data['key_press'].values, dtype=jnp.int32)
+        rewards = jnp.array(block_data['reward'].values, dtype=jnp.float32)
 
         if model in ('wmrl', 'wmrl_m3') and 'set_size' in block_data.columns:
-            set_sizes_blocks.append(block_data['set_size'].values.astype(np.int32))
+            set_sizes = jnp.array(block_data['set_size'].values, dtype=jnp.int32)
+        else:
+            set_sizes = None
+
+        if pad_blocks:
+            # Pad to fixed size for JAX compilation efficiency
+            if set_sizes is not None:
+                stimuli_pad, actions_pad, rewards_pad, set_sizes_pad, mask = pad_block_to_max(
+                    stimuli, actions, rewards, max_trials=max_trials, set_sizes=set_sizes
+                )
+                set_sizes_blocks.append(set_sizes_pad)
+            else:
+                stimuli_pad, actions_pad, rewards_pad, mask = pad_block_to_max(
+                    stimuli, actions, rewards, max_trials=max_trials
+                )
+
+            stimuli_blocks.append(stimuli_pad)
+            actions_blocks.append(actions_pad)
+            rewards_blocks.append(rewards_pad)
+            masks_blocks.append(mask)
+        else:
+            # No padding (original behavior)
+            stimuli_blocks.append(stimuli)
+            actions_blocks.append(actions)
+            rewards_blocks.append(rewards)
+            if set_sizes is not None:
+                set_sizes_blocks.append(set_sizes)
 
     result = {
         'stimuli_blocks': stimuli_blocks,
         'actions_blocks': actions_blocks,
         'rewards_blocks': rewards_blocks,
     }
+
+    if pad_blocks:
+        result['masks_blocks'] = masks_blocks
 
     if model in ('wmrl', 'wmrl_m3'):
         result['set_sizes_blocks'] = set_sizes_blocks
@@ -439,21 +574,28 @@ def _fit_single_participant_worker(args: Tuple) -> Dict:
     The function receives all arguments as a tuple and unpacks them.
 
     Args:
-        args: Tuple of (pid, data_dict, model, n_starts, seed)
+        args: Tuple of (pid, data_dict, model, n_starts, seed, [compute_diagnostics])
 
     Returns:
         Fit result dictionary with participant_id added
     """
-    pid, data_dict, model, n_starts, seed = args
+    # Handle variable number of arguments for backward compatibility
+    if len(args) == 6:
+        pid, data_dict, model, n_starts, seed, compute_diagnostics = args
+    else:
+        pid, data_dict, model, n_starts, seed = args
+        compute_diagnostics = True  # Default
 
     result = fit_participant_mle(
         stimuli_blocks=data_dict['stimuli_blocks'],
         actions_blocks=data_dict['actions_blocks'],
         rewards_blocks=data_dict['rewards_blocks'],
         set_sizes_blocks=data_dict.get('set_sizes_blocks'),
+        masks_blocks=data_dict.get('masks_blocks'),  # Pass masks for padded blocks
         model=model,
         n_starts=n_starts,
         seed=seed,
+        compute_diagnostics=compute_diagnostics,
     )
     result['participant_id'] = pid
     return result
@@ -465,8 +607,9 @@ def fit_all_participants(
     n_starts: int = 20,
     seed: int = 42,
     verbose: bool = True,
-    n_jobs: int = 1
-) -> Tuple[pd.DataFrame, Dict]:
+    n_jobs: int = 1,
+    compute_diagnostics: bool = True
+) -> Tuple[pd.DataFrame, Dict, List[Dict]]:
     """
     Fit all participants using MLE.
 
@@ -477,11 +620,16 @@ def fit_all_participants(
         seed: Random seed
         verbose: Show progress bar
         n_jobs: Number of parallel workers (1 = sequential, -1 = all cores)
+        compute_diagnostics: Whether to compute Hessian-based diagnostics (default: True)
 
     Returns:
-        Tuple of (DataFrame with fitted parameters, timing_info dict)
+        Tuple of (fits_df, timing_info, timing_records):
+        - fits_df: DataFrame with fitted parameters and diagnostics
+        - timing_info: Summary timing dict for extrapolation
+        - timing_records: List of per-participant timing dicts for logging
     """
     import time
+    import json
     from joblib import Parallel, delayed
 
     participants = data['sona_id'].unique()
@@ -490,11 +638,15 @@ def fit_all_participants(
     # Track timing for ETA estimation
     start_time = time.time()
 
-    # Track initial memory usage
-    if HAS_PSUTIL and verbose:
+    # Track memory usage throughout
+    initial_mem_mb = 0
+    peak_mem_mb = 0
+    if HAS_PSUTIL:
         process = psutil.Process()
-        initial_mem_gb = process.memory_info().rss / 1024**3
-        print(f"Initial memory usage: {initial_mem_gb:.2f} GB")
+        initial_mem_mb = process.memory_info().rss / 1024**2
+        peak_mem_mb = initial_mem_mb
+        if verbose:
+            print(f"Initial memory usage: {initial_mem_mb/1024:.2f} GB")
 
     if verbose:
         print(f"\n{'='*60}")
@@ -514,6 +666,8 @@ def fit_all_participants(
         participant_args.append((pid, pdata, model, n_starts, seed + i))
 
     # Execute fitting
+    timing_records = []  # Per-participant timing for log file
+
     if n_jobs == 1:
         # Sequential execution with per-participant progress
         results = []
@@ -521,23 +675,54 @@ def fit_all_participants(
 
         for i, args in enumerate(participant_args):
             pid = args[0]
-            n_trials = sum(len(s) for s in args[1]['stimuli_blocks'])
+            data_dict = args[1]
+            # Count real trials (using masks if available, otherwise array lengths)
+            if 'masks_blocks' in data_dict and data_dict['masks_blocks'] is not None:
+                n_trials = sum(int(jnp.sum(m)) for m in data_dict['masks_blocks'])
+            else:
+                n_trials = sum(len(s) for s in data_dict['stimuli_blocks'])
+            n_blocks = len(data_dict['stimuli_blocks'])
+
+            # Track memory before fit
+            mem_before_mb = 0
+            if HAS_PSUTIL:
+                mem_before_mb = process.memory_info().rss / 1024**2
 
             if verbose:
                 # Print progress header for this participant
                 print(f"[{i+1:3d}/{n_participants}] Fitting participant {pid} ({n_trials} trials)...", end=" ", flush=True)
 
             fit_start = time.time()
-            result = _fit_single_participant_worker(args)
+            result = _fit_single_participant_worker(args + (compute_diagnostics,))
             fit_time = time.time() - fit_start
             fit_times.append(fit_time)
             results.append(result)
+
+            # Track memory after fit
+            mem_after_mb = 0
+            if HAS_PSUTIL:
+                mem_after_mb = process.memory_info().rss / 1024**2
+                peak_mem_mb = max(peak_mem_mb, mem_after_mb)
+
+            # Record timing for this participant
+            timing_records.append({
+                'participant_id': pid,
+                'n_trials': n_trials,
+                'n_blocks': n_blocks,
+                'fit_time_s': fit_time,
+                'is_first_fit': (i == 0),  # First fit includes JIT compilation
+                'memory_before_mb': mem_before_mb,
+                'memory_after_mb': mem_after_mb,
+                'nll': result.get('nll', np.nan),
+                'converged': result.get('converged', False)
+            })
 
             if verbose:
                 # Print result summary
                 nll_str = f"NLL={result['nll']:.1f}" if not np.isnan(result['nll']) else "NLL=NaN"
                 conv_str = "converged" if result['converged'] else "NOT converged"
-                print(f"{nll_str}, {conv_str}, {fit_time:.1f}s")
+                r2_str = f"R²={result.get('pseudo_r2', 0):.2f}" if 'pseudo_r2' in result and not np.isnan(result.get('pseudo_r2', np.nan)) else ""
+                print(f"{nll_str}, {r2_str}, {conv_str}, {fit_time:.1f}s")
 
                 # Every 10 participants, print a summary line
                 if (i + 1) % 10 == 0:
@@ -557,6 +742,9 @@ def fit_all_participants(
         if verbose:
             print(f"Running parallel fitting with {n_jobs} workers...")
 
+        # Add compute_diagnostics to args for parallel workers
+        parallel_args = [args + (compute_diagnostics,) for args in participant_args]
+
         # joblib handles the parallel execution
         # verbose=10 shows progress; verbose=0 is silent
         try:
@@ -566,7 +754,7 @@ def fit_all_participants(
                 backend='loky'  # Process-based backend for true parallelism
             )(
                 delayed(_fit_single_participant_worker)(args)
-                for args in participant_args
+                for args in parallel_args
             )
         except Exception as e:
             error_msg = str(e)
@@ -584,11 +772,36 @@ def fit_all_participants(
             raise
 
         # For parallel execution, we can't track individual times
-        # Use total time / n_participants as estimate
+        # Create timing records from results (without detailed per-participant timing)
         fit_times = []
+        for i, (args, result) in enumerate(zip(participant_args, results)):
+            pid = args[0]
+            data_dict = args[1]
+            if 'masks_blocks' in data_dict and data_dict['masks_blocks'] is not None:
+                n_trials = sum(int(jnp.sum(m)) for m in data_dict['masks_blocks'])
+            else:
+                n_trials = sum(len(s) for s in data_dict['stimuli_blocks'])
+            n_blocks = len(data_dict['stimuli_blocks'])
+
+            timing_records.append({
+                'participant_id': pid,
+                'n_trials': n_trials,
+                'n_blocks': n_blocks,
+                'fit_time_s': np.nan,  # Not available in parallel mode
+                'is_first_fit': False,
+                'memory_before_mb': np.nan,
+                'memory_after_mb': np.nan,
+                'nll': result.get('nll', np.nan),
+                'converged': result.get('converged', False)
+            })
 
     # Calculate timing (always, for timing_info return)
     total_time = time.time() - start_time
+
+    # Update peak memory
+    if HAS_PSUTIL:
+        final_mem_mb = process.memory_info().rss / 1024**2
+        peak_mem_mb = max(peak_mem_mb, final_mem_mb)
 
     # Print summary timing
     if verbose:
@@ -598,26 +811,34 @@ def fit_all_participants(
         print(f"Total time: {total_time/60:.1f} minutes ({total_time:.1f} seconds)")
         if fit_times:
             avg_time = np.mean(fit_times)
-            print(f"Average time per participant: {avg_time:.2f} seconds")
+            jit_time = fit_times[0] if fit_times else 0
+            steady_times = fit_times[1:] if len(fit_times) > 1 else []
+            steady_avg = np.mean(steady_times) if steady_times else jit_time
+            print(f"First participant (includes JIT): {jit_time:.1f} seconds")
+            print(f"Steady-state avg per participant: {steady_avg:.2f} seconds")
         else:
             print(f"Average time per participant: {total_time/n_participants:.2f} seconds (parallel)")
         print(f"Converged: {sum(r['converged'] for r in results)}/{n_participants}")
         if n_jobs != 1:
-            speedup = (total_time / n_participants * n_participants) / total_time
             print(f"Effective parallelization: {n_jobs} workers")
 
-        # Report peak memory usage
+        # Report memory usage
         if HAS_PSUTIL:
-            process = psutil.Process()
-            peak_mem_gb = process.memory_info().rss / 1024**3
-            print(f"Peak memory usage: {peak_mem_gb:.2f} GB")
+            print(f"Initial memory: {initial_mem_mb/1024:.2f} GB")
+            print(f"Peak memory: {peak_mem_mb/1024:.2f} GB")
+            print(f"Memory increase: {(peak_mem_mb - initial_mem_mb)/1024:.2f} GB")
+
+        # Report diagnostic summary if computed
+        if compute_diagnostics:
+            hess_success = sum(1 for r in results if r.get('hessian_invertible', False))
+            print(f"Hessian diagnostics computed: {hess_success}/{n_participants}")
 
         print(f"{'='*60}\n")
 
     # Convert to DataFrame
     df = pd.DataFrame(results)
 
-    # Reorder columns
+    # Build column order: params → fit metrics → diagnostics → convergence info
     if model == 'qlearning':
         param_cols = QLEARNING_PARAMS
     elif model == 'wmrl':
@@ -627,9 +848,29 @@ def fit_all_participants(
     else:
         param_cols = []
 
+    # Build comprehensive column order
     cols = ['participant_id'] + param_cols
-    cols += ['nll', 'aic', 'bic', 'aicc', 'n_trials', 'converged', 'n_successful_starts', 'at_bounds']
-    df = df[[c for c in cols if c in df.columns]]
+
+    # SE columns (if diagnostics computed)
+    se_cols = [f'{p}_se' for p in param_cols]
+    ci_lower_cols = [f'{p}_ci_lower' for p in param_cols]
+    ci_upper_cols = [f'{p}_ci_upper' for p in param_cols]
+
+    # Fit quality metrics
+    cols += ['nll', 'aic', 'bic', 'aicc', 'pseudo_r2']
+
+    # Diagnostic columns
+    cols += ['grad_norm', 'hessian_condition', 'hessian_invertible']
+
+    # Standard errors and CIs (interleaved: param, se, ci_lower, ci_upper)
+    cols += se_cols + ci_lower_cols + ci_upper_cols
+
+    # Convergence info
+    cols += ['n_trials', 'converged', 'n_successful_starts', 'at_bounds', 'high_correlations']
+
+    # Filter to only columns that exist
+    cols = [c for c in cols if c in df.columns]
+    df = df[cols]
 
     # Build timing info dict for extrapolation
     timing_info = {
@@ -638,9 +879,13 @@ def fit_all_participants(
         'jit_time': fit_times[0] if fit_times else None,
         'steady_state_times': fit_times[1:] if len(fit_times) > 1 else [],
         'n_jobs': n_jobs,
+        'n_participants': n_participants,
+        'initial_mem_mb': initial_mem_mb,
+        'peak_mem_mb': peak_mem_mb,
+        'model': model,
     }
 
-    return df, timing_info
+    return df, timing_info, timing_records
 
 
 # =============================================================================
@@ -834,13 +1079,14 @@ def main():
     print()
 
     # Fit all participants
-    fits_df, timing_info = fit_all_participants(
+    fits_df, timing_info, timing_records = fit_all_participants(
         data,
         model=args.model,
         n_starts=args.n_starts,
         seed=args.seed,
         verbose=not args.quiet,
-        n_jobs=args.n_jobs
+        n_jobs=args.n_jobs,
+        compute_diagnostics=True
     )
 
     # Compute group summary
@@ -886,12 +1132,49 @@ def main():
         print(f"{'='*60}")
 
     # Save results
+    import json
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     fits_path = output_dir / f'{args.model}_individual_fits.csv'
     summary_path = output_dir / f'{args.model}_group_summary.csv'
+    timing_log_path = output_dir / f'{args.model}_timing_log.csv'
+    performance_path = output_dir / f'{args.model}_performance_summary.json'
 
     fits_df.to_csv(fits_path, index=False)
     summary_df.to_csv(summary_path, index=False)
+
+    # Save timing log (per-participant timing details)
+    if timing_records:
+        timing_df = pd.DataFrame(timing_records)
+        timing_df.to_csv(timing_log_path, index=False)
+
+    # Save performance summary JSON
+    performance_summary = {
+        'model': args.model,
+        'n_participants': n_participants,
+        'n_starts': args.n_starts,
+        'total_time_s': timing_info.get('total_time', 0),
+        'total_time_min': timing_info.get('total_time', 0) / 60,
+        'avg_time_per_participant_s': timing_info.get('total_time', 0) / n_participants if n_participants > 0 else 0,
+        'jit_compilation_time_s': timing_info.get('jit_time'),
+        'steady_state_avg_s': np.mean(timing_info.get('steady_state_times', [])) if timing_info.get('steady_state_times') else None,
+        'n_jobs': args.n_jobs,
+        'peak_memory_mb': timing_info.get('peak_mem_mb'),
+        'initial_memory_mb': timing_info.get('initial_mem_mb'),
+        'memory_increase_mb': (timing_info.get('peak_mem_mb', 0) - timing_info.get('initial_mem_mb', 0)) if timing_info.get('peak_mem_mb') else None,
+        'timestamp': datetime.now().isoformat(),
+        'seed': args.seed,
+        'data_file': args.data,
+        'n_converged': int(fits_df['converged'].sum()),
+        'convergence_rate': float(fits_df['converged'].sum() / n_participants) if n_participants > 0 else 0,
+    }
+
+    # Add diagnostic success rate if available
+    if 'hessian_invertible' in fits_df.columns:
+        performance_summary['hessian_success_count'] = int(fits_df['hessian_invertible'].sum())
+        performance_summary['hessian_success_rate'] = float(fits_df['hessian_invertible'].mean())
+
+    with open(performance_path, 'w') as f:
+        json.dump(performance_summary, f, indent=2, default=str)
 
     print(f"\n{'='*60}")
     print("RESULTS")
@@ -921,6 +1204,27 @@ def main():
         row = summary_df[summary_df['parameter'] == metric].iloc[0]
         print(f"  {metric.upper():12s}: {row['mean']:.2f} +/- {row['se']:.2f}")
 
+    # Display pseudo-R² if available
+    if 'pseudo_r2' in fits_df.columns:
+        avg_r2 = fits_df['pseudo_r2'].mean()
+        std_r2 = fits_df['pseudo_r2'].std()
+        print(f"  {'PSEUDO-R²':12s}: {avg_r2:.3f} +/- {std_r2:.3f}")
+
+    # Display Hessian diagnostic success rate
+    if 'hessian_invertible' in fits_df.columns:
+        hess_success = fits_df['hessian_invertible'].sum()
+        hess_total = len(fits_df)
+        print(f"\nHessian Diagnostics:")
+        print("-" * 50)
+        print(f"  Successfully computed: {hess_success}/{hess_total}")
+        if 'hessian_condition' in fits_df.columns:
+            valid_cond = fits_df[fits_df['hessian_condition'].notna()]['hessian_condition']
+            if len(valid_cond) > 0:
+                print(f"  Median condition number: {valid_cond.median():.1f}")
+                high_cond = (valid_cond > 1000).sum()
+                if high_cond > 0:
+                    print(f"  Warning: {high_cond} participants with condition > 1000 (identifiability issues)")
+
     # Check for parameters at bounds
     all_at_bounds = []
     for bounds_list in fits_df['at_bounds']:
@@ -936,8 +1240,11 @@ def main():
 
     print(f"\n{'='*60}")
     print(f"Results saved to:")
-    print(f"  Individual fits: {fits_path}")
-    print(f"  Group summary:   {summary_path}")
+    print(f"  Individual fits:     {fits_path}")
+    print(f"  Group summary:       {summary_path}")
+    if timing_records:
+        print(f"  Timing log:          {timing_log_path}")
+    print(f"  Performance summary: {performance_path}")
     print(f"{'='*60}")
 
     # Final status summary - clear indication of success/failure

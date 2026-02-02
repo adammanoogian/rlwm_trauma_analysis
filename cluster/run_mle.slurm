@@ -2,22 +2,23 @@
 # =============================================================================
 # SLURM Batch Script: MLE Fitting for RLWM Models (Monash M3)
 # =============================================================================
-# Runs MLE parameter estimation using sequential fitting (memory-safe).
-# JAX + joblib parallel fitting is memory-prohibitive due to LLVM compilation
-# overhead in each worker process (~15GB per worker).
+# Runs MLE parameter estimation with parallel fitting (4 workers default).
+# JAX compilation is cached to reduce memory overhead on subsequent runs.
 #
 # Usage:
-#   sbatch cluster/run_mle.slurm                         # All models, sequential
+#   sbatch cluster/run_mle.slurm                         # All models, 4 workers
 #   sbatch --export=MODEL=wmrl_m3 cluster/run_mle.slurm  # Single model
-#   sbatch --export=NJOBS=4 cluster/run_mle.slurm        # Custom workers (caution)
+#   sbatch --export=NJOBS=8 cluster/run_mle.slurm        # More workers (if memory allows)
 #
 # Performance (47 participants):
-#   - Sequential (default):  ~30 minutes per model, ~20-30GB memory
-#   - Parallel (8 workers):  NOT RECOMMENDED - causes LLVM OOM crashes
+#   - Parallel (4 workers):  ~8-10 minutes per model with Hessian diagnostics
+#   - Sequential (NJOBS=1):  ~30 minutes per model (use if OOM issues)
 #
 # Outputs saved to:
 #   - output/mle/{model}_individual_fits.csv
 #   - output/mle/{model}_group_summary.csv
+#   - output/mle/timing_log.csv (per-participant timing)
+#   - output/mle/performance_summary.json (overall performance metrics)
 #   - cluster/logs/mle_{jobid}.out
 #
 # Reference: https://docs.erc.monash.edu/old-M3/M3/slurm/partitions/
@@ -26,7 +27,7 @@
 #SBATCH --job-name=rlwm_mle
 #SBATCH --output=cluster/logs/mle_%j.out
 #SBATCH --error=cluster/logs/mle_%j.err
-#SBATCH --time=04:00:00
+#SBATCH --time=08:00:00
 #SBATCH --mem=64G
 #SBATCH --cpus-per-task=4
 #SBATCH --partition=comp
@@ -34,10 +35,10 @@
 # =============================================================================
 # Configuration (set via --export or use defaults)
 # =============================================================================
-# Note: Sequential (NJOBS=1) is the safe default. Parallel fitting with JAX
-# causes LLVM compilation OOM errors even with 120GB memory.
+# Note: NJOBS=4 is the recommended default with JAX compilation caching.
+# Use NJOBS=1 if you experience OOM errors on first run (cache cold).
 MODELS="${MODEL:-qlearning wmrl wmrl_m3}"
-NJOBS="${NJOBS:-1}"
+NJOBS="${NJOBS:-4}"
 
 # =============================================================================
 # Environment Setup (M3 specific)
