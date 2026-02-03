@@ -56,7 +56,7 @@ echo "Start time: $(date)"
 echo "============================================================"
 
 # Activate conda environment
-conda activate rlwm || {
+conda activate /scratch/fc37/aman0087/conda/envs/rlwm || {
     echo "ERROR: Failed to activate 'rlwm' conda environment"
     echo "Create it first with: conda env create -f environment.yml"
     exit 1
