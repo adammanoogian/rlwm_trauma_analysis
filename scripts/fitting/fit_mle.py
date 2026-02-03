@@ -49,7 +49,9 @@ from scripts.fitting.jax_likelihoods import (
     wmrl_m3_multiblock_likelihood,
     prepare_block_data,
     pad_block_to_max,
+    pad_blocks_to_max,
     MAX_TRIALS_PER_BLOCK,
+    MAX_BLOCKS,
 )
 
 # Import MLE utilities
@@ -550,6 +552,17 @@ def prepare_participant_data(
             rewards_blocks.append(rewards)
             if set_sizes is not None:
                 set_sizes_blocks.append(set_sizes)
+
+    # Pad to fixed number of blocks for consistent JAX compilation
+    # This eliminates recompilation when participants have different block counts
+    if pad_blocks and masks_blocks:
+        (stimuli_blocks, actions_blocks, rewards_blocks,
+         masks_blocks, set_sizes_blocks) = pad_blocks_to_max(
+            stimuli_blocks, actions_blocks, rewards_blocks,
+            masks_blocks,
+            max_blocks=MAX_BLOCKS,
+            set_sizes_blocks=set_sizes_blocks if model in ('wmrl', 'wmrl_m3') else None
+        )
 
     result = {
         'stimuli_blocks': stimuli_blocks,

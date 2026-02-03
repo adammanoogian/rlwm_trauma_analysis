@@ -40,6 +40,7 @@ FIXED_BETA = 50.0  # Fixed inverse temperature during learning for identifiabili
 DEFAULT_EPSILON = 0.05  # Default epsilon noise
 NUM_ACTIONS = 3  # Number of possible actions
 MAX_TRIALS_PER_BLOCK = 100  # Fixed block size for JAX compilation efficiency
+MAX_BLOCKS = 25  # Fixed number of blocks for JAX compilation efficiency (max observed ~21)
 
 
 # =============================================================================
@@ -110,6 +111,89 @@ def pad_block_to_max(
         return stimuli_padded, actions_padded, rewards_padded, set_sizes_padded, mask
 
     return stimuli_padded, actions_padded, rewards_padded, mask
+
+
+def pad_blocks_to_max(
+    stimuli_blocks: list,
+    actions_blocks: list,
+    rewards_blocks: list,
+    masks_blocks: list,
+    max_blocks: int = MAX_BLOCKS,
+    set_sizes_blocks: list = None
+) -> tuple:
+    """
+    Pad block lists to fixed length for consistent JAX compilation.
+
+    JAX's XLA compiler generates different machine code for different array shapes.
+    When participants have different numbers of blocks (e.g., 3 vs 21), JAX recompiles
+    for each unique shape. This can cause:
+    - Excessive compilation time (~30s per unique shape)
+    - Memory fragmentation when compiling in parallel
+    - LLVM compilation errors under memory pressure
+
+    By padding all participants to the same number of blocks, we ensure JAX compiles
+    ONE kernel that gets reused across all participants. Empty blocks use mask=0
+    and contribute nothing to the likelihood calculation.
+
+    Parameters
+    ----------
+    stimuli_blocks : list of arrays
+        List of stimulus arrays per block (each shape: max_trials,)
+    actions_blocks : list of arrays
+        List of action arrays per block
+    rewards_blocks : list of arrays
+        List of reward arrays per block
+    masks_blocks : list of arrays
+        List of mask arrays per block (1.0 for real trials, 0.0 for padding)
+    max_blocks : int
+        Target number of blocks (default: MAX_BLOCKS=25)
+    set_sizes_blocks : list of arrays, optional
+        List of set size arrays per block (for WM-RL models)
+
+    Returns
+    -------
+    tuple
+        (stimuli_padded, actions_padded, rewards_padded, masks_padded, set_sizes_padded)
+        All lists have length max_blocks. Empty blocks have all-zero arrays with mask=0.
+
+    Notes
+    -----
+    - Empty (padding) blocks have mask=0 for all trials, so they contribute 0 to likelihood
+    - This is mathematically equivalent to not having those blocks at all
+    - The mask ensures Q-updates and WM-updates are also skipped for padding blocks
+    """
+    n_current = len(stimuli_blocks)
+    n_pad = max_blocks - n_current
+
+    if n_pad <= 0:
+        # Already at or over max, return as-is
+        return (stimuli_blocks, actions_blocks, rewards_blocks,
+                masks_blocks, set_sizes_blocks)
+
+    # Get the shape of existing blocks (should be MAX_TRIALS_PER_BLOCK=100)
+    trials_per_block = stimuli_blocks[0].shape[0]
+
+    # Create empty padded block (all zeros, all masked out)
+    empty_stimuli = jnp.zeros(trials_per_block, dtype=jnp.int32)
+    empty_actions = jnp.zeros(trials_per_block, dtype=jnp.int32)
+    empty_rewards = jnp.zeros(trials_per_block, dtype=jnp.float32)
+    empty_mask = jnp.zeros(trials_per_block, dtype=jnp.float32)  # All masked out
+
+    # Extend lists with empty blocks
+    stimuli_padded = list(stimuli_blocks) + [empty_stimuli] * n_pad
+    actions_padded = list(actions_blocks) + [empty_actions] * n_pad
+    rewards_padded = list(rewards_blocks) + [empty_rewards] * n_pad
+    masks_padded = list(masks_blocks) + [empty_mask] * n_pad
+
+    if set_sizes_blocks is not None:
+        # Use set_size=1 for padding to avoid division by zero in omega calculation
+        empty_set_sizes = jnp.ones(trials_per_block, dtype=jnp.int32)
+        set_sizes_padded = list(set_sizes_blocks) + [empty_set_sizes] * n_pad
+    else:
+        set_sizes_padded = None
+
+    return (stimuli_padded, actions_padded, rewards_padded,
+            masks_padded, set_sizes_padded)
 
 
 def softmax_policy(q_values: jnp.ndarray, beta: float) -> jnp.ndarray:
