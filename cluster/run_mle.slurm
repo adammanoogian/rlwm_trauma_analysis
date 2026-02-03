@@ -29,7 +29,7 @@
 #SBATCH --error=cluster/logs/mle_%j.err
 #SBATCH --time=08:00:00
 #SBATCH --mem=64G
-#SBATCH --cpus-per-task=4
+#SBATCH --cpus-per-task=16
 #SBATCH --partition=comp
 
 # =============================================================================
@@ -51,14 +51,17 @@ module load miniforge3
 cd "${SLURM_SUBMIT_DIR:-$(dirname "$0")/..}"
 PROJECT_ROOT="$(pwd)"
 
+# Capture start time for metrics
+START_TIME=$(date)
+
 echo "============================================================"
 echo "RLWM MLE Fitting - M3 SLURM Job"
 echo "============================================================"
 echo "Job ID: ${SLURM_JOB_ID:-local}"
 echo "Node: ${SLURMD_NODENAME:-$(hostname)}"
 echo "Partition: ${SLURM_JOB_PARTITION:-comp}"
-echo "CPUs requested: ${SLURM_CPUS_PER_TASK:-4}"
-echo "Memory requested: ${SLURM_MEM_PER_NODE:-32G}"
+echo "CPUs requested: ${SLURM_CPUS_PER_TASK:-16}"
+echo "Memory requested: ${SLURM_MEM_PER_NODE:-64G}"
 echo "Parallel workers: $NJOBS"
 echo "Project: $PROJECT_ROOT"
 echo "Start time: $(date)"
@@ -74,6 +77,26 @@ conda activate rlwm || {
 
 # Create logs directory if needed
 mkdir -p cluster/logs
+
+# =============================================================================
+# Thread Control (match NJOBS × threads to allocated CPUs)
+# =============================================================================
+# Allow each joblib worker to use 4 threads for BLAS/JAX operations.
+# With NJOBS=4 workers × 4 threads = 16 total threads, matching --cpus-per-task=16
+#
+# This configuration:
+#   - Provides multi-threading benefits for JAX compilation warmup
+#   - Allows BLAS parallelism for matrix operations
+#   - Prevents oversubscription (threads ≤ allocated CPUs)
+#
+# Reference: https://docs.erc.monash.edu/Compute/HPC/M3/RunningJobsOnM3/EffectiveUsage
+export OMP_NUM_THREADS=4
+export MKL_NUM_THREADS=4
+export OPENBLAS_NUM_THREADS=4
+export NUMEXPR_NUM_THREADS=4
+export JAX_PLATFORMS=cpu
+echo "Thread settings: OMP/MKL/OPENBLAS/NUMEXPR = 4 threads each"
+echo "Total threads: $NJOBS workers × 4 threads = $(($NJOBS * 4))"
 
 # =============================================================================
 # Environment Validation (fail fast if packages missing)
@@ -178,15 +201,69 @@ echo "  output/mle/*_group_summary.csv"
 echo "============================================================"
 
 # =============================================================================
-# Job Resource Utilization Statistics
+# Job Resource Metrics (automatically captured)
 # =============================================================================
 echo ""
 echo "============================================================"
-echo "JOB RESOURCE UTILIZATION"
+echo "JOB RESOURCE METRICS"
 echo "============================================================"
-# sacct provides detailed resource usage after job completion
-# Note: MaxRSS shows peak memory in KB, MaxVMSize shows peak virtual memory
-sacct -j $SLURM_JOB_ID --format=JobID,JobName%15,Elapsed,MaxRSS,MaxVMSize,ReqMem,AllocCPUS,TotalCPU,State%10 2>/dev/null || echo "sacct not available (job may still be running)"
+echo "Command run: sbatch cluster/run_mle.slurm"
+echo "Models fitted: $MODELS"
+echo "Parallel workers: $NJOBS"
+echo "Thread settings: OMP=$OMP_NUM_THREADS, MKL=$MKL_NUM_THREADS"
+echo ""
+
+# Create output directory for metrics if needed
+mkdir -p output/mle
+
+# Create metrics file
+METRICS_FILE="output/mle/job_metrics_${SLURM_JOB_ID}.txt"
+
+{
+    echo "========================================"
+    echo "SLURM JOB METRICS REPORT"
+    echo "========================================"
+    echo "Job ID: $SLURM_JOB_ID"
+    echo "Job Name: $SLURM_JOB_NAME"
+    echo "Node: $SLURMD_NODENAME"
+    echo "Partition: $SLURM_JOB_PARTITION"
+    echo "Submit Dir: $SLURM_SUBMIT_DIR"
+    echo ""
+    echo "REQUESTED RESOURCES:"
+    echo "  CPUs: $SLURM_CPUS_PER_TASK"
+    echo "  Memory: $SLURM_MEM_PER_NODE"
+    echo "  Time Limit: $SLURM_TIMELIMIT"
+    echo ""
+    echo "CONFIGURATION:"
+    echo "  Models: $MODELS"
+    echo "  NJOBS (parallel workers): $NJOBS"
+    echo "  OMP_NUM_THREADS: $OMP_NUM_THREADS"
+    echo "  MKL_NUM_THREADS: $MKL_NUM_THREADS"
+    echo "  OPENBLAS_NUM_THREADS: $OPENBLAS_NUM_THREADS"
+    echo ""
+    echo "TIMING:"
+    echo "  Start: $START_TIME"
+    echo "  End: $(date)"
+    echo ""
+    echo "ACTUAL RESOURCE USAGE (sacct):"
+    sacct -j $SLURM_JOB_ID --format=JobID,Elapsed,MaxRSS,MaxVMSize,ReqMem,AllocCPUS,TotalCPU,CPUTime,State%10 2>/dev/null || echo "  (sacct not yet available - job may still be running)"
+    echo ""
+    echo "EFFICIENCY ANALYSIS:"
+    echo "  Formula: Efficiency = TotalCPU / (Elapsed × AllocCPUS)"
+    echo "  Good efficiency: ~75-100%"
+    echo "  If >> 100%: oversubscription (too many threads per CPU)"
+    echo "  If << 75%: underutilization (increase NJOBS or reduce CPUs)"
+    echo ""
+    echo "M3 MONITORING COMMANDS (for future reference):"
+    echo "  squeue -u \$USER                  # Check job status"
+    echo "  sacct -j <JOBID> --format=JobID,Elapsed,MaxRSS,TotalCPU,State"
+    echo "  ssh <node> && htop -u \$USER      # Real-time CPU monitoring"
+    echo ""
+    echo "========================================"
+} | tee "$METRICS_FILE"
+
+echo ""
+echo "Metrics saved to: $METRICS_FILE"
 echo "============================================================"
 
 # Final status

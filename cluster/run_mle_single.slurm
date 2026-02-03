@@ -22,7 +22,7 @@
 #SBATCH --error=cluster/logs/mle_single_%j.err
 #SBATCH --time=04:00:00
 #SBATCH --mem=16G
-#SBATCH --cpus-per-task=4
+#SBATCH --cpus-per-task=16
 #SBATCH --partition=comp
 
 # =============================================================================
@@ -40,6 +40,9 @@ module load miniforge3
 
 cd "${SLURM_SUBMIT_DIR:-$(dirname "$0")/..}"
 PROJECT_ROOT="$(pwd)"
+
+# Capture start time for metrics
+START_TIME=$(date)
 
 echo "============================================================"
 echo "RLWM MLE Fitting - Single Model (M3)"
@@ -60,6 +63,25 @@ conda activate rlwm || {
 }
 
 mkdir -p cluster/logs
+
+# =============================================================================
+# Thread Control (match threads to allocated CPUs)
+# =============================================================================
+# Allow each thread pool to use 4 threads for BLAS/JAX operations.
+# With 4 threads × 4 implicit workers = 16 total threads, matching --cpus-per-task=16
+#
+# This configuration:
+#   - Provides multi-threading benefits for JAX compilation warmup
+#   - Allows BLAS parallelism for matrix operations
+#   - Prevents oversubscription (threads ≤ allocated CPUs)
+#
+# Reference: https://docs.erc.monash.edu/Compute/HPC/M3/RunningJobsOnM3/EffectiveUsage
+export OMP_NUM_THREADS=4
+export MKL_NUM_THREADS=4
+export OPENBLAS_NUM_THREADS=4
+export NUMEXPR_NUM_THREADS=4
+export JAX_PLATFORMS=cpu
+echo "Thread settings: OMP/MKL/OPENBLAS/NUMEXPR = 4 threads each"
 
 # =============================================================================
 # Environment Validation (fail fast if packages missing)
@@ -118,8 +140,62 @@ echo ""
 
 $CMD
 
+EXIT_CODE=$?
+
+# =============================================================================
+# Job Resource Metrics (automatically captured)
+# =============================================================================
 echo ""
+echo "============================================================"
+echo "JOB RESOURCE METRICS"
+echo "============================================================"
+echo "Command run: sbatch cluster/run_mle_single.slurm"
+echo "Model: $MODEL"
+echo "Limit: ${LIMIT:-full dataset}"
+echo "Thread settings: OMP=$OMP_NUM_THREADS, MKL=$MKL_NUM_THREADS"
+echo ""
+
+# Create output directory for metrics if needed
+mkdir -p output/mle
+
+# Create metrics file
+METRICS_FILE="output/mle/job_metrics_single_${SLURM_JOB_ID}.txt"
+
+{
+    echo "========================================"
+    echo "SLURM JOB METRICS REPORT (Single Model)"
+    echo "========================================"
+    echo "Job ID: $SLURM_JOB_ID"
+    echo "Job Name: $SLURM_JOB_NAME"
+    echo "Node: $SLURMD_NODENAME"
+    echo "Partition: $SLURM_JOB_PARTITION"
+    echo ""
+    echo "REQUESTED RESOURCES:"
+    echo "  CPUs: $SLURM_CPUS_PER_TASK"
+    echo "  Memory: $SLURM_MEM_PER_NODE"
+    echo "  Time Limit: $SLURM_TIMELIMIT"
+    echo ""
+    echo "CONFIGURATION:"
+    echo "  Model: $MODEL"
+    echo "  Limit: ${LIMIT:-full dataset}"
+    echo "  OMP_NUM_THREADS: $OMP_NUM_THREADS"
+    echo "  MKL_NUM_THREADS: $MKL_NUM_THREADS"
+    echo ""
+    echo "TIMING:"
+    echo "  Start: $START_TIME"
+    echo "  End: $(date)"
+    echo ""
+    echo "ACTUAL RESOURCE USAGE (sacct):"
+    sacct -j $SLURM_JOB_ID --format=JobID,Elapsed,MaxRSS,MaxVMSize,ReqMem,AllocCPUS,TotalCPU,State%10 2>/dev/null || echo "  (sacct not yet available)"
+    echo ""
+    echo "========================================"
+} | tee "$METRICS_FILE"
+
+echo ""
+echo "Metrics saved to: $METRICS_FILE"
 echo "============================================================"
 echo "Complete!"
 echo "End time: $(date)"
 echo "============================================================"
+
+exit $EXIT_CODE
