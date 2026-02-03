@@ -75,10 +75,6 @@ mkdir -p cluster/logs
 #   - Allows BLAS parallelism for matrix operations
 #   - Prevents oversubscription (threads ≤ allocated CPUs)
 #
-# Note: XLA throttling flags (--xla_cpu_multi_thread_eigen=false, TF_NUM_INTEROP_THREADS)
-# are NO LONGER NEEDED because block-level padding ensures all participants have
-# identical shapes (25 blocks × 100 trials), eliminating JAX recompilation.
-#
 # Reference: https://docs.erc.monash.edu/Compute/HPC/M3/RunningJobsOnM3/EffectiveUsage
 export OMP_NUM_THREADS=4
 export MKL_NUM_THREADS=4
@@ -86,8 +82,23 @@ export OPENBLAS_NUM_THREADS=4
 export NUMEXPR_NUM_THREADS=4
 export JAX_PLATFORMS=cpu
 
+# XLA compilation controls (prevent memory fragmentation from parallel LLVM)
+#
+# IMPORTANT: Block padding prevents recompilation BETWEEN participants, but the
+# INITIAL compilation still uses parallel LLVM threads. When 16 LLVM threads
+# compete for allocations simultaneously, memory fragmentation can cause
+# "LLVM ERROR: Unable to allocate section memory!" even with 60GB+ free.
+#
+# Trade-off: Slower initial compilation (~60-120s vs ~30-60s) but prevents crashes.
+# Runtime performance is UNAFFECTED - compiled kernel is reused for all participants.
+#
+# See: https://github.com/jax-ml/jax/issues/6790, https://github.com/jax-ml/jax/issues/13923
+export XLA_FLAGS="--xla_cpu_multi_thread_eigen=false"
+export TF_NUM_INTEROP_THREADS=1
+export TF_NUM_INTRAOP_THREADS=4
+
 echo "Thread settings: OMP/MKL/OPENBLAS/NUMEXPR = 4 threads each"
-echo "Block padding enabled: consistent shapes eliminate JAX recompilation"
+echo "XLA settings: single-threaded Eigen (prevents LLVM memory fragmentation)"
 
 # =============================================================================
 # Environment Validation (fail fast if packages missing)

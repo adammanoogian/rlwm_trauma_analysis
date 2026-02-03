@@ -40,7 +40,7 @@ FIXED_BETA = 50.0  # Fixed inverse temperature during learning for identifiabili
 DEFAULT_EPSILON = 0.05  # Default epsilon noise
 NUM_ACTIONS = 3  # Number of possible actions
 MAX_TRIALS_PER_BLOCK = 100  # Fixed block size for JAX compilation efficiency
-MAX_BLOCKS = 25  # Fixed number of blocks for JAX compilation efficiency (max observed ~21)
+MAX_BLOCKS = 17  # Fixed number of blocks for JAX compilation efficiency (actual max in data)
 
 
 # =============================================================================

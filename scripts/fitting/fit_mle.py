@@ -479,6 +479,43 @@ def fit_participant_mle(
 
 
 # =============================================================================
+# Checkpoint Functions for Incremental Saving
+# =============================================================================
+
+def _get_checkpoint_path(output_dir: Path, model: str) -> Path:
+    """Get path to checkpoint file for incremental saves."""
+    return output_dir / f'{model}_checkpoint.csv'
+
+
+def _load_checkpoint(checkpoint_path: Path) -> Tuple[pd.DataFrame, set]:
+    """Load existing checkpoint if it exists.
+
+    Returns:
+        Tuple of (results_df, completed_participant_ids)
+    """
+    if checkpoint_path.exists():
+        df = pd.read_csv(checkpoint_path)
+        completed = set(df['participant_id'].unique())
+        return df, completed
+    return pd.DataFrame(), set()
+
+
+def _save_checkpoint(result: Dict, checkpoint_path: Path, is_first: bool = False):
+    """Append a single result to checkpoint file.
+
+    Args:
+        result: Fit result dictionary for one participant
+        checkpoint_path: Path to checkpoint CSV
+        is_first: If True, write header; if False, append without header
+    """
+    df = pd.DataFrame([result])
+    if is_first or not checkpoint_path.exists():
+        df.to_csv(checkpoint_path, index=False, mode='w')
+    else:
+        df.to_csv(checkpoint_path, index=False, mode='a', header=False)
+
+
+# =============================================================================
 # Multi-Participant Fitting
 # =============================================================================
 
@@ -621,7 +658,8 @@ def fit_all_participants(
     seed: int = 42,
     verbose: bool = True,
     n_jobs: int = 1,
-    compute_diagnostics: bool = True
+    compute_diagnostics: bool = True,
+    output_dir: Optional[Path] = None,
 ) -> Tuple[pd.DataFrame, Dict, List[Dict]]:
     """
     Fit all participants using MLE.
@@ -634,6 +672,7 @@ def fit_all_participants(
         verbose: Show progress bar
         n_jobs: Number of parallel workers (1 = sequential, -1 = all cores)
         compute_diagnostics: Whether to compute Hessian-based diagnostics (default: True)
+        output_dir: Output directory for checkpoint files (enables incremental saving)
 
     Returns:
         Tuple of (fits_df, timing_info, timing_records):
@@ -682,13 +721,29 @@ def fit_all_participants(
     timing_records = []  # Per-participant timing for log file
 
     if n_jobs == 1:
-        # Sequential execution with per-participant progress
+        # Sequential execution with per-participant progress and incremental saving
         results = []
         fit_times = []
+
+        # Load checkpoint if resuming (only for sequential execution with output_dir)
+        checkpoint_path = _get_checkpoint_path(output_dir, model) if output_dir else None
+        completed_pids = set()
+        if checkpoint_path and checkpoint_path.exists():
+            checkpoint_df, completed_pids = _load_checkpoint(checkpoint_path)
+            results = checkpoint_df.to_dict('records')
+            if verbose and completed_pids:
+                print(f"Resuming from checkpoint: {len(completed_pids)} participants already completed")
 
         for i, args in enumerate(participant_args):
             pid = args[0]
             data_dict = args[1]
+
+            # Skip if already completed (resume mode)
+            if pid in completed_pids:
+                if verbose:
+                    print(f"[{i+1:3d}/{n_participants}] Skipping participant {pid} (already in checkpoint)")
+                continue
+
             # Count real trials (using masks if available, otherwise array lengths)
             if 'masks_blocks' in data_dict and data_dict['masks_blocks'] is not None:
                 n_trials = sum(int(jnp.sum(m)) for m in data_dict['masks_blocks'])
@@ -710,6 +765,11 @@ def fit_all_participants(
             fit_time = time.time() - fit_start
             fit_times.append(fit_time)
             results.append(result)
+
+            # INCREMENTAL SAVE after each participant (crash protection)
+            if checkpoint_path:
+                is_first = (len(results) == 1 and not completed_pids)
+                _save_checkpoint(result, checkpoint_path, is_first=is_first)
 
             # Track memory after fit
             mem_after_mb = 0
@@ -1099,7 +1159,8 @@ def main():
         seed=args.seed,
         verbose=not args.quiet,
         n_jobs=args.n_jobs,
-        compute_diagnostics=True
+        compute_diagnostics=True,
+        output_dir=output_dir,  # For incremental checkpoint saving
     )
 
     # Compute group summary
