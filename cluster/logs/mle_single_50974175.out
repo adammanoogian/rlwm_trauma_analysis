@@ -1,0 +1,166 @@
+============================================================
+RLWM MLE Fitting - Single Model (M3)
+============================================================
+Job ID: 50974175
+Node: m3j004
+Partition: comp
+Model: qlearning
+Limit: 5
+Start time: Wed Feb  4 06:51:07 AM AEDT 2026
+============================================================
+Thread settings: OMP/MKL/OPENBLAS/NUMEXPR = 4 threads each
+XLA settings: single-threaded Eigen (prevents LLVM memory fragmentation)
+
+Validating environment...
+Environment OK: all packages available
+
+Running: python scripts/fitting/fit_mle.py --model qlearning --data output/task_trials_long.csv --output output/mle/ --n-starts 20 --seed 42 --limit 5
+
+
+============================================================
+MLE Fitting: QLEARNING
+============================================================
+Data: output/task_trials_long.csv
+Random starts: 20
+Seed: 42
+Output: output/mle/
+Include practice: False
+Parallel workers: 1
+Limit: 5 participants (testing mode)
+============================================================
+
+Loading data...
+  Total participants in data: 47
+  Final sample: 47
+  Total trials: 35058
+  Limited to first 5 participants (testing mode)
+
+Initial memory usage: 0.18 GB
+
+============================================================
+Starting MLE fitting: QLEARNING
+============================================================
+Participants: 5
+Random starts per participant: 20
+Parallel workers: 1
+============================================================
+
+Preparing participant data...
+[  1/5] Fitting participant 10000 (988 trials)... NLL=763.2, R²=0.30, converged, 1129.6s
+[  2/5] Fitting participant 9187 (990 trials)... NLL=824.6, R²=0.24, converged, 111.0s
+[  3/5] Fitting participant 10001 (119 trials)... NLL=NaN, , NOT converged, 6.0s
+[  4/5] Fitting participant 10002 (986 trials)... NLL=NaN, , NOT converged, 5.9s
+[  5/5] Fitting participant 10003 (973 trials)... NLL=NaN, , NOT converged, 6.0s
+
+============================================================
+Fitting Complete!
+============================================================
+Total time: 21.1 minutes (1264.8 seconds)
+First participant (includes JIT): 1129.6 seconds
+Steady-state avg per participant: 32.22 seconds
+Converged: 2/5
+Initial memory: 0.18 GB
+Peak memory: 6.83 GB
+Memory increase: 6.65 GB
+Hessian diagnostics computed: 0/5
+============================================================
+
+
+============================================================
+TIMING ANALYSIS & EXTRAPOLATION
+============================================================
+JIT compilation (1st participant): 1129.6s
+Steady-state per participant: 32.2s ± 45.5s
+
+Extrapolated time for 47 participants: 43.5 min
+
+Peak memory usage: 6991 MB
+============================================================
+
+============================================================
+RESULTS
+============================================================
+
+Convergence: 2/5 (40.0%)
+
+Group Statistics (n=2):
+--------------------------------------------------
+  alpha_pos   : 0.022 +/- 0.003  (SD=0.005)
+  alpha_neg   : 0.001 +/- 0.000  (SD=0.000)
+  epsilon     : 0.145 +/- 0.019  (SD=0.027)
+
+Model Fit:
+--------------------------------------------------
+  NLL         : 793.90 +/- 30.67
+  AIC         : 1593.79 +/- 61.33
+  BIC         : 1608.48 +/- 61.33
+  PSEUDO-R²   : 0.269 +/- 0.039
+
+Hessian Diagnostics:
+--------------------------------------------------
+  Successfully computed: 0/5
+  Median condition number: inf
+  Warning: 1 participants with condition > 1000 (identifiability issues)
+
+Warning: Parameters hitting bounds:
+  alpha_neg: 2 participants
+
+============================================================
+Results saved to:
+  Individual fits:     output/mle/qlearning_individual_fits.csv
+  Group summary:       output/mle/qlearning_group_summary.csv
+  Timing log:          output/mle/qlearning_timing_log.csv
+  Performance summary: output/mle/qlearning_performance_summary.json
+============================================================
+
+============================================================
+STATUS: PARTIAL - 2/5 participants fit, 3 FAILED
+  Failed participants: [10001, 10002, 10003]
+============================================================
+
+
+============================================================
+JOB RESOURCE METRICS
+============================================================
+Command run: sbatch cluster/run_mle_single.slurm
+Model: qlearning
+Limit: 5
+Thread settings: OMP=4, MKL=4
+
+========================================
+SLURM JOB METRICS REPORT (Single Model)
+========================================
+Job ID: 50974175
+Job Name: rlwm_mle_single
+Node: m3j004
+Partition: comp
+
+REQUESTED RESOURCES:
+  CPUs: 16
+  Memory: 65536
+  Time Limit: 
+
+CONFIGURATION:
+  Model: qlearning
+  Limit: 5
+  OMP_NUM_THREADS: 4
+  MKL_NUM_THREADS: 4
+
+TIMING:
+  Start: Wed Feb  4 06:51:07 AM AEDT 2026
+  End: Wed Feb  4 07:12:49 AM AEDT 2026
+
+ACTUAL RESOURCE USAGE (sacct):
+JobID           Elapsed     MaxRSS  MaxVMSize     ReqMem  AllocCPUS   TotalCPU      State 
+------------ ---------- ---------- ---------- ---------- ---------- ---------- ---------- 
+50974175       00:21:44                              64G         16   00:00:00    RUNNING 
+50974175.ba+   00:21:44                                          16   00:00:00    RUNNING 
+50974175.ex+   00:21:44                                          16   00:00:00    RUNNING 
+
+========================================
+
+Metrics saved to: output/mle/job_metrics_single_50974175.txt
+============================================================
+Complete!
+End time: Wed Feb  4 07:12:49 AM AEDT 2026
+============================================================
