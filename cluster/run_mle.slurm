@@ -66,10 +66,56 @@ echo "============================================================"
 
 # Activate conda environment
 # Note: Do NOT use 'conda init' on M3 - it breaks Strudel
-conda activate rlwm
+conda activate rlwm || {
+    echo "ERROR: Failed to activate 'rlwm' conda environment"
+    echo "Create it first with: conda env create -f environment.yml"
+    exit 1
+}
 
 # Create logs directory if needed
 mkdir -p cluster/logs
+
+# =============================================================================
+# Environment Validation (fail fast if packages missing)
+# =============================================================================
+echo ""
+echo "Validating environment..."
+
+# Check Python is available
+if ! command -v python &> /dev/null; then
+    echo "ERROR: Python not found in environment"
+    exit 1
+fi
+
+# Check required packages are importable
+python -c "
+import sys
+missing = []
+required = ['jax', 'jaxlib', 'scipy', 'pandas', 'numpy', 'joblib']
+for pkg in required:
+    try:
+        __import__(pkg)
+    except ImportError:
+        missing.append(pkg)
+
+if missing:
+    print(f'ERROR: Missing required packages: {missing}')
+    print('Install with: pip install ' + ' '.join(missing))
+    sys.exit(1)
+
+# Check project fitting module is importable
+sys.path.insert(0, '.')
+try:
+    from scripts.fitting import fit_mle, jax_likelihoods, mle_utils
+except ImportError as e:
+    print(f'ERROR: Cannot import fitting module: {e}')
+    print('Make sure you are in the project root directory')
+    sys.exit(1)
+
+print('Environment OK: all packages available')
+" || exit 1
+
+echo ""
 
 # =============================================================================
 # JAX Compilation Cache (prevents redundant JIT compilation across runs)

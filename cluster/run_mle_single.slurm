@@ -53,9 +53,48 @@ echo "Start time: $(date)"
 echo "============================================================"
 
 # Activate conda environment
-conda activate rlwm
+conda activate rlwm || {
+    echo "ERROR: Failed to activate 'rlwm' conda environment"
+    echo "Create it first with: conda env create -f environment.yml"
+    exit 1
+}
 
 mkdir -p cluster/logs
+
+# =============================================================================
+# Environment Validation (fail fast if packages missing)
+# =============================================================================
+echo ""
+echo "Validating environment..."
+
+python -c "
+import sys
+missing = []
+required = ['jax', 'jaxlib', 'scipy', 'pandas', 'numpy', 'joblib']
+for pkg in required:
+    try:
+        __import__(pkg)
+    except ImportError:
+        missing.append(pkg)
+
+if missing:
+    print(f'ERROR: Missing required packages: {missing}')
+    print('Install with: pip install ' + ' '.join(missing))
+    sys.exit(1)
+
+# Check project fitting module is importable
+sys.path.insert(0, '.')
+try:
+    from scripts.fitting import fit_mle, jax_likelihoods, mle_utils
+except ImportError as e:
+    print(f'ERROR: Cannot import fitting module: {e}')
+    print('Make sure you are in the project root directory')
+    sys.exit(1)
+
+print('Environment OK: all packages available')
+" || exit 1
+
+echo ""
 
 # =============================================================================
 # Run MLE Fitting
