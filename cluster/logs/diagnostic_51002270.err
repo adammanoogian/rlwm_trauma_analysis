@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/diagnose_gpu.py", line 21, in <module>
+    log("=" * 55)
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/diagnose_gpu.py", line 19, in log
+    log(f"[{time.strftime('%H:%M:%S')}] {msg}", flush=True)
+TypeError: log() got an unexpected keyword argument 'flush'
