@@ -95,8 +95,19 @@ export MKL_NUM_THREADS=4
 export OPENBLAS_NUM_THREADS=4
 export NUMEXPR_NUM_THREADS=4
 export JAX_PLATFORMS=cpu
+
+# =============================================================================
+# XLA COMPILATION CONTROLS (for parallel worker stability)
+# =============================================================================
+# Each joblib worker is a separate process, so LLVM memory issues can still occur.
+# These flags help prevent memory exhaustion during JIT compilation.
+export XLA_FLAGS="--xla_cpu_multi_thread_eigen=false --xla_cpu_parallel_codegen_split_count=1"
+export TF_NUM_INTEROP_THREADS=1
+export TF_NUM_INTRAOP_THREADS=4
+
 echo "Thread settings: OMP/MKL/OPENBLAS/NUMEXPR = 4 threads each"
 echo "Total threads: $NJOBS workers × 4 threads = $(($NJOBS * 4))"
+echo "XLA settings: single-threaded LLVM compilation per worker"
 
 # =============================================================================
 # Environment Validation (fail fast if packages missing)
@@ -150,6 +161,10 @@ echo "JAX cache: $JAX_COMPILATION_CACHE_DIR"
 
 # =============================================================================
 # Run MLE Fitting
+# =============================================================================
+# NOTE: If you encounter "Cannot allocate memory" errors from LLVM, use
+# run_mle_single.slurm instead, which uses taskset to limit CPU affinity
+# and prevent LLVM from spawning too many compilation threads.
 # =============================================================================
 
 DATA_FILE="output/task_trials_long.csv"

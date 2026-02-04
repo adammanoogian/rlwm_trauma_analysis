@@ -112,9 +112,10 @@ export TF_NUM_INTEROP_THREADS=1
 export TF_NUM_INTRAOP_THREADS=4
 
 # =============================================================================
-# DEBUGGING: JAX Compilation & Memory Traces
+# DEBUGGING: JAX Compilation & Memory Traces (DISABLED FOR PRODUCTION)
 # =============================================================================
 # These flags help isolate where memory issues occur during JIT compilation.
+# WARNING: Creates 9.5MB+ log files (74,000+ lines) - use only for one-time debugging!
 #
 # JAX_LOG_COMPILES: Logs each JIT compilation event
 # JAX_EXPLAIN_CACHE_MISSES: Explains why recompilation occurs (shape changes, etc.)
@@ -123,9 +124,11 @@ export TF_NUM_INTRAOP_THREADS=4
 # References:
 # - https://docs.jax.dev/en/latest/config_options.html
 # - https://openxla.org/xla/tools
-export JAX_LOG_COMPILES=1
-export JAX_EXPLAIN_CACHE_MISSES=1
-export JAX_LOGGING_LEVEL=INFO
+#
+# Uncomment for debugging only:
+# export JAX_LOG_COMPILES=1
+# export JAX_EXPLAIN_CACHE_MISSES=1
+# export JAX_LOGGING_LEVEL=INFO
 
 # Uncomment for deep debugging (creates large files):
 # export XLA_FLAGS="${XLA_FLAGS} --xla_dump_to=${PROJECT_ROOT}/output/mle/xla_dump_${SLURM_JOB_ID}"
@@ -133,7 +136,7 @@ export JAX_LOGGING_LEVEL=INFO
 
 echo "Thread settings: OMP/MKL/OPENBLAS/NUMEXPR = 4 threads each"
 echo "XLA settings: single-threaded LLVM compilation + single-threaded Eigen"
-echo "Debug flags: JAX_LOG_COMPILES=1, JAX_EXPLAIN_CACHE_MISSES=1"
+echo "Debug flags: DISABLED (uncomment in script for debugging)"
 
 # =============================================================================
 # Environment Validation (fail fast if packages missing)
@@ -207,7 +210,36 @@ log_memory "PRE-FIT"
 free -m 2>/dev/null || echo "(free command not available)"
 echo ""
 
-$CMD
+# =============================================================================
+# CPU AFFINITY CONTROL (CRITICAL FOR LLVM MEMORY STABILITY)
+# =============================================================================
+#
+# PROBLEM: LLVM's execution engine (execution_engine.cc) spawns threads equal to
+# the number of detected CPUs via std::thread::hardware_concurrency(). With
+# --cpus-per-task=16, it spawns 16 threads that all try to allocate memory
+# simultaneously, causing "Cannot allocate memory" errors (seen in job 50989988).
+#
+# WHY XLA FLAGS WEREN'T ENOUGH:
+# - xla_cpu_parallel_codegen_split_count controls MODULE SPLITTING, not LLVM threads
+# - LLVM's internal JIT thread pool is separate and has no CPU-side XLA flag
+# - GPU has --xla_gpu_enable_llvm_module_compilation_parallelism=false but CPU doesn't
+#
+# SOLUTION: Use taskset to limit the Python process to a single CPU during
+# compilation. LLVM's hardware_concurrency() will then detect only 1 CPU and
+# use 1 compilation thread, preventing memory contention.
+#
+# TRADE-OFF: Initial compilation ~2x slower (~180-300s vs ~90-150s), but:
+# - Compilation succeeds without memory errors
+# - Compiled kernels are cached and reused for subsequent participants
+# - Runtime execution performance is UNAFFECTED
+#
+# References:
+# - https://github.com/jax-ml/jax/issues/16272 (LLVM worker thread limit)
+# - https://github.com/jax-ml/jax/issues/6790 (taskset workaround)
+# =============================================================================
+
+echo "Using taskset -c 0 to limit LLVM compilation to single CPU..."
+taskset -c 0 $CMD
 
 EXIT_CODE=$?
 
