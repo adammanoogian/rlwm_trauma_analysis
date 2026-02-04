@@ -31,8 +31,8 @@
 #SBATCH --job-name=rlwm_mle_gpu
 #SBATCH --output=cluster/logs/mle_gpu_%j.out
 #SBATCH --error=cluster/logs/mle_gpu_%j.err
-#SBATCH --time=00:15:00
-#SBATCH --mem=16G
+#SBATCH --time=04:00:00
+#SBATCH --mem=64G
 #SBATCH --gres=gpu:1
 #SBATCH --partition=gpu
 #SBATCH --cpus-per-task=4
@@ -66,12 +66,19 @@ echo "Start time: $(date)"
 echo "============================================================"
 
 # Activate GPU conda environment
-# Note: Use full path like CPU scripts for reliability across cluster nodes
-conda activate /scratch/fc37/aman0087/conda/envs/rlwm_gpu || {
+# Try by name first (uses user's .condarc), then fall back to common paths
+if conda activate rlwm_gpu 2>/dev/null; then
+    echo "Activated rlwm_gpu by name"
+elif conda activate /scratch/fc37/$USER/conda/envs/rlwm_gpu 2>/dev/null; then
+    echo "Activated rlwm_gpu from /scratch/fc37/$USER/"
+elif conda activate /scratch/$PROJECT/$USER/conda/envs/rlwm_gpu 2>/dev/null; then
+    echo "Activated rlwm_gpu from /scratch/$PROJECT/$USER/"
+else
     echo "ERROR: Failed to activate 'rlwm_gpu' conda environment"
+    echo "Tried: rlwm_gpu (by name), /scratch/fc37/$USER/..., /scratch/$PROJECT/$USER/..."
     echo "Create it first with: bash cluster/setup_env_gpu.sh"
     exit 1
-}
+fi
 
 # Verify GPU is available to JAX
 echo ""

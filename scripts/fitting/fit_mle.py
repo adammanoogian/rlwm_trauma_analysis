@@ -37,6 +37,11 @@ except ImportError:
     HAS_RESOURCE = False
 
 
+def timestamp() -> str:
+    """Return current time as HH:MM:SS string for logging."""
+    return datetime.now().strftime('%H:%M:%S')
+
+
 def log_memory_usage(label: str, verbose: bool = True) -> float:
     """
     Log current memory usage for debugging OOM issues.
@@ -745,9 +750,11 @@ def fit_all_participants(
         process = None
 
     if verbose:
+        start_datetime = datetime.now()
         print(f"\n{'='*60}")
-        print(f"Starting MLE fitting: {model.upper()}")
+        print(f"MLE Fitting: {model.upper()}")
         print(f"{'='*60}")
+        print(f"Start time: {start_datetime.strftime('%Y-%m-%d %H:%M:%S')}")
         print(f"Participants: {n_participants}")
         print(f"Random starts per participant: {n_starts}")
         print(f"Parallel workers: {n_jobs if n_jobs > 0 else 'all available cores'}")
@@ -798,9 +805,24 @@ def fit_all_participants(
             # Track memory before fit
             mem_before_mb = log_memory_usage(f"PRE-FIT participant {i+1}", verbose=False)
 
+            # Calculate percentage and ETA
+            pct_complete = 100.0 * (i) / n_participants
+            if fit_times and len(fit_times) >= 1:
+                # Use steady-state average (skip first which includes JIT)
+                steady_times = fit_times[1:] if len(fit_times) > 1 else fit_times
+                avg_time_for_eta = np.mean(steady_times)
+                remaining_participants = n_participants - i
+                eta_seconds = remaining_participants * avg_time_for_eta
+                if eta_seconds >= 60:
+                    eta_str = f" | ETA: {eta_seconds/60:.1f}min"
+                else:
+                    eta_str = f" | ETA: {eta_seconds:.0f}s"
+            else:
+                eta_str = ""
+
             if verbose:
-                # Print progress header for this participant
-                print(f"[{i+1:3d}/{n_participants}] Fitting participant {pid} ({n_trials} trials)...", end=" ", flush=True)
+                # Print progress header for this participant with timestamp, percentage, ETA
+                print(f"[{timestamp()}] [{i+1:3d}/{n_participants}] ({pct_complete:5.1f}%) Fitting {pid} ({n_trials} trials){eta_str}...", end=" ", flush=True)
 
             fit_start = time.time()
             result = _fit_single_participant_worker(args + (compute_diagnostics,))
@@ -819,6 +841,7 @@ def fit_all_participants(
 
             # Log JIT compilation memory spike (first participant)
             if i == 0 and verbose:
+                print()  # Newline before JIT message
                 log_memory_usage("POST-JIT (compilation complete)", verbose=True)
 
             # Record timing for this participant
@@ -835,28 +858,44 @@ def fit_all_participants(
             })
 
             if verbose:
-                # Print result summary
+                # Print result summary with status indicator
+                status_indicator = "[OK]" if result['converged'] else "[!!]"
                 nll_str = f"NLL={result['nll']:.1f}" if not np.isnan(result['nll']) else "NLL=NaN"
-                conv_str = "converged" if result['converged'] else "NOT converged"
-                r2_str = f"R²={result.get('pseudo_r2', 0):.2f}" if 'pseudo_r2' in result and not np.isnan(result.get('pseudo_r2', np.nan)) else ""
-                print(f"{nll_str}, {r2_str}, {conv_str}, {fit_time:.1f}s")
+                r2_str = f"R2={result.get('pseudo_r2', 0):.2f}" if 'pseudo_r2' in result and not np.isnan(result.get('pseudo_r2', np.nan)) else ""
+                print(f"{status_indicator} {nll_str}, {r2_str}, {fit_time:.1f}s")
 
-                # Every 10 participants, print a summary line with memory info
+                # Every 10 participants, print a formatted progress box
                 if (i + 1) % 10 == 0:
+                    elapsed_time = time.time() - start_time
                     avg_time = np.mean(fit_times)
+                    # Use steady-state average for remaining estimate
+                    steady_times = fit_times[1:] if len(fit_times) > 1 else fit_times
+                    steady_avg = np.mean(steady_times) if steady_times else avg_time
                     n_converged = sum(r['converged'] for r in results)
-                    remaining = (n_participants - i - 1) * avg_time
+                    remaining = (n_participants - i - 1) * steady_avg
                     current_mem_mb = log_memory_usage(f"checkpoint {i+1}", verbose=False)
-                    mem_str = f", mem={current_mem_mb/1024:.2f}GB" if current_mem_mb > 0 else ""
-                    print(f"    --- Progress: {i+1}/{n_participants} done, {n_converged} converged, "
-                          f"avg {avg_time:.1f}s/participant, ~{remaining/60:.1f} min remaining{mem_str} ---")
+                    mem_str = f"{current_mem_mb/1024:.2f}GB" if current_mem_mb > 0 else "N/A"
+                    conv_rate = 100.0 * n_converged / len(results)
+
+                    print()
+                    print(f"    +----------------------------------------------------------")
+                    print(f"    | PROGRESS: {i+1}/{n_participants} ({100.0*(i+1)/n_participants:.0f}%)")
+                    print(f"    | Elapsed: {elapsed_time/60:.1f}min | Remaining: ~{remaining/60:.1f}min")
+                    print(f"    | Converged: {n_converged}/{len(results)} ({conv_rate:.0f}%) | Avg: {steady_avg:.1f}s/participant")
+                    print(f"    | Memory: {mem_str}")
+                    print(f"    +----------------------------------------------------------")
+                    print()
     else:
         # Parallel execution using joblib
 
         # Warmup JAX compilation in main process (populates disk cache)
         # This ensures workers can read cached compilations instead of
         # each independently compiling, reducing overhead from ~30s to ~5s
+        jit_start = time.time()
         warmup_jax_compilation(model, verbose=verbose)
+        jit_elapsed = time.time() - jit_start
+        if verbose:
+            print(f"[{timestamp()}] JAX compilation complete: {jit_elapsed:.1f}s\n")
 
         if verbose:
             print(f"Running parallel fitting with {n_jobs} workers...")
@@ -921,35 +960,38 @@ def fit_all_participants(
     final_mem_mb = log_memory_usage("FINAL", verbose=verbose)
     peak_mem_mb = max(peak_mem_mb, final_mem_mb)
 
-    # Print summary timing
+    # Print enhanced summary with completion details
     if verbose:
+        end_datetime = datetime.now()
+        n_converged = sum(r['converged'] for r in results)
+        conv_rate = 100.0 * n_converged / n_participants if n_participants > 0 else 0
+
         print(f"\n{'='*60}")
-        print(f"Fitting Complete!")
+        print(f"FITTING COMPLETE")
         print(f"{'='*60}")
-        print(f"Total time: {total_time/60:.1f} minutes ({total_time:.1f} seconds)")
+        print(f"End time: {end_datetime.strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"Total duration: {total_time/60:.1f} min ({total_time:.0f}s)")
+        print(f"Participants: {n_participants} | Converged: {n_converged} ({conv_rate:.0f}%)")
+
+        # Timing breakdown
         if fit_times:
-            avg_time = np.mean(fit_times)
             jit_time = fit_times[0] if fit_times else 0
             steady_times = fit_times[1:] if len(fit_times) > 1 else []
             steady_avg = np.mean(steady_times) if steady_times else jit_time
-            print(f"First participant (includes JIT): {jit_time:.1f} seconds")
-            print(f"Steady-state avg per participant: {steady_avg:.2f} seconds")
+            print(f"JIT compilation: {jit_time:.1f}s | Avg steady-state: {steady_avg:.1f}s/participant")
         else:
-            print(f"Average time per participant: {total_time/n_participants:.2f} seconds (parallel)")
-        print(f"Converged: {sum(r['converged'] for r in results)}/{n_participants}")
-        if n_jobs != 1:
-            print(f"Effective parallelization: {n_jobs} workers")
+            # Parallel mode
+            avg_per_participant = total_time / n_participants if n_participants > 0 else 0
+            print(f"Avg time per participant: {avg_per_participant:.1f}s (parallel, {n_jobs} workers)")
 
-        # Report memory usage
-        if HAS_PSUTIL:
-            print(f"Initial memory: {initial_mem_mb/1024:.2f} GB")
-            print(f"Peak memory: {peak_mem_mb/1024:.2f} GB")
-            print(f"Memory increase: {(peak_mem_mb - initial_mem_mb)/1024:.2f} GB")
+        # Memory summary
+        if peak_mem_mb > 0:
+            print(f"Peak memory: {peak_mem_mb/1024:.2f}GB")
 
         # Report diagnostic summary if computed
         if compute_diagnostics:
             hess_success = sum(1 for r in results if r.get('hessian_invertible', False))
-            print(f"Hessian diagnostics computed: {hess_success}/{n_participants}")
+            print(f"Hessian diagnostics: {hess_success}/{n_participants} successful")
 
         print(f"{'='*60}\n")
 
