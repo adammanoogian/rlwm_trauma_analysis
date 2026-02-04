@@ -447,45 +447,56 @@ def fit_participant_mle(
     # jaxopt computes gradients automatically via JAX autodiff
     solver = LBFGS(fun=objective, maxiter=1000, tol=1e-6, jit=True)
 
-    # VECTORIZED OPTIMIZATION: Run all starts in parallel using vmap
-    # This is MUCH faster than sequential optimization because:
-    # 1. All 20 optimizations run simultaneously on GPU
-    # 2. Amortizes Python loop overhead across all starts
-    # 3. Better GPU utilization (parallel workload vs sequential)
-
     # Generate all starting points at once
     x0_batch = jnp.array([sample_random_start(model, rng) for _ in range(n_starts)])
 
-    # Vectorize solver.run across the batch of starting points
-    # vmap transforms solver.run to operate on batches: (n_starts, n_params) -> (n_starts, n_params)
-    vmap_run = jax.vmap(solver.run)
+    # Check if vmap is disabled via environment variable (for debugging/OOM issues)
+    use_vmap = os.environ.get('RLWM_DISABLE_VMAP', '0') != '1'
 
-    try:
-        # Run ALL optimizations in parallel!
-        all_params, all_states = vmap_run(x0_batch)
+    if use_vmap and n_starts > 1:
+        # VECTORIZED OPTIMIZATION: Run all starts in parallel using vmap
+        # This is MUCH faster than sequential optimization because:
+        # 1. All optimizations run simultaneously on GPU
+        # 2. Amortizes Python loop overhead across all starts
+        # 3. Better GPU utilization (parallel workload vs sequential)
+        #
+        # Note: If you get OOM errors, set RLWM_DISABLE_VMAP=1 to fall back to sequential
 
-        # Vectorize objective evaluation to get all NLLs at once
-        vmap_objective = jax.vmap(objective)
-        all_nlls = vmap_objective(all_params)
+        vmap_run = jax.vmap(solver.run)
 
-        # Convert to numpy for processing
-        all_params_np = np.array(all_params)
-        all_nlls_np = np.array(all_nlls)
+        try:
+            # Run ALL optimizations in parallel!
+            all_params, all_states = vmap_run(x0_batch)
 
-        # Build results list
-        results = []
-        for i in range(n_starts):
-            nll = all_nlls_np[i]
-            success = np.isfinite(nll)
-            result = _JaxoptResult(
-                x=all_params_np[i],
-                fun=float(nll),
-                success=bool(success)
-            )
-            results.append(result)
+            # Vectorize objective evaluation to get all NLLs at once
+            vmap_objective = jax.vmap(objective)
+            all_nlls = vmap_objective(all_params)
 
-    except Exception as e:
-        # Fallback to sequential if vmap fails (shouldn't happen)
+            # Convert to numpy for processing
+            all_params_np = np.array(all_params)
+            all_nlls_np = np.array(all_nlls)
+
+            # Build results list
+            results = []
+            for i in range(n_starts):
+                nll = all_nlls_np[i]
+                success = np.isfinite(nll)
+                result = _JaxoptResult(
+                    x=all_params_np[i],
+                    fun=float(nll),
+                    success=bool(success)
+                )
+                results.append(result)
+
+        except Exception as e:
+            # Fallback to sequential if vmap fails (OOM, CUDA error, etc.)
+            import warnings
+            warnings.warn(f"vmap optimization failed ({type(e).__name__}), falling back to sequential")
+            use_vmap = False  # Trigger sequential below
+
+    if not use_vmap or n_starts == 1:
+        # SEQUENTIAL OPTIMIZATION: Run one at a time
+        # Slower but more memory-efficient and robust
         results = []
         for i in range(n_starts):
             x0 = x0_batch[i]
@@ -499,8 +510,8 @@ def fit_participant_mle(
                     success=bool(success)
                 )
                 results.append(result)
-            except:
-                continue
+            except Exception as e:
+                continue  # Skip failed optimizations
 
     # Check convergence
     convergence_info = check_convergence(results)
