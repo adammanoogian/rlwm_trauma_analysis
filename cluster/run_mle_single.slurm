@@ -62,6 +62,15 @@ conda activate /scratch/fc37/aman0087/conda/envs/rlwm || {
     exit 1
 }
 
+# Store the Python path for srun (srun creates fresh environment without conda activation)
+# Using 'which python' to get the path from the activated conda environment
+PYTHON_BIN=$(which python)
+if [[ ! -x "$PYTHON_BIN" ]]; then
+    echo "ERROR: Python not found in activated conda environment"
+    exit 1
+fi
+echo "Python binary: $PYTHON_BIN"
+
 mkdir -p cluster/logs
 
 # =============================================================================
@@ -255,7 +264,7 @@ echo ""
 echo "Phase 1: JIT warmup with limited CPUs (prevents LLVM memory exhaustion)..."
 WARMUP_START=$(date +%s)
 
-srun --cpus-per-task=2 --exact python scripts/fitting/warmup_jit.py --model $MODEL
+srun --ntasks=1 --cpus-per-task=2 --exact $PYTHON_BIN scripts/fitting/warmup_jit.py --model $MODEL
 
 WARMUP_EXIT=$?
 WARMUP_END=$(date +%s)
