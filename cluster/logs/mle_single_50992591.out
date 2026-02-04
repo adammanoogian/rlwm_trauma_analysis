@@ -1,0 +1,138 @@
+============================================================
+RLWM MLE Fitting - Single Model (M3)
+============================================================
+Job ID: 50992591
+Node: m3j002
+Partition: comp
+Model: qlearning
+Limit: 3
+Start time: Wed Feb  4 09:15:39 PM AEDT 2026
+============================================================
+Python binary: /scratch/fc37/aman0087/conda/envs/rlwm/bin/python
+Thread settings: OMP/MKL/OPENBLAS/NUMEXPR = 4 threads each
+XLA settings: single-threaded LLVM compilation + single-threaded Eigen
+JAX cache: /scratch/fc37/aman0087/.jax_cache
+Debug flags: DISABLED (uncomment in script for debugging)
+
+Validating environment...
+Environment OK: all packages available
+
+Running: python scripts/fitting/fit_mle.py --model qlearning --data output/task_trials_long.csv --output output/mle/ --n-starts 20 --seed 42 --limit 3
+
+=== PRE-FIT MEMORY STATE ===
+[21:15:41] MEMORY (PRE-FIT): Mem:           376Gi        20Gi       291Gi       362Mi        67Gi       355Gi
+               total        used        free      shared  buff/cache   available
+Mem:          385041       20629      298158         362       69180      364412
+Swap:              0           0           0
+
+Phase 1: JIT warmup with limited CPUs (prevents LLVM memory exhaustion)...
+============================================================
+JAX JIT Warmup for MLE Fitting
+============================================================
+JAX devices: [CpuDevice(id=0)]
+JAX compilation cache: Not set (using default)
+Data shape: 17 blocks x 100 trials
+
+Warming up qlearning... done (1.9s)
+
+============================================================
+JIT warmup complete. Compiled kernels cached to disk.
+============================================================
+Warmup completed in 3 seconds (exit code: 0)
+
+Phase 2: Main fitting with full CPU allocation...
+
+============================================================
+MLE Fitting: QLEARNING
+============================================================
+Data: output/task_trials_long.csv
+Random starts: 20
+Seed: 42
+Output: output/mle/
+Include practice: False
+Parallel workers: 1
+Limit: 3 participants (testing mode)
+============================================================
+
+Loading data...
+  Total participants in data: 47
+  Final sample: 47
+  Total trials: 35058
+  Limited to first 3 participants (testing mode)
+
+[MEMORY] START: 183.0MB (psutil)
+
+============================================================
+Starting MLE fitting: QLEARNING
+============================================================
+Participants: 3
+Random starts per participant: 20
+Parallel workers: 1
+============================================================
+
+Preparing participant data...
+Resuming from checkpoint: 3 participants already completed
+[  1/3] Skipping participant 10000 (already in checkpoint)
+[  2/3] Skipping participant 9187 (already in checkpoint)
+[  3/3] Fitting participant 10001 (119 trials)... NLL=125.3, R²=0.04, NOT converged, 334.6s
+[MEMORY] FINAL: 4501.4MB (psutil)
+
+============================================================
+Fitting Complete!
+============================================================
+Total time: 5.6 minutes (335.8 seconds)
+First participant (includes JIT): 334.6 seconds
+Steady-state avg per participant: 334.60 seconds
+
+=== POST-FIT MEMORY STATE ===
+[21:21:29] MEMORY (POST-FIT): Mem:           376Gi        19Gi       291Gi       362Mi        67Gi       356Gi
+               total        used        free      shared  buff/cache   available
+Mem:          385041       20332      298446         362       69188      364709
+Swap:              0           0           0
+
+============================================================
+JOB RESOURCE METRICS
+============================================================
+Command run: sbatch cluster/run_mle_single.slurm
+Model: qlearning
+Limit: 3
+Thread settings: OMP=4, MKL=4
+
+========================================
+SLURM JOB METRICS REPORT (Single Model)
+========================================
+Job ID: 50992591
+Job Name: rlwm_mle_single
+Node: m3j002
+Partition: comp
+
+REQUESTED RESOURCES:
+  CPUs: 16
+  Memory: 65536
+  Time Limit: 
+
+CONFIGURATION:
+  Model: qlearning
+  Limit: 3
+  OMP_NUM_THREADS: 4
+  MKL_NUM_THREADS: 4
+
+TIMING:
+  Start: Wed Feb  4 09:15:39 PM AEDT 2026
+  End: Wed Feb  4 09:21:29 PM AEDT 2026
+
+ACTUAL RESOURCE USAGE (sacct):
+JobID           Elapsed     MaxRSS  MaxVMSize     ReqMem  AllocCPUS   TotalCPU      State 
+------------ ---------- ---------- ---------- ---------- ---------- ---------- ---------- 
+50992591       00:05:52                              64G         16   00:00:00    RUNNING 
+50992591.ba+   00:05:52                                          16   00:00:00    RUNNING 
+50992591.ex+   00:05:52                                          16   00:00:00    RUNNING 
+50992591.0     00:00:03    120316K          0                     2   00:00:00  COMPLETED 
+
+========================================
+
+Metrics saved to: output/mle/job_metrics_single_50992591.txt
+============================================================
+Complete!
+End time: Wed Feb  4 09:21:29 PM AEDT 2026
+============================================================

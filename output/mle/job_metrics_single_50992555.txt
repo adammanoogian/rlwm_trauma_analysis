@@ -1,0 +1,32 @@
+========================================
+SLURM JOB METRICS REPORT (Single Model)
+========================================
+Job ID: 50992555
+Job Name: rlwm_mle_single
+Node: m3j002
+Partition: comp
+
+REQUESTED RESOURCES:
+  CPUs: 16
+  Memory: 65536
+  Time Limit: 
+
+CONFIGURATION:
+  Model: qlearning
+  Limit: 0
+  OMP_NUM_THREADS: 4
+  MKL_NUM_THREADS: 4
+
+TIMING:
+  Start: Wed Feb  4 09:14:20 PM AEDT 2026
+  End: Wed Feb  4 09:14:29 PM AEDT 2026
+
+ACTUAL RESOURCE USAGE (sacct):
+JobID           Elapsed     MaxRSS  MaxVMSize     ReqMem  AllocCPUS   TotalCPU      State 
+------------ ---------- ---------- ---------- ---------- ---------- ---------- ---------- 
+50992555       00:00:10                              64G         16   00:00:00    RUNNING 
+50992555.ba+   00:00:10                                          16   00:00:00    RUNNING 
+50992555.ex+   00:00:10                                          16   00:00:00    RUNNING 
+50992555.0     00:00:04    155940K          0                     2   00:00:00  COMPLETED 
+
+========================================
