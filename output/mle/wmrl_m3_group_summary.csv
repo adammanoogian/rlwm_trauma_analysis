@@ -1,0 +1,11 @@
+parameter,mean,sd,se,ci_lower,ci_upper,n
+alpha_pos,,,,,,3
+alpha_neg,,,,,,3
+phi,,,,,,3
+rho,,,,,,3
+capacity,,,,,,3
+kappa,,,,,,3
+epsilon,,,,,,3
+nll,724.554931640625,,,,,3
+aic,1463.10986328125,,,,,3
+bic,1497.3796421654852,,,,,3

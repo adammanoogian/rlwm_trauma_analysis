@@ -1,0 +1,4 @@
+participant_id,alpha_pos,alpha_neg,phi,rho,capacity,kappa,epsilon,nll,aic,bic,aicc,pseudo_r2,grad_norm,hessian_condition,hessian_invertible,n_trials,converged,n_successful_starts,at_bounds
+10000,0.015335888601839542,0.0010000000474974513,0.38311493396759033,0.8037013411521912,2.585750102996826,8.877319782260139e-20,0.06138361245393753,724.554931640625,1463.10986328125,1497.3796421654852,1463.2241489955356,0.3324713353995714,,,False,988,False,10,"['alpha_neg', 'kappa']"
+9187,,,,,,,,,,,,,,,,990,False,0,[]
+10002,,,,,,,,,,,,,,,,986,False,0,[]

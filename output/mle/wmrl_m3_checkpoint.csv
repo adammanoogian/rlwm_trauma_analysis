@@ -1,0 +1,4 @@
+alpha_pos,alpha_neg,phi,rho,capacity,kappa,epsilon,nll,aic,bic,aicc,pseudo_r2,n_trials,converged,n_successful_starts,at_bounds,grad_norm,hessian_condition,hessian_invertible,hessian_error,participant_id
+0.015335889,0.001,0.38311493,0.80370134,2.58575,8.87732e-20,0.061383612,724.554931640625,1463.10986328125,1497.3796421654852,1463.2241489955356,0.3324713353995714,988,False,10,"['alpha_neg', 'kappa']",,,False,"INTERNAL: Failed to materialize symbols: { (<xla_jit_dylib_0>, { wrapped_iota }) }",10000
+,,,,,,,,,,,990,False,0,[],9187
+,,,,,,,,,,,986,False,0,[],10002

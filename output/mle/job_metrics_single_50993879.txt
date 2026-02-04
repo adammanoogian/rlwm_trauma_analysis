@@ -1,0 +1,32 @@
+========================================
+SLURM JOB METRICS REPORT (Single Model)
+========================================
+Job ID: 50993879
+Job Name: rlwm_mle_single
+Node: m3e100
+Partition: comp
+
+REQUESTED RESOURCES:
+  CPUs: 16
+  Memory: 65536
+  Time Limit: 
+
+CONFIGURATION:
+  Model: wmrl_m3
+  Limit: 3
+  OMP_NUM_THREADS: 4
+  MKL_NUM_THREADS: 4
+
+TIMING:
+  Start: Wed Feb  4 09:55:18 PM AEDT 2026
+  End: Wed Feb  4 10:04:05 PM AEDT 2026
+
+ACTUAL RESOURCE USAGE (sacct):
+JobID           Elapsed     MaxRSS  MaxVMSize     ReqMem  AllocCPUS   TotalCPU      State 
+------------ ---------- ---------- ---------- ---------- ---------- ---------- ---------- 
+50993879       00:08:49                              64G         16   00:00:00    RUNNING 
+50993879.ba+   00:08:49                                          16   00:00:00    RUNNING 
+50993879.ex+   00:08:49                                          16   00:00:00    RUNNING 
+50993879.0     00:00:05    202596K          0                     2   00:00:00  COMPLETED 
+
+========================================
