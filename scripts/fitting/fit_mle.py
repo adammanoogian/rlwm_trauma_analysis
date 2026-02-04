@@ -450,17 +450,15 @@ def fit_participant_mle(
     # Generate all starting points at once
     x0_batch = jnp.array([sample_random_start(model, rng) for _ in range(n_starts)])
 
-    # Check if vmap is disabled via environment variable (for debugging/OOM issues)
-    use_vmap = os.environ.get('RLWM_DISABLE_VMAP', '0') != '1'
+    # Check if vmap is ENABLED via environment variable
+    # Default: sequential (faster on GPU - vmap has 5x overhead from diagnostic testing)
+    use_vmap = os.environ.get('RLWM_ENABLE_VMAP', '0') == '1'
 
     if use_vmap and n_starts > 1:
         # VECTORIZED OPTIMIZATION: Run all starts in parallel using vmap
-        # This is MUCH faster than sequential optimization because:
-        # 1. All optimizations run simultaneously on GPU
-        # 2. Amortizes Python loop overhead across all starts
-        # 3. Better GPU utilization (parallel workload vs sequential)
-        #
-        # Note: If you get OOM errors, set RLWM_DISABLE_VMAP=1 to fall back to sequential
+        # NOTE: Diagnostic testing showed vmap is actually SLOWER than sequential
+        # due to compilation overhead and memory bandwidth limitations.
+        # Only enable with RLWM_ENABLE_VMAP=1 for experimental purposes.
 
         vmap_run = jax.vmap(solver.run)
 
@@ -495,8 +493,8 @@ def fit_participant_mle(
             use_vmap = False  # Trigger sequential below
 
     if not use_vmap or n_starts == 1:
-        # SEQUENTIAL OPTIMIZATION: Run one at a time
-        # Slower but more memory-efficient and robust
+        # SEQUENTIAL OPTIMIZATION (DEFAULT): Run one at a time
+        # Fastest approach based on GPU diagnostic testing (2.38s vs 13.15s per opt)
         results = []
         for i in range(n_starts):
             x0 = x0_batch[i]
