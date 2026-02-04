@@ -373,6 +373,7 @@ def fit_participant_mle(
     n_starts: int = 20,
     seed: Optional[int] = None,
     compute_diagnostics: bool = True,
+    verbose: bool = False,
 ) -> Dict:
     """
     Fit a single participant using MLE with multiple random starts.
@@ -400,25 +401,39 @@ def fit_participant_mle(
         - Convergence info (converged, n_successful_starts, at_bounds)
         - Diagnostics (grad_norm, hessian_condition, parameter SEs and CIs)
     """
+    import time as _time  # Local import to avoid namespace collision
     rng = np.random.default_rng(seed)
 
     # Count total REAL trials (accounting for masks if provided)
+    if verbose:
+        print(f"      [1/5] Counting trials...", end=" ", flush=True)
+        _t0 = _time.time()
     if masks_blocks is not None:
         # Sum of mask values = number of real trials (mask=1 for real, 0 for padding)
         n_trials = sum(int(jnp.sum(m)) for m in masks_blocks)
     else:
         n_trials = sum(len(s) for s in stimuli_blocks)
+    if verbose:
+        print(f"done ({_time.time() - _t0:.2f}s)", flush=True)
 
     # Convert data to JAX arrays for efficient computation
     # Note: If data is already JAX arrays (from prepare_participant_data with padding),
     # jnp.array() is a no-op
+    if verbose:
+        print(f"      [2/5] Preparing JAX arrays...", end=" ", flush=True)
+        _t0 = _time.time()
     stimuli_jax = [jnp.array(s, dtype=jnp.int32) for s in stimuli_blocks]
     actions_jax = [jnp.array(a, dtype=jnp.int32) for a in actions_blocks]
     rewards_jax = [jnp.array(r, dtype=jnp.float32) for r in rewards_blocks]
     masks_jax = masks_blocks  # Already JAX arrays from prepare_participant_data, or None
+    if verbose:
+        print(f"done ({_time.time() - _t0:.2f}s)", flush=True)
 
     # Create JAX-compatible objective function
     # Note: Beta is fixed at 50 inside the likelihood functions
+    if verbose:
+        print(f"      [3/5] Creating objective function...", end=" ", flush=True)
+        _t0 = _time.time()
     if model == 'qlearning':
         objective = _make_jax_objective_qlearning(
             stimuli_jax, actions_jax, rewards_jax, masks_blocks=masks_jax
@@ -442,10 +457,18 @@ def fit_participant_mle(
         n_params = 7
     else:
         raise ValueError(f"Unknown model: {model}")
+    if verbose:
+        print(f"done ({_time.time() - _t0:.2f}s)", flush=True)
 
     # Create jaxopt LBFGS solver with JIT-compiled objective
     # jaxopt computes gradients automatically via JAX autodiff
-    solver = LBFGS(fun=objective, maxiter=1000, tol=1e-6, jit=True)
+    # Note: Reduced maxiter/tol for faster convergence on multimodal surfaces
+    if verbose:
+        print(f"      [4/5] Creating L-BFGS solver...", end=" ", flush=True)
+        _t0 = _time.time()
+    solver = LBFGS(fun=objective, maxiter=500, tol=1e-4, jit=True)
+    if verbose:
+        print(f"done ({_time.time() - _t0:.2f}s)", flush=True)
 
     # Generate all starting points at once
     x0_batch = jnp.array([sample_random_start(model, rng) for _ in range(n_starts)])
@@ -495,10 +518,16 @@ def fit_participant_mle(
     if not use_vmap or n_starts == 1:
         # SEQUENTIAL OPTIMIZATION (DEFAULT): Run one at a time
         # Fastest approach based on GPU diagnostic testing (2.38s vs 13.15s per opt)
+        if verbose:
+            print(f"      [5/5] Running {n_starts} optimizations...", flush=True)
+            _opt_start = _time.time()
         results = []
         for i in range(n_starts):
             x0 = x0_batch[i]
             try:
+                if verbose and i == 0:
+                    print(f"            Start 1/{n_starts} (JIT compiling)...", end=" ", flush=True)
+                    _t0 = _time.time()
                 result_params, state = solver.run(x0)
                 final_nll = float(objective(result_params))
                 success = jnp.isfinite(final_nll)
@@ -508,8 +537,15 @@ def fit_participant_mle(
                     success=bool(success)
                 )
                 results.append(result)
+                if verbose and i == 0:
+                    print(f"done ({_time.time() - _t0:.2f}s)", flush=True)
+                    print(f"            Starts 2-{n_starts}...", end=" ", flush=True)
             except Exception as e:
+                if verbose and i == 0:
+                    print(f"failed: {e}", flush=True)
                 continue  # Skip failed optimizations
+        if verbose:
+            print(f"done (total: {_time.time() - _opt_start:.2f}s)", flush=True)
 
     # Check convergence
     convergence_info = check_convergence(results)
@@ -569,6 +605,8 @@ def fit_participant_mle(
 
     # Compute Hessian-based diagnostics if requested
     if compute_diagnostics:
+        if verbose:
+            print(f"    Computing Hessian diagnostics...", flush=True)
         # Check gradient norm at optimum
         grad_norm, grad_converged = check_gradient_norm(objective, best_result.x)
         result['grad_norm'] = grad_norm
@@ -756,17 +794,21 @@ def _fit_single_participant_worker(args: Tuple) -> Dict:
     The function receives all arguments as a tuple and unpacks them.
 
     Args:
-        args: Tuple of (pid, data_dict, model, n_starts, seed, [compute_diagnostics])
+        args: Tuple of (pid, data_dict, model, n_starts, seed, [compute_diagnostics, [verbose]])
 
     Returns:
         Fit result dictionary with participant_id added
     """
     # Handle variable number of arguments for backward compatibility
-    if len(args) == 6:
+    if len(args) == 7:
+        pid, data_dict, model, n_starts, seed, compute_diagnostics, verbose = args
+    elif len(args) == 6:
         pid, data_dict, model, n_starts, seed, compute_diagnostics = args
+        verbose = False
     else:
         pid, data_dict, model, n_starts, seed = args
         compute_diagnostics = True  # Default
+        verbose = False
 
     result = fit_participant_mle(
         stimuli_blocks=data_dict['stimuli_blocks'],
@@ -778,6 +820,7 @@ def _fit_single_participant_worker(args: Tuple) -> Dict:
         n_starts=n_starts,
         seed=seed,
         compute_diagnostics=compute_diagnostics,
+        verbose=verbose,
     )
     result['participant_id'] = pid
     return result
@@ -790,7 +833,7 @@ def fit_all_participants(
     seed: int = 42,
     verbose: bool = True,
     n_jobs: int = 1,
-    compute_diagnostics: bool = True,
+    compute_diagnostics: bool = False,
     output_dir: Optional[Path] = None,
 ) -> Tuple[pd.DataFrame, Dict, List[Dict]]:
     """
@@ -843,11 +886,16 @@ def fit_all_participants(
 
     # Prepare all participant data upfront (needed for parallel execution)
     if verbose:
-        print("Preparing participant data...")
+        print("Preparing participant data...", flush=True)
+        prep_start = time.time()
     participant_args = []
     for i, pid in enumerate(participants):
         pdata = prepare_participant_data(data, pid, model)
         participant_args.append((pid, pdata, model, n_starts, seed + i))
+        if verbose and (i + 1) % 10 == 0:
+            print(f"  Prepared {i + 1}/{n_participants} participants...", flush=True)
+    if verbose:
+        print(f"  Data preparation complete ({time.time() - prep_start:.1f}s)\n", flush=True)
 
     # Execute fitting
     timing_records = []  # Per-participant timing for log file
@@ -903,10 +951,10 @@ def fit_all_participants(
 
             if verbose:
                 # Print progress header for this participant with timestamp, percentage, ETA
-                print(f"[{timestamp()}] [{i+1:3d}/{n_participants}] ({pct_complete:5.1f}%) Fitting {pid} ({n_trials} trials){eta_str}...", end=" ", flush=True)
+                print(f"\n[{timestamp()}] [{i+1:3d}/{n_participants}] ({pct_complete:5.1f}%) Fitting {pid} ({n_trials} trials){eta_str}", flush=True)
 
             fit_start = time.time()
-            result = _fit_single_participant_worker(args + (compute_diagnostics,))
+            result = _fit_single_participant_worker(args + (compute_diagnostics, verbose))
             fit_time = time.time() - fit_start
             fit_times.append(fit_time)
             results.append(result)
@@ -922,7 +970,6 @@ def fit_all_participants(
 
             # Log JIT compilation memory spike (first participant)
             if i == 0 and verbose:
-                print()  # Newline before JIT message
                 log_memory_usage("POST-JIT (compilation complete)", verbose=True)
 
             # Record timing for this participant
@@ -943,7 +990,7 @@ def fit_all_participants(
                 status_indicator = "[OK]" if result['converged'] else "[!!]"
                 nll_str = f"NLL={result['nll']:.1f}" if not np.isnan(result['nll']) else "NLL=NaN"
                 r2_str = f"R2={result.get('pseudo_r2', 0):.2f}" if 'pseudo_r2' in result and not np.isnan(result.get('pseudo_r2', np.nan)) else ""
-                print(f"{status_indicator} {nll_str}, {r2_str}, {fit_time:.1f}s")
+                print(f"      Result: {status_indicator} {nll_str}, {r2_str}, total={fit_time:.1f}s", flush=True)
 
                 # Every 10 participants, print a formatted progress box
                 if (i + 1) % 10 == 0:
@@ -1254,6 +1301,8 @@ def main():
                         help='Use GPU acceleration if available (requires JAX CUDA)')
     parser.add_argument('--debug-timing', action='store_true',
                         help='Enable detailed timing instrumentation for debugging performance')
+    parser.add_argument('--compute-diagnostics', action='store_true',
+                        help='Compute Hessian diagnostics (adds 5-30s per participant)')
 
     args = parser.parse_args()
 
@@ -1290,6 +1339,7 @@ def main():
     print(f"Parallel workers: {args.n_jobs if args.n_jobs > 0 else 'all available cores'}")
     if args.use_gpu:
         print(f"GPU acceleration: {'enabled' if gpu_available else 'requested but unavailable'}")
+    print(f"Hessian diagnostics: {'enabled (adds 5-30s per participant)' if args.compute_diagnostics else 'disabled'}")
     if args.debug_timing:
         print(f"Debug timing: ENABLED (detailed instrumentation)")
         # Enable JAX compile logging for debugging
@@ -1335,7 +1385,7 @@ def main():
         seed=args.seed,
         verbose=not args.quiet,
         n_jobs=args.n_jobs,
-        compute_diagnostics=True,
+        compute_diagnostics=args.compute_diagnostics,
         output_dir=output_dir,  # For incremental checkpoint saving
     )
 
