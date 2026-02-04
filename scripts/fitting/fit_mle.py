@@ -445,35 +445,62 @@ def fit_participant_mle(
 
     # Create jaxopt LBFGS solver with JIT-compiled objective
     # jaxopt computes gradients automatically via JAX autodiff
-    # Note: jaxopt internally handles JIT compilation efficiently - wrapping
-    # solver.run in jax.jit() causes massive compilation overhead because
-    # the entire LBFGS algorithm (while loops, line search) gets traced.
     solver = LBFGS(fun=objective, maxiter=1000, tol=1e-6, jit=True)
 
-    # Run optimization from multiple starting points
-    results = []
-    for i in range(n_starts):
-        x0 = jnp.array(sample_random_start(model, rng))
+    # VECTORIZED OPTIMIZATION: Run all starts in parallel using vmap
+    # This is MUCH faster than sequential optimization because:
+    # 1. All 20 optimizations run simultaneously on GPU
+    # 2. Amortizes Python loop overhead across all starts
+    # 3. Better GPU utilization (parallel workload vs sequential)
 
-        try:
-            # jaxopt returns (params, state) tuple
-            result_params, state = solver.run(x0)
+    # Generate all starting points at once
+    x0_batch = jnp.array([sample_random_start(model, rng) for _ in range(n_starts)])
 
-            # Extract final objective value
-            final_nll = float(objective(result_params))
+    # Vectorize solver.run across the batch of starting points
+    # vmap transforms solver.run to operate on batches: (n_starts, n_params) -> (n_starts, n_params)
+    vmap_run = jax.vmap(solver.run)
 
-            # Check if optimization succeeded (no NaN/inf)
-            success = jnp.isfinite(final_nll)
+    try:
+        # Run ALL optimizations in parallel!
+        all_params, all_states = vmap_run(x0_batch)
 
-            # Wrap in result object for compatibility with check_convergence
+        # Vectorize objective evaluation to get all NLLs at once
+        vmap_objective = jax.vmap(objective)
+        all_nlls = vmap_objective(all_params)
+
+        # Convert to numpy for processing
+        all_params_np = np.array(all_params)
+        all_nlls_np = np.array(all_nlls)
+
+        # Build results list
+        results = []
+        for i in range(n_starts):
+            nll = all_nlls_np[i]
+            success = np.isfinite(nll)
             result = _JaxoptResult(
-                x=np.array(result_params),
-                fun=final_nll,
+                x=all_params_np[i],
+                fun=float(nll),
                 success=bool(success)
             )
             results.append(result)
-        except Exception as e:
-            continue  # Skip failed optimizations
+
+    except Exception as e:
+        # Fallback to sequential if vmap fails (shouldn't happen)
+        results = []
+        for i in range(n_starts):
+            x0 = x0_batch[i]
+            try:
+                result_params, state = solver.run(x0)
+                final_nll = float(objective(result_params))
+                success = jnp.isfinite(final_nll)
+                result = _JaxoptResult(
+                    x=np.array(result_params),
+                    fun=final_nll,
+                    success=bool(success)
+                )
+                results.append(result)
+            except:
+                continue
 
     # Check convergence
     convergence_info = check_convergence(results)
