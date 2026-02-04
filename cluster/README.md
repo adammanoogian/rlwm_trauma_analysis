@@ -156,10 +156,10 @@ conda env list
 
 ### 3.3 (Optional) Create GPU Environment
 ```bash
-# Load CUDA first
-module load cuda/12.2.0
+# Note: Do NOT load CUDA module - JAX pip packages bundle CUDA libraries
+# Loading system CUDA causes library conflicts (cuSPARSE not found, etc.)
 
-# Create GPU environment
+# Create GPU environment (JAX will install its own CUDA libs)
 mamba env create -f environment_gpu.yml
 
 # Verify
@@ -372,7 +372,7 @@ scancel -u $USER  # Cancel ALL your jobs
 | `CondaEnvironmentNotFound` | Check `conda env list`, ensure env is in scratch |
 | Job stuck in `PENDING` | Run `squeue -u $USER` to see reason; try smaller resource request |
 | `ModuleNotFoundError: joblib` | Env may need updating: `mamba env update -f environment.yml` |
-| GPU not detected | Ensure `module load cuda/12.2.0` and using `rlwm_gpu` env |
+| GPU not detected | Ensure using `rlwm_gpu` env on a GPU node. Do NOT load cuda module (conflicts with JAX's bundled CUDA) |
 | `SIGILL` or CPU feature mismatch | Clear stale cache: `rm -rf /scratch/$PROJECT/$USER/.jax_cache` and retry |
 | `Cannot allocate memory` (LLVM) | Use GPU fitting, or use `run_mle_single.slurm` with its two-phase approach |
 

@@ -46,9 +46,9 @@ MODELS="${MODEL:-qlearning wmrl wmrl_m3}"
 # Environment Setup (M3 specific)
 # =============================================================================
 
-# Load miniforge3 and CUDA
+# Load miniforge3 only - JAX pip packages bundle CUDA libraries
+# Do NOT load cuda module - it conflicts with pip-installed CUDA libraries
 module load miniforge3
-module load cuda/12.2.0
 
 # Navigate to project directory
 cd "${SLURM_SUBMIT_DIR:-$(dirname "$0")/..}"
