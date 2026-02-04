@@ -16,7 +16,8 @@ sys.path.insert(0, '.')
 
 def log(msg):
     """Print with timestamp and flush."""
-    log(f"[{time.strftime('%H:%M:%S')}] {msg}", flush=True)
+    import builtins
+    builtins.print(f"[{time.strftime('%H:%M:%S')}] {msg}", flush=True)
 
 log("=" * 55)
 log("GPU PERFORMANCE DIAGNOSTIC")
