@@ -600,7 +600,8 @@ def check_gradient_norm(
         Tuple of (gradient_norm, is_converged)
     """
     try:
-        grad_fn = jax.grad(objective_fn)
+        # JIT-compile for faster execution (especially on GPU)
+        grad_fn = jax.jit(jax.grad(objective_fn))
         x_jax = jnp.array(x_opt)
         g = grad_fn(x_jax)
         grad_norm = float(jnp.linalg.norm(g))

@@ -442,6 +442,11 @@ def fit_participant_mle(
     # jaxopt computes gradients automatically via JAX autodiff
     solver = LBFGS(fun=objective, maxiter=1000, tol=1e-6)
 
+    # CRITICAL: JIT-compile the solver's run method for massive speedup
+    # Without this, every LBFGS iteration goes through Python dispatch overhead
+    # With JIT, the entire optimization loop runs as compiled XLA code
+    jit_solver_run = jax.jit(solver.run)
+
     # Run optimization from multiple starting points
     results = []
     for i in range(n_starts):
@@ -449,7 +454,7 @@ def fit_participant_mle(
 
         try:
             # jaxopt returns (params, state) tuple
-            result_params, state = solver.run(x0)
+            result_params, state = jit_solver_run(x0)
 
             # Extract final objective value
             final_nll = float(objective(result_params))
