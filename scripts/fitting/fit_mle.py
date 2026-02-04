@@ -440,12 +440,10 @@ def fit_participant_mle(
 
     # Create jaxopt LBFGS solver with JIT-compiled objective
     # jaxopt computes gradients automatically via JAX autodiff
-    solver = LBFGS(fun=objective, maxiter=1000, tol=1e-6)
-
-    # CRITICAL: JIT-compile the solver's run method for massive speedup
-    # Without this, every LBFGS iteration goes through Python dispatch overhead
-    # With JIT, the entire optimization loop runs as compiled XLA code
-    jit_solver_run = jax.jit(solver.run)
+    # Note: jaxopt internally handles JIT compilation efficiently - wrapping
+    # solver.run in jax.jit() causes massive compilation overhead because
+    # the entire LBFGS algorithm (while loops, line search) gets traced.
+    solver = LBFGS(fun=objective, maxiter=1000, tol=1e-6, jit=True)
 
     # Run optimization from multiple starting points
     results = []
@@ -454,7 +452,7 @@ def fit_participant_mle(
 
         try:
             # jaxopt returns (params, state) tuple
-            result_params, state = jit_solver_run(x0)
+            result_params, state = solver.run(x0)
 
             # Extract final objective value
             final_nll = float(objective(result_params))

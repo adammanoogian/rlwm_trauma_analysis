@@ -89,33 +89,43 @@ print(f"  Total: {eval_time:.3f}s ({eval_time/100*1000:.2f}ms per call)")
 print()
 
 # =============================================================================
-# TEST 2: LBFGS solver without JIT
+# TEST 2: LBFGS solver with jit=True (jaxopt internal JIT - RECOMMENDED)
 # =============================================================================
 print("=" * 60)
-print("TEST 2: LBFGS solver WITHOUT jax.jit(solver.run)")
+print("TEST 2: LBFGS solver with jit=True (jaxopt handles JIT internally)")
 print("=" * 60)
 
-solver = LBFGS(fun=objective_jit, maxiter=100, tol=1e-6)
+solver = LBFGS(fun=objective_jit, maxiter=100, tol=1e-6, jit=True)
 
-print("Running 3 optimization starts (no JIT on solver)...")
+print("First optimization (includes internal JIT compilation)...")
 start = time.time()
-for i in range(3):
+x0 = jnp.array([0.0, 0.0, -2.0])
+params, state = solver.run(x0)
+jax.block_until_ready(params)
+internal_jit_compile = time.time() - start
+print(f"  Time: {internal_jit_compile:.2f}s")
+
+print("Next 10 optimizations (should reuse cached compilation)...")
+start = time.time()
+for i in range(10):
     x0 = jnp.array([np.random.randn(), np.random.randn(), -2.0])
     params, state = solver.run(x0)
-no_jit_time = time.time() - start
-print(f"  Total: {no_jit_time:.2f}s ({no_jit_time/3:.2f}s per start)")
+    jax.block_until_ready(params)
+internal_jit_time = time.time() - start
+print(f"  Total: {internal_jit_time:.2f}s ({internal_jit_time/10:.2f}s per start)")
 print()
 
 # =============================================================================
-# TEST 3: LBFGS solver WITH JIT
+# TEST 3: LBFGS solver with jax.jit(solver.run) wrapper (may cause long compile)
 # =============================================================================
 print("=" * 60)
-print("TEST 3: LBFGS solver WITH jax.jit(solver.run)")
+print("TEST 3: LBFGS solver WITH jax.jit(solver.run) wrapper")
 print("=" * 60)
 
-jit_run = jax.jit(solver.run)
+solver2 = LBFGS(fun=objective_jit, maxiter=100, tol=1e-6, jit=False)  # Disable internal JIT
+jit_run = jax.jit(solver2.run)
 
-print("First optimization (includes JIT compilation of solver)...")
+print("First optimization (full solver compilation - may be slow!)...")
 start = time.time()
 x0 = jnp.array([0.0, 0.0, -2.0])
 params, state = jit_run(x0)
@@ -123,14 +133,14 @@ jax.block_until_ready(params)
 solver_compile_time = time.time() - start
 print(f"  Time: {solver_compile_time:.2f}s")
 
-print("Next 10 optimizations (compiled)...")
+print("Next 5 optimizations (compiled)...")
 start = time.time()
-for i in range(10):
+for i in range(5):
     x0 = jnp.array([np.random.randn(), np.random.randn(), -2.0])
     params, state = jit_run(x0)
     jax.block_until_ready(params)
 jit_time = time.time() - start
-print(f"  Total: {jit_time:.2f}s ({jit_time/10:.2f}s per start)")
+print(f"  Total: {jit_time:.2f}s ({jit_time/5:.2f}s per start)")
 print()
 
 # =============================================================================
@@ -139,21 +149,34 @@ print()
 print("=" * 60)
 print("SUMMARY")
 print("=" * 60)
-print(f"Likelihood compile time:  {compile_time:.2f}s")
-print(f"Likelihood per-call:      {eval_time/100*1000:.2f}ms")
-print(f"Solver WITHOUT JIT:       {no_jit_time/3:.2f}s per start")
-print(f"Solver compile time:      {solver_compile_time:.2f}s")
-print(f"Solver WITH JIT:          {jit_time/10:.2f}s per start")
+print(f"Likelihood compile time:      {compile_time:.2f}s")
+print(f"Likelihood per-call:          {eval_time/100*1000:.2f}ms")
+print()
+print(f"jaxopt jit=True (recommended):")
+print(f"  First call (compile):       {internal_jit_compile:.2f}s")
+print(f"  Subsequent (per start):     {internal_jit_time/10:.2f}s")
+print()
+print(f"jax.jit(solver.run) wrapper:")
+print(f"  First call (compile):       {solver_compile_time:.2f}s")
+print(f"  Subsequent (per start):     {jit_time/5:.2f}s")
 print()
 
-speedup = (no_jit_time/3) / (jit_time/10) if jit_time > 0 else float('inf')
-print(f"JIT solver speedup: {speedup:.1f}x")
+# Determine which is better
+if internal_jit_compile < solver_compile_time:
+    print("RECOMMENDATION: Use jit=True (jaxopt internal) - faster compilation")
+    best_compile = internal_jit_compile
+    best_per_start = internal_jit_time/10
+else:
+    print("RECOMMENDATION: Use jax.jit(solver.run) - faster per-start")
+    best_compile = solver_compile_time
+    best_per_start = jit_time/5
 print()
 
 # Expected performance for full fitting
 print("EXTRAPOLATION (20 starts per participant, 45 participants):")
-per_participant_jit = solver_compile_time + 19 * (jit_time/10)
-print(f"  First participant:  {solver_compile_time:.1f}s (compile) + {19*(jit_time/10):.1f}s = {per_participant_jit:.1f}s")
-print(f"  Each subsequent:    {20 * (jit_time/10):.1f}s")
-print(f"  Total estimated:    {per_participant_jit + 44 * 20 * (jit_time/10):.0f}s = {(per_participant_jit + 44 * 20 * (jit_time/10))/60:.1f} min")
+per_participant = best_compile + 19 * best_per_start
+total_time = per_participant + 44 * 20 * best_per_start
+print(f"  First participant:  {best_compile:.1f}s (compile) + {19*best_per_start:.1f}s = {per_participant:.1f}s")
+print(f"  Each subsequent:    {20 * best_per_start:.1f}s")
+print(f"  Total estimated:    {total_time:.0f}s = {total_time/60:.1f} min")
 print("=" * 60)
