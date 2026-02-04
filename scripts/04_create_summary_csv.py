@@ -19,6 +19,11 @@ import sys
 import pandas as pd
 import numpy as np
 
+# Add project root to path for config import
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
+from config import EXCLUDED_PARTICIPANTS, DataParams
+
 # Add utils to path
 sys.path.append(os.path.join(os.path.dirname(__file__), 'utils'))
 
@@ -65,6 +70,55 @@ def main():
     print(f"[OK] Loaded task trials: {len(task_trials)} trials")
     print()
 
+    # ==========================================================================
+    # DATA QUALITY FILTERING
+    # ==========================================================================
+    print("-" * 60)
+    print("Checking data quality thresholds...")
+    print(f"  MIN_BLOCKS: {DataParams.MIN_BLOCKS}")
+    print(f"  MIN_TRIALS: {DataParams.MIN_TRIALS}")
+    print()
+
+    # Get participant block counts (main task only, blocks >= 3)
+    main_task_trials = task_trials[task_trials['block'] >= DataParams.MAIN_TASK_START_BLOCK]
+    block_counts = main_task_trials.groupby('sona_id')['block'].nunique()
+    trial_counts = main_task_trials.groupby('sona_id').size()
+
+    # Identify participants with insufficient data
+    insufficient_blocks = block_counts[block_counts < DataParams.MIN_BLOCKS].index.tolist()
+    insufficient_trials = trial_counts[trial_counts < DataParams.MIN_TRIALS].index.tolist()
+
+    # Combine with existing exclusions
+    quality_exclusions = set(insufficient_blocks) | set(insufficient_trials)
+    new_exclusions = quality_exclusions - set(EXCLUDED_PARTICIPANTS)
+
+    if new_exclusions:
+        print(f"WARNING: {len(new_exclusions)} participants flagged for insufficient data:")
+        for pid in sorted(new_exclusions):
+            n_blocks = block_counts.get(pid, 0)
+            n_trials = trial_counts.get(pid, 0)
+            print(f"  {pid}: {n_trials} trials, {n_blocks} blocks")
+        print()
+        print("Consider adding these to EXCLUDED_PARTICIPANTS in config.py")
+        print()
+
+    # Report on existing exclusions found in data
+    existing_exclusions_in_data = set(EXCLUDED_PARTICIPANTS) & set(task_trials['sona_id'].unique())
+    if existing_exclusions_in_data:
+        print(f"Existing exclusions found in data: {len(existing_exclusions_in_data)}")
+        for pid in sorted(existing_exclusions_in_data):
+            n_trials = trial_counts.get(pid, 0)
+            n_blocks = block_counts.get(pid, 0)
+            print(f"  {pid}: {n_trials} trials, {n_blocks} blocks (already excluded)")
+        print()
+
+    # Apply exclusions to task_trials for metrics calculation
+    n_before = task_trials['sona_id'].nunique()
+    task_trials_filtered = task_trials[~task_trials['sona_id'].isin(EXCLUDED_PARTICIPANTS)]
+    n_after = task_trials_filtered['sona_id'].nunique()
+    print(f"After exclusions: {n_after} participants (excluded {n_before - n_after})")
+    print()
+
     # Calculate LESS scores
     print("-" * 60)
     print("Calculating LESS (Survey 1) summary scores...")
@@ -95,10 +149,14 @@ def main():
 
     task_metrics_list = []
 
+    # Use original task_trials (not filtered) to calculate metrics for ALL participants
+    # We'll add an exclusion flag separately
     for sona_id in task_trials['sona_id'].unique():
         participant_trials = task_trials[task_trials['sona_id'] == sona_id]
         metrics = calculate_all_task_metrics(participant_trials)
         metrics['sona_id'] = sona_id
+        # Add exclusion flag for downstream scripts
+        metrics['excluded'] = sona_id in EXCLUDED_PARTICIPANTS
         task_metrics_list.append(metrics)
 
     task_metrics = pd.DataFrame(task_metrics_list)

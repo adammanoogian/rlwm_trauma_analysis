@@ -82,23 +82,58 @@ export OPENBLAS_NUM_THREADS=4
 export NUMEXPR_NUM_THREADS=4
 export JAX_PLATFORMS=cpu
 
-# XLA compilation controls (prevent memory fragmentation from parallel LLVM)
+# =============================================================================
+# XLA COMPILATION CONTROLS (CRITICAL FOR MEMORY STABILITY)
+# =============================================================================
 #
-# IMPORTANT: Block padding prevents recompilation BETWEEN participants, but the
-# INITIAL compilation still uses parallel LLVM threads. When 16 LLVM threads
-# compete for allocations simultaneously, memory fragmentation can cause
-# "LLVM ERROR: Unable to allocate section memory!" even with 60GB+ free.
+# PROBLEM: LLVM compilation uses parallel threads (default: 32) which can exhaust
+# memory during JIT compilation even with 60GB+ free RAM.
 #
-# Trade-off: Slower initial compilation (~60-120s vs ~30-60s) but prevents crashes.
-# Runtime performance is UNAFFECTED - compiled kernel is reused for all participants.
+# SOLUTION: Two flags work together to prevent memory issues:
 #
-# See: https://github.com/jax-ml/jax/issues/6790, https://github.com/jax-ml/jax/issues/13923
-export XLA_FLAGS="--xla_cpu_multi_thread_eigen=false"
+#   --xla_cpu_parallel_codegen_split_count=1
+#     Controls LLVM compilation parallelism. Default is 32 threads, which compete
+#     for allocations and cause "Cannot allocate memory" errors.
+#     Setting to 1 makes compilation single-threaded but reliable.
+#
+#   --xla_cpu_multi_thread_eigen=false
+#     Controls RUNTIME Eigen operations (already set). This affects matrix ops
+#     during actual execution, not compilation.
+#
+# TRADE-OFF: Initial compilation is slower (~120s vs ~60s) but prevents crashes.
+# Runtime performance is UNAFFECTED - compiled kernel is cached and reused.
+#
+# References:
+# - https://guides.lw1.at/all-xla-options/
+# - https://docs.jax.dev/en/latest/xla_flags.html
+# - https://github.com/jax-ml/jax/issues/6790
+export XLA_FLAGS="--xla_cpu_multi_thread_eigen=false --xla_cpu_parallel_codegen_split_count=1"
 export TF_NUM_INTEROP_THREADS=1
 export TF_NUM_INTRAOP_THREADS=4
 
+# =============================================================================
+# DEBUGGING: JAX Compilation & Memory Traces
+# =============================================================================
+# These flags help isolate where memory issues occur during JIT compilation.
+#
+# JAX_LOG_COMPILES: Logs each JIT compilation event
+# JAX_EXPLAIN_CACHE_MISSES: Explains why recompilation occurs (shape changes, etc.)
+# JAX_LOGGING_LEVEL: Verbose JAX internal logging
+#
+# References:
+# - https://docs.jax.dev/en/latest/config_options.html
+# - https://openxla.org/xla/tools
+export JAX_LOG_COMPILES=1
+export JAX_EXPLAIN_CACHE_MISSES=1
+export JAX_LOGGING_LEVEL=INFO
+
+# Uncomment for deep debugging (creates large files):
+# export XLA_FLAGS="${XLA_FLAGS} --xla_dump_to=${PROJECT_ROOT}/output/mle/xla_dump_${SLURM_JOB_ID}"
+# export XLA_FLAGS="${XLA_FLAGS} --xla_dump_hlo_as_text"
+
 echo "Thread settings: OMP/MKL/OPENBLAS/NUMEXPR = 4 threads each"
-echo "XLA settings: single-threaded Eigen (prevents LLVM memory fragmentation)"
+echo "XLA settings: single-threaded LLVM compilation + single-threaded Eigen"
+echo "Debug flags: JAX_LOG_COMPILES=1, JAX_EXPLAIN_CACHE_MISSES=1"
 
 # =============================================================================
 # Environment Validation (fail fast if packages missing)
@@ -136,6 +171,17 @@ print('Environment OK: all packages available')
 echo ""
 
 # =============================================================================
+# MEMORY MONITORING FUNCTION (for OOM debugging)
+# =============================================================================
+# Logs current memory state with timestamp for isolating memory exhaustion.
+log_memory() {
+    local label="$1"
+    local timestamp=$(date '+%H:%M:%S')
+    local mem_info=$(free -h 2>/dev/null | grep Mem || echo "N/A")
+    echo "[$timestamp] MEMORY ($label): $mem_info"
+}
+
+# =============================================================================
 # Run MLE Fitting
 # =============================================================================
 DATA_FILE="output/task_trials_long.csv"
@@ -155,9 +201,21 @@ fi
 echo "Running: $CMD"
 echo ""
 
+# Pre-fit memory state
+echo "=== PRE-FIT MEMORY STATE ==="
+log_memory "PRE-FIT"
+free -m 2>/dev/null || echo "(free command not available)"
+echo ""
+
 $CMD
 
 EXIT_CODE=$?
+
+# Post-fit memory state
+echo ""
+echo "=== POST-FIT MEMORY STATE ==="
+log_memory "POST-FIT"
+free -m 2>/dev/null || echo "(free command not available)"
 
 # =============================================================================
 # Job Resource Metrics (automatically captured)

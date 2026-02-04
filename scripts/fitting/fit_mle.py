@@ -29,6 +29,46 @@ try:
 except ImportError:
     HAS_PSUTIL = False
 
+# Cross-platform memory tracking fallback (Unix)
+try:
+    import resource
+    HAS_RESOURCE = True
+except ImportError:
+    HAS_RESOURCE = False
+
+
+def log_memory_usage(label: str, verbose: bool = True) -> float:
+    """
+    Log current memory usage for debugging OOM issues.
+
+    Uses psutil if available (cross-platform), falls back to resource module (Unix).
+
+    Args:
+        label: Description of checkpoint (e.g., "START", "PRE-JIT", "POST-JIT")
+        verbose: If True, print the memory info
+
+    Returns:
+        Memory usage in MB, or 0 if unavailable
+    """
+    mem_mb = 0.0
+    mem_source = "unavailable"
+
+    if HAS_PSUTIL:
+        process = psutil.Process()
+        mem_mb = process.memory_info().rss / 1024**2
+        mem_source = "psutil"
+    elif HAS_RESOURCE:
+        # resource.getrusage returns KB on Linux, bytes on macOS
+        usage = resource.getrusage(resource.RUSAGE_SELF)
+        # ru_maxrss is in KB on Linux
+        mem_mb = usage.ru_maxrss / 1024
+        mem_source = "resource"
+
+    if verbose and mem_mb > 0:
+        print(f"[MEMORY] {label}: {mem_mb:.1f}MB ({mem_source})")
+
+    return mem_mb
+
 import numpy as np
 import pandas as pd
 import jax
@@ -691,14 +731,12 @@ def fit_all_participants(
     start_time = time.time()
 
     # Track memory usage throughout
-    initial_mem_mb = 0
-    peak_mem_mb = 0
+    initial_mem_mb = log_memory_usage("START", verbose=verbose)
+    peak_mem_mb = initial_mem_mb
     if HAS_PSUTIL:
         process = psutil.Process()
-        initial_mem_mb = process.memory_info().rss / 1024**2
-        peak_mem_mb = initial_mem_mb
-        if verbose:
-            print(f"Initial memory usage: {initial_mem_mb/1024:.2f} GB")
+    else:
+        process = None
 
     if verbose:
         print(f"\n{'='*60}")
@@ -752,9 +790,7 @@ def fit_all_participants(
             n_blocks = len(data_dict['stimuli_blocks'])
 
             # Track memory before fit
-            mem_before_mb = 0
-            if HAS_PSUTIL:
-                mem_before_mb = process.memory_info().rss / 1024**2
+            mem_before_mb = log_memory_usage(f"PRE-FIT participant {i+1}", verbose=False)
 
             if verbose:
                 # Print progress header for this participant
@@ -772,10 +808,12 @@ def fit_all_participants(
                 _save_checkpoint(result, checkpoint_path, is_first=is_first)
 
             # Track memory after fit
-            mem_after_mb = 0
-            if HAS_PSUTIL:
-                mem_after_mb = process.memory_info().rss / 1024**2
-                peak_mem_mb = max(peak_mem_mb, mem_after_mb)
+            mem_after_mb = log_memory_usage(f"POST-FIT participant {i+1}", verbose=False)
+            peak_mem_mb = max(peak_mem_mb, mem_after_mb)
+
+            # Log JIT compilation memory spike (first participant)
+            if i == 0 and verbose:
+                log_memory_usage("POST-JIT (compilation complete)", verbose=True)
 
             # Record timing for this participant
             timing_records.append({
@@ -797,13 +835,15 @@ def fit_all_participants(
                 r2_str = f"R²={result.get('pseudo_r2', 0):.2f}" if 'pseudo_r2' in result and not np.isnan(result.get('pseudo_r2', np.nan)) else ""
                 print(f"{nll_str}, {r2_str}, {conv_str}, {fit_time:.1f}s")
 
-                # Every 10 participants, print a summary line
+                # Every 10 participants, print a summary line with memory info
                 if (i + 1) % 10 == 0:
                     avg_time = np.mean(fit_times)
                     n_converged = sum(r['converged'] for r in results)
                     remaining = (n_participants - i - 1) * avg_time
+                    current_mem_mb = log_memory_usage(f"checkpoint {i+1}", verbose=False)
+                    mem_str = f", mem={current_mem_mb/1024:.2f}GB" if current_mem_mb > 0 else ""
                     print(f"    --- Progress: {i+1}/{n_participants} done, {n_converged} converged, "
-                          f"avg {avg_time:.1f}s/participant, ~{remaining/60:.1f} min remaining ---")
+                          f"avg {avg_time:.1f}s/participant, ~{remaining/60:.1f} min remaining{mem_str} ---")
     else:
         # Parallel execution using joblib
 
@@ -872,9 +912,8 @@ def fit_all_participants(
     total_time = time.time() - start_time
 
     # Update peak memory
-    if HAS_PSUTIL:
-        final_mem_mb = process.memory_info().rss / 1024**2
-        peak_mem_mb = max(peak_mem_mb, final_mem_mb)
+    final_mem_mb = log_memory_usage("FINAL", verbose=verbose)
+    peak_mem_mb = max(peak_mem_mb, final_mem_mb)
 
     # Print summary timing
     if verbose:

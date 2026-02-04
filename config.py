@@ -229,15 +229,16 @@ class DataParams:
     MODEL_COMPARISON = OUTPUT_VERSION_DIR / 'model_comparison.csv'
 
     # Exclusion criteria
-    MIN_TRIALS = 50  # Minimum trials for inclusion
+    MIN_TRIALS = 400  # Minimum trials for inclusion (~50% of expected 807-1077)
     MIN_ACCURACY = 0.3  # Minimum accuracy for inclusion (below chance suggests invalid data)
+
+    # Block filtering (for model fitting)
+    MIN_BLOCKS = 8  # Minimum main task blocks for reliable parameter estimation
+    MAIN_TASK_START_BLOCK = 3  # First main task block (exclude practice)
 
     # Trial filtering
     MIN_RT = 200  # Minimum RT (ms) - faster suggests anticipatory
     MAX_RT = 2000  # Maximum RT (ms) - task timeout
-
-    # Block filtering
-    MAIN_TASK_START_BLOCK = 3  # First main task block (exclude practice)
 
 # ============================================================================
 # ANALYSIS PARAMETERS
