@@ -30,8 +30,45 @@ Updated: 2026-01-20 - Added epsilon noise, fixed beta=50
 import jax
 import jax.numpy as jnp
 from jax import lax
-from typing import Tuple, Dict, Any
+from typing import Tuple, Dict, Any, Optional
 import numpy as np
+import time
+
+
+# =============================================================================
+# TIMING AND DEBUGGING UTILITIES
+# =============================================================================
+
+def log_gpu_memory(label: str) -> Optional[Dict]:
+    """
+    Log GPU memory usage for debugging.
+
+    This is useful for identifying memory leaks or excessive allocation
+    during JAX optimization. Only works with JAX 0.4.1+ and CUDA.
+
+    Args:
+        label: Description of checkpoint (e.g., "PRE-OPTIMIZATION")
+
+    Returns:
+        Dictionary with memory stats, or None if unavailable
+    """
+    try:
+        # Force pending computations to complete
+        devices = jax.devices()
+        if devices and hasattr(devices[0], 'synchronize'):
+            devices[0].synchronize()
+
+        # Get memory stats (JAX 0.4.1+)
+        if hasattr(devices[0], 'memory_stats'):
+            stats = devices[0].memory_stats()
+            print(f"[GPU-MEM] {label}: "
+                  f"used={stats.get('bytes_in_use', 0)/1e9:.2f}GB, "
+                  f"peak={stats.get('peak_bytes_in_use', 0)/1e9:.2f}GB")
+            return stats
+    except Exception as e:
+        # Silently skip if not available
+        pass
+    return None
 
 # =============================================================================
 # CONSTANTS (following Senta et al., 2025)
@@ -469,6 +506,12 @@ def q_learning_multiblock_likelihood(
     - Beta is fixed at 50 (not a parameter)
     - Epsilon noise captures random responding
 
+    PERFORMANCE NOTE: This function uses jax.lax.fori_loop instead of a Python
+    for-loop. This is critical for GPU performance because:
+    1. Python loops launch separate GPU kernels per iteration (17,000+ launches)
+    2. JAX cannot fuse operations across Python loop boundaries
+    3. fori_loop compiles the entire loop into ONE XLA computation
+
     Parameters
     ----------
     stimuli_blocks : list of arrays
@@ -511,40 +554,70 @@ def q_learning_multiblock_likelihood(
     ...     alpha_pos=0.3, alpha_neg=0.1, epsilon=0.05
     ... )
     """
-    total_log_lik = 0.0
     num_blocks = len(stimuli_blocks)
 
     if verbose:
         print(f"\n  >> Processing {num_blocks} blocks for participant {participant_id}...")
 
-    # Handle case where masks_blocks is not provided
-    if masks_blocks is None:
-        masks_blocks = [None] * num_blocks
+    # Check if blocks are uniformly sized (for JAX-native fori_loop)
+    # This is the case when data comes from prepare_participant_data with padding
+    block_sizes = [len(b) for b in stimuli_blocks]
+    blocks_uniform = len(set(block_sizes)) == 1
 
-    for block_idx, (stim_block, act_block, rew_block, mask_block) in enumerate(
-        zip(stimuli_blocks, actions_blocks, rewards_blocks, masks_blocks)
-    ):
-        if verbose and block_idx == 0:
-            print(f"     [Block 1/{num_blocks}] Compiling JAX likelihood (first time only)...", flush=True)
-        elif verbose and block_idx % 5 == 0:
-            print(f"     [Block {block_idx+1}/{num_blocks}] Processing...", flush=True)
+    if blocks_uniform and masks_blocks is not None:
+        # FAST PATH: Use JAX-native fori_loop for padded data
+        # This compiles into a single XLA computation for massive GPU speedup
 
-        block_log_lik = q_learning_block_likelihood(
-            stimuli=stim_block,
-            actions=act_block,
-            rewards=rew_block,
-            alpha_pos=alpha_pos,
-            alpha_neg=alpha_neg,
-            epsilon=epsilon,
-            num_stimuli=num_stimuli,
-            num_actions=num_actions,
-            q_init=q_init,
-            mask=mask_block
-        )
-        total_log_lik += block_log_lik
+        # Stack all blocks into arrays for JAX-native loop
+        stimuli_stacked = jnp.stack(stimuli_blocks)    # Shape: (n_blocks, max_trials)
+        actions_stacked = jnp.stack(actions_blocks)    # Shape: (n_blocks, max_trials)
+        rewards_stacked = jnp.stack(rewards_blocks)    # Shape: (n_blocks, max_trials)
+        masks_stacked = jnp.stack(masks_blocks)        # Shape: (n_blocks, max_trials)
 
-        if verbose and block_idx == 0:
-            print(f"     [Block 1/{num_blocks}] Compiled! Log-lik: {float(block_log_lik):.2f}", flush=True)
+        # Define the loop body for fori_loop
+        def body_fn(block_idx, total_ll):
+            block_ll = q_learning_block_likelihood(
+                stimuli=stimuli_stacked[block_idx],
+                actions=actions_stacked[block_idx],
+                rewards=rewards_stacked[block_idx],
+                alpha_pos=alpha_pos,
+                alpha_neg=alpha_neg,
+                epsilon=epsilon,
+                num_stimuli=num_stimuli,
+                num_actions=num_actions,
+                q_init=q_init,
+                mask=masks_stacked[block_idx]
+            )
+            return total_ll + block_ll
+
+        # Use JAX-native fori_loop
+        total_log_lik = lax.fori_loop(0, num_blocks, body_fn, 0.0)
+
+    else:
+        # FALLBACK PATH: Python loop for variable-sized blocks (backward compatibility)
+        # This is slower on GPU but handles arbitrary block sizes
+        total_log_lik = 0.0
+
+        # Handle case where masks_blocks is not provided
+        if masks_blocks is None:
+            masks_blocks = [None] * num_blocks
+
+        for block_idx, (stim_block, act_block, rew_block, mask_block) in enumerate(
+            zip(stimuli_blocks, actions_blocks, rewards_blocks, masks_blocks)
+        ):
+            block_log_lik = q_learning_block_likelihood(
+                stimuli=stim_block,
+                actions=act_block,
+                rewards=rew_block,
+                alpha_pos=alpha_pos,
+                alpha_neg=alpha_neg,
+                epsilon=epsilon,
+                num_stimuli=num_stimuli,
+                num_actions=num_actions,
+                q_init=q_init,
+                mask=mask_block
+            )
+            total_log_lik += block_log_lik
 
     if verbose:
         print(f"  >> Total log-likelihood: {float(total_log_lik):.2f} ({num_blocks} blocks)\n", flush=True)
@@ -1109,6 +1182,12 @@ def wmrl_multiblock_likelihood(
     - Beta is fixed at 50 (not a parameter)
     - Epsilon noise captures random responding
 
+    PERFORMANCE NOTE: This function uses jax.lax.fori_loop instead of a Python
+    for-loop. This is critical for GPU performance because:
+    1. Python loops launch separate GPU kernels per iteration (17,000+ launches)
+    2. JAX cannot fuse operations across Python loop boundaries
+    3. fori_loop compiles the entire loop into ONE XLA computation
+
     Parameters
     ----------
     stimuli_blocks : list of arrays
@@ -1150,45 +1229,73 @@ def wmrl_multiblock_likelihood(
     float
         Total log-likelihood summed across blocks
     """
-    total_log_lik = 0.0
     num_blocks = len(stimuli_blocks)
 
     if verbose:
         print(f"\n  >> Processing {num_blocks} blocks for participant {participant_id}...")
 
-    # Handle case where masks_blocks is not provided
-    if masks_blocks is None:
-        masks_blocks = [None] * num_blocks
+    # Check if blocks are uniformly sized (for JAX-native fori_loop)
+    block_sizes = [len(b) for b in stimuli_blocks]
+    blocks_uniform = len(set(block_sizes)) == 1
 
-    for block_idx, (stim_block, act_block, rew_block, set_block, mask_block) in enumerate(
-        zip(stimuli_blocks, actions_blocks, rewards_blocks, set_sizes_blocks, masks_blocks)
-    ):
-        if verbose and block_idx == 0:
-            print(f"     [Block 1/{num_blocks}] Compiling WM-RL JAX likelihood (first time only)...", flush=True)
-        elif verbose and block_idx % 5 == 0:
-            print(f"     [Block {block_idx+1}/{num_blocks}] Processing...", flush=True)
+    if blocks_uniform and masks_blocks is not None:
+        # FAST PATH: Use JAX-native fori_loop for padded data
+        stimuli_stacked = jnp.stack(stimuli_blocks)
+        actions_stacked = jnp.stack(actions_blocks)
+        rewards_stacked = jnp.stack(rewards_blocks)
+        set_sizes_stacked = jnp.stack(set_sizes_blocks)
+        masks_stacked = jnp.stack(masks_blocks)
 
-        block_log_lik = wmrl_block_likelihood(
-            stimuli=stim_block,
-            actions=act_block,
-            rewards=rew_block,
-            set_sizes=set_block,
-            alpha_pos=alpha_pos,
-            alpha_neg=alpha_neg,
-            phi=phi,
-            rho=rho,
-            capacity=capacity,
-            epsilon=epsilon,
-            num_stimuli=num_stimuli,
-            num_actions=num_actions,
-            q_init=q_init,
-            wm_init=wm_init,
-            mask=mask_block
-        )
-        total_log_lik += block_log_lik
+        def body_fn(block_idx, total_ll):
+            block_ll = wmrl_block_likelihood(
+                stimuli=stimuli_stacked[block_idx],
+                actions=actions_stacked[block_idx],
+                rewards=rewards_stacked[block_idx],
+                set_sizes=set_sizes_stacked[block_idx],
+                alpha_pos=alpha_pos,
+                alpha_neg=alpha_neg,
+                phi=phi,
+                rho=rho,
+                capacity=capacity,
+                epsilon=epsilon,
+                num_stimuli=num_stimuli,
+                num_actions=num_actions,
+                q_init=q_init,
+                wm_init=wm_init,
+                mask=masks_stacked[block_idx]
+            )
+            return total_ll + block_ll
 
-        if verbose and block_idx == 0:
-            print(f"     [Block 1/{num_blocks}] Compiled! Log-lik: {float(block_log_lik):.2f}", flush=True)
+        total_log_lik = lax.fori_loop(0, num_blocks, body_fn, 0.0)
+
+    else:
+        # FALLBACK PATH: Python loop for variable-sized blocks
+        total_log_lik = 0.0
+
+        if masks_blocks is None:
+            masks_blocks = [None] * num_blocks
+
+        for block_idx, (stim_block, act_block, rew_block, set_block, mask_block) in enumerate(
+            zip(stimuli_blocks, actions_blocks, rewards_blocks, set_sizes_blocks, masks_blocks)
+        ):
+            block_log_lik = wmrl_block_likelihood(
+                stimuli=stim_block,
+                actions=act_block,
+                rewards=rew_block,
+                set_sizes=set_block,
+                alpha_pos=alpha_pos,
+                alpha_neg=alpha_neg,
+                phi=phi,
+                rho=rho,
+                capacity=capacity,
+                epsilon=epsilon,
+                num_stimuli=num_stimuli,
+                num_actions=num_actions,
+                q_init=q_init,
+                wm_init=wm_init,
+                mask=mask_block
+            )
+            total_log_lik += block_log_lik
 
     if verbose:
         print(f"  >> Total log-likelihood: {float(total_log_lik):.2f} ({num_blocks} blocks)\n", flush=True)
@@ -1233,6 +1340,12 @@ def wmrl_m3_multiblock_likelihood(
 
     When kappa=0, results match wmrl_multiblock_likelihood exactly (M2 model).
 
+    PERFORMANCE NOTE: This function uses jax.lax.fori_loop instead of a Python
+    for-loop. This is critical for GPU performance because:
+    1. Python loops launch separate GPU kernels per iteration (17,000+ launches)
+    2. JAX cannot fuse operations across Python loop boundaries
+    3. fori_loop compiles the entire loop into ONE XLA computation
+
     Parameters
     ----------
     stimuli_blocks : list of arrays
@@ -1276,46 +1389,75 @@ def wmrl_m3_multiblock_likelihood(
     float
         Total log-likelihood summed across blocks
     """
-    total_log_lik = 0.0
     num_blocks = len(stimuli_blocks)
 
     if verbose:
         print(f"\n  >> Processing {num_blocks} blocks for participant {participant_id}...")
 
-    # Handle case where masks_blocks is not provided
-    if masks_blocks is None:
-        masks_blocks = [None] * num_blocks
+    # Check if blocks are uniformly sized (for JAX-native fori_loop)
+    block_sizes = [len(b) for b in stimuli_blocks]
+    blocks_uniform = len(set(block_sizes)) == 1
 
-    for block_idx, (stim_block, act_block, rew_block, set_block, mask_block) in enumerate(
-        zip(stimuli_blocks, actions_blocks, rewards_blocks, set_sizes_blocks, masks_blocks)
-    ):
-        if verbose and block_idx == 0:
-            print(f"     [Block 1/{num_blocks}] Compiling WM-RL M3 JAX likelihood (first time only)...", flush=True)
-        elif verbose and block_idx % 5 == 0:
-            print(f"     [Block {block_idx+1}/{num_blocks}] Processing...", flush=True)
+    if blocks_uniform and masks_blocks is not None:
+        # FAST PATH: Use JAX-native fori_loop for padded data
+        stimuli_stacked = jnp.stack(stimuli_blocks)
+        actions_stacked = jnp.stack(actions_blocks)
+        rewards_stacked = jnp.stack(rewards_blocks)
+        set_sizes_stacked = jnp.stack(set_sizes_blocks)
+        masks_stacked = jnp.stack(masks_blocks)
 
-        block_log_lik = wmrl_m3_block_likelihood(
-            stimuli=stim_block,
-            actions=act_block,
-            rewards=rew_block,
-            set_sizes=set_block,
-            alpha_pos=alpha_pos,
-            alpha_neg=alpha_neg,
-            phi=phi,
-            rho=rho,
-            capacity=capacity,
-            kappa=kappa,
-            epsilon=epsilon,
-            num_stimuli=num_stimuli,
-            num_actions=num_actions,
-            q_init=q_init,
-            wm_init=wm_init,
-            mask=mask_block
-        )
-        total_log_lik += block_log_lik
+        def body_fn(block_idx, total_ll):
+            block_ll = wmrl_m3_block_likelihood(
+                stimuli=stimuli_stacked[block_idx],
+                actions=actions_stacked[block_idx],
+                rewards=rewards_stacked[block_idx],
+                set_sizes=set_sizes_stacked[block_idx],
+                alpha_pos=alpha_pos,
+                alpha_neg=alpha_neg,
+                phi=phi,
+                rho=rho,
+                capacity=capacity,
+                kappa=kappa,
+                epsilon=epsilon,
+                num_stimuli=num_stimuli,
+                num_actions=num_actions,
+                q_init=q_init,
+                wm_init=wm_init,
+                mask=masks_stacked[block_idx]
+            )
+            return total_ll + block_ll
 
-        if verbose and block_idx == 0:
-            print(f"     [Block 1/{num_blocks}] Compiled! Log-lik: {float(block_log_lik):.2f}", flush=True)
+        total_log_lik = lax.fori_loop(0, num_blocks, body_fn, 0.0)
+
+    else:
+        # FALLBACK PATH: Python loop for variable-sized blocks
+        total_log_lik = 0.0
+
+        if masks_blocks is None:
+            masks_blocks = [None] * num_blocks
+
+        for block_idx, (stim_block, act_block, rew_block, set_block, mask_block) in enumerate(
+            zip(stimuli_blocks, actions_blocks, rewards_blocks, set_sizes_blocks, masks_blocks)
+        ):
+            block_log_lik = wmrl_m3_block_likelihood(
+                stimuli=stim_block,
+                actions=act_block,
+                rewards=rew_block,
+                set_sizes=set_block,
+                alpha_pos=alpha_pos,
+                alpha_neg=alpha_neg,
+                phi=phi,
+                rho=rho,
+                capacity=capacity,
+                kappa=kappa,
+                epsilon=epsilon,
+                num_stimuli=num_stimuli,
+                num_actions=num_actions,
+                q_init=q_init,
+                wm_init=wm_init,
+                mask=mask_block
+            )
+            total_log_lik += block_log_lik
 
     if verbose:
         print(f"  >> Total log-likelihood: {float(total_log_lik):.2f} ({num_blocks} blocks)\n", flush=True)

@@ -202,8 +202,10 @@ def _make_jax_objective_qlearning(
     """
     Create a JAX-compatible objective function for Q-learning.
 
-    Returns a pure function that takes unconstrained parameters and returns NLL.
-    This function is JIT-compilable and supports automatic differentiation.
+    Returns a JIT-compiled pure function that takes unconstrained parameters
+    and returns NLL. The JIT compilation is CRITICAL for performance:
+    - Without JIT: Every call goes through Python dispatch (~10-100x slower)
+    - With JIT: Function is compiled to XLA and runs entirely on GPU
 
     Args:
         stimuli_blocks: List of stimulus arrays per block
@@ -212,20 +214,31 @@ def _make_jax_objective_qlearning(
         masks_blocks: List of mask arrays per block (1.0 for real trials, 0.0 for padding).
                      When provided, enables fixed-size compilation for efficiency.
     """
+    # Pre-stack blocks to avoid repeated stacking inside the objective
+    # This is done once at objective creation, not every evaluation
+    stimuli_stacked = jnp.stack(stimuli_blocks)
+    actions_stacked = jnp.stack(actions_blocks)
+    rewards_stacked = jnp.stack(rewards_blocks)
+    if masks_blocks is not None:
+        masks_stacked = jnp.stack(masks_blocks)
+    else:
+        masks_stacked = jnp.ones((len(stimuli_blocks), stimuli_stacked.shape[1]))
+
     def objective(x: jnp.ndarray) -> float:
         alpha_pos, alpha_neg, epsilon = jax_unconstrained_to_params_qlearning(x)
         log_lik = q_learning_multiblock_likelihood(
-            stimuli_blocks=stimuli_blocks,
-            actions_blocks=actions_blocks,
-            rewards_blocks=rewards_blocks,
+            stimuli_blocks=list(stimuli_stacked),
+            actions_blocks=list(actions_stacked),
+            rewards_blocks=list(rewards_stacked),
             alpha_pos=alpha_pos,
             alpha_neg=alpha_neg,
             epsilon=epsilon,
-            masks_blocks=masks_blocks
+            masks_blocks=list(masks_stacked)
         )
         return -log_lik  # Negative for minimization
 
-    return objective
+    # JIT-compile for massive speedup (eliminates Python dispatch overhead)
+    return jax.jit(objective)
 
 
 def _make_jax_objective_wmrl(
@@ -238,7 +251,8 @@ def _make_jax_objective_wmrl(
     """
     Create a JAX-compatible objective function for WM-RL.
 
-    Returns a pure function that takes unconstrained parameters and returns NLL.
+    Returns a JIT-compiled pure function that takes unconstrained parameters
+    and returns NLL. The JIT compilation is CRITICAL for performance.
 
     Args:
         stimuli_blocks: List of stimulus arrays per block
@@ -248,24 +262,35 @@ def _make_jax_objective_wmrl(
         masks_blocks: List of mask arrays per block (1.0 for real trials, 0.0 for padding).
                      When provided, enables fixed-size compilation for efficiency.
     """
+    # Pre-stack blocks to avoid repeated stacking inside the objective
+    stimuli_stacked = jnp.stack(stimuli_blocks)
+    actions_stacked = jnp.stack(actions_blocks)
+    rewards_stacked = jnp.stack(rewards_blocks)
+    set_sizes_stacked = jnp.stack(set_sizes_blocks)
+    if masks_blocks is not None:
+        masks_stacked = jnp.stack(masks_blocks)
+    else:
+        masks_stacked = jnp.ones((len(stimuli_blocks), stimuli_stacked.shape[1]))
+
     def objective(x: jnp.ndarray) -> float:
         alpha_pos, alpha_neg, phi, rho, capacity, epsilon = jax_unconstrained_to_params_wmrl(x)
         log_lik = wmrl_multiblock_likelihood(
-            stimuli_blocks=stimuli_blocks,
-            actions_blocks=actions_blocks,
-            rewards_blocks=rewards_blocks,
-            set_sizes_blocks=set_sizes_blocks,
+            stimuli_blocks=list(stimuli_stacked),
+            actions_blocks=list(actions_stacked),
+            rewards_blocks=list(rewards_stacked),
+            set_sizes_blocks=list(set_sizes_stacked),
             alpha_pos=alpha_pos,
             alpha_neg=alpha_neg,
             phi=phi,
             rho=rho,
             capacity=capacity,
             epsilon=epsilon,
-            masks_blocks=masks_blocks
+            masks_blocks=list(masks_stacked)
         )
         return -log_lik
 
-    return objective
+    # JIT-compile for massive speedup (eliminates Python dispatch overhead)
+    return jax.jit(objective)
 
 
 def _make_jax_objective_wmrl_m3(
@@ -278,7 +303,8 @@ def _make_jax_objective_wmrl_m3(
     """
     Create a JAX-compatible objective function for WM-RL M3.
 
-    Returns a pure function that takes unconstrained parameters and returns NLL.
+    Returns a JIT-compiled pure function that takes unconstrained parameters
+    and returns NLL. The JIT compilation is CRITICAL for performance.
 
     Args:
         stimuli_blocks: List of stimulus arrays per block
@@ -288,13 +314,23 @@ def _make_jax_objective_wmrl_m3(
         masks_blocks: List of mask arrays per block (1.0 for real trials, 0.0 for padding).
                      When provided, enables fixed-size compilation for efficiency.
     """
+    # Pre-stack blocks to avoid repeated stacking inside the objective
+    stimuli_stacked = jnp.stack(stimuli_blocks)
+    actions_stacked = jnp.stack(actions_blocks)
+    rewards_stacked = jnp.stack(rewards_blocks)
+    set_sizes_stacked = jnp.stack(set_sizes_blocks)
+    if masks_blocks is not None:
+        masks_stacked = jnp.stack(masks_blocks)
+    else:
+        masks_stacked = jnp.ones((len(stimuli_blocks), stimuli_stacked.shape[1]))
+
     def objective(x: jnp.ndarray) -> float:
         alpha_pos, alpha_neg, phi, rho, capacity, kappa, epsilon = jax_unconstrained_to_params_wmrl_m3(x)
         log_lik = wmrl_m3_multiblock_likelihood(
-            stimuli_blocks=stimuli_blocks,
-            actions_blocks=actions_blocks,
-            rewards_blocks=rewards_blocks,
-            set_sizes_blocks=set_sizes_blocks,
+            stimuli_blocks=list(stimuli_stacked),
+            actions_blocks=list(actions_stacked),
+            rewards_blocks=list(rewards_stacked),
+            set_sizes_blocks=list(set_sizes_stacked),
             alpha_pos=alpha_pos,
             alpha_neg=alpha_neg,
             phi=phi,
@@ -302,11 +338,12 @@ def _make_jax_objective_wmrl_m3(
             capacity=capacity,
             kappa=kappa,
             epsilon=epsilon,
-            masks_blocks=masks_blocks
+            masks_blocks=list(masks_stacked)
         )
         return -log_lik
 
-    return objective
+    # JIT-compile for massive speedup (eliminates Python dispatch overhead)
+    return jax.jit(objective)
 
 
 # =============================================================================
@@ -1171,6 +1208,8 @@ def main():
                         help='Number of parallel workers (default: 1 = sequential)')
     parser.add_argument('--use-gpu', action='store_true',
                         help='Use GPU acceleration if available (requires JAX CUDA)')
+    parser.add_argument('--debug-timing', action='store_true',
+                        help='Enable detailed timing instrumentation for debugging performance')
 
     args = parser.parse_args()
 
@@ -1207,6 +1246,12 @@ def main():
     print(f"Parallel workers: {args.n_jobs if args.n_jobs > 0 else 'all available cores'}")
     if args.use_gpu:
         print(f"GPU acceleration: {'enabled' if gpu_available else 'requested but unavailable'}")
+    if args.debug_timing:
+        print(f"Debug timing: ENABLED (detailed instrumentation)")
+        # Enable JAX compile logging for debugging
+        import os
+        os.environ['JAX_LOG_COMPILES'] = '1'
+        print(f"  JAX_LOG_COMPILES=1 (will log every JIT compilation)")
     if args.limit:
         print(f"Limit: {args.limit} participants (testing mode)")
     print(f"{'='*60}\n")
