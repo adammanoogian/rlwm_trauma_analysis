@@ -1,0 +1,4 @@
+ERROR: Unable to locate a modulefile for 'cuda/12.1.1'
+
+EnvironmentLocationNotFound: Not a conda environment: /scratch/fc37/aman0087/conda/envs/rlwm_gpu
+

@@ -1,0 +1,12 @@
+============================================================
+RLWM GPU-Accelerated MLE Fitting - M3 SLURM Job
+============================================================
+Job ID: 50996074
+Node: m3g108
+Partition: gpu
+GPU(s): 0
+Project: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis
+Start time: Wed Feb  4 11:08:59 PM AEDT 2026
+============================================================
+ERROR: Failed to activate 'rlwm_gpu' conda environment
+Create it first with: bash cluster/setup_env_gpu.sh
