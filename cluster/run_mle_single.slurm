@@ -83,6 +83,15 @@ export NUMEXPR_NUM_THREADS=4
 export JAX_PLATFORMS=cpu
 
 # =============================================================================
+# JAX COMPILATION CACHE (CRITICAL FOR TWO-PHASE APPROACH)
+# =============================================================================
+# The warmup phase compiles kernels with limited CPUs (2) to prevent LLVM
+# memory exhaustion. The main fitting phase reuses these cached kernels.
+# Without persistent caching, each phase would recompile from scratch.
+export JAX_COMPILATION_CACHE_DIR="/scratch/fc37/aman0087/.jax_cache"
+mkdir -p "$JAX_COMPILATION_CACHE_DIR"
+
+# =============================================================================
 # XLA COMPILATION CONTROLS (CRITICAL FOR MEMORY STABILITY)
 # =============================================================================
 #
@@ -136,6 +145,7 @@ export TF_NUM_INTRAOP_THREADS=4
 
 echo "Thread settings: OMP/MKL/OPENBLAS/NUMEXPR = 4 threads each"
 echo "XLA settings: single-threaded LLVM compilation + single-threaded Eigen"
+echo "JAX cache: $JAX_COMPILATION_CACHE_DIR"
 echo "Debug flags: DISABLED (uncomment in script for debugging)"
 
 # =============================================================================
@@ -211,35 +221,61 @@ free -m 2>/dev/null || echo "(free command not available)"
 echo ""
 
 # =============================================================================
-# CPU AFFINITY CONTROL (CRITICAL FOR LLVM MEMORY STABILITY)
+# TWO-PHASE EXECUTION (CRITICAL FOR LLVM MEMORY STABILITY)
 # =============================================================================
 #
-# PROBLEM: LLVM's execution engine (execution_engine.cc) spawns threads equal to
-# the number of detected CPUs via std::thread::hardware_concurrency(). With
-# --cpus-per-task=16, it spawns 16 threads that all try to allocate memory
-# simultaneously, causing "Cannot allocate memory" errors (seen in job 50989988).
+# PROBLEM: LLVM's execution engine spawns threads equal to the number of CPUs
+# detected via std::thread::hardware_concurrency(). With --cpus-per-task=16,
+# it spawns 16 threads that all try to allocate memory simultaneously,
+# causing "Cannot allocate memory" errors (seen in job 50989988).
+#
+# WHY TASKSET DIDN'T WORK: SLURM's cgroups v2 blocks CPU affinity changes
+# from within the job (job 50991451: "taskset: Invalid argument").
 #
 # WHY XLA FLAGS WEREN'T ENOUGH:
 # - xla_cpu_parallel_codegen_split_count controls MODULE SPLITTING, not LLVM threads
 # - LLVM's internal JIT thread pool is separate and has no CPU-side XLA flag
-# - GPU has --xla_gpu_enable_llvm_module_compilation_parallelism=false but CPU doesn't
 #
-# SOLUTION: Use taskset to limit the Python process to a single CPU during
-# compilation. LLVM's hardware_concurrency() will then detect only 1 CPU and
-# use 1 compilation thread, preventing memory contention.
-#
-# TRADE-OFF: Initial compilation ~2x slower (~180-300s vs ~90-150s), but:
-# - Compilation succeeds without memory errors
-# - Compiled kernels are cached and reused for subsequent participants
-# - Runtime execution performance is UNAFFECTED
+# SOLUTION: Two-phase srun approach
+# - Phase 1: Run warmup with srun --cpus-per-task=2 (LLVM sees 2 CPUs, spawns 2 threads)
+# - Phase 2: Run main fitting with full CPUs (kernels cached, no LLVM compilation)
 #
 # References:
 # - https://github.com/jax-ml/jax/issues/16272 (LLVM worker thread limit)
-# - https://github.com/jax-ml/jax/issues/6790 (taskset workaround)
+# - https://github.com/jax-ml/jax/issues/6790 (srun workaround)
 # =============================================================================
 
-echo "Using taskset -c 0 to limit LLVM compilation to single CPU..."
-taskset -c 0 $CMD
+# -----------------------------------------------------------------------------
+# PHASE 1: JIT WARMUP WITH LIMITED CPUs
+# -----------------------------------------------------------------------------
+# Run warmup with only 2 CPUs so LLVM spawns only 2 compilation threads.
+# This prevents memory exhaustion during JIT compilation.
+# Compiled kernels are saved to JAX_COMPILATION_CACHE_DIR.
+
+echo "Phase 1: JIT warmup with limited CPUs (prevents LLVM memory exhaustion)..."
+WARMUP_START=$(date +%s)
+
+srun --cpus-per-task=2 --exact python scripts/fitting/warmup_jit.py --model $MODEL
+
+WARMUP_EXIT=$?
+WARMUP_END=$(date +%s)
+echo "Warmup completed in $((WARMUP_END - WARMUP_START)) seconds (exit code: $WARMUP_EXIT)"
+
+if [[ $WARMUP_EXIT -ne 0 ]]; then
+    echo "ERROR: Warmup failed with exit code $WARMUP_EXIT"
+    exit $WARMUP_EXIT
+fi
+
+echo ""
+
+# -----------------------------------------------------------------------------
+# PHASE 2: MAIN FITTING WITH FULL CPUs
+# -----------------------------------------------------------------------------
+# Now run the actual fitting. JAX will load compiled kernels from cache,
+# so no LLVM compilation occurs. All 16 CPUs available for optimization.
+
+echo "Phase 2: Main fitting with full CPU allocation..."
+$CMD
 
 EXIT_CODE=$?
 
