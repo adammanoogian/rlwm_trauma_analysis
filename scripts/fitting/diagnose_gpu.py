@@ -25,7 +25,11 @@ print(f"GPU available: {len(gpu_devices) > 0}")
 print()
 
 # Import our likelihood functions
-from jax_likelihoods import q_learning_multiblock_likelihood, q_learning_block_likelihood
+from jax_likelihoods import (
+    q_learning_multiblock_likelihood,
+    q_learning_multiblock_likelihood_stacked,
+    q_learning_block_likelihood,
+)
 from mle_utils import jax_unconstrained_to_params_qlearning
 
 # Create synthetic data matching real data structure
@@ -49,22 +53,23 @@ print(f"Data shapes: stimuli={stimuli_stacked.shape}, masks={masks_stacked.shape
 print()
 
 # =============================================================================
-# TEST 1: Raw likelihood function speed
+# TEST 1: Raw likelihood function speed (STACKED version - optimized)
 # =============================================================================
 print("=" * 60)
-print("TEST 1: Single likelihood evaluation")
+print("TEST 1: Single likelihood evaluation (stacked version)")
 print("=" * 60)
 
 def objective_raw(x):
     alpha_pos, alpha_neg, epsilon = jax_unconstrained_to_params_qlearning(x)
-    return -q_learning_multiblock_likelihood(
-        stimuli_blocks=list(stimuli_stacked),
-        actions_blocks=list(actions_stacked),
-        rewards_blocks=list(rewards_stacked),
+    # Use stacked version directly - no list conversion overhead
+    return -q_learning_multiblock_likelihood_stacked(
+        stimuli_stacked=stimuli_stacked,
+        actions_stacked=actions_stacked,
+        rewards_stacked=rewards_stacked,
+        masks_stacked=masks_stacked,
         alpha_pos=alpha_pos,
         alpha_neg=alpha_neg,
         epsilon=epsilon,
-        masks_blocks=list(masks_stacked)
     )
 
 objective_jit = jax.jit(objective_raw)

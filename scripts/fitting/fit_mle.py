@@ -90,8 +90,11 @@ from config import EXCLUDED_PARTICIPANTS
 # Import JAX likelihood functions
 from scripts.fitting.jax_likelihoods import (
     q_learning_multiblock_likelihood,
+    q_learning_multiblock_likelihood_stacked,  # Fast stacked version
     wmrl_multiblock_likelihood,
+    wmrl_multiblock_likelihood_stacked,  # Fast stacked version
     wmrl_m3_multiblock_likelihood,
+    wmrl_m3_multiblock_likelihood_stacked,  # Fast stacked version
     prepare_block_data,
     pad_block_to_max,
     pad_blocks_to_max,
@@ -214,8 +217,7 @@ def _make_jax_objective_qlearning(
         masks_blocks: List of mask arrays per block (1.0 for real trials, 0.0 for padding).
                      When provided, enables fixed-size compilation for efficiency.
     """
-    # Pre-stack blocks to avoid repeated stacking inside the objective
-    # This is done once at objective creation, not every evaluation
+    # Pre-stack blocks ONCE - use stacked version to avoid list/restack overhead
     stimuli_stacked = jnp.stack(stimuli_blocks)
     actions_stacked = jnp.stack(actions_blocks)
     rewards_stacked = jnp.stack(rewards_blocks)
@@ -226,14 +228,15 @@ def _make_jax_objective_qlearning(
 
     def objective(x: jnp.ndarray) -> float:
         alpha_pos, alpha_neg, epsilon = jax_unconstrained_to_params_qlearning(x)
-        log_lik = q_learning_multiblock_likelihood(
-            stimuli_blocks=list(stimuli_stacked),
-            actions_blocks=list(actions_stacked),
-            rewards_blocks=list(rewards_stacked),
+        # Use stacked version directly - avoids list conversion and restacking
+        log_lik = q_learning_multiblock_likelihood_stacked(
+            stimuli_stacked=stimuli_stacked,
+            actions_stacked=actions_stacked,
+            rewards_stacked=rewards_stacked,
+            masks_stacked=masks_stacked,
             alpha_pos=alpha_pos,
             alpha_neg=alpha_neg,
             epsilon=epsilon,
-            masks_blocks=list(masks_stacked)
         )
         return -log_lik  # Negative for minimization
 
@@ -262,7 +265,7 @@ def _make_jax_objective_wmrl(
         masks_blocks: List of mask arrays per block (1.0 for real trials, 0.0 for padding).
                      When provided, enables fixed-size compilation for efficiency.
     """
-    # Pre-stack blocks to avoid repeated stacking inside the objective
+    # Pre-stack blocks ONCE - use stacked version to avoid list/restack overhead
     stimuli_stacked = jnp.stack(stimuli_blocks)
     actions_stacked = jnp.stack(actions_blocks)
     rewards_stacked = jnp.stack(rewards_blocks)
@@ -274,18 +277,19 @@ def _make_jax_objective_wmrl(
 
     def objective(x: jnp.ndarray) -> float:
         alpha_pos, alpha_neg, phi, rho, capacity, epsilon = jax_unconstrained_to_params_wmrl(x)
-        log_lik = wmrl_multiblock_likelihood(
-            stimuli_blocks=list(stimuli_stacked),
-            actions_blocks=list(actions_stacked),
-            rewards_blocks=list(rewards_stacked),
-            set_sizes_blocks=list(set_sizes_stacked),
+        # Use stacked version directly - avoids list conversion and restacking
+        log_lik = wmrl_multiblock_likelihood_stacked(
+            stimuli_stacked=stimuli_stacked,
+            actions_stacked=actions_stacked,
+            rewards_stacked=rewards_stacked,
+            set_sizes_stacked=set_sizes_stacked,
+            masks_stacked=masks_stacked,
             alpha_pos=alpha_pos,
             alpha_neg=alpha_neg,
             phi=phi,
             rho=rho,
             capacity=capacity,
             epsilon=epsilon,
-            masks_blocks=list(masks_stacked)
         )
         return -log_lik
 
@@ -314,7 +318,7 @@ def _make_jax_objective_wmrl_m3(
         masks_blocks: List of mask arrays per block (1.0 for real trials, 0.0 for padding).
                      When provided, enables fixed-size compilation for efficiency.
     """
-    # Pre-stack blocks to avoid repeated stacking inside the objective
+    # Pre-stack blocks ONCE - use stacked version to avoid list/restack overhead
     stimuli_stacked = jnp.stack(stimuli_blocks)
     actions_stacked = jnp.stack(actions_blocks)
     rewards_stacked = jnp.stack(rewards_blocks)
@@ -326,11 +330,13 @@ def _make_jax_objective_wmrl_m3(
 
     def objective(x: jnp.ndarray) -> float:
         alpha_pos, alpha_neg, phi, rho, capacity, kappa, epsilon = jax_unconstrained_to_params_wmrl_m3(x)
-        log_lik = wmrl_m3_multiblock_likelihood(
-            stimuli_blocks=list(stimuli_stacked),
-            actions_blocks=list(actions_stacked),
-            rewards_blocks=list(rewards_stacked),
-            set_sizes_blocks=list(set_sizes_stacked),
+        # Use stacked version directly - avoids list conversion and restacking
+        log_lik = wmrl_m3_multiblock_likelihood_stacked(
+            stimuli_stacked=stimuli_stacked,
+            actions_stacked=actions_stacked,
+            rewards_stacked=rewards_stacked,
+            set_sizes_stacked=set_sizes_stacked,
+            masks_stacked=masks_stacked,
             alpha_pos=alpha_pos,
             alpha_neg=alpha_neg,
             phi=phi,
@@ -338,7 +344,6 @@ def _make_jax_objective_wmrl_m3(
             capacity=capacity,
             kappa=kappa,
             epsilon=epsilon,
-            masks_blocks=list(masks_stacked)
         )
         return -log_lik
 

@@ -632,6 +632,65 @@ q_learning_block_likelihood_jit = jax.jit(
 )
 
 
+def q_learning_multiblock_likelihood_stacked(
+    stimuli_stacked: jnp.ndarray,
+    actions_stacked: jnp.ndarray,
+    rewards_stacked: jnp.ndarray,
+    masks_stacked: jnp.ndarray,
+    alpha_pos: float,
+    alpha_neg: float,
+    epsilon: float = DEFAULT_EPSILON,
+    num_stimuli: int = 6,
+    num_actions: int = 3,
+    q_init: float = 0.5,
+) -> float:
+    """
+    FAST multiblock likelihood that takes pre-stacked arrays directly.
+
+    This version:
+    - Takes stacked arrays (n_blocks, max_trials) instead of lists
+    - Skips uniformity checks (assumes padded data)
+    - Avoids list/restack overhead inside JIT
+
+    Use this for GPU optimization when data is already padded to fixed shapes.
+
+    Parameters
+    ----------
+    stimuli_stacked : array, shape (n_blocks, max_trials)
+    actions_stacked : array, shape (n_blocks, max_trials)
+    rewards_stacked : array, shape (n_blocks, max_trials)
+    masks_stacked : array, shape (n_blocks, max_trials)
+        Mask with 1.0 for real trials, 0.0 for padding
+    alpha_pos, alpha_neg, epsilon : float
+        Model parameters
+    num_stimuli, num_actions, q_init : int/float
+        Static parameters
+
+    Returns
+    -------
+    float
+        Total log-likelihood summed across all blocks
+    """
+    num_blocks = stimuli_stacked.shape[0]
+
+    def body_fn(block_idx, total_ll):
+        block_ll = q_learning_block_likelihood(
+            stimuli=stimuli_stacked[block_idx],
+            actions=actions_stacked[block_idx],
+            rewards=rewards_stacked[block_idx],
+            alpha_pos=alpha_pos,
+            alpha_neg=alpha_neg,
+            epsilon=epsilon,
+            num_stimuli=num_stimuli,
+            num_actions=num_actions,
+            q_init=q_init,
+            mask=masks_stacked[block_idx]
+        )
+        return total_ll + block_ll
+
+    return lax.fori_loop(0, num_blocks, body_fn, 0.0)
+
+
 def prepare_block_data(
     data_df,
     participant_col: str = 'sona_id',
@@ -1303,6 +1362,54 @@ def wmrl_multiblock_likelihood(
     return total_log_lik
 
 
+def wmrl_multiblock_likelihood_stacked(
+    stimuli_stacked: jnp.ndarray,
+    actions_stacked: jnp.ndarray,
+    rewards_stacked: jnp.ndarray,
+    set_sizes_stacked: jnp.ndarray,
+    masks_stacked: jnp.ndarray,
+    alpha_pos: float,
+    alpha_neg: float,
+    phi: float,
+    rho: float,
+    capacity: float,
+    epsilon: float = DEFAULT_EPSILON,
+    num_stimuli: int = 6,
+    num_actions: int = 3,
+    q_init: float = 0.5,
+    wm_init: float = 1.0 / 3.0,
+) -> float:
+    """
+    FAST WM-RL multiblock likelihood that takes pre-stacked arrays directly.
+
+    See wmrl_multiblock_likelihood for full documentation.
+    This version avoids list/restack overhead inside JIT.
+    """
+    num_blocks = stimuli_stacked.shape[0]
+
+    def body_fn(block_idx, total_ll):
+        block_ll = wmrl_block_likelihood(
+            stimuli=stimuli_stacked[block_idx],
+            actions=actions_stacked[block_idx],
+            rewards=rewards_stacked[block_idx],
+            set_sizes=set_sizes_stacked[block_idx],
+            alpha_pos=alpha_pos,
+            alpha_neg=alpha_neg,
+            phi=phi,
+            rho=rho,
+            capacity=capacity,
+            epsilon=epsilon,
+            num_stimuli=num_stimuli,
+            num_actions=num_actions,
+            q_init=q_init,
+            wm_init=wm_init,
+            mask=masks_stacked[block_idx]
+        )
+        return total_ll + block_ll
+
+    return lax.fori_loop(0, num_blocks, body_fn, 0.0)
+
+
 def wmrl_m3_multiblock_likelihood(
     stimuli_blocks: list,
     actions_blocks: list,
@@ -1463,6 +1570,56 @@ def wmrl_m3_multiblock_likelihood(
         print(f"  >> Total log-likelihood: {float(total_log_lik):.2f} ({num_blocks} blocks)\n", flush=True)
 
     return total_log_lik
+
+
+def wmrl_m3_multiblock_likelihood_stacked(
+    stimuli_stacked: jnp.ndarray,
+    actions_stacked: jnp.ndarray,
+    rewards_stacked: jnp.ndarray,
+    set_sizes_stacked: jnp.ndarray,
+    masks_stacked: jnp.ndarray,
+    alpha_pos: float,
+    alpha_neg: float,
+    phi: float,
+    rho: float,
+    capacity: float,
+    kappa: float,
+    epsilon: float = DEFAULT_EPSILON,
+    num_stimuli: int = 6,
+    num_actions: int = 3,
+    q_init: float = 0.5,
+    wm_init: float = 1.0 / 3.0,
+) -> float:
+    """
+    FAST WM-RL M3 multiblock likelihood that takes pre-stacked arrays directly.
+
+    See wmrl_m3_multiblock_likelihood for full documentation.
+    This version avoids list/restack overhead inside JIT.
+    """
+    num_blocks = stimuli_stacked.shape[0]
+
+    def body_fn(block_idx, total_ll):
+        block_ll = wmrl_m3_block_likelihood(
+            stimuli=stimuli_stacked[block_idx],
+            actions=actions_stacked[block_idx],
+            rewards=rewards_stacked[block_idx],
+            set_sizes=set_sizes_stacked[block_idx],
+            alpha_pos=alpha_pos,
+            alpha_neg=alpha_neg,
+            phi=phi,
+            rho=rho,
+            capacity=capacity,
+            kappa=kappa,
+            epsilon=epsilon,
+            num_stimuli=num_stimuli,
+            num_actions=num_actions,
+            q_init=q_init,
+            wm_init=wm_init,
+            mask=masks_stacked[block_idx]
+        )
+        return total_ll + block_ll
+
+    return lax.fori_loop(0, num_blocks, body_fn, 0.0)
 
 
 # JIT-compile WM-RL for performance
