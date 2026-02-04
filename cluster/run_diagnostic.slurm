@@ -67,7 +67,11 @@ echo "Running GPU performance diagnostic..."
 echo ""
 
 cd scripts/fitting
-python diagnose_gpu.py
+
+# Force unbuffered Python output so we see progress in real-time
+export PYTHONUNBUFFERED=1
+
+python -u diagnose_gpu.py
 
 echo ""
 echo "============================================================"
