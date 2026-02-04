@@ -121,31 +121,62 @@ print(f"  Total: {internal_jit_time:.2f}s ({internal_jit_time/10:.2f}s per start
 print()
 
 # =============================================================================
-# TEST 3: LBFGS solver with jax.jit(solver.run) wrapper (may cause long compile)
+# TEST 3: LBFGS solver with jax.jit(solver.run) wrapper
+# NOTE: This often fails with TracerBoolConversionError - that's expected!
 # =============================================================================
 print("=" * 60)
 print("TEST 3: LBFGS solver WITH jax.jit(solver.run) wrapper")
 print("=" * 60)
+print("(This approach usually fails - testing to confirm)")
 
-solver2 = LBFGS(fun=objective_jit, maxiter=100, tol=1e-6, jit=False)  # Disable internal JIT
-jit_run = jax.jit(solver2.run)
+try:
+    solver2 = LBFGS(fun=objective_jit, maxiter=100, tol=1e-6, jit=False)
+    jit_run = jax.jit(solver2.run)
 
-print("First optimization (full solver compilation - may be slow!)...")
-start = time.time()
-x0 = jnp.array([0.0, 0.0, -2.0])
-params, state = jit_run(x0)
-jax.block_until_ready(params)
-solver_compile_time = time.time() - start
-print(f"  Time: {solver_compile_time:.2f}s")
-
-print("Next 5 optimizations (compiled)...")
-start = time.time()
-for i in range(5):
-    x0 = jnp.array([np.random.randn(), np.random.randn(), -2.0])
+    start = time.time()
+    x0 = jnp.array([0.0, 0.0, -2.0])
     params, state = jit_run(x0)
     jax.block_until_ready(params)
-jit_time = time.time() - start
-print(f"  Total: {jit_time:.2f}s ({jit_time/5:.2f}s per start)")
+    solver_compile_time = time.time() - start
+    print(f"  Surprisingly worked! Time: {solver_compile_time:.2f}s")
+    jit_time = 0.0  # Placeholder
+except Exception as e:
+    print(f"  FAILED (as expected): {type(e).__name__}")
+    print(f"  This confirms jax.jit(solver.run) doesn't work with jaxopt")
+    solver_compile_time = float('inf')
+    jit_time = float('inf')
+print()
+
+# =============================================================================
+# TEST 4: VECTORIZED optimization with vmap (NEW - should be fastest!)
+# =============================================================================
+print("=" * 60)
+print("TEST 4: VECTORIZED optimization with jax.vmap(solver.run)")
+print("=" * 60)
+
+solver3 = LBFGS(fun=objective_jit, maxiter=100, tol=1e-6, jit=True)
+vmap_run = jax.vmap(solver3.run)
+
+# Generate batch of starting points
+n_starts_batch = 20
+x0_batch = jnp.array([[np.random.randn(), np.random.randn(), -2.0] for _ in range(n_starts_batch)])
+
+print(f"Running {n_starts_batch} optimizations IN PARALLEL with vmap...")
+print("First batch (includes vmap compilation)...")
+start = time.time()
+all_params, all_states = vmap_run(x0_batch)
+jax.block_until_ready(all_params)
+vmap_first = time.time() - start
+print(f"  Time for {n_starts_batch} parallel starts: {vmap_first:.2f}s")
+
+print("Second batch (compiled)...")
+x0_batch2 = jnp.array([[np.random.randn(), np.random.randn(), -2.0] for _ in range(n_starts_batch)])
+start = time.time()
+all_params2, all_states2 = vmap_run(x0_batch2)
+jax.block_until_ready(all_params2)
+vmap_second = time.time() - start
+print(f"  Time for {n_starts_batch} parallel starts: {vmap_second:.2f}s")
+print(f"  Effective per-start: {vmap_second/n_starts_batch:.3f}s")
 print()
 
 # =============================================================================
@@ -157,31 +188,30 @@ print("=" * 60)
 print(f"Likelihood compile time:      {compile_time:.2f}s")
 print(f"Likelihood per-call:          {eval_time/100*1000:.2f}ms")
 print()
-print(f"jaxopt jit=True (recommended):")
+print(f"Sequential (jit=True):")
 print(f"  First call (compile):       {internal_jit_compile:.2f}s")
-print(f"  Subsequent (per start):     {internal_jit_time/10:.2f}s")
+print(f"  Per start (sequential):     {internal_jit_time/10:.2f}s")
+print(f"  20 starts would take:       {internal_jit_compile + 19*internal_jit_time/10:.1f}s")
 print()
-print(f"jax.jit(solver.run) wrapper:")
-print(f"  First call (compile):       {solver_compile_time:.2f}s")
-print(f"  Subsequent (per start):     {jit_time/5:.2f}s")
-print()
-
-# Determine which is better
-if internal_jit_compile < solver_compile_time:
-    print("RECOMMENDATION: Use jit=True (jaxopt internal) - faster compilation")
-    best_compile = internal_jit_compile
-    best_per_start = internal_jit_time/10
-else:
-    print("RECOMMENDATION: Use jax.jit(solver.run) - faster per-start")
-    best_compile = solver_compile_time
-    best_per_start = jit_time/5
+print(f"VMAP (parallel - RECOMMENDED):")
+print(f"  First batch (compile):      {vmap_first:.2f}s")
+print(f"  20 starts in parallel:      {vmap_second:.2f}s")
+print(f"  Effective per-start:        {vmap_second/n_starts_batch:.3f}s")
 print()
 
-# Expected performance for full fitting
-print("EXTRAPOLATION (20 starts per participant, 45 participants):")
-per_participant = best_compile + 19 * best_per_start
-total_time = per_participant + 44 * 20 * best_per_start
-print(f"  First participant:  {best_compile:.1f}s (compile) + {19*best_per_start:.1f}s = {per_participant:.1f}s")
-print(f"  Each subsequent:    {20 * best_per_start:.1f}s")
-print(f"  Total estimated:    {total_time:.0f}s = {total_time/60:.1f} min")
+# Calculate speedup
+sequential_time = internal_jit_compile + 19 * internal_jit_time/10
+vmap_time = vmap_first  # First batch includes compile, use that for comparison
+speedup = sequential_time / vmap_second if vmap_second > 0 else float('inf')
+print(f"VMAP SPEEDUP: {speedup:.1f}x faster than sequential!")
+print()
+
+# Expected performance for full fitting with vmap
+print("EXTRAPOLATION (20 starts per participant, 45 participants) WITH VMAP:")
+per_participant_vmap = vmap_first  # First includes compile
+subsequent_vmap = vmap_second
+total_time_vmap = per_participant_vmap + 44 * subsequent_vmap
+print(f"  First participant:  {per_participant_vmap:.1f}s (includes compile)")
+print(f"  Each subsequent:    {subsequent_vmap:.1f}s (20 parallel starts)")
+print(f"  Total estimated:    {total_time_vmap:.0f}s = {total_time_vmap/60:.1f} min")
 print("=" * 60)
