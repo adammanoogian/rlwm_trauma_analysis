@@ -10,7 +10,7 @@
 #
 # Or manually:
 #   module load miniforge3
-#   module load cuda/12.1.1
+#   module load cuda/12.2.0
 #   mamba env create -f environment_gpu.yml
 #   conda activate rlwm_gpu
 #
@@ -33,7 +33,7 @@ echo "Project: $PROJECT_ROOT"
 echo ""
 echo "Loading modules..."
 module load miniforge3
-module load cuda/12.1.1
+module load cuda/12.2.0
 
 # Check CUDA version
 echo ""

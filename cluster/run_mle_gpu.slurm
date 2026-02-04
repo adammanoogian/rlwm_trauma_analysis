@@ -48,7 +48,7 @@ MODELS="${MODEL:-qlearning wmrl wmrl_m3}"
 
 # Load miniforge3 and CUDA
 module load miniforge3
-module load cuda/12.1.1
+module load cuda/12.2.0
 
 # Navigate to project directory
 cd "${SLURM_SUBMIT_DIR:-$(dirname "$0")/..}"
