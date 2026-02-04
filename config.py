@@ -23,22 +23,26 @@ DOCS_DIR = PROJECT_ROOT / 'docs'
 # PARTICIPANT EXCLUSIONS
 # ============================================================================
 
-# Participants to exclude from all analyses
+# Participants to exclude from all analyses (MIN_TRIALS = 400)
 EXCLUDED_PARTICIPANTS = [
+    10001,  # Insufficient trials: 119 trials (below MIN_TRIALS=400)
     10012,  # Insufficient trials: 87 trials (expected 807-1077)
     10040,  # Insufficient trials: 12 trials, 0% accuracy
     10045,  # Insufficient trials: 39 trials, 23% accuracy
     10049,  # Insufficient trials: 18 trials, 28% accuracy
+    10053,  # Insufficient trials: 133 trials (below MIN_TRIALS=400)
     10044,  # Duplicate of 10043 (same session, started 7 seconds later)
     10073,  # Duplicate of 10072 (same session, started 6 seconds later)
 ]
 
 # Documentation of exclusions
 EXCLUSION_REASONS = {
+    10001: "Insufficient trials (119 trials, below MIN_TRIALS=400 threshold)",
     10012: "Insufficient trials (87 trials, <10% of expected)",
     10040: "Insufficient trials (12 trials, 0% accuracy - experiment abandoned)",
     10045: "Insufficient trials (39 trials, 23% accuracy - incomplete experiment)",
     10049: "Insufficient trials (18 trials, 28% accuracy - incomplete experiment)",
+    10053: "Insufficient trials (133 trials, below MIN_TRIALS=400 threshold)",
     10044: "Duplicate participant (10043 started at 16:31:17, 10044 at 16:31:24 on 2025-11-24)",
     10073: "Duplicate participant (10072 started at 20:03:58, 10073 at 20:04:04 on 2025-12-18)",
 }

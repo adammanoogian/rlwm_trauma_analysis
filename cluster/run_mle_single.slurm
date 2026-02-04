@@ -97,7 +97,11 @@ export JAX_PLATFORMS=cpu
 # The warmup phase compiles kernels with limited CPUs (2) to prevent LLVM
 # memory exhaustion. The main fitting phase reuses these cached kernels.
 # Without persistent caching, each phase would recompile from scratch.
-export JAX_COMPILATION_CACHE_DIR="/scratch/fc37/aman0087/.jax_cache"
+#
+# IMPORTANT: Cache is NODE-SPECIFIC because XLA generates machine-specific code.
+# Different cluster nodes have different CPU features, so sharing a cache
+# between nodes causes "CPU feature mismatch" errors.
+export JAX_COMPILATION_CACHE_DIR="/scratch/fc37/aman0087/.jax_cache/${SLURMD_NODENAME:-$(hostname)}"
 mkdir -p "$JAX_COMPILATION_CACHE_DIR"
 
 # =============================================================================
@@ -264,7 +268,7 @@ echo ""
 echo "Phase 1: JIT warmup with limited CPUs (prevents LLVM memory exhaustion)..."
 WARMUP_START=$(date +%s)
 
-srun --ntasks=1 --cpus-per-task=2 --exact $PYTHON_BIN scripts/fitting/warmup_jit.py --model $MODEL
+srun --ntasks=1 --cpus-per-task=2 --exact --export=ALL $PYTHON_BIN scripts/fitting/warmup_jit.py --model $MODEL
 
 WARMUP_EXIT=$?
 WARMUP_END=$(date +%s)
