@@ -286,9 +286,20 @@ echo ""
 # -----------------------------------------------------------------------------
 # Now run the actual fitting. JAX will load compiled kernels from cache,
 # so no LLVM compilation occurs. All 16 CPUs available for optimization.
+#
+# NOTE: We use srun here to ensure environment variables (JAX_COMPILATION_CACHE_DIR,
+# XLA_FLAGS, etc.) are properly propagated. This also ensures that if there's a
+# cache miss, LLVM will only see 4 CPUs, preventing memory exhaustion.
 
 echo "Phase 2: Main fitting with full CPU allocation..."
-$CMD
+
+# Build args for srun (need to reconstruct since $CMD includes 'python')
+FITTING_ARGS="--model $MODEL --data $DATA_FILE --output output/mle/ --n-starts 20 --seed 42"
+if [[ -n "$LIMIT" ]]; then
+    FITTING_ARGS="$FITTING_ARGS --limit $LIMIT"
+fi
+
+srun --ntasks=1 --cpus-per-task=4 --exact --export=ALL $PYTHON_BIN scripts/fitting/fit_mle.py $FITTING_ARGS
 
 EXIT_CODE=$?
 

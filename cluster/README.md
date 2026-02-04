@@ -241,27 +241,44 @@ exit
 mkdir -p cluster/logs
 ```
 
-### 6.2 Submit CPU Parallel Job (Recommended First)
+### 6.2 Submit GPU Job (Recommended for Reliability)
+
+**⚠️ GPU fitting is now the recommended approach** because it avoids LLVM/CPU issues:
+- No LLVM thread spawning memory exhaustion
+- No CPU feature mismatch between heterogeneous cluster nodes
+- Comparable speed to parallel CPU (2-5 minutes per model)
+
 ```bash
 cd /projects/$PROJECT/$USER/rlwm_trauma_analysis
 
-# Submit parallel fitting (16 cores, all 3 models)
-sbatch cluster/run_mle_parallel.slurm
+# Submit GPU-accelerated fitting (all 3 models)
+sbatch cluster/run_mle_gpu.slurm
+
+# For specific model:
+sbatch --export=MODEL=wmrl_m3 cluster/run_mle_gpu.slurm
 
 # Check job status
 squeue -u $USER
 
 # Watch the output in real-time
-tail -f cluster/logs/mle_parallel_*.out
+tail -f cluster/logs/mle_gpu_*.out
 ```
 
-### 6.3 Submit GPU Job (After Setting Up GPU Env)
-```bash
-# Submit GPU-accelerated fitting
-sbatch cluster/run_mle_gpu.slurm
+### 6.3 Submit CPU Parallel Job (Alternative)
 
-# For specific GPU type:
-sbatch --gres=gpu:A100:1 cluster/run_mle_gpu.slurm
+Use CPU fitting if GPU queue is unavailable. Note: M3 has heterogeneous nodes with
+different CPU features, which can cause "CPU feature mismatch" errors if the JAX
+cache is shared between nodes. The scripts now use node-specific caching to avoid this.
+
+```bash
+# Submit parallel fitting (16 cores, all 3 models)
+sbatch cluster/run_mle.slurm
+
+# Check job status
+squeue -u $USER
+
+# Watch the output in real-time
+tail -f cluster/logs/mle_*.out
 ```
 
 ### 6.4 Submit Single Model (For Testing)
@@ -356,6 +373,8 @@ scancel -u $USER  # Cancel ALL your jobs
 | Job stuck in `PENDING` | Run `squeue -u $USER` to see reason; try smaller resource request |
 | `ModuleNotFoundError: joblib` | Env may need updating: `mamba env update -f environment.yml` |
 | GPU not detected | Ensure `module load cuda/12.1.1` and using `rlwm_gpu` env |
+| `SIGILL` or CPU feature mismatch | Clear stale cache: `rm -rf /scratch/$PROJECT/$USER/.jax_cache` and retry |
+| `Cannot allocate memory` (LLVM) | Use GPU fitting, or use `run_mle_single.slurm` with its two-phase approach |
 
 ---
 

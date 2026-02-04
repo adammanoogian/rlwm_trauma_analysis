@@ -152,9 +152,13 @@ print('Environment OK: all packages available')
 echo ""
 
 # =============================================================================
-# JAX Compilation Cache (prevents redundant JIT compilation across runs)
+# JAX Compilation Cache (NODE-SPECIFIC to prevent CPU feature mismatch)
 # =============================================================================
-export JAX_COMPILATION_CACHE_DIR="/scratch/fc37/aman0087/.jax_cache"
+# IMPORTANT: Cache is node-specific because XLA generates machine-specific code.
+# Different M3 nodes have different CPU features (AVX-512, SHA, etc.), so a kernel
+# compiled on one node may crash with SIGILL on another. Using ${SLURMD_NODENAME}
+# ensures each node maintains its own compatible cache.
+export JAX_COMPILATION_CACHE_DIR="/scratch/fc37/aman0087/.jax_cache/${SLURMD_NODENAME:-$(hostname)}"
 export JAX_PERSISTENT_CACHE_MIN_ENTRY_SIZE_BYTES=0
 mkdir -p "$JAX_COMPILATION_CACHE_DIR"
 echo "JAX cache: $JAX_COMPILATION_CACHE_DIR"

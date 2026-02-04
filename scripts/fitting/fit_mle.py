@@ -535,6 +535,12 @@ def _load_checkpoint(checkpoint_path: Path) -> Tuple[pd.DataFrame, set]:
     """
     if checkpoint_path.exists():
         df = pd.read_csv(checkpoint_path)
+        # Convert boolean columns that CSV reads as strings
+        bool_columns = ['converged', 'hessian_invertible']
+        for col in bool_columns:
+            if col in df.columns:
+                # Handle string "True"/"False" from CSV
+                df[col] = df[col].apply(lambda x: str(x).lower() == 'true' if pd.notna(x) else False)
         completed = set(df['participant_id'].unique())
         return df, completed
     return pd.DataFrame(), set()

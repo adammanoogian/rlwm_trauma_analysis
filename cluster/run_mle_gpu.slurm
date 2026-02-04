@@ -66,7 +66,12 @@ echo "Start time: $(date)"
 echo "============================================================"
 
 # Activate GPU conda environment
-conda activate rlwm_gpu
+# Note: Use full path like CPU scripts for reliability across cluster nodes
+conda activate /scratch/fc37/aman0087/conda/envs/rlwm_gpu || {
+    echo "ERROR: Failed to activate 'rlwm_gpu' conda environment"
+    echo "Create it first with: bash cluster/setup_env_gpu.sh"
+    exit 1
+}
 
 # Verify GPU is available to JAX
 echo ""
@@ -86,6 +91,18 @@ echo ""
 
 # Create logs directory if needed
 mkdir -p cluster/logs
+
+# =============================================================================
+# JAX Compilation Cache (optional for GPU but helps with restarts)
+# =============================================================================
+# GPU compilation uses CUDA/PTX which is portable across GPU types, but caching
+# still reduces startup time on subsequent runs. Unlike CPU caching, GPU caching
+# doesn't have the CPU feature mismatch problem.
+export JAX_COMPILATION_CACHE_DIR="/scratch/fc37/aman0087/.jax_cache_gpu"
+export JAX_PERSISTENT_CACHE_MIN_ENTRY_SIZE_BYTES=0
+mkdir -p "$JAX_COMPILATION_CACHE_DIR"
+echo "JAX cache: $JAX_COMPILATION_CACHE_DIR"
+echo ""
 
 # =============================================================================
 # Run MLE Fitting (GPU-accelerated)
