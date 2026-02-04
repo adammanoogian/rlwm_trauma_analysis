@@ -662,7 +662,8 @@ def compute_hessian_diagnostics(
 
     try:
         # Compute Hessian at optimum using JAX
-        hess_fn = jax.hessian(objective_fn)
+        # JIT-compile for faster execution (especially on GPU)
+        hess_fn = jax.jit(jax.hessian(objective_fn))
         x_jax = jnp.array(x_opt)
         H = hess_fn(x_jax)
 
