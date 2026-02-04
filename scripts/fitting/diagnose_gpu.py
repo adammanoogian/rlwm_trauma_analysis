@@ -14,10 +14,13 @@ sys.stdout.reconfigure(line_buffering=True) if hasattr(sys.stdout, 'reconfigure'
 
 sys.path.insert(0, '.')
 
-def log(msg):
+def log(msg=""):
     """Print with timestamp and flush."""
     import builtins
-    builtins.print(f"[{time.strftime('%H:%M:%S')}] {msg}", flush=True)
+    if msg:
+        builtins.print(f"[{time.strftime('%H:%M:%S')}] {msg}", flush=True)
+    else:
+        builtins.print("", flush=True)
 
 log("=" * 55)
 log("GPU PERFORMANCE DIAGNOSTIC")
