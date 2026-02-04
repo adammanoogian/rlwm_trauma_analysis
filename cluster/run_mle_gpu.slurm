@@ -31,7 +31,7 @@
 #SBATCH --job-name=rlwm_mle_gpu
 #SBATCH --output=cluster/logs/mle_gpu_%j.out
 #SBATCH --error=cluster/logs/mle_gpu_%j.err
-#SBATCH --time=04:00:00
+#SBATCH --time=08:00:00
 #SBATCH --mem=64G
 #SBATCH --gres=gpu:1
 #SBATCH --partition=gpu
