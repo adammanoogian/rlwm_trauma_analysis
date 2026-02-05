@@ -1,0 +1,99 @@
+============================================================
+RLWM GPU-Accelerated MLE Fitting - M3 SLURM Job
+============================================================
+Job ID: 51019625
+Node: m3g119
+Partition: gpu
+GPU(s): 0
+Project: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis
+Start time: Thu Feb  5 10:46:24 PM AEDT 2026
+============================================================
+Activated rlwm_gpu by name
+
+Verifying GPU access...
+JAX devices: [CudaDevice(id=0)]
+GPU(s) available: [CudaDevice(id=0)]
+
+JAX cache: /scratch/fc37/aman0087/.jax_cache_gpu
+
+Cleaning up stale checkpoints...
+  Deleted: output/mle/qlearning_checkpoint.csv
+
+
+============================================================
+Fitting model: qlearning (GPU-accelerated)
+Started: Thu Feb  5 10:46:32 PM AEDT 2026
+============================================================
+GPU detected: [CudaDevice(id=0)]
+
+============================================================
+MLE Fitting: QLEARNING
+============================================================
+Data: output/task_trials_long.csv
+Random starts: 50
+Seed: 42
+Output: output/mle/
+Include practice: False
+Parallel workers: 1
+GPU acceleration: enabled
+Hessian diagnostics: disabled
+============================================================
+
+Loading data...
+  Total participants in data: 47
+  Excluded participants: 2 (insufficient data/duplicates)
+  Final sample: 45
+  Total trials: 34806
+
+[MEMORY] START: 529.9MB (psutil)
+
+============================================================
+MLE Fitting: QLEARNING
+============================================================
+Start time: 2026-02-05 22:46:36
+Participants: 45
+Random starts per participant: 50
+Parallel workers: 1
+============================================================
+
+Preparing participant data...
+  Prepared 10/45 participants...
+  Prepared 20/45 participants...
+  Prepared 30/45 participants...
+  Prepared 40/45 participants...
+  Data preparation complete (5.4s)
+
+
+[22:46:42] [  1/45] (  0.0%) Fitting 10000 (988 trials)
+      [1/5] Counting trials... done (0.00s)
+      [2/5] Preparing JAX arrays... done (0.02s)
+      [3/5] Creating objective functions... done (0.23s)
+      [4/5] Creating L-BFGS-B solver... done (0.01s)
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (1.84s, NLL=819.9)
+            Starts 2-50... done (total: 47.9s)
+            Optimizer: 49/50 scipy-converged, 1 hit maxiter
+            NLLs: best=763.2 | 3 within 1.0 | 3 within 5.0 | range=56.7
+[MEMORY] POST-JIT (compilation complete): 2091.1MB (psutil)
+      Result: [OK] NLL=763.2, R²=0.30, near_best=3, total=48.2s
+
+[22:47:30] [  2/45] (  2.2%) Fitting 9187 (990 trials) | ETA: 35.4min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (1.86s, NLL=850.7)
+            Starts 2-50... done (total: 45.2s)
+            Optimizer: 50/50 scipy-converged, 0 hit maxiter
+            NLLs: best=824.6 | 4 within 1.0 | 4 within 5.0 | range=64.2
+      Result: [OK] NLL=824.6, R²=0.24, near_best=4, total=45.2s
+
+[22:48:15] [  3/45] (  4.4%) Fitting 10002 (986 trials) | ETA: 32.4min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (1.92s, NLL=500.9)
+            Starts 2-50... done (total: 63.7s)
+            Optimizer: 49/50 scipy-converged, 1 hit maxiter
+            NLLs: best=478.1 | 5 within 1.0 | 26 within 5.0 | range=22.8
+      Result: [OK] NLL=478.1, R²=0.56, near_best=5, total=63.7s
+
+[22:49:19] [  4/45] (  6.7%) Fitting 10003 (973 trials) | ETA: 38.1min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (1.04s, NLL=719.4)
+            Starts 2-50... 

@@ -1,0 +1,34 @@
+============================================================
+RLWM GPU-Accelerated MLE Fitting - M3 SLURM Job
+============================================================
+Job ID: 51020057
+Node: m3g112
+Partition: gpu
+GPU(s): 0
+Project: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis
+Start time: Thu Feb  5 11:13:07 PM AEDT 2026
+============================================================
+Activated rlwm_gpu by name
+
+Verifying GPU access...
+JAX devices: [CudaDevice(id=0)]
+GPU(s) available: [CudaDevice(id=0)]
+
+JAX cache: /scratch/fc37/aman0087/.jax_cache_gpu
+
+Cleaning up stale checkpoints...
+  Deleted: output/mle/qlearning_checkpoint.csv
+
+Dispatching 3 models as parallel GPU jobs...
+
+  qlearning -> Job 51020066
+  wmrl -> Job 51020067
+  wmrl_m3 -> Job 51020068
+
+All jobs submitted. Monitor with:
+  squeue -u aman0087
+
+Tail logs:
+  tail -f cluster/logs/mle_gpu_51020066.out   # qlearning
+  tail -f cluster/logs/mle_gpu_51020067.out   # wmrl
+  tail -f cluster/logs/mle_gpu_51020068.out   # wmrl_m3
