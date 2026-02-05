@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-05)
 ## Current Position
 
 Phase: 4 of 7 (Regression Visualization)
-Plan: —
-Status: Ready to plan
-Last activity: 2026-02-05 — Roadmap created for v2 milestone
+Plan: 1 of 2 complete
+Status: In progress
+Last activity: 2026-02-05 — Completed 04-01-PLAN.md (plotting utility + Script 15)
 
-Progress: [░░░░░░░░░░] 0% (v2: 0/4 phases complete)
+Progress: [█░░░░░░░░░] 10% (v2: 0/4 phases complete, 1/10 total plans complete)
 
 ## Performance Metrics
 
@@ -33,7 +33,16 @@ Progress: [░░░░░░░░░░] 0% (v2: 0/4 phases complete)
 | 3 | 2 | 52 min | 26 min |
 
 **v2 Milestone:**
-- Not started yet
+- Total plans completed: 1
+- Average duration: 19 min
+- Total execution time: 19 min
+- Timeline: Started 2026-02-05
+
+**By Phase:**
+
+| Phase | Plans | Total | Avg/Plan |
+|-------|-------|-------|----------|
+| 4 | 1/2 | 19 min | 19 min |
 
 ## Accumulated Context
 
@@ -54,6 +63,12 @@ Progress: [░░░░░░░░░░] 0% (v2: 0/4 phases complete)
 
 See PROJECT.md Key Decisions table for full history.
 
+**Phase 4 decisions:**
+- TRAUMA_GROUP_COLORS constant in plotting_utils matches Script 15 colors
+- color-by is visual overlay only (does not change statistical analyses)
+- Model-specific figure filenames prevent overwrites (e.g., correlation_heatmap_wmrl_m3.png)
+- WM-RL+K display name for M3 model in plots
+
 ### Pending Todos
 
 None.
@@ -64,6 +79,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-02-05 (v2 roadmap created)
-Stopped at: Roadmap written, ready to plan Phase 4
+Last session: 2026-02-05 (completed 04-01-PLAN.md)
+Stopped at: Completed Plan 04-01, ready for Plan 04-02 (Script 16)
 Resume file: None
