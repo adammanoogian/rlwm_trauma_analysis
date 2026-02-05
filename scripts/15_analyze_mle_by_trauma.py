@@ -63,8 +63,10 @@ Next Steps:
 import os
 import sys
 import warnings
+import argparse
 from pathlib import Path
 from itertools import combinations
+from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -78,22 +80,19 @@ PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from plotting_config import PlotConfig
+from utils.plotting_utils import get_color_palette, add_colored_scatter, TRAUMA_GROUP_COLORS
 
 # Paths
 OUTPUT_DIR = PROJECT_ROOT / "output" / "mle"
 FIGURES_DIR = PROJECT_ROOT / "figures" / "mle_trauma_analysis"
 
 # Group colors (matching plotting_config.py)
-GROUP_COLORS = {
-    'No Trauma': '#06A77D',  # Green
-    'Trauma-No Impact': '#F18F01',  # Orange
-    'Trauma-Ongoing Impact': '#D62246',  # Red
-    'Low Exposure-High Symptoms': '#6C757D',  # Gray (paradoxical)
-}
+GROUP_COLORS = TRAUMA_GROUP_COLORS
 
 # Model parameters
 QLEARNING_PARAMS = ['alpha_pos', 'alpha_neg', 'epsilon']
 WMRL_PARAMS = ['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'epsilon']
+WMRL_M3_PARAMS = ['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'kappa', 'epsilon']
 
 # Trauma scale predictors
 TRAUMA_PREDICTORS = [
@@ -108,7 +107,8 @@ PARAM_NAMES = {
     'epsilon': r'$\varepsilon$',
     'phi': r'$\phi$',
     'rho': r'$\rho$',
-    'capacity': 'K'
+    'capacity': 'K',
+    'kappa': r'$\kappa$',
 }
 
 
@@ -125,10 +125,12 @@ def load_data() -> tuple:
     # Load MLE fits
     qlearning = pd.read_csv(OUTPUT_DIR / "qlearning_individual_fits.csv")
     wmrl = pd.read_csv(OUTPUT_DIR / "wmrl_individual_fits.csv")
+    wmrl_m3 = pd.read_csv(OUTPUT_DIR / "wmrl_m3_individual_fits.csv")
 
     # Convert participant_id to string for consistent merging
     qlearning['participant_id'] = qlearning['participant_id'].astype(str)
     wmrl['participant_id'] = wmrl['participant_id'].astype(str)
+    wmrl_m3['participant_id'] = wmrl_m3['participant_id'].astype(str)
 
     # Merge with surveys
     qlearning = qlearning.merge(
@@ -147,10 +149,19 @@ def load_data() -> tuple:
         on='sona_id', how='left'
     )
 
+    wmrl_m3 = wmrl_m3.merge(
+        surveys, left_on='participant_id', right_on='sona_id', how='inner'
+    )
+    wmrl_m3 = wmrl_m3.merge(
+        groups[['sona_id', 'hypothesis_group']],
+        on='sona_id', how='left'
+    )
+
     print(f"Q-learning participants with surveys: {len(qlearning)}")
     print(f"WM-RL participants with surveys: {len(wmrl)}")
+    print(f"WM-RL+K participants with surveys: {len(wmrl_m3)}")
 
-    return qlearning, wmrl, surveys, groups
+    return qlearning, wmrl, wmrl_m3, surveys, groups
 
 
 def mann_whitney_with_effect_size(group1: np.ndarray, group2: np.ndarray) -> dict:
@@ -544,15 +555,24 @@ def plot_parameters_by_group(df: pd.DataFrame, params: list, model_name: str,
     return fig
 
 
-def plot_correlation_heatmap(corr_df: pd.DataFrame, model_name: str) -> plt.Figure:
+def plot_correlation_heatmap(corr_df: pd.DataFrame, params: list, model_name: str) -> plt.Figure:
     """
     Create heatmap of Spearman correlations.
+
+    Parameters
+    ----------
+    corr_df : pd.DataFrame
+        Correlation results with columns: parameter, predictor, rho, significant
+    params : list
+        List of parameters for this model (determines ordering)
+    model_name : str
+        Model name for title
     """
     # Pivot to matrix form
     pivot = corr_df.pivot(index='parameter', columns='predictor', values='rho')
 
     # Reorder
-    param_order = [p for p in WMRL_PARAMS if p in pivot.index]
+    param_order = [p for p in params if p in pivot.index]
     pred_order = [p for p in TRAUMA_PREDICTORS if p in pivot.columns]
     pivot = pivot.loc[param_order, pred_order]
 
@@ -611,9 +631,18 @@ def plot_forest_group_means(df: pd.DataFrame, params: list, model_name: str) -> 
     return fig
 
 
-def plot_key_scatter(df: pd.DataFrame, model_name: str) -> plt.Figure:
+def plot_key_scatter(df: pd.DataFrame, model_name: str, color_by: Optional[str] = None) -> plt.Figure:
     """
     Scatter plots for key correlations with regression lines.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Data with parameters and predictors
+    model_name : str
+        Model name for title
+    color_by : str, optional
+        Column to color points by. If None, uses hypothesis_group with GROUP_COLORS.
     """
     # Key relationships to plot
     plots = [
@@ -635,12 +664,21 @@ def plot_key_scatter(df: pd.DataFrame, model_name: str) -> plt.Figure:
             ax.set_visible(False)
             continue
 
-        # Color by group
-        for group in ['No Trauma', 'Trauma-No Impact', 'Trauma-Ongoing Impact']:
-            group_data = df[df['hypothesis_group'] == group]
-            ax.scatter(group_data[pred], group_data[param],
-                      c=GROUP_COLORS.get(group, 'gray'),
-                      label=group, alpha=0.7, s=50)
+        # Color by specified column or default to hypothesis_group
+        if color_by is not None:
+            # Use plotting utility for flexible color-by
+            custom_colors = TRAUMA_GROUP_COLORS if color_by == 'hypothesis_group' else None
+            palette = get_color_palette(df, color_by, custom_colors=custom_colors)
+            add_colored_scatter(ax, pred, param, df, color_by, palette,
+                              alpha=0.7, s=50, show_legend=True)
+        else:
+            # Default: color by hypothesis_group (legacy behavior)
+            for group in ['No Trauma', 'Trauma-No Impact', 'Trauma-Ongoing Impact']:
+                group_data = df[df['hypothesis_group'] == group]
+                ax.scatter(group_data[pred], group_data[param],
+                          c=GROUP_COLORS.get(group, 'gray'),
+                          label=group, alpha=0.7, s=50)
+            ax.legend(fontsize=PlotConfig.SMALL_TEXT_SIZE)
 
         # Overall regression line
         mask = ~(df[pred].isna() | df[param].isna())
@@ -654,7 +692,6 @@ def plot_key_scatter(df: pd.DataFrame, model_name: str) -> plt.Figure:
 
         ax.set_xlabel(xlabel, fontsize=PlotConfig.AXIS_LABEL_SIZE)
         ax.set_ylabel(ylabel, fontsize=PlotConfig.AXIS_LABEL_SIZE)
-        ax.legend(fontsize=PlotConfig.SMALL_TEXT_SIZE)
 
     plt.suptitle(f'{model_name}: Key Parameter-Trauma Relationships',
                  fontsize=PlotConfig.SUPTITLE_SIZE)
@@ -665,6 +702,24 @@ def plot_key_scatter(df: pd.DataFrame, model_name: str) -> plt.Figure:
 
 def main():
     """Main analysis pipeline."""
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(
+        description='Analyze MLE parameters by trauma group',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  python scripts/15_analyze_mle_by_trauma.py --model qlearning
+  python scripts/15_analyze_mle_by_trauma.py --model all
+  python scripts/15_analyze_mle_by_trauma.py --model wmrl --color-by hypothesis_group
+        """
+    )
+    parser.add_argument('--model', type=str, default='all',
+                       choices=['qlearning', 'wmrl', 'wmrl_m3', 'all'],
+                       help='Model to analyze (default: all)')
+    parser.add_argument('--color-by', type=str, default=None,
+                       help='Column to color scatter plots by (default: hypothesis_group)')
+    args = parser.parse_args()
+
     print("=" * 70)
     print("MLE Parameter Analysis by Trauma Group")
     print("=" * 70)
@@ -676,57 +731,57 @@ def main():
     FIGURES_DIR.mkdir(parents=True, exist_ok=True)
 
     # Load data
-    qlearning, wmrl, surveys, groups = load_data()
+    qlearning, wmrl, wmrl_m3, surveys, groups = load_data()
 
-    # Check data
-    print(f"\nGroup distribution in WM-RL data:")
-    print(wmrl['hypothesis_group'].value_counts())
+    # Model configuration
+    MODEL_CONFIG = {
+        'qlearning': {'name': 'Q-Learning', 'params': QLEARNING_PARAMS, 'data': qlearning},
+        'wmrl': {'name': 'WM-RL', 'params': WMRL_PARAMS, 'data': wmrl},
+        'wmrl_m3': {'name': 'WM-RL+K', 'params': WMRL_M3_PARAMS, 'data': wmrl_m3},
+    }
+
+    # Determine which models to analyze
+    if args.model == 'all':
+        models_to_analyze = ['qlearning', 'wmrl', 'wmrl_m3']
+    else:
+        models_to_analyze = [args.model]
 
     all_group_results = []
     all_corr_results = []
     all_ols_results = []
 
     # ========================================
-    # Q-Learning Analysis
+    # Run Analysis for Each Model
     # ========================================
-    print("\n" + "=" * 70)
-    print("Q-LEARNING MODEL")
-    print("=" * 70)
+    for model_key in models_to_analyze:
+        config = MODEL_CONFIG[model_key]
+        model_name = config['name']
+        params = config['params']
+        data = config['data']
 
-    group_results_ql = group_comparisons(qlearning, QLEARNING_PARAMS, 'Q-Learning')
-    all_group_results.append(group_results_ql)
+        print("\n" + "=" * 70)
+        print(f"{model_name.upper()} MODEL")
+        print("=" * 70)
 
-    corr_results_ql = spearman_correlations(qlearning, QLEARNING_PARAMS,
-                                            TRAUMA_PREDICTORS, 'Q-Learning')
-    all_corr_results.append(corr_results_ql)
+        # Check data
+        print(f"\nGroup distribution:")
+        print(data['hypothesis_group'].value_counts())
 
-    ols_results_ql = ols_regression(qlearning, QLEARNING_PARAMS, 'Q-Learning')
-    all_ols_results.append(ols_results_ql)
+        # Group comparisons
+        group_results = group_comparisons(data, params, model_name)
+        all_group_results.append(group_results)
 
-    # Extended regressions (LESS + IES-R total)
-    ols_extended_ql = ols_regression_extended(qlearning, QLEARNING_PARAMS, 'Q-Learning')
-    all_ols_results.append(ols_extended_ql)
+        # Spearman correlations
+        corr_results = spearman_correlations(data, params, TRAUMA_PREDICTORS, model_name)
+        all_corr_results.append(corr_results)
 
-    # ========================================
-    # WM-RL Analysis
-    # ========================================
-    print("\n" + "=" * 70)
-    print("WM-RL MODEL")
-    print("=" * 70)
+        # OLS regressions
+        ols_results = ols_regression(data, params, model_name)
+        all_ols_results.append(ols_results)
 
-    group_results_wmrl = group_comparisons(wmrl, WMRL_PARAMS, 'WM-RL')
-    all_group_results.append(group_results_wmrl)
-
-    corr_results_wmrl = spearman_correlations(wmrl, WMRL_PARAMS,
-                                              TRAUMA_PREDICTORS, 'WM-RL')
-    all_corr_results.append(corr_results_wmrl)
-
-    ols_results_wmrl = ols_regression(wmrl, WMRL_PARAMS, 'WM-RL')
-    all_ols_results.append(ols_results_wmrl)
-
-    # Extended regressions (LESS + IES-R total)
-    ols_extended_wmrl = ols_regression_extended(wmrl, WMRL_PARAMS, 'WM-RL')
-    all_ols_results.append(ols_extended_wmrl)
+        # Extended regressions (LESS + IES-R total)
+        ols_extended = ols_regression_extended(data, params, model_name)
+        all_ols_results.append(ols_extended)
 
     # ========================================
     # Save Results
@@ -748,41 +803,49 @@ def main():
     print(f"Saved: {OUTPUT_DIR / 'ols_regression_results.csv'}")
 
     # ========================================
-    # Create Figures
+    # Create Figures for Each Model
     # ========================================
     print("\n" + "=" * 70)
     print("Creating Figures")
     print("=" * 70)
 
-    # Q-Learning parameter violin plots
-    fig = plot_parameters_by_group(qlearning, QLEARNING_PARAMS, 'Q-Learning', figsize=(12, 4))
-    fig.savefig(FIGURES_DIR / "parameters_by_group_qlearning.png", dpi=300, bbox_inches='tight')
-    plt.close(fig)
-    print(f"Saved: parameters_by_group_qlearning.png")
+    for model_key in models_to_analyze:
+        config = MODEL_CONFIG[model_key]
+        model_name = config['name']
+        params = config['params']
+        data = config['data']
 
-    # WM-RL parameter violin plots
-    fig = plot_parameters_by_group(wmrl, WMRL_PARAMS, 'WM-RL', figsize=(12, 8))
-    fig.savefig(FIGURES_DIR / "parameters_by_group_wmrl.png", dpi=300, bbox_inches='tight')
-    plt.close(fig)
-    print(f"Saved: parameters_by_group_wmrl.png")
+        # Get correlation results for this model
+        model_corr_results = corr_df[corr_df['model'] == model_name]
 
-    # Correlation heatmap (WM-RL)
-    fig = plot_correlation_heatmap(corr_results_wmrl, 'WM-RL')
-    fig.savefig(FIGURES_DIR / "correlation_heatmap.png", dpi=300, bbox_inches='tight')
-    plt.close(fig)
-    print(f"Saved: correlation_heatmap.png")
+        # Parameter violin plots
+        n_params = len(params)
+        ncols = 3
+        nrows = int(np.ceil(n_params / ncols))
+        figsize = (12, 4 * nrows)
+        fig = plot_parameters_by_group(data, params, model_name, figsize=figsize)
+        fig.savefig(FIGURES_DIR / f"parameters_by_group_{model_key}.png", dpi=300, bbox_inches='tight')
+        plt.close(fig)
+        print(f"Saved: parameters_by_group_{model_key}.png")
 
-    # Forest plot (WM-RL)
-    fig = plot_forest_group_means(wmrl, WMRL_PARAMS, 'WM-RL')
-    fig.savefig(FIGURES_DIR / "forest_plot_group_means.png", dpi=300, bbox_inches='tight')
-    plt.close(fig)
-    print(f"Saved: forest_plot_group_means.png")
+        # Correlation heatmap
+        if len(model_corr_results) > 0:
+            fig = plot_correlation_heatmap(model_corr_results, params, model_name)
+            fig.savefig(FIGURES_DIR / f"correlation_heatmap_{model_key}.png", dpi=300, bbox_inches='tight')
+            plt.close(fig)
+            print(f"Saved: correlation_heatmap_{model_key}.png")
 
-    # Key scatter plots (WM-RL)
-    fig = plot_key_scatter(wmrl, 'WM-RL')
-    fig.savefig(FIGURES_DIR / "scatter_key_correlations.png", dpi=300, bbox_inches='tight')
-    plt.close(fig)
-    print(f"Saved: scatter_key_correlations.png")
+        # Forest plot
+        fig = plot_forest_group_means(data, params, model_name)
+        fig.savefig(FIGURES_DIR / f"forest_plot_group_means_{model_key}.png", dpi=300, bbox_inches='tight')
+        plt.close(fig)
+        print(f"Saved: forest_plot_group_means_{model_key}.png")
+
+        # Key scatter plots (with color-by support)
+        fig = plot_key_scatter(data, model_name, color_by=args.color_by)
+        fig.savefig(FIGURES_DIR / f"scatter_key_correlations_{model_key}.png", dpi=300, bbox_inches='tight')
+        plt.close(fig)
+        print(f"Saved: scatter_key_correlations_{model_key}.png")
 
     # ========================================
     # Summary of Significant Findings
