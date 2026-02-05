@@ -2,19 +2,19 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-01-30)
+See: .planning/PROJECT.md (updated 2026-02-05)
 
 **Core value:** Correctly dissociate perseverative responding from learning-rate effects (α₋) to accurately identify whether post-reversal failures reflect motor perseveration or outcome insensitivity
-**Current focus:** v1 milestone complete — planning next milestone
+**Current focus:** v2 Post-Fitting Validation & Publication Readiness
 
 ## Current Position
 
-Phase: Complete (v1 milestone shipped)
-Plan: N/A
-Status: Ready for next milestone
-Last activity: 2026-01-30 — v1 milestone archived
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-02-05 — Milestone v2 started
 
-Progress: [██████████] 100% (v1)
+Progress: [░░░░░░░░░░] 0% (v2)
 
 ## Performance Metrics
 
@@ -54,6 +54,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-01-30 (v1 milestone complete)
-Stopped at: Milestone archived, ready for next milestone
+Last session: 2026-02-05 (v2 milestone started)
+Stopped at: Defining requirements for v2
 Resume file: None

@@ -1,19 +1,30 @@
-# WM-RL M3: Perseveration Extension
+# RLWM Trauma Analysis
 
 ## What This Is
 
-A complete MLE fitting infrastructure for WM-RL M3, extending the existing WM-RL hybrid model (M2) with a perseveration parameter (κ). This dissociates outcome-insensitive action repetition from reduced negative learning rate effects — particularly important for analyzing post-reversal behavior in the RLWM task.
+A computational modeling pipeline for analyzing reinforcement learning and working memory (RLWM) task performance in trauma populations. Implements Q-learning (M1), WM-RL hybrid (M2), and WM-RL+perseveration (M3) models with MLE fitting, model comparison, and trauma-group analysis. Now entering validation and publication readiness.
 
 **Model naming convention:**
 - M1: Q-learning (α₊, α₋, ε)
 - M2: WM-RL hybrid (α₊, α₋, φ, ρ, K, ε)
 - M3: WM-RL + κ perseveration (α₊, α₋, φ, ρ, K, ε, κ)
 
-**Shipped:** v1 (2026-01-30)
+**Shipped:** v1 M3 Infrastructure (2026-01-30)
 
 ## Core Value
 
 The model must correctly dissociate perseverative responding from learning-rate effects (α₋), enabling accurate identification of whether post-reversal failures reflect motor perseveration or outcome insensitivity in trauma populations.
+
+## Current Milestone: v2 Post-Fitting Validation & Publication Readiness
+
+**Goal:** Validate fitted models through parameter recovery and posterior predictive checks (Senta et al. 2025 requirements), enhance cluster monitoring, and produce publication-ready model comparison and trauma-association outputs.
+
+**Target features:**
+- Parameter recovery pipeline (Script 11) — r ≥ 0.80 criterion per Senta et al.
+- Posterior predictive checks (Script 09) — synthetic vs. observed comparison
+- GPU monitoring and memory checkpoint persistence (cluster SLURM scripts)
+- Trauma-group model comparison (`--by-group` in Script 14)
+- Combined results summary table (winning model + key associations)
 
 ## Current State
 
@@ -47,7 +58,15 @@ The model must correctly dissociate perseverative responding from learning-rate 
 
 ### Active
 
-(Next milestone requirements will go here)
+- [ ] Parameter recovery pipeline with MLE fitting loop over synthetic datasets (Script 11)
+- [ ] Recovery quality metrics: correlation, RMSE, bias per parameter
+- [ ] Parameter recovery scatter plots and CSV output
+- [ ] Posterior predictive check comparison pipeline (Script 09)
+- [ ] Synthetic vs. observed learning curves, set-size effects, accuracy distributions
+- [ ] GPU utilization monitoring in cluster SLURM scripts
+- [ ] Memory checkpoint persistence to CSV from `[MEMORY]` log lines
+- [ ] Trauma-group model comparison (`--by-group` flag in Script 14)
+- [ ] Combined results summary: winning model + key parameter-trauma associations
 
 ### Out of Scope
 
@@ -107,4 +126,4 @@ These have different theoretical implications for trauma populations.
 | Dict-based N-model comparison | Enables flexible comparison without hardcoding | ✓ Good |
 
 ---
-*Last updated: 2026-01-30 after v1 milestone*
+*Last updated: 2026-02-05 after v2 milestone started*
