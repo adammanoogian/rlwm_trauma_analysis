@@ -49,10 +49,11 @@ Plans:
   2. User can run Scripts 15-16 with `--color-by trauma_group` to see group-colored scatter plots
   3. User can run Scripts 15-16 with `--color-by gender` (or any categorical column) to visualize different groupings
   4. All regression plots display colored data points matching the specified grouping variable
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 04-01: TBD
+- [ ] 04-01-PLAN.md — Shared plotting utility + Script 15 (M3, --model, --color-by, full plot coverage)
+- [ ] 04-02-PLAN.md — Script 16 (M3, --color-by, model subdirectories, structured output)
 
 ### Phase 5: Parameter Recovery
 **Goal**: Complete parameter recovery pipeline validating MLE fitting quality per Senta et al. (2025)
@@ -108,7 +109,7 @@ Phases execute in numeric order: 4 → 5 → 6 → 7
 | 1. Perseveration Extension | v1.0 | 2/2 | Complete | 2026-01-30 |
 | 2. MLE Infrastructure | v1.0 | 2/2 | Complete | 2026-01-30 |
 | 3. Model Comparison | v1.0 | 2/2 | Complete | 2026-01-30 |
-| 4. Regression Visualization | v2.0 | 0/TBD | Not started | - |
+| 4. Regression Visualization | v2.0 | 0/2 | Planning complete | - |
 | 5. Parameter Recovery | v2.0 | 0/TBD | Not started | - |
 | 6. Cluster Monitoring | v2.0 | 0/TBD | Not started | - |
 | 7. Publication Polish | v2.0 | 0/TBD | Not started | - |
