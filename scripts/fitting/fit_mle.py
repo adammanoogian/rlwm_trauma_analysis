@@ -2,8 +2,8 @@
 Maximum Likelihood Estimation for RLWM Models
 
 Following Senta et al. (2025) methodology:
-- Individual fits with 20 random starting points
-- jaxopt.LBFGS for fast optimization with analytical gradients
+- Individual fits with 20 starting points (Latin Hypercube Sampling)
+- ScipyBoundedMinimize (L-BFGS-B) for bounded optimization with JAX gradients
 - AIC/BIC for model comparison
 - Group statistics: mean +/- SEM across participants
 
@@ -78,7 +78,7 @@ import numpy as np
 import pandas as pd
 import jax
 import jax.numpy as jnp
-from jaxopt import LBFGS
+from jaxopt import ScipyBoundedMinimize
 
 # Add project root to path
 project_root = Path(__file__).parent.parent.parent
@@ -105,8 +105,7 @@ from scripts.fitting.jax_likelihoods import (
 # Import MLE utilities
 from scripts.fitting.mle_utils import (
     params_to_unconstrained,
-    unconstrained_to_params,
-    sample_random_start,
+    sample_lhs_starts,
     get_default_params,
     compute_aic,
     compute_bic,
@@ -121,7 +120,10 @@ from scripts.fitting.mle_utils import (
     QLEARNING_PARAMS,
     WMRL_PARAMS,
     WMRL_M3_PARAMS,
-    # New diagnostic functions
+    QLEARNING_BOUNDS,
+    WMRL_BOUNDS,
+    WMRL_M3_BOUNDS,
+    # Diagnostic functions
     compute_pseudo_r2,
     check_gradient_norm,
     compute_hessian_diagnostics,
@@ -352,7 +354,145 @@ def _make_jax_objective_wmrl_m3(
 
 
 # =============================================================================
-# Single Participant Fitting (using jaxopt.LBFGS with analytical gradients)
+# Bounded Objective Functions (for ScipyBoundedMinimize / L-BFGS-B)
+# =============================================================================
+# These take parameters DIRECTLY in bounded space (no transforms needed).
+# L-BFGS-B handles bounds natively, so we skip the logit/inv_logit layer.
+
+def _make_bounded_objective_qlearning(
+    stimuli_blocks: List[jnp.ndarray],
+    actions_blocks: List[jnp.ndarray],
+    rewards_blocks: List[jnp.ndarray],
+    masks_blocks: List[jnp.ndarray] = None,
+):
+    """
+    Create bounded-space objective for Q-learning (no parameter transforms).
+
+    Used with ScipyBoundedMinimize which handles bounds natively via L-BFGS-B.
+    """
+    stimuli_stacked = jnp.stack(stimuli_blocks)
+    actions_stacked = jnp.stack(actions_blocks)
+    rewards_stacked = jnp.stack(rewards_blocks)
+    if masks_blocks is not None:
+        masks_stacked = jnp.stack(masks_blocks)
+    else:
+        masks_stacked = jnp.ones((len(stimuli_blocks), stimuli_stacked.shape[1]))
+
+    @jax.jit
+    def objective(params: jnp.ndarray) -> float:
+        alpha_pos, alpha_neg, epsilon = params[0], params[1], params[2]
+        log_lik = q_learning_multiblock_likelihood_stacked(
+            stimuli_stacked=stimuli_stacked,
+            actions_stacked=actions_stacked,
+            rewards_stacked=rewards_stacked,
+            masks_stacked=masks_stacked,
+            alpha_pos=alpha_pos,
+            alpha_neg=alpha_neg,
+            epsilon=epsilon,
+        )
+        return -log_lik
+
+    return objective
+
+
+def _make_bounded_objective_wmrl(
+    stimuli_blocks: List[jnp.ndarray],
+    actions_blocks: List[jnp.ndarray],
+    rewards_blocks: List[jnp.ndarray],
+    set_sizes_blocks: List[jnp.ndarray],
+    masks_blocks: List[jnp.ndarray] = None,
+):
+    """
+    Create bounded-space objective for WM-RL (no parameter transforms).
+
+    Used with ScipyBoundedMinimize which handles bounds natively via L-BFGS-B.
+    """
+    stimuli_stacked = jnp.stack(stimuli_blocks)
+    actions_stacked = jnp.stack(actions_blocks)
+    rewards_stacked = jnp.stack(rewards_blocks)
+    set_sizes_stacked = jnp.stack(set_sizes_blocks)
+    if masks_blocks is not None:
+        masks_stacked = jnp.stack(masks_blocks)
+    else:
+        masks_stacked = jnp.ones((len(stimuli_blocks), stimuli_stacked.shape[1]))
+
+    @jax.jit
+    def objective(params: jnp.ndarray) -> float:
+        alpha_pos = params[0]
+        alpha_neg = params[1]
+        phi = params[2]
+        rho = params[3]
+        capacity = params[4]
+        epsilon = params[5]
+        log_lik = wmrl_multiblock_likelihood_stacked(
+            stimuli_stacked=stimuli_stacked,
+            actions_stacked=actions_stacked,
+            rewards_stacked=rewards_stacked,
+            set_sizes_stacked=set_sizes_stacked,
+            masks_stacked=masks_stacked,
+            alpha_pos=alpha_pos,
+            alpha_neg=alpha_neg,
+            phi=phi,
+            rho=rho,
+            capacity=capacity,
+            epsilon=epsilon,
+        )
+        return -log_lik
+
+    return objective
+
+
+def _make_bounded_objective_wmrl_m3(
+    stimuli_blocks: List[jnp.ndarray],
+    actions_blocks: List[jnp.ndarray],
+    rewards_blocks: List[jnp.ndarray],
+    set_sizes_blocks: List[jnp.ndarray],
+    masks_blocks: List[jnp.ndarray] = None,
+):
+    """
+    Create bounded-space objective for WM-RL M3 (no parameter transforms).
+
+    Used with ScipyBoundedMinimize which handles bounds natively via L-BFGS-B.
+    """
+    stimuli_stacked = jnp.stack(stimuli_blocks)
+    actions_stacked = jnp.stack(actions_blocks)
+    rewards_stacked = jnp.stack(rewards_blocks)
+    set_sizes_stacked = jnp.stack(set_sizes_blocks)
+    if masks_blocks is not None:
+        masks_stacked = jnp.stack(masks_blocks)
+    else:
+        masks_stacked = jnp.ones((len(stimuli_blocks), stimuli_stacked.shape[1]))
+
+    @jax.jit
+    def objective(params: jnp.ndarray) -> float:
+        alpha_pos = params[0]
+        alpha_neg = params[1]
+        phi = params[2]
+        rho = params[3]
+        capacity = params[4]
+        kappa = params[5]
+        epsilon = params[6]
+        log_lik = wmrl_m3_multiblock_likelihood_stacked(
+            stimuli_stacked=stimuli_stacked,
+            actions_stacked=actions_stacked,
+            rewards_stacked=rewards_stacked,
+            set_sizes_stacked=set_sizes_stacked,
+            masks_stacked=masks_stacked,
+            alpha_pos=alpha_pos,
+            alpha_neg=alpha_neg,
+            phi=phi,
+            rho=rho,
+            capacity=capacity,
+            kappa=kappa,
+            epsilon=epsilon,
+        )
+        return -log_lik
+
+    return objective
+
+
+# =============================================================================
+# Single Participant Fitting (using L-BFGS-B with analytical gradients)
 # =============================================================================
 
 class _JaxoptResult:
@@ -376,10 +516,12 @@ def fit_participant_mle(
     verbose: bool = False,
 ) -> Dict:
     """
-    Fit a single participant using MLE with multiple random starts.
+    Fit a single participant using MLE with multiple starting points.
 
-    Uses jaxopt.LBFGS for fast optimization with analytical gradients via JAX autodiff.
-    Following Senta et al. (2025): 20 random starting points, keep best result.
+    Uses ScipyBoundedMinimize (L-BFGS-B) for bounded optimization with analytical
+    gradients via JAX autodiff. Starting points are generated via Latin Hypercube
+    Sampling for even coverage of the parameter space.
+    Following Senta et al. (2025): 20 starting points, keep best result.
     Note: Beta is fixed at 50 inside the likelihood functions.
 
     Args:
@@ -429,122 +571,130 @@ def fit_participant_mle(
     if verbose:
         print(f"done ({_time.time() - _t0:.2f}s)", flush=True)
 
-    # Create JAX-compatible objective function
+    # Create objective functions
     # Note: Beta is fixed at 50 inside the likelihood functions
+    # We create TWO objectives:
+    #   1. bounded_objective: for L-BFGS-B (takes bounded params directly)
+    #   2. objective: unbounded version (kept for Hessian diagnostics which need transforms)
     if verbose:
-        print(f"      [3/5] Creating objective function...", end=" ", flush=True)
+        print(f"      [3/5] Creating objective functions...", end=" ", flush=True)
         _t0 = _time.time()
     if model == 'qlearning':
+        bounded_objective = _make_bounded_objective_qlearning(
+            stimuli_jax, actions_jax, rewards_jax, masks_blocks=masks_jax
+        )
+        # Unbounded objective for Hessian diagnostics
         objective = _make_jax_objective_qlearning(
             stimuli_jax, actions_jax, rewards_jax, masks_blocks=masks_jax
         )
         n_params = 3
+        param_names = QLEARNING_PARAMS
+        bounds_dict = QLEARNING_BOUNDS
     elif model == 'wmrl':
         if set_sizes_blocks is None:
             raise ValueError("set_sizes_blocks required for WM-RL model")
         set_sizes_jax = [jnp.array(s, dtype=jnp.int32) for s in set_sizes_blocks]
+        bounded_objective = _make_bounded_objective_wmrl(
+            stimuli_jax, actions_jax, rewards_jax, set_sizes_jax, masks_blocks=masks_jax
+        )
         objective = _make_jax_objective_wmrl(
             stimuli_jax, actions_jax, rewards_jax, set_sizes_jax, masks_blocks=masks_jax
         )
         n_params = 6
+        param_names = WMRL_PARAMS
+        bounds_dict = WMRL_BOUNDS
     elif model == 'wmrl_m3':
         if set_sizes_blocks is None:
             raise ValueError("set_sizes_blocks required for WM-RL M3 model")
         set_sizes_jax = [jnp.array(s, dtype=jnp.int32) for s in set_sizes_blocks]
+        bounded_objective = _make_bounded_objective_wmrl_m3(
+            stimuli_jax, actions_jax, rewards_jax, set_sizes_jax, masks_blocks=masks_jax
+        )
         objective = _make_jax_objective_wmrl_m3(
             stimuli_jax, actions_jax, rewards_jax, set_sizes_jax, masks_blocks=masks_jax
         )
         n_params = 7
+        param_names = WMRL_M3_PARAMS
+        bounds_dict = WMRL_M3_BOUNDS
     else:
         raise ValueError(f"Unknown model: {model}")
     if verbose:
         print(f"done ({_time.time() - _t0:.2f}s)", flush=True)
 
-    # Create jaxopt LBFGS solver with JIT-compiled objective
-    # jaxopt computes gradients automatically via JAX autodiff
-    # Note: Reduced maxiter/tol for faster convergence on multimodal surfaces
+    # Create ScipyBoundedMinimize solver (L-BFGS-B with native bounds)
     if verbose:
-        print(f"      [4/5] Creating L-BFGS solver...", end=" ", flush=True)
+        print(f"      [4/5] Creating L-BFGS-B solver...", end=" ", flush=True)
         _t0 = _time.time()
-    solver = LBFGS(fun=objective, maxiter=500, tol=1e-4, jit=True)
+
+    lower_bounds = jnp.array([bounds_dict[p][0] for p in param_names])
+    upper_bounds = jnp.array([bounds_dict[p][1] for p in param_names])
+    bounds = (lower_bounds, upper_bounds)
+
+    solver = ScipyBoundedMinimize(
+        fun=bounded_objective,
+        method='L-BFGS-B',
+        options={'maxiter': 300, 'ftol': 1e-6, 'gtol': 1e-5}
+    )
     if verbose:
         print(f"done ({_time.time() - _t0:.2f}s)", flush=True)
 
-    # Generate all starting points at once
-    x0_batch = jnp.array([sample_random_start(model, rng) for _ in range(n_starts)])
+    # Generate starting points using Latin Hypercube Sampling
+    # LHS ensures even coverage of parameter space (better than random Normal)
+    x0_batch = jnp.array(sample_lhs_starts(model, n_starts, seed=seed))
 
-    # Check if vmap is ENABLED via environment variable
-    # Default: sequential (faster on GPU - vmap has 5x overhead from diagnostic testing)
-    use_vmap = os.environ.get('RLWM_ENABLE_VMAP', '0') == '1'
+    # Sequential optimization with iteration logging
+    if verbose:
+        print(f"      [5/5] Running {n_starts} optimizations (L-BFGS-B)...", flush=True)
+        _opt_start = _time.time()
 
-    if use_vmap and n_starts > 1:
-        # VECTORIZED OPTIMIZATION: Run all starts in parallel using vmap
-        # NOTE: Diagnostic testing showed vmap is actually SLOWER than sequential
-        # due to compilation overhead and memory bandwidth limitations.
-        # Only enable with RLWM_ENABLE_VMAP=1 for experimental purposes.
+    results = []
+    iteration_stats = []
 
-        vmap_run = jax.vmap(solver.run)
-
+    for i in range(n_starts):
+        x0 = x0_batch[i]
         try:
-            # Run ALL optimizations in parallel!
-            all_params, all_states = vmap_run(x0_batch)
+            if verbose and i == 0:
+                print(f"            Start 1/{n_starts} (JIT compiling)...", end=" ", flush=True)
+                _t0 = _time.time()
 
-            # Vectorize objective evaluation to get all NLLs at once
-            vmap_objective = jax.vmap(objective)
-            all_nlls = vmap_objective(all_params)
+            result_params, state = solver.run(x0, bounds=bounds)
+            final_nll = float(bounded_objective(result_params))
+            success = jnp.isfinite(final_nll)
 
-            # Convert to numpy for processing
-            all_params_np = np.array(all_params)
-            all_nlls_np = np.array(all_nlls)
+            result = _JaxoptResult(
+                x=np.array(result_params),
+                fun=final_nll,
+                success=bool(success)
+            )
+            results.append(result)
 
-            # Build results list
-            results = []
-            for i in range(n_starts):
-                nll = all_nlls_np[i]
-                success = np.isfinite(nll)
-                result = _JaxoptResult(
-                    x=all_params_np[i],
-                    fun=float(nll),
-                    success=bool(success)
-                )
-                results.append(result)
+            # Track optimization info
+            opt_info = {
+                'converged': bool(success),
+                'final_nll': final_nll,
+            }
+            iteration_stats.append(opt_info)
+
+            if verbose and i == 0:
+                print(f"done ({_time.time() - _t0:.2f}s, NLL={final_nll:.1f})", flush=True)
+                if n_starts > 1:
+                    print(f"            Starts 2-{n_starts}...", end=" ", flush=True)
 
         except Exception as e:
-            # Fallback to sequential if vmap fails (OOM, CUDA error, etc.)
-            import warnings
-            warnings.warn(f"vmap optimization failed ({type(e).__name__}), falling back to sequential")
-            use_vmap = False  # Trigger sequential below
+            if verbose and i == 0:
+                print(f"failed: {e}", flush=True)
+            continue  # Skip failed optimizations
 
-    if not use_vmap or n_starts == 1:
-        # SEQUENTIAL OPTIMIZATION (DEFAULT): Run one at a time
-        # Fastest approach based on GPU diagnostic testing (2.38s vs 13.15s per opt)
-        if verbose:
-            print(f"      [5/5] Running {n_starts} optimizations...", flush=True)
-            _opt_start = _time.time()
-        results = []
-        for i in range(n_starts):
-            x0 = x0_batch[i]
-            try:
-                if verbose and i == 0:
-                    print(f"            Start 1/{n_starts} (JIT compiling)...", end=" ", flush=True)
-                    _t0 = _time.time()
-                result_params, state = solver.run(x0)
-                final_nll = float(objective(result_params))
-                success = jnp.isfinite(final_nll)
-                result = _JaxoptResult(
-                    x=np.array(result_params),
-                    fun=final_nll,
-                    success=bool(success)
-                )
-                results.append(result)
-                if verbose and i == 0:
-                    print(f"done ({_time.time() - _t0:.2f}s)", flush=True)
-                    print(f"            Starts 2-{n_starts}...", end=" ", flush=True)
-            except Exception as e:
-                if verbose and i == 0:
-                    print(f"failed: {e}", flush=True)
-                continue  # Skip failed optimizations
-        if verbose:
+    if verbose:
+        # Summary statistics
+        if iteration_stats:
+            nlls = [s['final_nll'] for s in iteration_stats if np.isfinite(s['final_nll'])]
+            n_successful = len(nlls)
+            best_nll = min(nlls) if nlls else float('inf')
+            nll_range = max(nlls) - min(nlls) if len(nlls) > 1 else 0.0
+            print(f"done (total: {_time.time() - _opt_start:.2f}s)", flush=True)
+            print(f"            Successful: {n_successful}/{n_starts}, Best NLL: {best_nll:.1f}, NLL range: {nll_range:.1f}", flush=True)
+        else:
             print(f"done (total: {_time.time() - _opt_start:.2f}s)", flush=True)
 
     # Check convergence
@@ -552,14 +702,6 @@ def fit_participant_mle(
 
     if not results or convergence_info['best_nll'] == np.inf:
         # All optimizations failed
-        if model == 'qlearning':
-            param_names = QLEARNING_PARAMS
-        elif model == 'wmrl':
-            param_names = WMRL_PARAMS
-        elif model == 'wmrl_m3':
-            param_names = WMRL_M3_PARAMS
-        else:
-            param_names = []
         return {
             **{p: np.nan for p in param_names},
             'nll': np.nan,
@@ -572,9 +714,9 @@ def fit_participant_mle(
             'at_bounds': []
         }
 
-    # Get best result
+    # Get best result (parameters are already in bounded space from L-BFGS-B)
     best_result = min(results, key=lambda r: r.fun if r.success else np.inf)
-    best_params = unconstrained_to_params(best_result.x, model)
+    best_params = {name: float(best_result.x[i]) for i, name in enumerate(param_names)}
     best_nll = best_result.fun
 
     # Compute information criteria
@@ -607,12 +749,16 @@ def fit_participant_mle(
     if compute_diagnostics:
         if verbose:
             print(f"    Computing Hessian diagnostics...", flush=True)
-        # Check gradient norm at optimum
-        grad_norm, grad_converged = check_gradient_norm(objective, best_result.x)
+        # Convert bounded params to unconstrained space for Hessian computation
+        # (the unbounded objective + Hessian SEs use the transform-based parameterization)
+        x_unconstrained = params_to_unconstrained(best_params, model)
+
+        # Check gradient norm at optimum (in unconstrained space)
+        grad_norm, grad_converged = check_gradient_norm(objective, x_unconstrained)
         result['grad_norm'] = grad_norm
 
         # Compute Hessian diagnostics (SEs, correlations, condition number)
-        hess_diag = compute_hessian_diagnostics(objective, best_result.x, model)
+        hess_diag = compute_hessian_diagnostics(objective, x_unconstrained, model)
 
         if hess_diag['success']:
             result['hessian_condition'] = hess_diag['condition_number']

@@ -17,6 +17,7 @@ import numpy as np
 import jax
 import jax.numpy as jnp
 from scipy import stats
+from scipy.stats import qmc
 from typing import Dict, Tuple, List, Optional, Any
 
 
@@ -268,6 +269,50 @@ def sample_random_start(model: str, rng: np.random.Generator) -> np.ndarray:
         raise ValueError(f"Unknown model: {model}")
 
     return rng.normal(0, 1.5, size=n_params)  # SD=1.5 gives reasonable spread
+
+
+def sample_lhs_starts(model: str, n_starts: int, seed: int = None) -> np.ndarray:
+    """
+    Generate starting points using Latin Hypercube Sampling in bounded space.
+
+    LHS ensures even coverage of parameter space by dividing each dimension
+    into n_starts equal strata and sampling exactly once per stratum. This
+    improves the chance of finding the global optimum compared to random
+    sampling, which can leave gaps or have clusters.
+
+    Args:
+        model: 'qlearning', 'wmrl', or 'wmrl_m3'
+        n_starts: Number of starting points
+        seed: Random seed for reproducibility
+
+    Returns:
+        Array of shape (n_starts, n_params) in BOUNDED parameter space
+    """
+    if model == 'qlearning':
+        bounds_dict = QLEARNING_BOUNDS
+        param_names = QLEARNING_PARAMS
+    elif model == 'wmrl':
+        bounds_dict = WMRL_BOUNDS
+        param_names = WMRL_PARAMS
+    elif model == 'wmrl_m3':
+        bounds_dict = WMRL_M3_BOUNDS
+        param_names = WMRL_M3_PARAMS
+    else:
+        raise ValueError(f"Unknown model: {model}")
+
+    n_params = len(param_names)
+
+    # Generate LHS samples in [0, 1]^d
+    sampler = qmc.LatinHypercube(d=n_params, seed=seed)
+    samples = sampler.random(n=n_starts)
+
+    # Scale to parameter bounds
+    lower = np.array([bounds_dict[p][0] for p in param_names])
+    upper = np.array([bounds_dict[p][1] for p in param_names])
+
+    scaled_samples = qmc.scale(samples, lower, upper)
+
+    return scaled_samples
 
 
 # =============================================================================
