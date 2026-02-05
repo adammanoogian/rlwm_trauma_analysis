@@ -6,8 +6,9 @@
 # Requires the rlwm_gpu conda environment (see environment_gpu.yml).
 #
 # Usage:
-#   sbatch cluster/run_mle_gpu.slurm                         # All models
-#   sbatch --export=MODEL=wmrl_m3 cluster/run_mle_gpu.slurm  # Single model
+#   sbatch cluster/run_mle_gpu.slurm                                    # All models
+#   sbatch --export=MODEL=wmrl_m3 cluster/run_mle_gpu.slurm             # Single model
+#   sbatch --export=MODEL=qlearning,LIMIT=3 cluster/run_mle_gpu.slurm   # Quick test (3 participants)
 #
 # Performance (approximate for 47 participants):
 #   - CPU sequential:  ~30 minutes per model
@@ -41,6 +42,7 @@
 # Configuration (set via --export or use defaults)
 # =============================================================================
 MODELS="${MODEL:-qlearning wmrl wmrl_m3}"
+LIMIT="${LIMIT:-}"
 
 # =============================================================================
 # Environment Setup (M3 specific)
@@ -132,13 +134,20 @@ for model in $MODELS; do
     echo "Started: $(date)"
     echo "============================================================"
 
-    python scripts/fitting/fit_mle.py \
-        --model "$model" \
-        --data "$DATA_FILE" \
+    # Build command with optional --limit
+    CMD="python scripts/fitting/fit_mle.py \
+        --model $model \
+        --data $DATA_FILE \
         --output output/mle/ \
         --n-starts 20 \
         --seed 42 \
-        --use-gpu
+        --use-gpu"
+
+    if [[ -n "$LIMIT" ]]; then
+        CMD="$CMD --limit $LIMIT"
+    fi
+
+    eval $CMD
 
     echo "Completed: $(date)"
 done

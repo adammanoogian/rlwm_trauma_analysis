@@ -633,7 +633,8 @@ def fit_participant_mle(
     solver = ScipyBoundedMinimize(
         fun=bounded_objective,
         method='L-BFGS-B',
-        options={'maxiter': 300, 'ftol': 1e-6, 'gtol': 1e-5}
+        maxiter=300,
+        options={'ftol': 1e-6, 'gtol': 1e-5}
     )
     if verbose:
         print(f"done ({_time.time() - _t0:.2f}s)", flush=True)
