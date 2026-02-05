@@ -147,6 +147,38 @@ else
     echo ""
 fi
 
+# =============================================================================
+# Parallel Dispatch: if multiple models, submit separate jobs and exit
+# =============================================================================
+MODEL_COUNT=$(echo $MODELS | wc -w)
+
+if [[ "$MODEL_COUNT" -gt 1 ]]; then
+    echo "Dispatching $MODEL_COUNT models as parallel GPU jobs..."
+    echo ""
+
+    JOBIDS=()
+    for model in $MODELS; do
+        EXPORTS="MODEL=$model"
+        [[ -n "$LIMIT" ]] && EXPORTS="$EXPORTS,LIMIT=$LIMIT"
+        [[ -n "$KEEP_CHECKPOINTS" ]] && EXPORTS="$EXPORTS,KEEP_CHECKPOINTS=$KEEP_CHECKPOINTS"
+
+        JOBID=$(sbatch --export="$EXPORTS" --job-name="mle_${model}" "$0" | awk '{print $NF}')
+        JOBIDS+=("$JOBID")
+        echo "  $model -> Job $JOBID"
+    done
+
+    echo ""
+    echo "All jobs submitted. Monitor with:"
+    echo "  squeue -u $USER"
+    echo ""
+    echo "Tail logs:"
+    for i in "${!JOBIDS[@]}"; do
+        model=$(echo $MODELS | cut -d' ' -f$((i+1)))
+        echo "  tail -f cluster/logs/mle_gpu_${JOBIDS[$i]}.out   # $model"
+    done
+    exit 0
+fi
+
 for model in $MODELS; do
     echo ""
     echo "============================================================"
