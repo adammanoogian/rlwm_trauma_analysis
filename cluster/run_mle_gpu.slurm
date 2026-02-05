@@ -139,7 +139,7 @@ for model in $MODELS; do
         --model $model \
         --data $DATA_FILE \
         --output output/mle/ \
-        --n-starts 20 \
+        --n-starts 50 \
         --seed 42 \
         --use-gpu"
 

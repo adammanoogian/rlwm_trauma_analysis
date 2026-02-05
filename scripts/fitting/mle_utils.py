@@ -463,20 +463,26 @@ def summarize_all_parameters(
 # =============================================================================
 
 def check_convergence(
-    results: List,  # List of scipy OptimizeResult
+    results: List,  # List of scipy OptimizeResult (or _JaxoptResult wrappers)
+    iteration_stats: List[Dict] = None,
     tolerance: float = 1.0
 ) -> Dict[str, any]:
     """
-    Check convergence across multiple random starts.
+    Check convergence based on the best start's optimizer success flag.
 
-    Convergence means at least 3 starts found similar NLL values (within
-    tolerance of the best). This is robust to multimodal likelihood surfaces
-    where different starts find genuinely different local optima.
+    A participant is "converged" if the best start's optimizer reported
+    success=True (i.e., scipy's own convergence criteria were met: gradient
+    tolerance and function tolerance satisfied, not just maxiter/maxfun hit).
+
+    Additionally reports n_near_best as a secondary diagnostic — how many
+    starts found NLLs within tolerance of the best. This is informational
+    but does NOT gate convergence.
 
     Args:
         results: List of optimization results from different starts
-        tolerance: Maximum NLL difference to consider "converged to same point"
-                   (default: 1.0 — generous enough for multimodal surfaces)
+        iteration_stats: List of per-start dicts with 'scipy_converged', etc.
+                        When provided, uses the best start's scipy_converged flag.
+        tolerance: NLL tolerance for counting "near best" starts (default: 1.0)
 
     Returns:
         Dictionary with convergence diagnostics
@@ -484,10 +490,11 @@ def check_convergence(
     if not results:
         return {
             'n_successful': 0,
-            'n_converged_to_same': 0,
+            'n_near_best': 0,
             'best_nll': np.inf,
             'nll_spread': np.inf,
-            'converged': False
+            'best_scipy_converged': False,
+            'converged': False,
         }
 
     nlls = [r.fun for r in results if r.success]
@@ -495,24 +502,33 @@ def check_convergence(
     if not nlls:
         return {
             'n_successful': 0,
-            'n_converged_to_same': 0,
+            'n_near_best': 0,
             'best_nll': np.inf,
             'nll_spread': np.inf,
-            'converged': False
+            'best_scipy_converged': False,
+            'converged': False,
         }
 
     best_nll = min(nlls)
-    n_converged_to_same = sum(1 for nll in nlls if abs(nll - best_nll) < tolerance)
+    n_near_best = sum(1 for nll in nlls if abs(nll - best_nll) < tolerance)
 
-    # Converged if at least 3 starts (or 25% of starts) found similar optima
-    min_agreement = max(3, len(nlls) * 0.25)
+    # Find the best start's index among successful results
+    best_idx = next(i for i, r in enumerate(results) if r.success and r.fun == best_nll)
+
+    # Determine scipy convergence of the best start
+    if iteration_stats and best_idx < len(iteration_stats):
+        best_scipy_converged = iteration_stats[best_idx].get('scipy_converged', True)
+    else:
+        # No iteration_stats provided — trust r.success (finite NLL)
+        best_scipy_converged = True
 
     return {
         'n_successful': len(nlls),
-        'n_converged_to_same': n_converged_to_same,
+        'n_near_best': n_near_best,
         'best_nll': best_nll,
         'nll_spread': max(nlls) - min(nlls),
-        'converged': n_converged_to_same >= min_agreement
+        'best_scipy_converged': best_scipy_converged,
+        'converged': best_scipy_converged,
     }
 
 

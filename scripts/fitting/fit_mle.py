@@ -2,7 +2,7 @@
 Maximum Likelihood Estimation for RLWM Models
 
 Following Senta et al. (2025) methodology:
-- Individual fits with 20 starting points (Latin Hypercube Sampling)
+- Individual fits with 50 starting points (Latin Hypercube Sampling)
 - ScipyBoundedMinimize (L-BFGS-B) for bounded optimization with JAX gradients
 - AIC/BIC for model comparison
 - Group statistics: mean +/- SEM across participants
@@ -510,10 +510,11 @@ def fit_participant_mle(
     set_sizes_blocks: Optional[List[np.ndarray]] = None,
     masks_blocks: Optional[List[np.ndarray]] = None,
     model: str = 'qlearning',
-    n_starts: int = 20,
+    n_starts: int = 50,
     seed: Optional[int] = None,
     compute_diagnostics: bool = True,
     verbose: bool = False,
+    participant_index: int = 0,
 ) -> Dict:
     """
     Fit a single participant using MLE with multiple starting points.
@@ -521,7 +522,7 @@ def fit_participant_mle(
     Uses ScipyBoundedMinimize (L-BFGS-B) for bounded optimization with analytical
     gradients via JAX autodiff. Starting points are generated via Latin Hypercube
     Sampling for even coverage of the parameter space.
-    Following Senta et al. (2025): 20 starting points, keep best result.
+    Following Senta et al. (2025): 50 starting points, keep best result.
     Note: Beta is fixed at 50 inside the likelihood functions.
 
     Args:
@@ -535,19 +536,25 @@ def fit_participant_mle(
         n_starts: Number of random starting points
         seed: Random seed for reproducibility
         compute_diagnostics: Whether to compute Hessian-based diagnostics (default: True)
+        verbose: Print progress (default: False)
+        participant_index: Index in the outer loop (0-based). Steps [1/5]-[4/5]
+                          only print for participant_index==0 to reduce noise.
 
     Returns:
         Dictionary with:
         - Fitted parameters (alpha_pos, alpha_neg, etc.)
         - Model fit metrics (nll, aic, bic, aicc, pseudo_r2)
-        - Convergence info (converged, n_successful_starts, at_bounds)
+        - Convergence info (converged, n_successful_starts, n_near_best, at_bounds)
         - Diagnostics (grad_norm, hessian_condition, parameter SEs and CIs)
     """
     import time as _time  # Local import to avoid namespace collision
     rng = np.random.default_rng(seed)
 
+    # Only show setup steps [1/5]-[4/5] for first participant (they're instantaneous after JIT)
+    show_setup_steps = verbose and participant_index == 0
+
     # Count total REAL trials (accounting for masks if provided)
-    if verbose:
+    if show_setup_steps:
         print(f"      [1/5] Counting trials...", end=" ", flush=True)
         _t0 = _time.time()
     if masks_blocks is not None:
@@ -555,20 +562,20 @@ def fit_participant_mle(
         n_trials = sum(int(jnp.sum(m)) for m in masks_blocks)
     else:
         n_trials = sum(len(s) for s in stimuli_blocks)
-    if verbose:
+    if show_setup_steps:
         print(f"done ({_time.time() - _t0:.2f}s)", flush=True)
 
     # Convert data to JAX arrays for efficient computation
     # Note: If data is already JAX arrays (from prepare_participant_data with padding),
     # jnp.array() is a no-op
-    if verbose:
+    if show_setup_steps:
         print(f"      [2/5] Preparing JAX arrays...", end=" ", flush=True)
         _t0 = _time.time()
     stimuli_jax = [jnp.array(s, dtype=jnp.int32) for s in stimuli_blocks]
     actions_jax = [jnp.array(a, dtype=jnp.int32) for a in actions_blocks]
     rewards_jax = [jnp.array(r, dtype=jnp.float32) for r in rewards_blocks]
     masks_jax = masks_blocks  # Already JAX arrays from prepare_participant_data, or None
-    if verbose:
+    if show_setup_steps:
         print(f"done ({_time.time() - _t0:.2f}s)", flush=True)
 
     # Create objective functions
@@ -576,7 +583,7 @@ def fit_participant_mle(
     # We create TWO objectives:
     #   1. bounded_objective: for L-BFGS-B (takes bounded params directly)
     #   2. objective: unbounded version (kept for Hessian diagnostics which need transforms)
-    if verbose:
+    if show_setup_steps:
         print(f"      [3/5] Creating objective functions...", end=" ", flush=True)
         _t0 = _time.time()
     if model == 'qlearning':
@@ -618,11 +625,11 @@ def fit_participant_mle(
         bounds_dict = WMRL_M3_BOUNDS
     else:
         raise ValueError(f"Unknown model: {model}")
-    if verbose:
+    if show_setup_steps:
         print(f"done ({_time.time() - _t0:.2f}s)", flush=True)
 
     # Create ScipyBoundedMinimize solver (L-BFGS-B with native bounds)
-    if verbose:
+    if show_setup_steps:
         print(f"      [4/5] Creating L-BFGS-B solver...", end=" ", flush=True)
         _t0 = _time.time()
 
@@ -633,10 +640,10 @@ def fit_participant_mle(
     solver = ScipyBoundedMinimize(
         fun=bounded_objective,
         method='L-BFGS-B',
-        maxiter=500,
+        maxiter=1000,
         options={'ftol': 1e-6, 'gtol': 1e-5}
     )
-    if verbose:
+    if show_setup_steps:
         print(f"done ({_time.time() - _t0:.2f}s)", flush=True)
 
     # Generate starting points using Latin Hypercube Sampling
@@ -660,19 +667,26 @@ def fit_participant_mle(
 
             result_params, state = solver.run(x0, bounds=bounds)
             final_nll = float(bounded_objective(result_params))
-            success = jnp.isfinite(final_nll)
+
+            # Use both finite NLL AND scipy's own convergence flag
+            nll_finite = bool(jnp.isfinite(final_nll))
+            scipy_success = bool(state.success) if hasattr(state, 'success') else nll_finite
+            success = nll_finite  # For _JaxoptResult.success: finite NLL means usable result
 
             result = _JaxoptResult(
                 x=np.array(result_params),
                 fun=final_nll,
-                success=bool(success)
+                success=success
             )
             results.append(result)
 
-            # Track optimization info
+            # Track full optimizer state
             opt_info = {
-                'converged': bool(success),
                 'final_nll': final_nll,
+                'scipy_converged': scipy_success,
+                'scipy_status': int(state.status) if hasattr(state, 'status') else -1,
+                'iterations': int(state.iter_num) if hasattr(state, 'iter_num') else -1,
+                'fun_evals': int(state.num_fun_eval) if hasattr(state, 'num_fun_eval') else -1,
             }
             iteration_stats.append(opt_info)
 
@@ -684,22 +698,38 @@ def fit_participant_mle(
         except Exception as e:
             if verbose and i == 0:
                 print(f"failed: {e}", flush=True)
+            # Record failed start in iteration_stats too
+            iteration_stats.append({
+                'final_nll': float('inf'),
+                'scipy_converged': False,
+                'scipy_status': -1,
+                'iterations': -1,
+                'fun_evals': -1,
+            })
             continue  # Skip failed optimizations
 
     if verbose:
-        # Summary statistics
+        _opt_elapsed = _time.time() - _opt_start
+        # Rich summary: optimizer convergence + NLL distribution
         if iteration_stats:
             nlls = [s['final_nll'] for s in iteration_stats if np.isfinite(s['final_nll'])]
+            n_scipy_conv = sum(1 for s in iteration_stats if s['scipy_converged'])
+            n_hit_limit = sum(1 for s in iteration_stats
+                              if not s['scipy_converged'] and np.isfinite(s['final_nll']))
             n_successful = len(nlls)
             best_nll = min(nlls) if nlls else float('inf')
             nll_range = max(nlls) - min(nlls) if len(nlls) > 1 else 0.0
-            print(f"done (total: {_time.time() - _opt_start:.2f}s)", flush=True)
-            print(f"            Successful: {n_successful}/{n_starts}, Best NLL: {best_nll:.1f}, NLL range: {nll_range:.1f}", flush=True)
-        else:
-            print(f"done (total: {_time.time() - _opt_start:.2f}s)", flush=True)
+            n_within_1 = sum(1 for nll in nlls if abs(nll - best_nll) < 1.0)
+            n_within_5 = sum(1 for nll in nlls if abs(nll - best_nll) < 5.0)
 
-    # Check convergence
-    convergence_info = check_convergence(results)
+            print(f"done (total: {_opt_elapsed:.1f}s)", flush=True)
+            print(f"            Optimizer: {n_scipy_conv}/{n_starts} scipy-converged, {n_hit_limit} hit maxiter", flush=True)
+            print(f"            NLLs: best={best_nll:.1f} | {n_within_1} within 1.0 | {n_within_5} within 5.0 | range={nll_range:.1f}", flush=True)
+        else:
+            print(f"done (total: {_opt_elapsed:.1f}s)", flush=True)
+
+    # Check convergence (pass iteration_stats for scipy success flag)
+    convergence_info = check_convergence(results, iteration_stats=iteration_stats)
 
     if not results or convergence_info['best_nll'] == np.inf:
         # All optimizations failed
@@ -743,6 +773,7 @@ def fit_participant_mle(
         'n_trials': n_trials,
         'converged': convergence_info['converged'],
         'n_successful_starts': convergence_info['n_successful'],
+        'n_near_best': convergence_info['n_near_best'],
         'at_bounds': at_bounds
     }
 
@@ -941,21 +972,27 @@ def _fit_single_participant_worker(args: Tuple) -> Dict:
     The function receives all arguments as a tuple and unpacks them.
 
     Args:
-        args: Tuple of (pid, data_dict, model, n_starts, seed, [compute_diagnostics, [verbose]])
+        args: Tuple of (pid, data_dict, model, n_starts, seed,
+               [compute_diagnostics, [verbose, [participant_index]]])
 
     Returns:
         Fit result dictionary with participant_id added
     """
     # Handle variable number of arguments for backward compatibility
-    if len(args) == 7:
+    if len(args) == 8:
+        pid, data_dict, model, n_starts, seed, compute_diagnostics, verbose, participant_index = args
+    elif len(args) == 7:
         pid, data_dict, model, n_starts, seed, compute_diagnostics, verbose = args
+        participant_index = 0
     elif len(args) == 6:
         pid, data_dict, model, n_starts, seed, compute_diagnostics = args
         verbose = False
+        participant_index = 0
     else:
         pid, data_dict, model, n_starts, seed = args
         compute_diagnostics = True  # Default
         verbose = False
+        participant_index = 0
 
     result = fit_participant_mle(
         stimuli_blocks=data_dict['stimuli_blocks'],
@@ -968,6 +1005,7 @@ def _fit_single_participant_worker(args: Tuple) -> Dict:
         seed=seed,
         compute_diagnostics=compute_diagnostics,
         verbose=verbose,
+        participant_index=participant_index,
     )
     result['participant_id'] = pid
     return result
@@ -976,7 +1014,7 @@ def _fit_single_participant_worker(args: Tuple) -> Dict:
 def fit_all_participants(
     data: pd.DataFrame,
     model: str = 'qlearning',
-    n_starts: int = 20,
+    n_starts: int = 50,
     seed: int = 42,
     verbose: bool = True,
     n_jobs: int = 1,
@@ -1101,7 +1139,7 @@ def fit_all_participants(
                 print(f"\n[{timestamp()}] [{i+1:3d}/{n_participants}] ({pct_complete:5.1f}%) Fitting {pid} ({n_trials} trials){eta_str}", flush=True)
 
             fit_start = time.time()
-            result = _fit_single_participant_worker(args + (compute_diagnostics, verbose))
+            result = _fit_single_participant_worker(args + (compute_diagnostics, verbose, i))
             fit_time = time.time() - fit_start
             fit_times.append(fit_time)
             results.append(result)
@@ -1136,8 +1174,9 @@ def fit_all_participants(
                 # Print result summary with status indicator
                 status_indicator = "[OK]" if result['converged'] else "[!!]"
                 nll_str = f"NLL={result['nll']:.1f}" if not np.isnan(result['nll']) else "NLL=NaN"
-                r2_str = f"R2={result.get('pseudo_r2', 0):.2f}" if 'pseudo_r2' in result and not np.isnan(result.get('pseudo_r2', np.nan)) else ""
-                print(f"      Result: {status_indicator} {nll_str}, {r2_str}, total={fit_time:.1f}s", flush=True)
+                r2_str = f"R²={result.get('pseudo_r2', 0):.2f}" if 'pseudo_r2' in result and not np.isnan(result.get('pseudo_r2', np.nan)) else ""
+                near_str = f"near_best={result.get('n_near_best', '?')}" if 'n_near_best' in result else ""
+                print(f"      Result: {status_indicator} {nll_str}, {r2_str}, {near_str}, total={fit_time:.1f}s", flush=True)
 
                 # Every 10 participants, print a formatted progress box
                 if (i + 1) % 10 == 0:
@@ -1301,7 +1340,7 @@ def fit_all_participants(
     cols += se_cols + ci_lower_cols + ci_upper_cols
 
     # Convergence info
-    cols += ['n_trials', 'converged', 'n_successful_starts', 'at_bounds', 'high_correlations']
+    cols += ['n_trials', 'converged', 'n_successful_starts', 'n_near_best', 'at_bounds', 'high_correlations']
 
     # Filter to only columns that exist
     cols = [c for c in cols if c in df.columns]
@@ -1432,8 +1471,8 @@ def main():
                         help='Path to trial data CSV')
     parser.add_argument('--output', type=str, default='output/mle/',
                         help='Output directory')
-    parser.add_argument('--n-starts', type=int, default=20,
-                        help='Number of random starting points (default: 20)')
+    parser.add_argument('--n-starts', type=int, default=50,
+                        help='Number of random starting points (default: 50)')
     parser.add_argument('--seed', type=int, default=42,
                         help='Random seed')
     parser.add_argument('--quiet', action='store_true',
