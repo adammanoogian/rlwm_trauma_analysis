@@ -468,15 +468,15 @@ def check_convergence(
     tolerance: float = 1.0
 ) -> Dict[str, any]:
     """
-    Check convergence based on the best start's optimizer success flag.
+    Check convergence based on optimizer success flags.
 
-    A participant is "converged" if the best start's optimizer reported
-    success=True (i.e., scipy's own convergence criteria were met: gradient
-    tolerance and function tolerance satisfied, not just maxiter/maxfun hit).
+    A participant is "converged" if EITHER:
+    1. The best start's optimizer reported scipy convergence, OR
+    2. Any scipy-converged start found an NLL within tolerance of the best.
 
-    Additionally reports n_near_best as a secondary diagnostic — how many
-    starts found NLLs within tolerance of the best. This is informational
-    but does NOT gate convergence.
+    The fallback (2) handles the edge case where the best start hit maxiter
+    while still making marginal progress, but other converged starts
+    independently confirmed essentially the same optimum.
 
     Args:
         results: List of optimization results from different starts
@@ -485,7 +485,10 @@ def check_convergence(
         tolerance: NLL tolerance for counting "near best" starts (default: 1.0)
 
     Returns:
-        Dictionary with convergence diagnostics
+        Dictionary with convergence diagnostics including:
+        - converged: bool (primary criterion OR fallback)
+        - best_scipy_converged: bool (primary criterion only)
+        - any_converged_near_best: bool (fallback criterion only)
     """
     if not results:
         return {
@@ -494,6 +497,7 @@ def check_convergence(
             'best_nll': np.inf,
             'nll_spread': np.inf,
             'best_scipy_converged': False,
+            'any_converged_near_best': False,
             'converged': False,
         }
 
@@ -506,6 +510,7 @@ def check_convergence(
             'best_nll': np.inf,
             'nll_spread': np.inf,
             'best_scipy_converged': False,
+            'any_converged_near_best': False,
             'converged': False,
         }
 
@@ -522,13 +527,28 @@ def check_convergence(
         # No iteration_stats provided — trust r.success (finite NLL)
         best_scipy_converged = True
 
+    # Fallback: a scipy-converged start confirmed a near-identical NLL
+    # This handles the edge case where the best start hit maxiter while still
+    # making marginal progress, but other converged starts independently found
+    # essentially the same optimum — strong evidence the solution is correct.
+    any_converged_near_best = False
+    if not best_scipy_converged and iteration_stats:
+        for i, r in enumerate(results):
+            if r.success and i < len(iteration_stats):
+                is_near_best = abs(r.fun - best_nll) < tolerance
+                is_scipy_conv = iteration_stats[i].get('scipy_converged', False)
+                if is_near_best and is_scipy_conv:
+                    any_converged_near_best = True
+                    break
+
     return {
         'n_successful': len(nlls),
         'n_near_best': n_near_best,
         'best_nll': best_nll,
         'nll_spread': max(nlls) - min(nlls),
         'best_scipy_converged': best_scipy_converged,
-        'converged': best_scipy_converged,
+        'any_converged_near_best': any_converged_near_best,
+        'converged': best_scipy_converged or any_converged_near_best,
     }
 
 

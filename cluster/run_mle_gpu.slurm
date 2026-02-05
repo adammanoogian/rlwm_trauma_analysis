@@ -127,6 +127,26 @@ if [[ ! -f "$DATA_FILE" ]]; then
     exit 1
 fi
 
+# =============================================================================
+# Checkpoint Cleanup (delete stale checkpoints unless opted out)
+# =============================================================================
+KEEP_CHECKPOINTS="${KEEP_CHECKPOINTS:-}"
+
+if [[ -z "$KEEP_CHECKPOINTS" ]]; then
+    echo "Cleaning up stale checkpoints..."
+    for model in $MODELS; do
+        CKPT="output/mle/${model}_checkpoint.csv"
+        if [[ -f "$CKPT" ]]; then
+            echo "  Deleted: $CKPT"
+            rm -f "$CKPT"
+        fi
+    done
+    echo ""
+else
+    echo "KEEP_CHECKPOINTS set — preserving existing checkpoints for resume"
+    echo ""
+fi
+
 for model in $MODELS; do
     echo ""
     echo "============================================================"
