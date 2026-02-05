@@ -64,25 +64,25 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| REGR-01 | TBD | Pending |
-| REGR-02 | TBD | Pending |
-| REGR-03 | TBD | Pending |
-| RECV-01 | TBD | Pending |
-| RECV-02 | TBD | Pending |
-| RECV-03 | TBD | Pending |
-| RECV-04 | TBD | Pending |
-| RECV-05 | TBD | Pending |
-| RECV-06 | TBD | Pending |
-| MNTR-01 | TBD | Pending |
-| MNTR-02 | TBD | Pending |
-| PUBL-01 | TBD | Pending |
-| PUBL-02 | TBD | Pending |
+| REGR-01 | Phase 4 | Pending |
+| REGR-02 | Phase 4 | Pending |
+| REGR-03 | Phase 4 | Pending |
+| RECV-01 | Phase 5 | Pending |
+| RECV-02 | Phase 5 | Pending |
+| RECV-03 | Phase 5 | Pending |
+| RECV-04 | Phase 5 | Pending |
+| RECV-05 | Phase 5 | Pending |
+| RECV-06 | Phase 5 | Pending |
+| MNTR-01 | Phase 6 | Pending |
+| MNTR-02 | Phase 6 | Pending |
+| PUBL-01 | Phase 7 | Pending |
+| PUBL-02 | Phase 7 | Pending |
 
 **Coverage:**
 - v2 requirements: 13 total
-- Mapped to phases: 0
-- Unmapped: 13 (awaiting roadmap)
+- Mapped to phases: 13/13 ✓
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-05*
-*Last updated: 2026-02-05 after initial definition*
+*Last updated: 2026-02-05 after roadmap creation*
