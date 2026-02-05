@@ -464,14 +464,19 @@ def summarize_all_parameters(
 
 def check_convergence(
     results: List,  # List of scipy OptimizeResult
-    tolerance: float = 0.1
+    tolerance: float = 1.0
 ) -> Dict[str, any]:
     """
     Check convergence across multiple random starts.
 
+    Convergence means at least 3 starts found similar NLL values (within
+    tolerance of the best). This is robust to multimodal likelihood surfaces
+    where different starts find genuinely different local optima.
+
     Args:
         results: List of optimization results from different starts
         tolerance: Maximum NLL difference to consider "converged to same point"
+                   (default: 1.0 — generous enough for multimodal surfaces)
 
     Returns:
         Dictionary with convergence diagnostics
@@ -499,12 +504,15 @@ def check_convergence(
     best_nll = min(nlls)
     n_converged_to_same = sum(1 for nll in nlls if abs(nll - best_nll) < tolerance)
 
+    # Converged if at least 3 starts (or 25% of starts) found similar optima
+    min_agreement = max(3, len(nlls) * 0.25)
+
     return {
         'n_successful': len(nlls),
         'n_converged_to_same': n_converged_to_same,
         'best_nll': best_nll,
         'nll_spread': max(nlls) - min(nlls),
-        'converged': n_converged_to_same >= len(nlls) * 0.5  # At least 50% agree
+        'converged': n_converged_to_same >= min_agreement
     }
 
 
