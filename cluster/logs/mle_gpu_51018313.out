@@ -1,0 +1,182 @@
+============================================================
+RLWM GPU-Accelerated MLE Fitting - M3 SLURM Job
+============================================================
+Job ID: 51018313
+Node: m3g119
+Partition: gpu
+GPU(s): 0
+Project: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis
+Start time: Thu Feb  5 09:24:44 PM AEDT 2026
+============================================================
+Activated rlwm_gpu by name
+
+Verifying GPU access...
+JAX devices: [CudaDevice(id=0)]
+GPU(s) available: [CudaDevice(id=0)]
+
+JAX cache: /scratch/fc37/aman0087/.jax_cache_gpu
+
+
+============================================================
+Fitting model: qlearning (GPU-accelerated)
+Started: Thu Feb  5 09:24:45 PM AEDT 2026
+============================================================
+GPU detected: [CudaDevice(id=0)]
+
+============================================================
+MLE Fitting: QLEARNING
+============================================================
+Data: output/task_trials_long.csv
+Random starts: 50
+Seed: 42
+Output: output/mle/
+Include practice: False
+Parallel workers: 1
+GPU acceleration: enabled
+Hessian diagnostics: disabled
+Limit: 6 participants (testing mode)
+============================================================
+
+Loading data...
+  Total participants in data: 47
+  Excluded participants: 2 (insufficient data/duplicates)
+  Final sample: 45
+  Total trials: 34806
+  Limited to first 6 participants (testing mode)
+
+[MEMORY] START: 527.1MB (psutil)
+
+============================================================
+MLE Fitting: QLEARNING
+============================================================
+Start time: 2026-02-05 21:24:47
+Participants: 6
+Random starts per participant: 50
+Parallel workers: 1
+============================================================
+
+Preparing participant data...
+  Data preparation complete (2.4s)
+
+
+[21:24:50] [  1/6] (  0.0%) Fitting 10000 (988 trials)
+      [1/5] Counting trials... done (0.00s)
+      [2/5] Preparing JAX arrays... done (0.02s)
+      [3/5] Creating objective functions... done (0.15s)
+      [4/5] Creating L-BFGS-B solver... done (0.01s)
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (1.56s, NLL=819.9)
+            Starts 2-50... done (total: 47.3s)
+            Optimizer: 49/50 scipy-converged, 1 hit maxiter
+            NLLs: best=763.2 | 3 within 1.0 | 3 within 5.0 | range=56.7
+[MEMORY] POST-JIT (compilation complete): 1982.0MB (psutil)
+      Result: [OK] NLL=763.2, R²=0.30, near_best=3, total=47.5s
+
+[21:25:37] [  2/6] ( 16.7%) Fitting 9187 (990 trials) | ETA: 4.0min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (1.90s, NLL=850.7)
+            Starts 2-50... done (total: 44.6s)
+            Optimizer: 50/50 scipy-converged, 0 hit maxiter
+            NLLs: best=824.6 | 4 within 1.0 | 4 within 5.0 | range=64.2
+      Result: [OK] NLL=824.6, R²=0.24, near_best=4, total=44.6s
+
+[21:26:22] [  3/6] ( 33.3%) Fitting 10002 (986 trials) | ETA: 3.0min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (1.91s, NLL=500.9)
+            Starts 2-50... done (total: 63.9s)
+            Optimizer: 49/50 scipy-converged, 1 hit maxiter
+            NLLs: best=478.1 | 5 within 1.0 | 26 within 5.0 | range=22.8
+      Result: [OK] NLL=478.1, R²=0.56, near_best=5, total=63.9s
+
+[21:27:26] [  4/6] ( 50.0%) Fitting 10003 (973 trials) | ETA: 2.7min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (1.03s, NLL=719.4)
+            Starts 2-50... done (total: 38.7s)
+            Optimizer: 50/50 scipy-converged, 0 hit maxiter
+            NLLs: best=679.2 | 1 within 1.0 | 1 within 5.0 | range=40.2
+      Result: [OK] NLL=679.2, R²=0.36, near_best=1, total=38.7s
+
+[21:28:04] [  5/6] ( 66.7%) Fitting 10004 (990 trials) | ETA: 1.6min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (1.42s, NLL=414.2)
+            Starts 2-50... done (total: 49.6s)
+            Optimizer: 48/50 scipy-converged, 2 hit maxiter
+            NLLs: best=407.0 | 8 within 1.0 | 8 within 5.0 | range=7.2
+      Result: [!!] NLL=407.0, R²=0.63, near_best=8, total=49.6s
+
+[21:28:54] [  6/6] ( 83.3%) Fitting 10005 (985 trials) | ETA: 49s
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (1.67s, NLL=466.8)
+            Starts 2-50... done (total: 50.0s)
+            Optimizer: 49/50 scipy-converged, 1 hit maxiter
+            NLLs: best=447.6 | 2 within 1.0 | 2 within 5.0 | range=25.2
+      Result: [OK] NLL=447.6, R²=0.59, near_best=2, total=50.0s
+[MEMORY] FINAL: 2035.8MB (psutil)
+
+============================================================
+FITTING COMPLETE
+============================================================
+End time: 2026-02-05 21:29:44
+Total duration: 4.9 min (297s)
+Participants: 6 | Converged: 5 (83%)
+JIT compilation: 47.5s | Avg steady-state: 49.4s/participant
+Peak memory: 1.99GB
+============================================================
+
+
+============================================================
+TIMING ANALYSIS & EXTRAPOLATION
+============================================================
+JIT compilation (1st participant): 47.5s
+Steady-state per participant: 49.4s ± 8.3s
+
+Extrapolated time for 45 participants: 37.0 min
+
+Peak memory usage: 2036 MB
+============================================================
+
+============================================================
+RESULTS
+============================================================
+
+Convergence: 5/6 (83.3%)
+
+Group Statistics (n=5):
+--------------------------------------------------
+  alpha_pos   : 0.047 +/- 0.016  (SD=0.036)
+  alpha_neg   : 0.006 +/- 0.005  (SD=0.010)
+  epsilon     : 0.122 +/- 0.012  (SD=0.028)
+
+Model Fit:
+--------------------------------------------------
+  NLL         : 638.53 +/- 75.50
+  AIC         : 1283.06 +/- 151.00
+  BIC         : 1297.73 +/- 151.01
+  PSEUDO-R²   : 0.446 +/- 0.164
+
+Warning: Parameters hitting bounds:
+  alpha_neg: 4 participants
+
+============================================================
+Results saved to:
+  Individual fits:     output/mle/qlearning_individual_fits.csv
+  Group summary:       output/mle/qlearning_group_summary.csv
+  Timing log:          output/mle/qlearning_timing_log.csv
+  Performance summary: output/mle/qlearning_performance_summary.json
+============================================================
+
+============================================================
+STATUS: COMPLETE - 6 participants fit (5 converged, 1 did not converge)
+============================================================
+
+Completed: Thu Feb  5 09:29:45 PM AEDT 2026
+
+============================================================
+All models complete!
+End time: Thu Feb  5 09:29:45 PM AEDT 2026
+============================================================
+
+Results saved to:
+  output/mle/*_individual_fits.csv
+  output/mle/*_group_summary.csv
+============================================================
