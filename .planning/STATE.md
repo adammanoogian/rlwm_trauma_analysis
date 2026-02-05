@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-05)
 ## Current Position
 
 Phase: 4 of 7 (Regression Visualization)
-Plan: 1 of 2 complete
-Status: In progress
-Last activity: 2026-02-05 — Completed 04-01-PLAN.md (plotting utility + Script 15)
+Plan: 2 of 2 complete
+Status: Phase complete — ready for checkpoint:human-verify
+Last activity: 2026-02-05 — Completed 04-02-PLAN.md (Script 16 extension)
 
-Progress: [█░░░░░░░░░] 10% (v2: 0/4 phases complete, 1/10 total plans complete)
+Progress: [██░░░░░░░░] 20% (v2: 1/4 phases complete, 2/10 total plans complete)
 
 ## Performance Metrics
 
@@ -33,16 +33,16 @@ Progress: [█░░░░░░░░░] 10% (v2: 0/4 phases complete, 1/10 to
 | 3 | 2 | 52 min | 26 min |
 
 **v2 Milestone:**
-- Total plans completed: 1
+- Total plans completed: 2
 - Average duration: 19 min
-- Total execution time: 19 min
+- Total execution time: 37 min
 - Timeline: Started 2026-02-05
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 4 | 1/2 | 19 min | 19 min |
+| 4 | 2/2 | 37 min | 19 min |
 
 ## Accumulated Context
 
@@ -68,6 +68,9 @@ See PROJECT.md Key Decisions table for full history.
 - color-by is visual overlay only (does not change statistical analyses)
 - Model-specific figure filenames prevent overwrites (e.g., correlation_heatmap_wmrl_m3.png)
 - WM-RL+K display name for M3 model in plots
+- Script 16 auto-detects params path from model name (removed --params argument)
+- Model-specific subdirectories for regression outputs (output/regressions/{model}/)
+- Section column in CSV groups each scale x parameter regression
 
 ### Pending Todos
 
@@ -79,6 +82,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-02-05 (completed 04-01-PLAN.md)
-Stopped at: Completed Plan 04-01, ready for Plan 04-02 (Script 16)
+Last session: 2026-02-05 (completed 04-02-PLAN.md)
+Stopped at: Phase 4 complete, awaiting checkpoint:human-verify
 Resume file: None
