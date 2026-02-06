@@ -325,6 +325,96 @@ def generate_synthetic_participant(
 
 
 # =============================================================================
+# Posterior Predictive Check
+# =============================================================================
+
+def run_posterior_predictive_check(
+    model: str,
+    fitted_params_path: str,
+    real_data_path: str,
+    output_dir: Path,
+    figures_dir: Path,
+    verbose: bool = True
+) -> pd.DataFrame:
+    """
+    Generate synthetic data from fitted params and compare to real behavior.
+
+    Workflow:
+    1. Load fitted parameters from MLE results
+    2. Generate synthetic data for each participant using their fitted params
+    3. Compute behavioral metrics on both real and synthetic data
+    4. Compare and generate overlay plots
+
+    Parameters
+    ----------
+    model : str
+        Model name ('qlearning', 'wmrl', 'wmrl_m3')
+    fitted_params_path : str
+        Path to fitted parameters CSV
+    real_data_path : str
+        Path to real trial data
+    output_dir : Path
+        Directory for output CSVs
+    figures_dir : Path
+        Directory for figures
+    verbose : bool
+        Show progress bars
+
+    Returns
+    -------
+    pd.DataFrame
+        Behavioral comparison metrics (real vs synthetic)
+    """
+    # 1. Load fitted params
+    print(f"Loading fitted parameters from: {fitted_params_path}")
+    fitted_params_list = load_fitted_params(fitted_params_path, model)
+    print(f"  Found {len(fitted_params_list)} participants")
+
+    # 2. Generate synthetic data for each participant
+    synthetic_dfs = []
+    iterator = tqdm(fitted_params_list, desc="Generating synthetic data") if verbose else fitted_params_list
+
+    for params in iterator:
+        sona_id = params['sona_id']
+        # Use participant ID as seed for reproducibility
+        seed = int(sona_id) if isinstance(sona_id, (int, float)) else hash(str(sona_id)) % 2**31
+
+        syn_df = generate_synthetic_participant(
+            params=params,
+            model=model,
+            seed=seed
+        )
+        syn_df['sona_id'] = sona_id  # Keep original participant ID
+        synthetic_dfs.append(syn_df)
+
+    synthetic_data = pd.concat(synthetic_dfs, ignore_index=True)
+
+    # 3. Save synthetic data
+    output_dir.mkdir(parents=True, exist_ok=True)
+    synthetic_path = output_dir / 'synthetic_trials.csv'
+    synthetic_data.to_csv(synthetic_path, index=False)
+    print(f"Saved synthetic data to: {synthetic_path}")
+
+    # 4. Load real data and compare
+    print(f"Loading real data from: {real_data_path}")
+    real_data = pd.read_csv(real_data_path)
+
+    # 5. Compute behavioral comparison
+    comparison_df = compare_behavior(real_data, synthetic_data)
+
+    # 6. Save comparison
+    comparison_path = output_dir / 'behavioral_comparison.csv'
+    comparison_df.to_csv(comparison_path, index=False)
+    print(f"Saved comparison to: {comparison_path}")
+
+    # 7. Generate overlay plots
+    figures_dir.mkdir(parents=True, exist_ok=True)
+    plot_behavioral_comparison(real_data, synthetic_data, figures_dir, model_name=model.upper())
+
+    return comparison_df
+
+
+# =============================================================================
 # Recovery Pipeline
 # =============================================================================
 
