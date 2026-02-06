@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-02-05)
 
 **Core value:** Correctly dissociate perseverative responding from learning-rate effects (α₋) to accurately identify whether post-reversal failures reflect motor perseveration or outcome insensitivity
-**Current focus:** Phase 5 - Parameter Recovery (v2)
+**Current focus:** Phase 5 - Parameter Recovery (v2) — complete
 
 ## Current Position
 
 Phase: 5 of 7 (Parameter Recovery)
 Plan: 3 of 3 complete
-Status: Phase complete
-Last activity: 2026-02-06 — Completed 05-03-PLAN.md (Script 11 CLI wrapper)
+Status: Phase 5 complete — verified ✓
+Last activity: 2026-02-06 — Phase 5 verification passed (6/6 must-haves)
 
 Progress: [████░░░░░░] 50% (v2: 2/4 phases complete, 5/10 total plans complete)
 
@@ -55,9 +55,9 @@ Progress: [████░░░░░░] 50% (v2: 2/4 phases complete, 5/10 to
 
 ### v2 Roadmap Structure
 
-- Phase 4: Regression Visualization (REGR-01, REGR-02, REGR-03) — user priority
-- Phase 5: Parameter Recovery (RECV-01 through RECV-06) — substantial new code
-- Phase 6: Cluster Monitoring (MNTR-01, MNTR-02) — small improvements
+- Phase 4: Regression Visualization (REGR-01, REGR-02, REGR-03) — ✓ complete
+- Phase 5: Parameter Recovery (RECV-01 through RECV-06) — ✓ complete
+- Phase 6: Cluster Monitoring (MNTR-01, MNTR-02) — next
 - Phase 7: Publication Polish (PUBL-01, PUBL-02) — depends on Phase 4
 
 ### Key Decisions
@@ -95,6 +95,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-02-06
-Stopped at: Completed 05-03-PLAN.md (Script 11 CLI wrapper with PASS/FAIL evaluation)
+Last session: 2026-02-06 (Phase 5 verified and completed)
+Stopped at: Ready to start Phase 6 (Cluster Monitoring)
 Resume file: None

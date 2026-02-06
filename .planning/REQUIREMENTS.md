@@ -15,12 +15,12 @@ Requirements for post-fitting validation and publication readiness. Each maps to
 
 ### Parameter Recovery
 
-- [ ] **RECV-01**: `model_recovery.py` has a `main()` CLI accepting `--model`, `--n-subjects`, `--n-datasets`
-- [ ] **RECV-02**: Parameter recovery loop: sample true params, generate synthetic data, fit via MLE, collect recovered params
-- [ ] **RECV-03**: Recovery metrics computed per parameter: Pearson r, RMSE, bias (mean difference)
-- [ ] **RECV-04**: Scatter plots generated for each parameter (true vs. recovered) with r-squared annotation
-- [ ] **RECV-05**: Recovery results saved to CSV (true params, recovered params, metrics)
-- [ ] **RECV-06**: Script 11 invokes parameter recovery pipeline and reports pass/fail per Senta r >= 0.80 criterion
+- [x] **RECV-01**: `model_recovery.py` has a `main()` CLI accepting `--model`, `--n-subjects`, `--n-datasets`
+- [x] **RECV-02**: Parameter recovery loop: sample true params, generate synthetic data, fit via MLE, collect recovered params
+- [x] **RECV-03**: Recovery metrics computed per parameter: Pearson r, RMSE, bias (mean difference)
+- [x] **RECV-04**: Scatter plots generated for each parameter (true vs. recovered) with r-squared annotation
+- [x] **RECV-05**: Recovery results saved to CSV (true params, recovered params, metrics)
+- [x] **RECV-06**: Script 11 invokes parameter recovery pipeline and reports pass/fail per Senta r >= 0.80 criterion
 
 ### Cluster Monitoring
 
@@ -67,12 +67,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | REGR-01 | Phase 4 | Complete |
 | REGR-02 | Phase 4 | Complete |
 | REGR-03 | Phase 4 | Complete |
-| RECV-01 | Phase 5 | Pending |
-| RECV-02 | Phase 5 | Pending |
-| RECV-03 | Phase 5 | Pending |
-| RECV-04 | Phase 5 | Pending |
-| RECV-05 | Phase 5 | Pending |
-| RECV-06 | Phase 5 | Pending |
+| RECV-01 | Phase 5 | Complete |
+| RECV-02 | Phase 5 | Complete |
+| RECV-03 | Phase 5 | Complete |
+| RECV-04 | Phase 5 | Complete |
+| RECV-05 | Phase 5 | Complete |
+| RECV-06 | Phase 5 | Complete |
 | MNTR-01 | Phase 6 | Pending |
 | MNTR-02 | Phase 6 | Pending |
 | PUBL-01 | Phase 7 | Pending |
@@ -85,4 +85,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-02-05*
-*Last updated: 2026-02-06 after Phase 4 completion*
+*Last updated: 2026-02-06 after Phase 5 completion*
