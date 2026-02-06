@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-05)
 
 **Core value:** Correctly dissociate perseverative responding from learning-rate effects (α₋) to accurately identify whether post-reversal failures reflect motor perseveration or outcome insensitivity
-**Current focus:** Phase 4 - Regression Visualization (v2)
+**Current focus:** Phase 5 - Parameter Recovery (v2)
 
 ## Current Position
 
 Phase: 5 of 7 (Parameter Recovery)
-Plan: 2 of 3 complete
-Status: In progress
-Last activity: 2026-02-06 — Completed 05-02-PLAN.md
+Plan: 3 of 3 complete
+Status: Phase complete
+Last activity: 2026-02-06 — Completed 05-03-PLAN.md (Script 11 CLI wrapper)
 
-Progress: [████░░░░░░] 40% (v2: 1/4 phases complete, 4/10 total plans complete)
+Progress: [████░░░░░░] 50% (v2: 2/4 phases complete, 5/10 total plans complete)
 
 ## Performance Metrics
 
@@ -33,9 +33,9 @@ Progress: [████░░░░░░] 40% (v2: 1/4 phases complete, 4/10 to
 | 3 | 2 | 52 min | 26 min |
 
 **v2 Milestone:**
-- Total plans completed: 4
-- Average duration: 22 min
-- Total execution time: 86 min
+- Total plans completed: 5
+- Average duration: 23 min
+- Total execution time: 116 min
 - Timeline: Started 2026-02-05
 
 **By Phase:**
@@ -43,7 +43,7 @@ Progress: [████░░░░░░] 40% (v2: 1/4 phases complete, 4/10 to
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 4 | 2/2 | 37 min | 19 min | ✓
-| 5 | 2/3 | 49 min | 25 min |
+| 5 | 3/3 | 79 min | 26 min | ✓
 
 ## Accumulated Context
 
@@ -82,6 +82,8 @@ See PROJECT.md Key Decisions table for full history.
 - PASS/FAIL badge based on r >= 0.80 threshold (Senta et al., 2025)
 - Distribution comparison plots for sanity checking synthetic data realism
 - Exit code 0 if all params pass, 1 if any fail (for automation)
+- Script 11 as thin wrapper calling model_recovery functions (no code duplication)
+- Multi-model support with --model all for batch validation
 
 ### Pending Todos
 
@@ -94,5 +96,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-06
-Stopped at: Completed 05-02-PLAN.md (CLI, CSV output, visualization for parameter recovery)
+Stopped at: Completed 05-03-PLAN.md (Script 11 CLI wrapper with PASS/FAIL evaluation)
 Resume file: None
