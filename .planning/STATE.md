@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-02-05)
 
 ## Current Position
 
-Phase: 4 of 7 (Regression Visualization)
-Plan: 2 of 2 complete
-Status: Phase 4 complete — verified ✓
-Last activity: 2026-02-06 — Phase 4 verification passed (5/5 must-haves)
+Phase: 5 of 7 (Parameter Recovery)
+Plan: 1 of 6 complete
+Status: In progress
+Last activity: 2026-02-06 — Completed 05-01-PLAN.md
 
-Progress: [███░░░░░░░] 25% (v2: 1/4 phases complete, 2/10 total plans complete)
+Progress: [███░░░░░░░] 30% (v2: 1/4 phases complete, 3/10 total plans complete)
 
 ## Performance Metrics
 
@@ -33,9 +33,9 @@ Progress: [███░░░░░░░] 25% (v2: 1/4 phases complete, 2/10 to
 | 3 | 2 | 52 min | 26 min |
 
 **v2 Milestone:**
-- Total plans completed: 2
-- Average duration: 19 min
-- Total execution time: 37 min
+- Total plans completed: 3
+- Average duration: 24 min
+- Total execution time: 73 min
 - Timeline: Started 2026-02-05
 
 **By Phase:**
@@ -43,6 +43,7 @@ Progress: [███░░░░░░░] 25% (v2: 1/4 phases complete, 2/10 to
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 4 | 2/2 | 37 min | 19 min | ✓
+| 5 | 1/6 | 36 min | 36 min |
 
 ## Accumulated Context
 
@@ -72,6 +73,12 @@ See PROJECT.md Key Decisions table for full history.
 - Model-specific subdirectories for regression outputs (output/regressions/{model}/)
 - Section column in CSV groups each scale x parameter regression
 
+**Phase 5 decisions:**
+- Use JAX for synthetic agent simulation (faster than agent classes)
+- Fixed beta=50 in synthetic data (matches real fitting for identifiability)
+- Synthetic sona_id starts at 90000 (avoids collision with real data)
+- Pass participant_id as int to prepare_participant_data (matches int64 column type)
+
 ### Pending Todos
 
 None.
@@ -82,6 +89,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-02-06 (Phase 4 verified and completed)
-Stopped at: Ready to start Phase 5 (Parameter Recovery)
+Last session: 2026-02-06
+Stopped at: Completed 05-01-PLAN.md (parameter recovery core pipeline)
 Resume file: None
