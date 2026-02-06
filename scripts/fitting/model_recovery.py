@@ -60,8 +60,20 @@ MAX_CORRECT_FOR_REVERSAL = 18
 
 
 # =============================================================================
-# Parameter Sampling
+# Parameter Sampling and Loading
 # =============================================================================
+
+def get_param_names(model: str) -> List[str]:
+    """Get parameter names for a model."""
+    if model == 'qlearning':
+        return QLEARNING_PARAMS
+    elif model == 'wmrl':
+        return WMRL_PARAMS
+    elif model == 'wmrl_m3':
+        return WMRL_M3_PARAMS
+    else:
+        raise ValueError(f"Unknown model: {model}")
+
 
 def sample_parameters(model: str, n_subjects: int, seed: int) -> List[Dict[str, float]]:
     """
@@ -103,6 +115,37 @@ def sample_parameters(model: str, n_subjects: int, seed: int) -> List[Dict[str, 
         for param_name in param_names:
             low, high = bounds[param_name]
             params[param_name] = rng.uniform(low, high)
+        params_list.append(params)
+
+    return params_list
+
+
+def load_fitted_params(fitted_params_path: str, model: str) -> List[Dict]:
+    """
+    Load fitted parameters from MLE results CSV.
+
+    Parameters
+    ----------
+    fitted_params_path : str
+        Path to CSV with fitted parameters (e.g., wmrl_m3_individual_fits.csv)
+    model : str
+        Model name to get parameter names
+
+    Returns
+    -------
+    List[Dict]
+        List of parameter dictionaries, one per participant
+        Each dict includes 'sona_id' and all model parameters
+    """
+    df = pd.read_csv(fitted_params_path)
+
+    # Get parameter names for model
+    param_names = get_param_names(model)
+
+    params_list = []
+    for _, row in df.iterrows():
+        params = {p: row[p] for p in param_names if p in row.columns}
+        params['sona_id'] = row['sona_id']
         params_list.append(params)
 
     return params_list
