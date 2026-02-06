@@ -1,19 +1,19 @@
 """
-Model Recovery Analysis
+Parameter Recovery for RLWM Models
 
-This script performs model recovery to validate that:
-1. Q-learning data is better fit by Q-learning model
-2. WM-RL data is better fit by WM-RL model
-3. Models can be distinguished from their behavioral signatures
+This module validates MLE fitting quality by testing whether the fitting procedure
+can accurately recover known parameter values from synthetic data.
 
-Procedure:
------------
-1. Generate synthetic data from both models with known parameters
-2. Fit both models to both datasets (4 fits total)
-3. Compare likelihoods: data from Model A should be better explained by Model A
+Procedure (Senta et al., 2025):
+1. Sample true parameters uniformly from MLE bounds
+2. Generate synthetic trial-level data matching task structure
+3. Fit synthetic data via MLE (same procedure as real data)
+4. Compare recovered vs true parameters
+5. Compute recovery metrics: Pearson r, RMSE, bias
+6. Pass/fail criterion: r >= 0.80 per parameter
 
 Author: Generated for RLWM trauma analysis project
-Date: 2025-11-22
+Date: 2026-02-06
 """
 
 import sys
@@ -23,307 +23,474 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-import jax
-import jax.numpy as jnp
 import numpy as np
 import pandas as pd
-import arviz as az
-from typing import Dict, List
+import jax
+import jax.numpy as jnp
+from scipy.stats import pearsonr
+from tqdm import tqdm
+from typing import Dict, List, Optional
 
-from scripts.fitting.jax_likelihoods import (
-    q_learning_multiblock_likelihood,
-    wmrl_multiblock_likelihood
+from scripts.fitting.fit_mle import fit_participant_mle, prepare_participant_data
+from scripts.fitting.mle_utils import (
+    QLEARNING_BOUNDS, WMRL_BOUNDS, WMRL_M3_BOUNDS,
+    QLEARNING_PARAMS, WMRL_PARAMS, WMRL_M3_PARAMS
 )
 
 
-def simulate_qlearning_data(
-    alpha_pos: float = 0.6,
-    alpha_neg: float = 0.4,
-    beta: float = 2.0,
-    num_blocks: int = 10,
-    trials_per_block: int = 60,
-    num_stimuli: int = 6,
-    num_actions: int = 3,
-    seed: int = 42
-):
-    """
-    Simulate data from Q-learning model.
+# =============================================================================
+# Constants (matching real data structure)
+# =============================================================================
 
-    Returns block-structured data matching NumPyro format.
+NUM_BLOCKS = 21  # Blocks 3-23 in real data
+BLOCK_OFFSET = 3  # First block is numbered 3
+NUM_STIMULI = 3  # Maximum 3 stimuli per block
+NUM_ACTIONS = 3  # Always 3 actions
+SET_SIZES = [2, 3, 5, 6]  # Cycle through these
+FIXED_BETA = 50.0  # Fixed inverse temperature (matching fit_mle.py)
+
+# Trials per block range (matching real data variability)
+MIN_TRIALS_PER_BLOCK = 30
+MAX_TRIALS_PER_BLOCK = 90
+
+# Reversal trigger (12-18 consecutive correct responses)
+MIN_CORRECT_FOR_REVERSAL = 12
+MAX_CORRECT_FOR_REVERSAL = 18
+
+
+# =============================================================================
+# Parameter Sampling
+# =============================================================================
+
+def sample_parameters(model: str, n_subjects: int, seed: int) -> List[Dict[str, float]]:
+    """
+    Sample parameter sets uniformly from MLE bounds.
+
+    Parameters
+    ----------
+    model : str
+        Model name ('qlearning', 'wmrl', 'wmrl_m3')
+    n_subjects : int
+        Number of parameter sets to sample
+    seed : int
+        Random seed for reproducibility
+
+    Returns
+    -------
+    List[Dict[str, float]]
+        List of parameter dictionaries sampled from bounds
+    """
+    rng = np.random.default_rng(seed)
+
+    # Get bounds for model
+    if model == 'qlearning':
+        bounds = QLEARNING_BOUNDS
+        param_names = QLEARNING_PARAMS
+    elif model == 'wmrl':
+        bounds = WMRL_BOUNDS
+        param_names = WMRL_PARAMS
+    elif model == 'wmrl_m3':
+        bounds = WMRL_M3_BOUNDS
+        param_names = WMRL_M3_PARAMS
+    else:
+        raise ValueError(f"Unknown model: {model}")
+
+    # Sample uniformly from bounds
+    params_list = []
+    for _ in range(n_subjects):
+        params = {}
+        for param_name in param_names:
+            low, high = bounds[param_name]
+            params[param_name] = rng.uniform(low, high)
+        params_list.append(params)
+
+    return params_list
+
+
+# =============================================================================
+# Synthetic Data Generation
+# =============================================================================
+
+def generate_synthetic_participant(
+    params: Dict[str, float],
+    model: str,
+    seed: int
+) -> pd.DataFrame:
+    """
+    Generate synthetic trial-level data matching task_trials_long.csv structure.
+
+    Uses JAX for speed. Implements Q-learning and WM-RL agent simulation
+    with epsilon noise, asymmetric learning rates, and reversal logic.
+
+    Parameters
+    ----------
+    params : Dict[str, float]
+        True parameter values for simulation
+    model : str
+        Model name ('qlearning', 'wmrl', 'wmrl_m3')
+    seed : int
+        Random seed for reproducibility
+
+    Returns
+    -------
+    pd.DataFrame
+        Trial-level data with columns:
+        sona_id, block, stimulus, key_press, reward, set_size, trial_in_block
     """
     key = jax.random.PRNGKey(seed)
+    rng = np.random.default_rng(seed)
 
-    stimuli_blocks = []
-    actions_blocks = []
-    rewards_blocks = []
+    # Extract parameters
+    alpha_pos = params['alpha_pos']
+    alpha_neg = params['alpha_neg']
+    epsilon = params['epsilon']
 
-    # Initialize Q-table
-    Q = jnp.ones((num_stimuli, num_actions)) * 0.5
+    # Model-specific parameters
+    if model in ['wmrl', 'wmrl_m3']:
+        phi = params['phi']
+        rho = params['rho']
+        capacity = params['capacity']
+        if model == 'wmrl_m3':
+            kappa = params['kappa']
+        else:
+            kappa = 0.0
+    else:
+        phi = rho = capacity = kappa = None
 
-    for block in range(num_blocks):
-        stimuli = []
-        actions = []
-        rewards = []
+    # Initialize data collection
+    all_trials = []
+    sona_id = 90000 + seed  # Synthetic participant IDs start at 90000
 
-        # Reset Q-values at each block
-        Q = jnp.ones((num_stimuli, num_actions)) * 0.5
+    for block_idx in range(NUM_BLOCKS):
+        block_num = block_idx + BLOCK_OFFSET  # Blocks 3-23
+        set_size = SET_SIZES[block_idx % len(SET_SIZES)]
+        n_trials_block = rng.integers(MIN_TRIALS_PER_BLOCK, MAX_TRIALS_PER_BLOCK + 1)
 
-        for trial in range(trials_per_block):
-            # Sample stimulus
+        # Initialize Q-table and WM matrix at start of block
+        Q = np.ones((NUM_STIMULI, NUM_ACTIONS)) * 0.5
+
+        if model in ['wmrl', 'wmrl_m3']:
+            WM = np.ones((NUM_STIMULI, NUM_ACTIONS)) * (1.0 / NUM_ACTIONS)  # Baseline = 0.333
+            wm_baseline = 1.0 / NUM_ACTIONS
+        else:
+            WM = wm_baseline = None
+
+        # Reversal tracking
+        consecutive_correct = 0
+        reversal_threshold = rng.integers(MIN_CORRECT_FOR_REVERSAL, MAX_CORRECT_FOR_REVERSAL + 1)
+        reward_mapping = rng.permutation(NUM_ACTIONS)  # Initial stimulus-action mapping
+
+        # Last action for perseveration
+        last_action = None
+
+        for trial_in_block in range(1, n_trials_block + 1):
+            # Sample stimulus (uniform random)
             key, subkey = jax.random.split(key)
-            stimulus = int(jax.random.randint(subkey, (), 0, num_stimuli))
+            stimulus = int(jax.random.randint(subkey, (), 0, NUM_STIMULI))
 
             # Compute action probabilities
-            q_vals = Q[stimulus, :]
-            q_scaled = beta * (q_vals - jnp.max(q_vals))
-            probs = jnp.exp(q_scaled) / jnp.sum(jnp.exp(q_scaled))
+            if model in ['wmrl', 'wmrl_m3']:
+                # WM-RL hybrid
+                # Apply WM decay first
+                WM = (1 - phi) * WM + phi * wm_baseline
+
+                # RL component (softmax)
+                q_vals = Q[stimulus, :]
+                q_scaled = FIXED_BETA * (q_vals - np.max(q_vals))
+                rl_probs = np.exp(q_scaled) / np.sum(np.exp(q_scaled))
+
+                # WM component (softmax)
+                wm_vals = WM[stimulus, :]
+                wm_scaled = FIXED_BETA * (wm_vals - np.max(wm_vals))
+                wm_probs = np.exp(wm_scaled) / np.sum(np.exp(wm_scaled))
+
+                # Adaptive weight
+                omega = rho * np.minimum(1.0, capacity / set_size)
+
+                # Hybrid policy
+                hybrid_probs = omega * wm_probs + (1 - omega) * rl_probs
+
+                # Perseveration (M3 only)
+                if model == 'wmrl_m3' and last_action is not None:
+                    hybrid_probs = hybrid_probs.copy()
+                    hybrid_probs[last_action] += kappa
+                    hybrid_probs = hybrid_probs / np.sum(hybrid_probs)
+
+                action_probs = hybrid_probs
+            else:
+                # Q-learning (softmax)
+                q_vals = Q[stimulus, :]
+                q_scaled = FIXED_BETA * (q_vals - np.max(q_vals))
+                rl_probs = np.exp(q_scaled) / np.sum(np.exp(q_scaled))
+                action_probs = rl_probs
+
+            # Apply epsilon noise
+            noisy_probs = epsilon / NUM_ACTIONS + (1 - epsilon) * action_probs
 
             # Sample action
             key, subkey = jax.random.split(key)
-            action = int(jax.random.choice(subkey, num_actions, p=probs))
+            action = int(jax.random.choice(subkey, NUM_ACTIONS, p=jnp.array(noisy_probs)))
 
-            # Generate reward (70% correct for chosen action)
-            key, subkey = jax.random.split(key)
-            reward = float(jax.random.bernoulli(subkey, 0.7))
+            # Generate reward based on current mapping
+            correct_action = reward_mapping[stimulus]
+            if action == correct_action:
+                # 70% reward probability for correct action
+                key, subkey = jax.random.split(key)
+                reward = float(jax.random.bernoulli(subkey, 0.7))
+                if reward > 0.5:
+                    consecutive_correct += 1
+                else:
+                    consecutive_correct = 0
+            else:
+                # 30% reward probability for incorrect action
+                key, subkey = jax.random.split(key)
+                reward = float(jax.random.bernoulli(subkey, 0.3))
+                consecutive_correct = 0
 
             # Update Q-value
             delta = reward - Q[stimulus, action]
             alpha = alpha_pos if delta > 0 else alpha_neg
-            Q = Q.at[stimulus, action].set(Q[stimulus, action] + alpha * delta)
+            Q[stimulus, action] = Q[stimulus, action] + alpha * delta
 
-            stimuli.append(stimulus)
-            actions.append(action)
-            rewards.append(reward)
+            # Update WM (immediate overwrite)
+            if model in ['wmrl', 'wmrl_m3']:
+                WM[stimulus, action] = reward
 
-        stimuli_blocks.append(jnp.array(stimuli, dtype=jnp.int32))
-        actions_blocks.append(jnp.array(actions, dtype=jnp.int32))
-        rewards_blocks.append(jnp.array(rewards, dtype=jnp.float32))
+            # Store trial
+            all_trials.append({
+                'sona_id': sona_id,
+                'block': block_num,
+                'stimulus': stimulus,
+                'key_press': action,
+                'reward': reward,
+                'set_size': set_size,
+                'trial_in_block': trial_in_block
+            })
 
-    return {
-        'stimuli_blocks': stimuli_blocks,
-        'actions_blocks': actions_blocks,
-        'rewards_blocks': rewards_blocks
-    }
+            # Update last action for perseveration
+            last_action = action
+
+            # Check for reversal
+            if consecutive_correct >= reversal_threshold:
+                # Trigger reversal: shuffle reward mapping
+                reward_mapping = rng.permutation(NUM_ACTIONS)
+                consecutive_correct = 0
+                reversal_threshold = rng.integers(MIN_CORRECT_FOR_REVERSAL, MAX_CORRECT_FOR_REVERSAL + 1)
+
+    return pd.DataFrame(all_trials)
 
 
-def simulate_wmrl_data(
-    alpha_pos: float = 0.3,
-    alpha_neg: float = 0.1,
-    beta: float = 2.0,
-    beta_wm: float = 3.0,
-    phi: float = 0.2,
-    rho: float = 0.7,
-    capacity: float = 4.0,
-    num_blocks: int = 10,
-    trials_per_block: int = 60,
-    num_stimuli: int = 6,
-    num_actions: int = 3,
-    set_size: int = 5,
-    seed: int = 43
-):
+# =============================================================================
+# Recovery Pipeline
+# =============================================================================
+
+def run_parameter_recovery(
+    model: str,
+    n_subjects: int,
+    n_datasets: int,
+    seed: int,
+    use_gpu: bool = False,
+    verbose: bool = True
+) -> pd.DataFrame:
     """
-    Simulate data from WM-RL hybrid model.
+    Run complete parameter recovery pipeline.
 
-    Returns block-structured data matching NumPyro format.
+    For each dataset:
+        1. Sample true parameters
+        2. Generate synthetic data
+        3. Fit via MLE (same procedure as real data)
+        4. Store true vs recovered parameters
+
+    Parameters
+    ----------
+    model : str
+        Model name ('qlearning', 'wmrl', 'wmrl_m3')
+    n_subjects : int
+        Number of synthetic participants per dataset
+    n_datasets : int
+        Number of independent recovery datasets
+    seed : int
+        Base random seed
+    use_gpu : bool
+        Whether to use GPU for fitting (default: False)
+    verbose : bool
+        Whether to show progress bars (default: True)
+
+    Returns
+    -------
+    pd.DataFrame
+        Results with columns:
+        dataset, subject, true_{param}, recovered_{param}, nll, converged
     """
-    key = jax.random.PRNGKey(seed)
+    results = []
 
-    stimuli_blocks = []
-    actions_blocks = []
-    rewards_blocks = []
-    set_sizes_blocks = []
+    # Outer loop: datasets
+    dataset_iter = range(n_datasets)
+    if verbose:
+        dataset_iter = tqdm(dataset_iter, desc=f"Recovery ({model})", unit="dataset")
 
-    # Initialize matrices
-    Q = jnp.ones((num_stimuli, num_actions)) * 0.5
-    WM = jnp.ones((num_stimuli, num_actions)) * 0.5
-    WM_0 = jnp.ones((num_stimuli, num_actions)) * 0.5
+    for dataset_idx in dataset_iter:
+        # Sample parameter sets for this dataset
+        dataset_seed = seed + dataset_idx * 10000
+        params_list = sample_parameters(model, n_subjects, dataset_seed)
 
-    for block in range(num_blocks):
-        stimuli = []
-        actions = []
-        rewards = []
+        # Inner loop: subjects
+        subject_iter = range(n_subjects)
+        if verbose:
+            subject_iter = tqdm(subject_iter, desc=f"  Dataset {dataset_idx+1}", leave=False, unit="subj")
 
-        # Reset at each block
-        Q = jnp.ones((num_stimuli, num_actions)) * 0.5
-        WM = jnp.ones((num_stimuli, num_actions)) * 0.5
+        for subject_idx in subject_iter:
+            true_params = params_list[subject_idx]
+            subject_seed = dataset_seed + subject_idx
 
-        for trial in range(trials_per_block):
-            # Sample stimulus
-            key, subkey = jax.random.split(key)
-            stimulus = int(jax.random.randint(subkey, (), 0, num_stimuli))
+            # Generate synthetic data
+            df_synthetic = generate_synthetic_participant(true_params, model, subject_seed)
 
-            # Decay WM
-            WM = (1 - phi) * WM + phi * WM_0
+            # Prepare data for fitting (same as real data)
+            data_dict = prepare_participant_data(df_synthetic)
 
-            # Compute RL and WM probabilities
-            q_vals = Q[stimulus, :]
-            q_scaled = beta * (q_vals - jnp.max(q_vals))
-            rl_probs = jnp.exp(q_scaled) / jnp.sum(jnp.exp(q_scaled))
+            # Fit via MLE with n_starts=50 (matching real fitting)
+            fit_result = fit_participant_mle(
+                data_dict,
+                model,
+                n_starts=50,
+                use_gpu=use_gpu,
+                verbose=False,  # Suppress per-subject output
+                seed=subject_seed
+            )
 
-            wm_vals = WM[stimulus, :]
-            wm_scaled = beta_wm * (wm_vals - jnp.max(wm_vals))
-            wm_probs = jnp.exp(wm_scaled) / jnp.sum(jnp.exp(wm_scaled))
+            # Store results
+            result = {
+                'dataset': dataset_idx,
+                'subject': subject_idx,
+                'nll': fit_result['nll'],
+                'converged': fit_result['converged']
+            }
 
-            # Adaptive weight
-            omega = rho * jnp.minimum(1.0, capacity / set_size)
+            # Add true and recovered parameters
+            for param_name in true_params.keys():
+                result[f'true_{param_name}'] = true_params[param_name]
+                result[f'recovered_{param_name}'] = fit_result[param_name]
 
-            # Hybrid policy
-            hybrid_probs = omega * wm_probs + (1 - omega) * rl_probs
-            hybrid_probs = hybrid_probs / jnp.sum(hybrid_probs)
+            results.append(result)
 
-            # Sample action
-            key, subkey = jax.random.split(key)
-            action = int(jax.random.choice(subkey, num_actions, p=hybrid_probs))
-
-            # Generate reward
-            key, subkey = jax.random.split(key)
-            reward = float(jax.random.bernoulli(subkey, 0.7))
-
-            # Update WM
-            WM = WM.at[stimulus, action].set(reward)
-
-            # Update Q
-            delta = reward - Q[stimulus, action]
-            alpha = alpha_pos if delta > 0 else alpha_neg
-            Q = Q.at[stimulus, action].set(Q[stimulus, action] + alpha * delta)
-
-            stimuli.append(stimulus)
-            actions.append(action)
-            rewards.append(reward)
-
-        stimuli_blocks.append(jnp.array(stimuli, dtype=jnp.int32))
-        actions_blocks.append(jnp.array(actions, dtype=jnp.int32))
-        rewards_blocks.append(jnp.array(rewards, dtype=jnp.float32))
-        set_sizes_blocks.append(jnp.ones(trials_per_block, dtype=jnp.float32) * set_size)
-
-    return {
-        'stimuli_blocks': stimuli_blocks,
-        'actions_blocks': actions_blocks,
-        'rewards_blocks': rewards_blocks,
-        'set_sizes_blocks': set_sizes_blocks
-    }
+    return pd.DataFrame(results)
 
 
-def compute_model_recovery_matrix():
+# =============================================================================
+# Recovery Metrics
+# =============================================================================
+
+def compute_recovery_metrics(results_df: pd.DataFrame, model: str) -> pd.DataFrame:
     """
-    Compute model recovery confusion matrix.
+    Compute parameter recovery metrics.
 
-    Returns:
-    --------
-    dict with log-likelihoods for all 4 combinations
+    For each parameter:
+    - Pearson r (correlation between true and recovered)
+    - RMSE (root mean squared error)
+    - Bias (mean error: recovered - true)
+    - Pass/fail (r >= 0.80)
+
+    Parameters
+    ----------
+    results_df : pd.DataFrame
+        Recovery results from run_parameter_recovery()
+    model : str
+        Model name ('qlearning', 'wmrl', 'wmrl_m3')
+
+    Returns
+    -------
+    pd.DataFrame
+        Metrics with columns: parameter, pearson_r, p_value, rmse, bias, pass_fail
     """
-    print("=" * 80)
-    print("MODEL RECOVERY ANALYSIS")
-    print("=" * 80)
-
-    # Generate synthetic data
-    print("\n>> Generating synthetic data...")
-    ql_data = simulate_qlearning_data(seed=42)
-    wmrl_data = simulate_wmrl_data(seed=43)
-
-    print(f"  ✓ Q-learning data: {len(ql_data['stimuli_blocks'])} blocks")
-    print(f"  ✓ WM-RL data: {len(wmrl_data['stimuli_blocks'])} blocks")
-
-    # Test parameters (ground truth for simulation)
-    ql_params = {'alpha_pos': 0.6, 'alpha_neg': 0.4, 'beta': 2.0}
-    wmrl_params = {
-        'alpha_pos': 0.3, 'alpha_neg': 0.1, 'beta': 2.0,
-        'beta_wm': 3.0, 'phi': 0.2, 'rho': 0.7, 'capacity': 4.0
-    }
-
-    # Compute likelihoods
-    print("\n>> Computing log-likelihoods...")
-
-    # Q-learning model on Q-learning data (should be best)
-    print("  [1/4] Q-learning model on Q-learning data...")
-    ll_ql_on_ql = q_learning_multiblock_likelihood(
-        stimuli_blocks=ql_data['stimuli_blocks'],
-        actions_blocks=ql_data['actions_blocks'],
-        rewards_blocks=ql_data['rewards_blocks'],
-        **ql_params
-    )
-    print(f"    Log-likelihood: {float(ll_ql_on_ql):.2f}")
-
-    # Q-learning model on WM-RL data (should be worse)
-    print("  [2/4] Q-learning model on WM-RL data...")
-    ll_ql_on_wmrl = q_learning_multiblock_likelihood(
-        stimuli_blocks=wmrl_data['stimuli_blocks'],
-        actions_blocks=wmrl_data['actions_blocks'],
-        rewards_blocks=wmrl_data['rewards_blocks'],
-        **ql_params
-    )
-    print(f"    Log-likelihood: {float(ll_ql_on_wmrl):.2f}")
-
-    # WM-RL model on Q-learning data (should be worse)
-    print("  [3/4] WM-RL model on Q-learning data...")
-    # Need to create dummy set_sizes for Q-learning data
-    ql_data_with_sets = {
-        **ql_data,
-        'set_sizes_blocks': [jnp.ones(len(stim), dtype=jnp.float32) * 6
-                             for stim in ql_data['stimuli_blocks']]
-    }
-    ll_wmrl_on_ql = wmrl_multiblock_likelihood(
-        stimuli_blocks=ql_data_with_sets['stimuli_blocks'],
-        actions_blocks=ql_data_with_sets['actions_blocks'],
-        rewards_blocks=ql_data_with_sets['rewards_blocks'],
-        set_sizes_blocks=ql_data_with_sets['set_sizes_blocks'],
-        **wmrl_params
-    )
-    print(f"    Log-likelihood: {float(ll_wmrl_on_ql):.2f}")
-
-    # WM-RL model on WM-RL data (should be best)
-    print("  [4/4] WM-RL model on WM-RL data...")
-    ll_wmrl_on_wmrl = wmrl_multiblock_likelihood(
-        stimuli_blocks=wmrl_data['stimuli_blocks'],
-        actions_blocks=wmrl_data['actions_blocks'],
-        rewards_blocks=wmrl_data['rewards_blocks'],
-        set_sizes_blocks=wmrl_data['set_sizes_blocks'],
-        **wmrl_params
-    )
-    print(f"    Log-likelihood: {float(ll_wmrl_on_wmrl):.2f}")
-
-    # Print recovery matrix
-    print("\n" + "=" * 80)
-    print("MODEL RECOVERY MATRIX")
-    print("=" * 80)
-    print("\n                  Generating Model")
-    print("                  Q-learning    WM-RL")
-    print("Fitting     Q-learning   {:.2f}      {:.2f}".format(
-        float(ll_ql_on_ql), float(ll_ql_on_wmrl)))
-    print("Model       WM-RL        {:.2f}      {:.2f}".format(
-        float(ll_wmrl_on_ql), float(ll_wmrl_on_wmrl)))
-
-    # Check recovery success
-    print("\n>> Recovery Analysis:")
-    ql_recovers = ll_ql_on_ql > ll_wmrl_on_ql
-    wmrl_recovers = ll_wmrl_on_wmrl > ll_ql_on_wmrl
-
-    if ql_recovers:
-        print(f"  ✓ Q-learning data correctly identified (ΔLL = {float(ll_ql_on_ql - ll_wmrl_on_ql):.2f})")
+    # Get parameter names for model
+    if model == 'qlearning':
+        param_names = QLEARNING_PARAMS
+    elif model == 'wmrl':
+        param_names = WMRL_PARAMS
+    elif model == 'wmrl_m3':
+        param_names = WMRL_M3_PARAMS
     else:
-        print(f"  ✗ Q-learning data misidentified (ΔLL = {float(ll_ql_on_ql - ll_wmrl_on_ql):.2f})")
+        raise ValueError(f"Unknown model: {model}")
 
-    if wmrl_recovers:
-        print(f"  ✓ WM-RL data correctly identified (ΔLL = {float(ll_wmrl_on_wmrl - ll_ql_on_wmrl):.2f})")
-    else:
-        print(f"  ✗ WM-RL data misidentified (ΔLL = {float(ll_wmrl_on_wmrl - ll_ql_on_wmrl):.2f})")
+    metrics = []
 
-    if ql_recovers and wmrl_recovers:
-        print("\n  ✓✓ PERFECT RECOVERY: Both models correctly identified their own data!")
+    for param in param_names:
+        true_col = f'true_{param}'
+        recovered_col = f'recovered_{param}'
 
-    return {
-        'll_ql_on_ql': float(ll_ql_on_ql),
-        'll_ql_on_wmrl': float(ll_ql_on_wmrl),
-        'll_wmrl_on_ql': float(ll_wmrl_on_ql),
-        'll_wmrl_on_wmrl': float(ll_wmrl_on_wmrl),
-        'ql_recovers': ql_recovers,
-        'wmrl_recovers': wmrl_recovers
-    }
+        # Extract values
+        true_vals = results_df[true_col].values
+        recovered_vals = results_df[recovered_col].values
+
+        # Pearson r
+        r, p_value = pearsonr(true_vals, recovered_vals)
+
+        # RMSE
+        rmse = np.sqrt(np.mean((true_vals - recovered_vals) ** 2))
+
+        # Bias
+        bias = np.mean(recovered_vals - true_vals)
+
+        # Pass/fail (r >= 0.80)
+        pass_fail = 'PASS' if r >= 0.80 else 'FAIL'
+
+        metrics.append({
+            'parameter': param,
+            'pearson_r': r,
+            'p_value': p_value,
+            'rmse': rmse,
+            'bias': bias,
+            'pass_fail': pass_fail
+        })
+
+    return pd.DataFrame(metrics)
 
 
-if __name__ == "__main__":
-    results = compute_model_recovery_matrix()
+# =============================================================================
+# Testing
+# =============================================================================
+
+if __name__ == '__main__':
+    print("Testing parameter recovery module...")
+
+    # Test 1: Parameter sampling
+    print("\n1. Testing parameter sampling:")
+    params_list = sample_parameters('wmrl_m3', n_subjects=3, seed=42)
+    print(f"   Sampled {len(params_list)} parameter sets")
+    print(f"   First params: {params_list[0]}")
+    assert len(params_list) == 3
+    assert len(params_list[0]) == 7  # M3 has 7 parameters
+    print("   ✓ PASSED")
+
+    # Test 2: Synthetic data generation
+    print("\n2. Testing synthetic data generation:")
+    df = generate_synthetic_participant(params_list[0], 'wmrl_m3', seed=42)
+    print(f"   Generated {len(df)} trials across {df['block'].nunique()} blocks")
+    print(f"   Columns: {list(df.columns)}")
+    assert df['block'].nunique() == NUM_BLOCKS
+    assert set(df.columns) >= {'sona_id', 'block', 'stimulus', 'key_press', 'reward', 'set_size', 'trial_in_block'}
+    print("   ✓ PASSED")
+
+    # Test 3: Small recovery test (Q-learning, fast)
+    print("\n3. Testing recovery pipeline (Q-learning, n=2):")
+    results = run_parameter_recovery('qlearning', n_subjects=2, n_datasets=1, seed=42, verbose=False)
+    print(f"   Results shape: {results.shape}")
+    print(f"   Columns: {list(results.columns)}")
+    assert results.shape[0] == 2  # 2 subjects
+    assert 'true_alpha_pos' in results.columns
+    assert 'recovered_alpha_pos' in results.columns
+    print("   ✓ PASSED")
+
+    # Test 4: Metrics computation
+    print("\n4. Testing metrics computation:")
+    metrics = compute_recovery_metrics(results, 'qlearning')
+    print(f"   Metrics:\n{metrics}")
+    assert 'pearson_r' in metrics.columns
+    assert 'pass_fail' in metrics.columns
+    assert len(metrics) == 3  # Q-learning has 3 parameters
+    print("   ✓ PASSED")
 
     print("\n" + "=" * 80)
-    print("MODEL RECOVERY COMPLETE!")
+    print("ALL TESTS PASSED!")
     print("=" * 80)
