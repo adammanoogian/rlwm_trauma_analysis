@@ -27,6 +27,7 @@ import numpy as np
 import pandas as pd
 import jax
 import jax.numpy as jnp
+import matplotlib.pyplot as plt
 from scipy.stats import pearsonr
 from tqdm import tqdm
 from typing import Dict, List, Optional
@@ -452,10 +453,363 @@ def compute_recovery_metrics(results_df: pd.DataFrame, model: str) -> pd.DataFra
 
 
 # =============================================================================
+# Visualization (wired in main())
+# =============================================================================
+
+def plot_recovery_scatter(
+    results_df: pd.DataFrame,
+    metrics_df: pd.DataFrame,
+    model: str,
+    output_dir: Path
+) -> None:
+    """
+    Generate scatter plots showing true vs recovered parameters.
+
+    For each parameter, creates individual scatter plot with:
+    - Identity line (y=x, dashed black)
+    - Regression line (solid red)
+    - Annotations (r, RMSE, Bias)
+    - PASS/FAIL badge based on r >= 0.80 threshold
+
+    Also creates combined all_parameters_recovery.png with subplots.
+
+    Parameters
+    ----------
+    results_df : pd.DataFrame
+        Recovery results from run_parameter_recovery()
+    metrics_df : pd.DataFrame
+        Metrics from compute_recovery_metrics()
+    model : str
+        Model name for parameter list
+    output_dir : Path
+        Directory to save figures
+    """
+    from scripts.utils.plotting_utils import plot_scatter_with_annotations
+
+    # Get parameter names
+    if model == 'qlearning':
+        param_names = QLEARNING_PARAMS
+    elif model == 'wmrl':
+        param_names = WMRL_PARAMS
+    elif model == 'wmrl_m3':
+        param_names = WMRL_M3_PARAMS
+    else:
+        raise ValueError(f"Unknown model: {model}")
+
+    n_params = len(param_names)
+
+    # Create combined figure
+    ncols = 3
+    nrows = int(np.ceil(n_params / ncols))
+    fig_combined, axes_combined = plt.subplots(nrows, ncols, figsize=(15, 5 * nrows))
+    axes_combined = axes_combined.flatten() if n_params > 1 else [axes_combined]
+
+    for idx, param in enumerate(param_names):
+        # Extract data
+        true_vals = results_df[f'true_{param}'].values
+        recovered_vals = results_df[f'recovered_{param}'].values
+
+        # Get metrics for this parameter
+        param_metrics = metrics_df[metrics_df['parameter'] == param].iloc[0]
+        annotations = {
+            'r': param_metrics['pearson_r'],
+            'RMSE': param_metrics['rmse'],
+            'Bias': param_metrics['bias']
+        }
+
+        # Individual plot
+        fig_ind, ax_ind = plt.subplots(figsize=(6, 6))
+        plot_scatter_with_annotations(
+            ax_ind, true_vals, recovered_vals,
+            annotations=annotations,
+            pass_threshold=0.80,
+            pass_key='r'
+        )
+        ax_ind.set_xlabel(f'True {param}', fontsize=12)
+        ax_ind.set_ylabel(f'Recovered {param}', fontsize=12)
+        ax_ind.set_title(f'{param.capitalize()} Recovery', fontsize=14, fontweight='bold')
+        fig_ind.tight_layout()
+        fig_ind.savefig(output_dir / f'{param}_recovery.png', dpi=300, bbox_inches='tight')
+        plt.close(fig_ind)
+
+        # Add to combined plot
+        ax_combined = axes_combined[idx]
+        plot_scatter_with_annotations(
+            ax_combined, true_vals, recovered_vals,
+            annotations=annotations,
+            pass_threshold=0.80,
+            pass_key='r',
+            s=30  # Smaller points for combined view
+        )
+        ax_combined.set_xlabel(f'True {param}', fontsize=10)
+        ax_combined.set_ylabel(f'Recovered {param}', fontsize=10)
+        ax_combined.set_title(f'{param.capitalize()}', fontsize=11, fontweight='bold')
+
+    # Hide unused subplots
+    for idx in range(n_params, len(axes_combined)):
+        axes_combined[idx].axis('off')
+
+    fig_combined.suptitle(f'{model.upper()} Parameter Recovery', fontsize=16, fontweight='bold')
+    fig_combined.tight_layout()
+    fig_combined.savefig(output_dir / 'all_parameters_recovery.png', dpi=300, bbox_inches='tight')
+    plt.close(fig_combined)
+
+
+def plot_distribution_comparison(
+    results_df: pd.DataFrame,
+    real_params_path: Optional[str],
+    model: str,
+    output_dir: Path
+) -> None:
+    """
+    Generate KDE distribution plots comparing recovered vs real fitted parameters.
+
+    For each parameter, creates overlapping KDE plots showing:
+    - Recovered parameters (from synthetic data recovery)
+    - Real fitted parameters (from actual participant data)
+
+    This provides sanity check that synthetic data has realistic parameter
+    distributions matching real data.
+
+    Parameters
+    ----------
+    results_df : pd.DataFrame
+        Recovery results from run_parameter_recovery()
+    real_params_path : str or None
+        Path to real fitted parameters CSV. If None, tries default location.
+    model : str
+        Model name for parameter list
+    output_dir : Path
+        Directory to save figures
+    """
+    from scripts.utils.plotting_utils import plot_kde_comparison
+
+    # Get parameter names
+    if model == 'qlearning':
+        param_names = QLEARNING_PARAMS
+    elif model == 'wmrl':
+        param_names = WMRL_PARAMS
+    elif model == 'wmrl_m3':
+        param_names = WMRL_M3_PARAMS
+    else:
+        raise ValueError(f"Unknown model: {model}")
+
+    # Try to load real fitted parameters
+    if real_params_path is None:
+        real_params_path = f'output/mle_results/{model}_individual_fits.csv'
+
+    try:
+        df_real = pd.read_csv(real_params_path)
+        has_real_data = True
+    except FileNotFoundError:
+        print(f"Warning: Real fitted params not found at {real_params_path}")
+        print("         Skipping distribution comparison plots.")
+        has_real_data = False
+        return
+
+    # Create combined figure
+    n_params = len(param_names)
+    ncols = 3
+    nrows = int(np.ceil(n_params / ncols))
+    fig, axes = plt.subplots(nrows, ncols, figsize=(15, 4 * nrows))
+    axes = axes.flatten() if n_params > 1 else [axes]
+
+    for idx, param in enumerate(param_names):
+        ax = axes[idx]
+
+        # Extract distributions
+        recovered_vals = results_df[f'recovered_{param}'].values
+        real_vals = df_real[param].values
+
+        distributions = {
+            'Recovered': recovered_vals,
+            'Real Fitted': real_vals
+        }
+
+        colors = {
+            'Recovered': '#1f77b4',  # Blue
+            'Real Fitted': '#ff7f0e'  # Orange
+        }
+
+        # Plot KDE comparison
+        plot_kde_comparison(ax, distributions, colors=colors)
+
+        ax.set_xlabel(param.capitalize(), fontsize=11)
+        ax.set_ylabel('Density', fontsize=11)
+        ax.set_title(f'{param.capitalize()} Distribution', fontsize=12, fontweight='bold')
+        ax.legend(fontsize=10)
+
+    # Hide unused subplots
+    for idx in range(n_params, len(axes)):
+        axes[idx].axis('off')
+
+    fig.suptitle(f'{model.upper()} Parameter Distributions', fontsize=16, fontweight='bold')
+    fig.tight_layout()
+    fig.savefig(output_dir / 'parameter_distributions.png', dpi=300, bbox_inches='tight')
+    plt.close(fig)
+
+
+# =============================================================================
+# Main CLI
+# =============================================================================
+
+def main():
+    """
+    Command-line interface for parameter recovery analysis.
+
+    Runs complete recovery pipeline:
+    1. Sample true parameters uniformly from MLE bounds
+    2. Generate synthetic trial-level data
+    3. Fit via MLE (same procedure as real data)
+    4. Compute recovery metrics (r, RMSE, bias)
+    5. Save results to CSV
+    6. Generate visualization plots
+
+    Pass/fail criterion: Pearson r >= 0.80 per parameter (Senta et al., 2025)
+    """
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description='Parameter recovery analysis for RLWM models (Senta et al. methodology)',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Q-learning recovery with 50 subjects, 10 datasets
+  python scripts/fitting/model_recovery.py --model qlearning --n-subjects 50 --n-datasets 10
+
+  # WM-RL M3 recovery with GPU acceleration
+  python scripts/fitting/model_recovery.py --model wmrl_m3 --n-subjects 100 --n-datasets 10 --use-gpu
+
+  # Quick test with 10 subjects, 1 dataset
+  python scripts/fitting/model_recovery.py --model wmrl --n-subjects 10 --n-datasets 1 --seed 42
+        """
+    )
+    parser.add_argument('--model', type=str, required=True,
+                        choices=['qlearning', 'wmrl', 'wmrl_m3'],
+                        help='Model to test recovery')
+    parser.add_argument('--n-subjects', type=int, default=50,
+                        help='Number of synthetic subjects per dataset (default: 50)')
+    parser.add_argument('--n-datasets', type=int, default=10,
+                        help='Number of independent datasets (default: 10)')
+    parser.add_argument('--seed', type=int, default=42,
+                        help='Random seed for reproducibility (default: 42)')
+    parser.add_argument('--use-gpu', action='store_true',
+                        help='Use GPU acceleration if available')
+    parser.add_argument('--output-dir', type=str, default='output/recovery',
+                        help='Output directory for results (default: output/recovery)')
+    parser.add_argument('--figures-dir', type=str, default='figures/recovery',
+                        help='Output directory for figures (default: figures/recovery)')
+    parser.add_argument('--real-params', type=str, default=None,
+                        help='Path to real fitted parameters CSV for distribution comparison')
+    parser.add_argument('--quiet', action='store_true',
+                        help='Suppress progress output')
+    args = parser.parse_args()
+
+    # Create output directories
+    output_dir = Path(args.output_dir) / args.model
+    figures_dir = Path(args.figures_dir) / args.model
+    output_dir.mkdir(parents=True, exist_ok=True)
+    figures_dir.mkdir(parents=True, exist_ok=True)
+
+    # Print configuration
+    if not args.quiet:
+        print("=" * 80)
+        print("PARAMETER RECOVERY ANALYSIS")
+        print("=" * 80)
+        print(f"Model:        {args.model}")
+        print(f"N subjects:   {args.n_subjects}")
+        print(f"N datasets:   {args.n_datasets}")
+        print(f"Seed:         {args.seed}")
+        print(f"Output dir:   {output_dir}")
+        print(f"Figures dir:  {figures_dir}")
+
+        # Check GPU availability
+        if args.use_gpu:
+            try:
+                devices = jax.devices('gpu')
+                print(f"GPU:          {len(devices)} device(s) available")
+            except RuntimeError:
+                print("GPU:          Requested but not available, using CPU")
+        else:
+            print("GPU:          Not requested (using CPU)")
+
+        print("=" * 80)
+        print()
+
+    # Run recovery
+    if not args.quiet:
+        print("Running parameter recovery pipeline...")
+
+    results_df = run_parameter_recovery(
+        model=args.model,
+        n_subjects=args.n_subjects,
+        n_datasets=args.n_datasets,
+        seed=args.seed,
+        use_gpu=args.use_gpu,
+        verbose=not args.quiet
+    )
+
+    # Compute metrics
+    if not args.quiet:
+        print("\nComputing recovery metrics...")
+
+    metrics_df = compute_recovery_metrics(results_df, args.model)
+
+    # Save CSVs
+    results_path = output_dir / 'recovery_results.csv'
+    metrics_path = output_dir / 'recovery_metrics.csv'
+
+    results_df.to_csv(results_path, index=False)
+    metrics_df.to_csv(metrics_path, index=False)
+
+    if not args.quiet:
+        print(f"Saved results:  {results_path}")
+        print(f"Saved metrics:  {metrics_path}")
+
+    # Generate plots
+    if not args.quiet:
+        print("\nGenerating visualization plots...")
+
+    plot_recovery_scatter(results_df, metrics_df, args.model, figures_dir)
+
+    if not args.quiet:
+        print(f"Saved scatter plots: {figures_dir}/")
+
+    plot_distribution_comparison(results_df, args.real_params, args.model, figures_dir)
+
+    if not args.quiet:
+        print(f"Saved distribution plots: {figures_dir}/")
+
+    # Print summary table
+    if not args.quiet:
+        print("\n" + "=" * 80)
+        print("RECOVERY METRICS SUMMARY")
+        print("=" * 80)
+        print(metrics_df.to_string(index=False))
+        print("=" * 80)
+
+    # Determine exit code
+    all_passed = (metrics_df['pass_fail'] == 'PASS').all()
+
+    if all_passed:
+        if not args.quiet:
+            print("\n✓ ALL PARAMETERS PASSED (r >= 0.80)")
+            print("  Recovery quality is excellent.")
+        return 0
+    else:
+        failed_params = metrics_df[metrics_df['pass_fail'] == 'FAIL']['parameter'].tolist()
+        if not args.quiet:
+            print(f"\n✗ SOME PARAMETERS FAILED: {', '.join(failed_params)}")
+            print("  Recovery quality needs improvement.")
+        return 1
+
+
+# =============================================================================
 # Testing
 # =============================================================================
 
-if __name__ == '__main__':
+def run_tests():
+    """Run module tests (when called directly without arguments)."""
     print("Testing parameter recovery module...")
 
     # Test 1: Parameter sampling
@@ -498,3 +852,13 @@ if __name__ == '__main__':
     print("\n" + "=" * 80)
     print("ALL TESTS PASSED!")
     print("=" * 80)
+
+
+if __name__ == '__main__':
+    import sys
+    if len(sys.argv) == 1:
+        # No arguments - run tests
+        run_tests()
+    else:
+        # Has arguments - run CLI
+        sys.exit(main())
