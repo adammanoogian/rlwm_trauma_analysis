@@ -66,10 +66,12 @@ Plans:
   4. Scatter plots are generated showing true vs. recovered parameters with r-squared annotations
   5. Recovery results CSV contains true parameters, recovered parameters, and metrics in structured format
   6. Script 11 invokes recovery pipeline and reports pass/fail against r >= 0.80 criterion
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 05-01: TBD
+- [ ] 05-01-PLAN.md — Core recovery pipeline (synthetic data generator + recovery loop + metrics)
+- [ ] 05-02-PLAN.md — CLI, output, and visualization (argparse CLI + CSV output + scatter/KDE plots)
+- [ ] 05-03-PLAN.md — Script 11 wrapper + end-to-end verification
 
 ### Phase 6: Cluster Monitoring
 **Goal**: GPU utilization monitoring and memory checkpoint persistence for cluster execution
@@ -110,6 +112,6 @@ Phases execute in numeric order: 4 → 5 → 6 → 7
 | 2. MLE Infrastructure | v1.0 | 2/2 | Complete | 2026-01-30 |
 | 3. Model Comparison | v1.0 | 2/2 | Complete | 2026-01-30 |
 | 4. Regression Visualization | v2.0 | 2/2 | Complete | 2026-02-06 |
-| 5. Parameter Recovery | v2.0 | 0/TBD | Not started | - |
+| 5. Parameter Recovery | v2.0 | 0/3 | Planned | - |
 | 6. Cluster Monitoring | v2.0 | 0/TBD | Not started | - |
 | 7. Publication Polish | v2.0 | 0/TBD | Not started | - |
