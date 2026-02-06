@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-05)
 ## Current Position
 
 Phase: 5 of 7 (Parameter Recovery)
-Plan: 1 of 6 complete
+Plan: 2 of 3 complete
 Status: In progress
-Last activity: 2026-02-06 — Completed 05-01-PLAN.md
+Last activity: 2026-02-06 — Completed 05-02-PLAN.md
 
-Progress: [███░░░░░░░] 30% (v2: 1/4 phases complete, 3/10 total plans complete)
+Progress: [████░░░░░░] 40% (v2: 1/4 phases complete, 4/10 total plans complete)
 
 ## Performance Metrics
 
@@ -33,9 +33,9 @@ Progress: [███░░░░░░░] 30% (v2: 1/4 phases complete, 3/10 to
 | 3 | 2 | 52 min | 26 min |
 
 **v2 Milestone:**
-- Total plans completed: 3
-- Average duration: 24 min
-- Total execution time: 73 min
+- Total plans completed: 4
+- Average duration: 22 min
+- Total execution time: 86 min
 - Timeline: Started 2026-02-05
 
 **By Phase:**
@@ -43,7 +43,7 @@ Progress: [███░░░░░░░] 30% (v2: 1/4 phases complete, 3/10 to
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 4 | 2/2 | 37 min | 19 min | ✓
-| 5 | 1/6 | 36 min | 36 min |
+| 5 | 2/3 | 49 min | 25 min |
 
 ## Accumulated Context
 
@@ -78,6 +78,10 @@ See PROJECT.md Key Decisions table for full history.
 - Fixed beta=50 in synthetic data (matches real fitting for identifiability)
 - Synthetic sona_id starts at 90000 (avoids collision with real data)
 - Pass participant_id as int to prepare_participant_data (matches int64 column type)
+- Generic plotting utilities follow ax-based pattern for composability
+- PASS/FAIL badge based on r >= 0.80 threshold (Senta et al., 2025)
+- Distribution comparison plots for sanity checking synthetic data realism
+- Exit code 0 if all params pass, 1 if any fail (for automation)
 
 ### Pending Todos
 
@@ -90,5 +94,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-06
-Stopped at: Completed 05-01-PLAN.md (parameter recovery core pipeline)
+Stopped at: Completed 05-02-PLAN.md (CLI, CSV output, visualization for parameter recovery)
 Resume file: None
