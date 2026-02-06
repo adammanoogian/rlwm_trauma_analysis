@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-05)
 ## Current Position
 
 Phase: 5 of 7 (Parameter Recovery & PPC)
-Plan: 3 of 5 complete
-Status: Parameter Recovery done, PPC plans added
-Last activity: 2026-02-06 — Added PPC requirements and plans (05-04, 05-05)
+Plan: 4 of 5 complete
+Status: Parameter Recovery done, PPC mode implemented
+Last activity: 2026-02-06 — Completed 05-04-PLAN.md (PPC mode implementation)
 
-Progress: [████░░░░░░] 42% (v2: 1/4 phases complete, 5/12 total plans complete)
+Progress: [█████░░░░░] 50% (v2: 1/4 phases complete, 6/12 total plans complete)
 
 ## Performance Metrics
 
@@ -33,9 +33,9 @@ Progress: [████░░░░░░] 42% (v2: 1/4 phases complete, 5/12 to
 | 3 | 2 | 52 min | 26 min |
 
 **v2 Milestone:**
-- Total plans completed: 5
-- Average duration: 23 min
-- Total execution time: 116 min
+- Total plans completed: 6
+- Average duration: 22 min
+- Total execution time: 131 min
 - Timeline: Started 2026-02-05
 
 **By Phase:**
@@ -43,7 +43,7 @@ Progress: [████░░░░░░] 42% (v2: 1/4 phases complete, 5/12 to
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 4 | 2/2 | 37 min | 19 min | ✓
-| 5 | 3/5 | 79 min | 26 min | ◆
+| 5 | 4/5 | 94 min | 24 min | ◆
 
 ## Accumulated Context
 
@@ -84,6 +84,10 @@ See PROJECT.md Key Decisions table for full history.
 - Exit code 0 if all params pass, 1 if any fail (for automation)
 - Script 11 as thin wrapper calling model_recovery functions (no code duplication)
 - Multi-model support with --model all for batch validation
+- PPC mode outputs to output/ppc/ and figures/ppc/ (separate from recovery artifacts)
+- Auto-detect fitted params path from model name if not specified in PPC mode
+- Use participant sona_id as seed for reproducible PPC synthetic data
+- Behavioral metrics: overall accuracy, set-size accuracy, learning curve, post-reversal
 
 ### Pending Todos
 
@@ -95,6 +99,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-02-06 (Added PPC to Phase 5)
-Stopped at: Ready to execute plans 05-04 and 05-05 (PPC)
+Last session: 2026-02-06 19:45:00
+Stopped at: Completed 05-04-PLAN.md (PPC mode implementation)
 Resume file: None
