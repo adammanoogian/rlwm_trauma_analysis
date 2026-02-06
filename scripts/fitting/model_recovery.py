@@ -328,6 +328,81 @@ def generate_synthetic_participant(
 # Posterior Predictive Check
 # =============================================================================
 
+def compare_behavior(real_data: pd.DataFrame, synthetic_data: pd.DataFrame) -> pd.DataFrame:
+    """
+    Compare behavioral metrics between real and synthetic data.
+
+    Computes per Wilson & Collins (2019) / Palminteri et al. (2017):
+    - Overall accuracy
+    - Accuracy by set size
+    - Learning curve (early vs late blocks)
+    - Post-reversal accuracy (if detectable)
+
+    Parameters
+    ----------
+    real_data : pd.DataFrame
+        Real trial data (task_trials_long.csv format)
+    synthetic_data : pd.DataFrame
+        Synthetic trial data (same format)
+
+    Returns
+    -------
+    pd.DataFrame
+        Comparison table with source (real/synthetic) and metrics
+    """
+    metrics = []
+
+    for source, data in [('real', real_data), ('synthetic', synthetic_data)]:
+        row = {'source': source}
+
+        # Overall accuracy
+        row['overall_accuracy'] = data['reward'].mean()
+
+        # Accuracy by set size
+        for ss in [2, 3, 5, 6]:
+            ss_data = data[data['set_size'] == ss]
+            if len(ss_data) > 0:
+                row[f'accuracy_ss{ss}'] = ss_data['reward'].mean()
+            else:
+                row[f'accuracy_ss{ss}'] = np.nan
+
+        # Learning curve: early (first 7 blocks) vs late (last 7 blocks)
+        blocks = sorted(data['block'].unique())
+        if len(blocks) >= 14:
+            early_blocks = blocks[:7]
+            late_blocks = blocks[-7:]
+            row['accuracy_early'] = data[data['block'].isin(early_blocks)]['reward'].mean()
+            row['accuracy_late'] = data[data['block'].isin(late_blocks)]['reward'].mean()
+            row['learning_effect'] = row['accuracy_late'] - row['accuracy_early']
+        else:
+            row['accuracy_early'] = np.nan
+            row['accuracy_late'] = np.nan
+            row['learning_effect'] = np.nan
+
+        # Post-reversal accuracy (trials 1-5 after reversal)
+        # This requires identifying reversal points - simplified version:
+        # Use first 5 trials of each block as proxy for post-reversal
+        first_trials = data.groupby(['sona_id', 'block']).head(5)
+        row['post_reversal_accuracy'] = first_trials['reward'].mean()
+
+        metrics.append(row)
+
+    comparison_df = pd.DataFrame(metrics)
+
+    # Add difference row
+    real_row = comparison_df[comparison_df['source'] == 'real'].iloc[0]
+    syn_row = comparison_df[comparison_df['source'] == 'synthetic'].iloc[0]
+
+    diff_row = {'source': 'difference'}
+    for col in comparison_df.columns:
+        if col != 'source' and not pd.isna(real_row[col]) and not pd.isna(syn_row[col]):
+            diff_row[col] = syn_row[col] - real_row[col]
+
+    comparison_df = pd.concat([comparison_df, pd.DataFrame([diff_row])], ignore_index=True)
+
+    return comparison_df
+
+
 def run_posterior_predictive_check(
     model: str,
     fitted_params_path: str,
