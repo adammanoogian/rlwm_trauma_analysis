@@ -1,0 +1,19 @@
+{
+  "model": "qlearning",
+  "n_participants": 45,
+  "n_starts": 50,
+  "total_time_s": 2222.1230244636536,
+  "total_time_min": 37.03538374106089,
+  "avg_time_per_participant_s": 49.380511654747856,
+  "jit_compilation_time_s": 48.30829858779907,
+  "steady_state_avg_s": 49.276032507419586,
+  "n_jobs": 1,
+  "peak_memory_mb": 2180.21875,
+  "initial_memory_mb": 521.74609375,
+  "memory_increase_mb": 1658.47265625,
+  "timestamp": "2026-02-05T23:50:55.775971",
+  "seed": 42,
+  "data_file": "output/task_trials_long.csv",
+  "n_converged": 45,
+  "convergence_rate": 1.0
+}

@@ -1,0 +1,78 @@
+============================================================
+RLWM MLE Fitting - Single Model (M3)
+============================================================
+Job ID: 50991451
+Node: m3e114
+Partition: comp
+Model: qlearning
+Limit: 5
+Start time: Wed Feb  4 08:36:24 PM AEDT 2026
+============================================================
+Thread settings: OMP/MKL/OPENBLAS/NUMEXPR = 4 threads each
+XLA settings: single-threaded LLVM compilation + single-threaded Eigen
+Debug flags: DISABLED (uncomment in script for debugging)
+
+Validating environment...
+Environment OK: all packages available
+
+Running: python scripts/fitting/fit_mle.py --model qlearning --data output/task_trials_long.csv --output output/mle/ --n-starts 20 --seed 42 --limit 5
+
+=== PRE-FIT MEMORY STATE ===
+[20:36:33] MEMORY (PRE-FIT): Mem:           1.5Ti       113Gi       1.2Ti        19Mi       161Gi       1.4Ti
+               total        used        free      shared  buff/cache   available
+Mem:         1547327      116261     1277067          19      165013     1431065
+Swap:              0           0           0
+
+Using taskset -c 0 to limit LLVM compilation to single CPU...
+
+=== POST-FIT MEMORY STATE ===
+[20:36:33] MEMORY (POST-FIT): Mem:           1.5Ti       113Gi       1.2Ti        19Mi       161Gi       1.4Ti
+               total        used        free      shared  buff/cache   available
+Mem:         1547327      116265     1277063          19      165013     1431061
+Swap:              0           0           0
+
+============================================================
+JOB RESOURCE METRICS
+============================================================
+Command run: sbatch cluster/run_mle_single.slurm
+Model: qlearning
+Limit: 5
+Thread settings: OMP=4, MKL=4
+
+========================================
+SLURM JOB METRICS REPORT (Single Model)
+========================================
+Job ID: 50991451
+Job Name: rlwm_mle_single
+Node: m3e114
+Partition: comp
+
+REQUESTED RESOURCES:
+  CPUs: 16
+  Memory: 65536
+  Time Limit: 
+
+CONFIGURATION:
+  Model: qlearning
+  Limit: 5
+  OMP_NUM_THREADS: 4
+  MKL_NUM_THREADS: 4
+
+TIMING:
+  Start: Wed Feb  4 08:36:24 PM AEDT 2026
+  End: Wed Feb  4 08:36:33 PM AEDT 2026
+
+ACTUAL RESOURCE USAGE (sacct):
+JobID           Elapsed     MaxRSS  MaxVMSize     ReqMem  AllocCPUS   TotalCPU      State 
+------------ ---------- ---------- ---------- ---------- ---------- ---------- ---------- 
+50991451       00:00:11                              64G         16   00:00:00    RUNNING 
+50991451.ba+   00:00:11                                          16   00:00:00    RUNNING 
+50991451.ex+   00:00:11                                          16   00:00:00    RUNNING 
+
+========================================
+
+Metrics saved to: output/mle/job_metrics_single_50991451.txt
+============================================================
+Complete!
+End time: Wed Feb  4 08:36:33 PM AEDT 2026
+============================================================

@@ -30,8 +30,45 @@ Updated: 2026-01-20 - Added epsilon noise, fixed beta=50
 import jax
 import jax.numpy as jnp
 from jax import lax
-from typing import Tuple, Dict, Any
+from typing import Tuple, Dict, Any, Optional
 import numpy as np
+import time
+
+
+# =============================================================================
+# TIMING AND DEBUGGING UTILITIES
+# =============================================================================
+
+def log_gpu_memory(label: str) -> Optional[Dict]:
+    """
+    Log GPU memory usage for debugging.
+
+    This is useful for identifying memory leaks or excessive allocation
+    during JAX optimization. Only works with JAX 0.4.1+ and CUDA.
+
+    Args:
+        label: Description of checkpoint (e.g., "PRE-OPTIMIZATION")
+
+    Returns:
+        Dictionary with memory stats, or None if unavailable
+    """
+    try:
+        # Force pending computations to complete
+        devices = jax.devices()
+        if devices and hasattr(devices[0], 'synchronize'):
+            devices[0].synchronize()
+
+        # Get memory stats (JAX 0.4.1+)
+        if hasattr(devices[0], 'memory_stats'):
+            stats = devices[0].memory_stats()
+            print(f"[GPU-MEM] {label}: "
+                  f"used={stats.get('bytes_in_use', 0)/1e9:.2f}GB, "
+                  f"peak={stats.get('peak_bytes_in_use', 0)/1e9:.2f}GB")
+            return stats
+    except Exception as e:
+        # Silently skip if not available
+        pass
+    return None
 
 # =============================================================================
 # CONSTANTS (following Senta et al., 2025)
@@ -39,6 +76,161 @@ import numpy as np
 FIXED_BETA = 50.0  # Fixed inverse temperature during learning for identifiability
 DEFAULT_EPSILON = 0.05  # Default epsilon noise
 NUM_ACTIONS = 3  # Number of possible actions
+MAX_TRIALS_PER_BLOCK = 100  # Fixed block size for JAX compilation efficiency
+MAX_BLOCKS = 17  # Fixed number of blocks for JAX compilation efficiency (actual max in data)
+
+
+# =============================================================================
+# BLOCK PADDING UTILITIES (for JAX compilation efficiency)
+# =============================================================================
+
+def pad_block_to_max(
+    stimuli: jnp.ndarray,
+    actions: jnp.ndarray,
+    rewards: jnp.ndarray,
+    max_trials: int = MAX_TRIALS_PER_BLOCK,
+    set_sizes: jnp.ndarray = None
+) -> tuple:
+    """
+    Pad block arrays to fixed length with mask for JAX compilation efficiency.
+
+    JAX's XLA compiler generates different machine code for different array shapes.
+    By padding all blocks to the same size, we ensure JAX compiles only ONE kernel
+    that gets reused across all blocks and participants. This reduces compilation
+    from ~5 per participant (one per unique block size) to 1 total.
+
+    The mask ensures mathematical equivalence:
+    - mask[t] = 1.0 for real trials → included in likelihood
+    - mask[t] = 0.0 for padding → zeroed out, no effect on result
+
+    Parameters
+    ----------
+    stimuli : array, shape (n_trials,)
+        Stimulus indices for real trials
+    actions : array, shape (n_trials,)
+        Action indices for real trials
+    rewards : array, shape (n_trials,)
+        Rewards for real trials
+    max_trials : int
+        Target padded length (default: 100)
+    set_sizes : array, shape (n_trials,), optional
+        Set sizes for WM-RL models (will be padded if provided)
+
+    Returns
+    -------
+    tuple
+        If set_sizes is None:
+            (stimuli_padded, actions_padded, rewards_padded, mask)
+        If set_sizes provided:
+            (stimuli_padded, actions_padded, rewards_padded, set_sizes_padded, mask)
+        All arrays have shape (max_trials,)
+        mask[t] = 1.0 for real trials, 0.0 for padding
+    """
+    n_real = len(stimuli)
+    n_pad = max_trials - n_real
+
+    if n_pad < 0:
+        raise ValueError(
+            f"Block has {n_real} trials, exceeding max_trials={max_trials}. "
+            f"Increase MAX_TRIALS_PER_BLOCK constant."
+        )
+
+    # Create mask: 1 for real trials, 0 for padding
+    mask = jnp.concatenate([jnp.ones(n_real), jnp.zeros(n_pad)])
+
+    # Pad arrays with zeros (values don't matter since mask will zero them out)
+    stimuli_padded = jnp.concatenate([stimuli, jnp.zeros(n_pad, dtype=stimuli.dtype)])
+    actions_padded = jnp.concatenate([actions, jnp.zeros(n_pad, dtype=actions.dtype)])
+    rewards_padded = jnp.concatenate([rewards, jnp.zeros(n_pad, dtype=rewards.dtype)])
+
+    if set_sizes is not None:
+        set_sizes_padded = jnp.concatenate([set_sizes, jnp.ones(n_pad, dtype=set_sizes.dtype)])
+        return stimuli_padded, actions_padded, rewards_padded, set_sizes_padded, mask
+
+    return stimuli_padded, actions_padded, rewards_padded, mask
+
+
+def pad_blocks_to_max(
+    stimuli_blocks: list,
+    actions_blocks: list,
+    rewards_blocks: list,
+    masks_blocks: list,
+    max_blocks: int = MAX_BLOCKS,
+    set_sizes_blocks: list = None
+) -> tuple:
+    """
+    Pad block lists to fixed length for consistent JAX compilation.
+
+    JAX's XLA compiler generates different machine code for different array shapes.
+    When participants have different numbers of blocks (e.g., 3 vs 21), JAX recompiles
+    for each unique shape. This can cause:
+    - Excessive compilation time (~30s per unique shape)
+    - Memory fragmentation when compiling in parallel
+    - LLVM compilation errors under memory pressure
+
+    By padding all participants to the same number of blocks, we ensure JAX compiles
+    ONE kernel that gets reused across all participants. Empty blocks use mask=0
+    and contribute nothing to the likelihood calculation.
+
+    Parameters
+    ----------
+    stimuli_blocks : list of arrays
+        List of stimulus arrays per block (each shape: max_trials,)
+    actions_blocks : list of arrays
+        List of action arrays per block
+    rewards_blocks : list of arrays
+        List of reward arrays per block
+    masks_blocks : list of arrays
+        List of mask arrays per block (1.0 for real trials, 0.0 for padding)
+    max_blocks : int
+        Target number of blocks (default: MAX_BLOCKS=25)
+    set_sizes_blocks : list of arrays, optional
+        List of set size arrays per block (for WM-RL models)
+
+    Returns
+    -------
+    tuple
+        (stimuli_padded, actions_padded, rewards_padded, masks_padded, set_sizes_padded)
+        All lists have length max_blocks. Empty blocks have all-zero arrays with mask=0.
+
+    Notes
+    -----
+    - Empty (padding) blocks have mask=0 for all trials, so they contribute 0 to likelihood
+    - This is mathematically equivalent to not having those blocks at all
+    - The mask ensures Q-updates and WM-updates are also skipped for padding blocks
+    """
+    n_current = len(stimuli_blocks)
+    n_pad = max_blocks - n_current
+
+    if n_pad <= 0:
+        # Already at or over max, return as-is
+        return (stimuli_blocks, actions_blocks, rewards_blocks,
+                masks_blocks, set_sizes_blocks)
+
+    # Get the shape of existing blocks (should be MAX_TRIALS_PER_BLOCK=100)
+    trials_per_block = stimuli_blocks[0].shape[0]
+
+    # Create empty padded block (all zeros, all masked out)
+    empty_stimuli = jnp.zeros(trials_per_block, dtype=jnp.int32)
+    empty_actions = jnp.zeros(trials_per_block, dtype=jnp.int32)
+    empty_rewards = jnp.zeros(trials_per_block, dtype=jnp.float32)
+    empty_mask = jnp.zeros(trials_per_block, dtype=jnp.float32)  # All masked out
+
+    # Extend lists with empty blocks
+    stimuli_padded = list(stimuli_blocks) + [empty_stimuli] * n_pad
+    actions_padded = list(actions_blocks) + [empty_actions] * n_pad
+    rewards_padded = list(rewards_blocks) + [empty_rewards] * n_pad
+    masks_padded = list(masks_blocks) + [empty_mask] * n_pad
+
+    if set_sizes_blocks is not None:
+        # Use set_size=1 for padding to avoid division by zero in omega calculation
+        empty_set_sizes = jnp.ones(trials_per_block, dtype=jnp.int32)
+        set_sizes_padded = list(set_sizes_blocks) + [empty_set_sizes] * n_pad
+    else:
+        set_sizes_padded = None
+
+    return (stimuli_padded, actions_padded, rewards_padded,
+            masks_padded, set_sizes_padded)
 
 
 def softmax_policy(q_values: jnp.ndarray, beta: float) -> jnp.ndarray:
@@ -172,7 +364,8 @@ def q_learning_block_likelihood(
     epsilon: float = DEFAULT_EPSILON,
     num_stimuli: int = 6,
     num_actions: int = 3,
-    q_init: float = 0.5
+    q_init: float = 0.5,
+    mask: jnp.ndarray = None
 ) -> float:
     """
     Compute log-likelihood for Q-learning on a SINGLE BLOCK.
@@ -183,6 +376,11 @@ def q_learning_block_likelihood(
     Following Senta et al. (2025):
     - Beta is fixed at 50 for parameter identifiability
     - Epsilon noise is applied to capture random responding
+
+    Supports masked padding for JAX compilation efficiency:
+    - When mask is provided, only trials with mask[t]=1 contribute to likelihood
+    - Padding trials (mask[t]=0) are ignored in both likelihood and Q-updates
+    - This allows fixed-size compilation while preserving mathematical equivalence
 
     Parameters
     ----------
@@ -204,6 +402,9 @@ def q_learning_block_likelihood(
         Number of possible actions
     q_init : float
         Initial Q-value for all state-action pairs
+    mask : array, shape (n_trials,), optional
+        Mask for padded blocks: 1.0 for real trials, 0.0 for padding.
+        If None, all trials are treated as real (backward compatible).
 
     Returns
     -------
@@ -219,6 +420,16 @@ def q_learning_block_likelihood(
     ...     stimuli, actions, rewards,
     ...     alpha_pos=0.3, alpha_neg=0.1, epsilon=0.05
     ... )
+
+    # With padding (same result for real trials):
+    >>> mask = jnp.array([1., 1., 1., 1., 1., 0., 0., 0.])  # 5 real + 3 padding
+    >>> stimuli_pad = jnp.concatenate([stimuli, jnp.zeros(3, dtype=jnp.int32)])
+    >>> # ... pad other arrays similarly
+    >>> log_lik_padded = q_learning_block_likelihood(
+    ...     stimuli_pad, actions_pad, rewards_pad,
+    ...     alpha_pos=0.3, alpha_neg=0.1, epsilon=0.05, mask=mask
+    ... )
+    >>> assert jnp.allclose(log_lik, log_lik_padded)  # Mathematical equivalence
     """
     # Initialize Q-table
     Q_init = jnp.ones((num_stimuli, num_actions)) * q_init
@@ -226,13 +437,17 @@ def q_learning_block_likelihood(
     # Initial carry: (Q_table, accumulated_log_likelihood)
     init_carry = (Q_init, 0.0)
 
-    # Prepare inputs for scan
-    scan_inputs = (stimuli, actions, rewards)
+    # If no mask provided, all trials are valid (backward compatibility)
+    if mask is None:
+        mask = jnp.ones(len(stimuli))
+
+    # Prepare inputs for scan (include mask)
+    scan_inputs = (stimuli, actions, rewards, mask)
 
     # Create step function with parameters bound
     def step_fn(carry, inputs):
         Q_table, log_lik_accum = carry
-        stimulus, action, reward = inputs
+        stimulus, action, reward, valid = inputs
 
         # Get Q-values and compute probabilities with fixed beta
         q_vals = Q_table[stimulus]
@@ -243,17 +458,23 @@ def q_learning_block_likelihood(
 
         log_prob = jnp.log(noisy_probs[action] + 1e-8)
 
+        # Mask log probability: padding trials contribute 0 to likelihood
+        log_prob_masked = log_prob * valid
+
         # Compute prediction error and update
         q_current = Q_table[stimulus, action]
         delta = reward - q_current
         alpha = jnp.where(delta > 0, alpha_pos, alpha_neg)
         q_updated = q_current + alpha * delta
 
-        # Immutable update
-        Q_table_new = Q_table.at[stimulus, action].set(q_updated)
-        log_lik_new = log_lik_accum + log_prob
+        # Conditional Q-update: only update for valid trials
+        # For padding trials, keep Q-table unchanged
+        Q_table_new = Q_table.at[stimulus, action].set(
+            jnp.where(valid, q_updated, q_current)
+        )
+        log_lik_new = log_lik_accum + log_prob_masked
 
-        return (Q_table_new, log_lik_new), log_prob
+        return (Q_table_new, log_lik_new), log_prob_masked
 
     # Run scan over trials
     (Q_final, log_lik_total), log_probs = lax.scan(step_fn, init_carry, scan_inputs)
@@ -271,6 +492,7 @@ def q_learning_multiblock_likelihood(
     num_stimuli: int = 6,
     num_actions: int = 3,
     q_init: float = 0.5,
+    masks_blocks: list = None,
     verbose: bool = False,
     participant_id: str = None
 ) -> float:
@@ -283,6 +505,12 @@ def q_learning_multiblock_likelihood(
     Following Senta et al. (2025):
     - Beta is fixed at 50 (not a parameter)
     - Epsilon noise captures random responding
+
+    PERFORMANCE NOTE: This function uses jax.lax.fori_loop instead of a Python
+    for-loop. This is critical for GPU performance because:
+    1. Python loops launch separate GPU kernels per iteration (17,000+ launches)
+    2. JAX cannot fuse operations across Python loop boundaries
+    3. fori_loop compiles the entire loop into ONE XLA computation
 
     Parameters
     ----------
@@ -302,6 +530,9 @@ def q_learning_multiblock_likelihood(
         State/action space dimensions
     q_init : float
         Initial Q-value for all state-action pairs
+    masks_blocks : list of arrays, optional
+        List of mask arrays, one per block. Each mask has 1.0 for real
+        trials and 0.0 for padding. If None, no masking is applied.
     verbose : bool
         Print block-by-block progress
     participant_id : str
@@ -323,33 +554,70 @@ def q_learning_multiblock_likelihood(
     ...     alpha_pos=0.3, alpha_neg=0.1, epsilon=0.05
     ... )
     """
-    total_log_lik = 0.0
     num_blocks = len(stimuli_blocks)
 
     if verbose:
         print(f"\n  >> Processing {num_blocks} blocks for participant {participant_id}...")
 
-    for block_idx, (stim_block, act_block, rew_block) in enumerate(zip(stimuli_blocks, actions_blocks, rewards_blocks)):
-        if verbose and block_idx == 0:
-            print(f"     [Block 1/{num_blocks}] Compiling JAX likelihood (first time only)...", flush=True)
-        elif verbose and block_idx % 5 == 0:
-            print(f"     [Block {block_idx+1}/{num_blocks}] Processing...", flush=True)
+    # Check if blocks are uniformly sized (for JAX-native fori_loop)
+    # This is the case when data comes from prepare_participant_data with padding
+    block_sizes = [len(b) for b in stimuli_blocks]
+    blocks_uniform = len(set(block_sizes)) == 1
 
-        block_log_lik = q_learning_block_likelihood(
-            stimuli=stim_block,
-            actions=act_block,
-            rewards=rew_block,
-            alpha_pos=alpha_pos,
-            alpha_neg=alpha_neg,
-            epsilon=epsilon,
-            num_stimuli=num_stimuli,
-            num_actions=num_actions,
-            q_init=q_init
-        )
-        total_log_lik += block_log_lik
+    if blocks_uniform and masks_blocks is not None:
+        # FAST PATH: Use JAX-native fori_loop for padded data
+        # This compiles into a single XLA computation for massive GPU speedup
 
-        if verbose and block_idx == 0:
-            print(f"     [Block 1/{num_blocks}] Compiled! Log-lik: {float(block_log_lik):.2f}", flush=True)
+        # Stack all blocks into arrays for JAX-native loop
+        stimuli_stacked = jnp.stack(stimuli_blocks)    # Shape: (n_blocks, max_trials)
+        actions_stacked = jnp.stack(actions_blocks)    # Shape: (n_blocks, max_trials)
+        rewards_stacked = jnp.stack(rewards_blocks)    # Shape: (n_blocks, max_trials)
+        masks_stacked = jnp.stack(masks_blocks)        # Shape: (n_blocks, max_trials)
+
+        # Define the loop body for fori_loop
+        def body_fn(block_idx, total_ll):
+            block_ll = q_learning_block_likelihood(
+                stimuli=stimuli_stacked[block_idx],
+                actions=actions_stacked[block_idx],
+                rewards=rewards_stacked[block_idx],
+                alpha_pos=alpha_pos,
+                alpha_neg=alpha_neg,
+                epsilon=epsilon,
+                num_stimuli=num_stimuli,
+                num_actions=num_actions,
+                q_init=q_init,
+                mask=masks_stacked[block_idx]
+            )
+            return total_ll + block_ll
+
+        # Use JAX-native fori_loop
+        total_log_lik = lax.fori_loop(0, num_blocks, body_fn, 0.0)
+
+    else:
+        # FALLBACK PATH: Python loop for variable-sized blocks (backward compatibility)
+        # This is slower on GPU but handles arbitrary block sizes
+        total_log_lik = 0.0
+
+        # Handle case where masks_blocks is not provided
+        if masks_blocks is None:
+            masks_blocks = [None] * num_blocks
+
+        for block_idx, (stim_block, act_block, rew_block, mask_block) in enumerate(
+            zip(stimuli_blocks, actions_blocks, rewards_blocks, masks_blocks)
+        ):
+            block_log_lik = q_learning_block_likelihood(
+                stimuli=stim_block,
+                actions=act_block,
+                rewards=rew_block,
+                alpha_pos=alpha_pos,
+                alpha_neg=alpha_neg,
+                epsilon=epsilon,
+                num_stimuli=num_stimuli,
+                num_actions=num_actions,
+                q_init=q_init,
+                mask=mask_block
+            )
+            total_log_lik += block_log_lik
 
     if verbose:
         print(f"  >> Total log-likelihood: {float(total_log_lik):.2f} ({num_blocks} blocks)\n", flush=True)
@@ -362,6 +630,65 @@ q_learning_block_likelihood_jit = jax.jit(
     q_learning_block_likelihood,
     static_argnums=(6, 7, 8)  # num_stimuli, num_actions, q_init are static (epsilon is at index 5)
 )
+
+
+def q_learning_multiblock_likelihood_stacked(
+    stimuli_stacked: jnp.ndarray,
+    actions_stacked: jnp.ndarray,
+    rewards_stacked: jnp.ndarray,
+    masks_stacked: jnp.ndarray,
+    alpha_pos: float,
+    alpha_neg: float,
+    epsilon: float = DEFAULT_EPSILON,
+    num_stimuli: int = 6,
+    num_actions: int = 3,
+    q_init: float = 0.5,
+) -> float:
+    """
+    FAST multiblock likelihood that takes pre-stacked arrays directly.
+
+    This version:
+    - Takes stacked arrays (n_blocks, max_trials) instead of lists
+    - Skips uniformity checks (assumes padded data)
+    - Avoids list/restack overhead inside JIT
+
+    Use this for GPU optimization when data is already padded to fixed shapes.
+
+    Parameters
+    ----------
+    stimuli_stacked : array, shape (n_blocks, max_trials)
+    actions_stacked : array, shape (n_blocks, max_trials)
+    rewards_stacked : array, shape (n_blocks, max_trials)
+    masks_stacked : array, shape (n_blocks, max_trials)
+        Mask with 1.0 for real trials, 0.0 for padding
+    alpha_pos, alpha_neg, epsilon : float
+        Model parameters
+    num_stimuli, num_actions, q_init : int/float
+        Static parameters
+
+    Returns
+    -------
+    float
+        Total log-likelihood summed across all blocks
+    """
+    num_blocks = stimuli_stacked.shape[0]
+
+    def body_fn(block_idx, total_ll):
+        block_ll = q_learning_block_likelihood(
+            stimuli=stimuli_stacked[block_idx],
+            actions=actions_stacked[block_idx],
+            rewards=rewards_stacked[block_idx],
+            alpha_pos=alpha_pos,
+            alpha_neg=alpha_neg,
+            epsilon=epsilon,
+            num_stimuli=num_stimuli,
+            num_actions=num_actions,
+            q_init=q_init,
+            mask=masks_stacked[block_idx]
+        )
+        return total_ll + block_ll
+
+    return lax.fori_loop(0, num_blocks, body_fn, 0.0)
 
 
 def prepare_block_data(
@@ -451,7 +778,7 @@ def test_single_block():
         alpha_pos, alpha_neg, epsilon
     )
 
-    print(f"✓ Single block log-likelihood: {log_lik:.2f}")
+    print(f"[OK] Single block log-likelihood: {log_lik:.2f}")
     print(f"  Average log-prob per trial: {log_lik / n_trials:.3f}")
 
     # Test JIT compilation
@@ -460,7 +787,7 @@ def test_single_block():
         alpha_pos, alpha_neg, epsilon
     )
 
-    print(f"✓ JIT-compiled result matches: {jnp.allclose(log_lik, log_lik_jit)}")
+    print(f"[OK] JIT-compiled result matches: {jnp.allclose(log_lik, log_lik_jit)}")
 
     return log_lik
 
@@ -500,7 +827,7 @@ def test_multiblock():
     )
 
     total_trials = sum(block_sizes)
-    print(f"✓ Multi-block log-likelihood: {log_lik:.2f}")
+    print(f"[OK] Multi-block log-likelihood: {log_lik:.2f}")
     print(f"  Total trials: {total_trials}")
     print(f"  Average log-prob per trial: {log_lik / total_trials:.3f}")
 
@@ -509,7 +836,7 @@ def test_multiblock():
         q_learning_block_likelihood(stim, act, rew, alpha_pos, alpha_neg, epsilon)
         for stim, act, rew in zip(stimuli_blocks, actions_blocks, rewards_blocks)
     ])
-    print(f"✓ Matches manual block summation: {jnp.allclose(log_lik, manual_sum)}")
+    print(f"[OK] Matches manual block summation: {jnp.allclose(log_lik, manual_sum)}")
 
     return log_lik
 
@@ -532,7 +859,8 @@ def wmrl_block_likelihood(
     num_stimuli: int = 6,
     num_actions: int = 3,
     q_init: float = 0.5,
-    wm_init: float = 1.0 / 3.0  # WM baseline = 1/nA (uniform)
+    wm_init: float = 1.0 / 3.0,  # WM baseline = 1/nA (uniform)
+    mask: jnp.ndarray = None
 ) -> float:
     """
     Compute log-likelihood for WM-RL hybrid model on a SINGLE BLOCK.
@@ -553,6 +881,10 @@ def wmrl_block_likelihood(
     3. Apply epsilon noise: p_noisy = ε/nA + (1-ε)·p
     4. Update WM: WM(s,a) ← r (immediate overwrite)
     5. Update Q: Q(s,a) ← Q(s,a) + α·(r - Q(s,a))
+
+    Supports masked padding for JAX compilation efficiency:
+    - When mask is provided, only trials with mask[t]=1 contribute to likelihood
+    - Padding trials (mask[t]=0) are ignored in likelihood, Q-updates, and WM-updates
 
     Parameters
     ----------
@@ -584,6 +916,9 @@ def wmrl_block_likelihood(
         Initial Q-values
     wm_init : float
         Initial WM values (baseline = 1/nA for uniform)
+    mask : array, shape (n_trials,), optional
+        Mask for padded blocks: 1.0 for real trials, 0.0 for padding.
+        If None, all trials are treated as real (backward compatible).
 
     Returns
     -------
@@ -598,15 +933,21 @@ def wmrl_block_likelihood(
     # Initial carry: (Q, WM, WM_0, log_likelihood)
     init_carry = (Q_init, WM_init, WM_0, 0.0)
 
-    # Prepare inputs
-    scan_inputs = (stimuli, actions, rewards, set_sizes)
+    # If no mask provided, all trials are valid (backward compatibility)
+    if mask is None:
+        mask = jnp.ones(len(stimuli))
+
+    # Prepare inputs (include mask)
+    scan_inputs = (stimuli, actions, rewards, set_sizes, mask)
 
     def step_fn(carry, inputs):
         Q_table, WM_table, WM_baseline, log_lik_accum = carry
-        stimulus, action, reward, set_size = inputs
+        stimulus, action, reward, set_size, valid = inputs
 
         # =================================================================
         # 1. DECAY WM: All values move toward baseline
+        # Note: Decay happens for all trials (valid or not) to maintain
+        # consistent WM state, but WM updates are masked below.
         # =================================================================
         WM_decayed = (1 - phi) * WM_table + phi * WM_baseline
 
@@ -638,24 +979,32 @@ def wmrl_block_likelihood(
         # Log probability of observed action
         log_prob = jnp.log(noisy_probs[action] + 1e-8)
 
-        # =================================================================
-        # 4. UPDATE WM: Immediate overwrite
-        # =================================================================
-        WM_updated = WM_decayed.at[stimulus, action].set(reward)
+        # Mask log probability: padding trials contribute 0 to likelihood
+        log_prob_masked = log_prob * valid
 
         # =================================================================
-        # 5. UPDATE Q-TABLE: Asymmetric learning
+        # 4. UPDATE WM: Immediate overwrite (masked)
+        # =================================================================
+        wm_current = WM_decayed[stimulus, action]
+        WM_updated = WM_decayed.at[stimulus, action].set(
+            jnp.where(valid, reward, wm_current)
+        )
+
+        # =================================================================
+        # 5. UPDATE Q-TABLE: Asymmetric learning (masked)
         # =================================================================
         q_current = Q_table[stimulus, action]
         delta = reward - q_current
         alpha = jnp.where(delta > 0, alpha_pos, alpha_neg)
         q_updated = q_current + alpha * delta
-        Q_updated = Q_table.at[stimulus, action].set(q_updated)
+        Q_updated = Q_table.at[stimulus, action].set(
+            jnp.where(valid, q_updated, q_current)
+        )
 
         # Accumulate log-likelihood
-        log_lik_new = log_lik_accum + log_prob
+        log_lik_new = log_lik_accum + log_prob_masked
 
-        return (Q_updated, WM_updated, WM_baseline, log_lik_new), log_prob
+        return (Q_updated, WM_updated, WM_baseline, log_lik_new), log_prob_masked
 
     # Run scan over trials
     (Q_final, WM_final, _, log_lik_total), log_probs = lax.scan(step_fn, init_carry, scan_inputs)
@@ -678,7 +1027,8 @@ def wmrl_m3_block_likelihood(
     num_stimuli: int = 6,
     num_actions: int = 3,
     q_init: float = 0.5,
-    wm_init: float = 1.0 / 3.0  # WM baseline = 1/nA (uniform)
+    wm_init: float = 1.0 / 3.0,  # WM baseline = 1/nA (uniform)
+    mask: jnp.ndarray = None
 ) -> float:
     """
     Compute log-likelihood for WM-RL M3 model with perseveration on a SINGLE BLOCK.
@@ -712,6 +1062,10 @@ def wmrl_m3_block_likelihood(
     3. Update WM: WM(s,a) ← r (immediate overwrite)
     4. Update Q: Q(s,a) ← Q(s,a) + α·(r - Q(s,a))
 
+    Supports masked padding for JAX compilation efficiency:
+    - When mask is provided, only trials with mask[t]=1 contribute to likelihood
+    - Padding trials (mask[t]=0) are ignored in likelihood, Q/WM/perseveration updates
+
     Parameters
     ----------
     stimuli : array, shape (n_trials,)
@@ -744,6 +1098,9 @@ def wmrl_m3_block_likelihood(
         Initial Q-values
     wm_init : float
         Initial WM values (baseline = 1/nA for uniform)
+    mask : array, shape (n_trials,), optional
+        Mask for padded blocks: 1.0 for real trials, 0.0 for padding.
+        If None, all trials are treated as real (backward compatible).
 
     Returns
     -------
@@ -759,12 +1116,16 @@ def wmrl_m3_block_likelihood(
     # last_action = -1 (no previous action at block start)
     init_carry = (Q_init, WM_init, WM_0, 0.0, -1)
 
-    # Prepare inputs
-    scan_inputs = (stimuli, actions, rewards, set_sizes)
+    # If no mask provided, all trials are valid (backward compatibility)
+    if mask is None:
+        mask = jnp.ones(len(stimuli))
+
+    # Prepare inputs (include mask)
+    scan_inputs = (stimuli, actions, rewards, set_sizes, mask)
 
     def step_fn(carry, inputs):
         Q_table, WM_table, WM_baseline, log_lik_accum, last_action = carry
-        stimulus, action, reward, set_size = inputs
+        stimulus, action, reward, set_size, valid = inputs
 
         # =================================================================
         # 1. DECAY WM: All values move toward baseline
@@ -814,25 +1175,37 @@ def wmrl_m3_block_likelihood(
         # Log probability of observed action
         log_prob = jnp.log(noisy_probs[action] + 1e-8)
 
-        # =================================================================
-        # 6. UPDATE WM: Immediate overwrite
-        # =================================================================
-        WM_updated = WM_decayed.at[stimulus, action].set(reward)
+        # Mask log probability: padding trials contribute 0 to likelihood
+        log_prob_masked = log_prob * valid
 
         # =================================================================
-        # 7. UPDATE Q-TABLE: Asymmetric learning
+        # 3. UPDATE WM: Immediate overwrite (masked)
+        # =================================================================
+        wm_current = WM_decayed[stimulus, action]
+        WM_updated = WM_decayed.at[stimulus, action].set(
+            jnp.where(valid, reward, wm_current)
+        )
+
+        # =================================================================
+        # 4. UPDATE Q-TABLE: Asymmetric learning (masked)
         # =================================================================
         q_current = Q_table[stimulus, action]
         delta = reward - q_current
         alpha = jnp.where(delta > 0, alpha_pos, alpha_neg)
         q_updated = q_current + alpha * delta
-        Q_updated = Q_table.at[stimulus, action].set(q_updated)
+        Q_updated = Q_table.at[stimulus, action].set(
+            jnp.where(valid, q_updated, q_current)
+        )
 
         # Accumulate log-likelihood
-        log_lik_new = log_lik_accum + log_prob
+        log_lik_new = log_lik_accum + log_prob_masked
+
+        # Update last_action only for valid trials (masked perseveration)
+        # For padding trials, keep the previous last_action
+        new_last_action = jnp.where(valid, action, last_action).astype(jnp.int32)
 
         # Return updated carry with current action as last_action for next trial
-        return (Q_updated, WM_updated, WM_baseline, log_lik_new, action), log_prob
+        return (Q_updated, WM_updated, WM_baseline, log_lik_new, new_last_action), log_prob_masked
 
     # Run scan over trials
     (Q_final, WM_final, _, log_lik_total, _), log_probs = lax.scan(step_fn, init_carry, scan_inputs)
@@ -855,6 +1228,7 @@ def wmrl_multiblock_likelihood(
     num_actions: int = 3,
     q_init: float = 0.5,
     wm_init: float = 1.0 / 3.0,  # WM baseline = 1/nA (uniform)
+    masks_blocks: list = None,
     verbose: bool = False,
     participant_id: str = None
 ) -> float:
@@ -866,6 +1240,12 @@ def wmrl_multiblock_likelihood(
     Following Senta et al. (2025):
     - Beta is fixed at 50 (not a parameter)
     - Epsilon noise captures random responding
+
+    PERFORMANCE NOTE: This function uses jax.lax.fori_loop instead of a Python
+    for-loop. This is critical for GPU performance because:
+    1. Python loops launch separate GPU kernels per iteration (17,000+ launches)
+    2. JAX cannot fuse operations across Python loop boundaries
+    3. fori_loop compiles the entire loop into ONE XLA computation
 
     Parameters
     ----------
@@ -895,6 +1275,9 @@ def wmrl_multiblock_likelihood(
         Initial Q-values
     wm_init : float
         Initial WM values (baseline = 1/nA for uniform)
+    masks_blocks : list of arrays, optional
+        List of mask arrays, one per block. Each mask has 1.0 for real
+        trials and 0.0 for padding. If None, no masking is applied.
     verbose : bool
         Print progress
     participant_id : str
@@ -905,25 +1288,111 @@ def wmrl_multiblock_likelihood(
     float
         Total log-likelihood summed across blocks
     """
-    total_log_lik = 0.0
     num_blocks = len(stimuli_blocks)
 
     if verbose:
         print(f"\n  >> Processing {num_blocks} blocks for participant {participant_id}...")
 
-    for block_idx, (stim_block, act_block, rew_block, set_block) in enumerate(
-        zip(stimuli_blocks, actions_blocks, rewards_blocks, set_sizes_blocks)
-    ):
-        if verbose and block_idx == 0:
-            print(f"     [Block 1/{num_blocks}] Compiling WM-RL JAX likelihood (first time only)...", flush=True)
-        elif verbose and block_idx % 5 == 0:
-            print(f"     [Block {block_idx+1}/{num_blocks}] Processing...", flush=True)
+    # Check if blocks are uniformly sized (for JAX-native fori_loop)
+    block_sizes = [len(b) for b in stimuli_blocks]
+    blocks_uniform = len(set(block_sizes)) == 1
 
-        block_log_lik = wmrl_block_likelihood(
-            stimuli=stim_block,
-            actions=act_block,
-            rewards=rew_block,
-            set_sizes=set_block,
+    if blocks_uniform and masks_blocks is not None:
+        # FAST PATH: Use JAX-native fori_loop for padded data
+        stimuli_stacked = jnp.stack(stimuli_blocks)
+        actions_stacked = jnp.stack(actions_blocks)
+        rewards_stacked = jnp.stack(rewards_blocks)
+        set_sizes_stacked = jnp.stack(set_sizes_blocks)
+        masks_stacked = jnp.stack(masks_blocks)
+
+        def body_fn(block_idx, total_ll):
+            block_ll = wmrl_block_likelihood(
+                stimuli=stimuli_stacked[block_idx],
+                actions=actions_stacked[block_idx],
+                rewards=rewards_stacked[block_idx],
+                set_sizes=set_sizes_stacked[block_idx],
+                alpha_pos=alpha_pos,
+                alpha_neg=alpha_neg,
+                phi=phi,
+                rho=rho,
+                capacity=capacity,
+                epsilon=epsilon,
+                num_stimuli=num_stimuli,
+                num_actions=num_actions,
+                q_init=q_init,
+                wm_init=wm_init,
+                mask=masks_stacked[block_idx]
+            )
+            return total_ll + block_ll
+
+        total_log_lik = lax.fori_loop(0, num_blocks, body_fn, 0.0)
+
+    else:
+        # FALLBACK PATH: Python loop for variable-sized blocks
+        total_log_lik = 0.0
+
+        if masks_blocks is None:
+            masks_blocks = [None] * num_blocks
+
+        for block_idx, (stim_block, act_block, rew_block, set_block, mask_block) in enumerate(
+            zip(stimuli_blocks, actions_blocks, rewards_blocks, set_sizes_blocks, masks_blocks)
+        ):
+            block_log_lik = wmrl_block_likelihood(
+                stimuli=stim_block,
+                actions=act_block,
+                rewards=rew_block,
+                set_sizes=set_block,
+                alpha_pos=alpha_pos,
+                alpha_neg=alpha_neg,
+                phi=phi,
+                rho=rho,
+                capacity=capacity,
+                epsilon=epsilon,
+                num_stimuli=num_stimuli,
+                num_actions=num_actions,
+                q_init=q_init,
+                wm_init=wm_init,
+                mask=mask_block
+            )
+            total_log_lik += block_log_lik
+
+    if verbose:
+        print(f"  >> Total log-likelihood: {float(total_log_lik):.2f} ({num_blocks} blocks)\n", flush=True)
+
+    return total_log_lik
+
+
+def wmrl_multiblock_likelihood_stacked(
+    stimuli_stacked: jnp.ndarray,
+    actions_stacked: jnp.ndarray,
+    rewards_stacked: jnp.ndarray,
+    set_sizes_stacked: jnp.ndarray,
+    masks_stacked: jnp.ndarray,
+    alpha_pos: float,
+    alpha_neg: float,
+    phi: float,
+    rho: float,
+    capacity: float,
+    epsilon: float = DEFAULT_EPSILON,
+    num_stimuli: int = 6,
+    num_actions: int = 3,
+    q_init: float = 0.5,
+    wm_init: float = 1.0 / 3.0,
+) -> float:
+    """
+    FAST WM-RL multiblock likelihood that takes pre-stacked arrays directly.
+
+    See wmrl_multiblock_likelihood for full documentation.
+    This version avoids list/restack overhead inside JIT.
+    """
+    num_blocks = stimuli_stacked.shape[0]
+
+    def body_fn(block_idx, total_ll):
+        block_ll = wmrl_block_likelihood(
+            stimuli=stimuli_stacked[block_idx],
+            actions=actions_stacked[block_idx],
+            rewards=rewards_stacked[block_idx],
+            set_sizes=set_sizes_stacked[block_idx],
             alpha_pos=alpha_pos,
             alpha_neg=alpha_neg,
             phi=phi,
@@ -933,17 +1402,12 @@ def wmrl_multiblock_likelihood(
             num_stimuli=num_stimuli,
             num_actions=num_actions,
             q_init=q_init,
-            wm_init=wm_init
+            wm_init=wm_init,
+            mask=masks_stacked[block_idx]
         )
-        total_log_lik += block_log_lik
+        return total_ll + block_ll
 
-        if verbose and block_idx == 0:
-            print(f"     [Block 1/{num_blocks}] Compiled! Log-lik: {float(block_log_lik):.2f}", flush=True)
-
-    if verbose:
-        print(f"  >> Total log-likelihood: {float(total_log_lik):.2f} ({num_blocks} blocks)\n", flush=True)
-
-    return total_log_lik
+    return lax.fori_loop(0, num_blocks, body_fn, 0.0)
 
 
 def wmrl_m3_multiblock_likelihood(
@@ -962,6 +1426,7 @@ def wmrl_m3_multiblock_likelihood(
     num_actions: int = 3,
     q_init: float = 0.5,
     wm_init: float = 1.0 / 3.0,  # WM baseline = 1/nA (uniform)
+    masks_blocks: list = None,
     verbose: bool = False,
     participant_id: str = None
 ) -> float:
@@ -981,6 +1446,12 @@ def wmrl_m3_multiblock_likelihood(
     - last_action resets to -1 (no previous action)
 
     When kappa=0, results match wmrl_multiblock_likelihood exactly (M2 model).
+
+    PERFORMANCE NOTE: This function uses jax.lax.fori_loop instead of a Python
+    for-loop. This is critical for GPU performance because:
+    1. Python loops launch separate GPU kernels per iteration (17,000+ launches)
+    2. JAX cannot fuse operations across Python loop boundaries
+    3. fori_loop compiles the entire loop into ONE XLA computation
 
     Parameters
     ----------
@@ -1012,6 +1483,9 @@ def wmrl_m3_multiblock_likelihood(
         Initial Q-values
     wm_init : float
         Initial WM values (baseline = 1/nA for uniform)
+    masks_blocks : list of arrays, optional
+        List of mask arrays, one per block. Each mask has 1.0 for real
+        trials and 0.0 for padding. If None, no masking is applied.
     verbose : bool
         Print progress
     participant_id : str
@@ -1022,25 +1496,114 @@ def wmrl_m3_multiblock_likelihood(
     float
         Total log-likelihood summed across blocks
     """
-    total_log_lik = 0.0
     num_blocks = len(stimuli_blocks)
 
     if verbose:
         print(f"\n  >> Processing {num_blocks} blocks for participant {participant_id}...")
 
-    for block_idx, (stim_block, act_block, rew_block, set_block) in enumerate(
-        zip(stimuli_blocks, actions_blocks, rewards_blocks, set_sizes_blocks)
-    ):
-        if verbose and block_idx == 0:
-            print(f"     [Block 1/{num_blocks}] Compiling WM-RL M3 JAX likelihood (first time only)...", flush=True)
-        elif verbose and block_idx % 5 == 0:
-            print(f"     [Block {block_idx+1}/{num_blocks}] Processing...", flush=True)
+    # Check if blocks are uniformly sized (for JAX-native fori_loop)
+    block_sizes = [len(b) for b in stimuli_blocks]
+    blocks_uniform = len(set(block_sizes)) == 1
 
-        block_log_lik = wmrl_m3_block_likelihood(
-            stimuli=stim_block,
-            actions=act_block,
-            rewards=rew_block,
-            set_sizes=set_block,
+    if blocks_uniform and masks_blocks is not None:
+        # FAST PATH: Use JAX-native fori_loop for padded data
+        stimuli_stacked = jnp.stack(stimuli_blocks)
+        actions_stacked = jnp.stack(actions_blocks)
+        rewards_stacked = jnp.stack(rewards_blocks)
+        set_sizes_stacked = jnp.stack(set_sizes_blocks)
+        masks_stacked = jnp.stack(masks_blocks)
+
+        def body_fn(block_idx, total_ll):
+            block_ll = wmrl_m3_block_likelihood(
+                stimuli=stimuli_stacked[block_idx],
+                actions=actions_stacked[block_idx],
+                rewards=rewards_stacked[block_idx],
+                set_sizes=set_sizes_stacked[block_idx],
+                alpha_pos=alpha_pos,
+                alpha_neg=alpha_neg,
+                phi=phi,
+                rho=rho,
+                capacity=capacity,
+                kappa=kappa,
+                epsilon=epsilon,
+                num_stimuli=num_stimuli,
+                num_actions=num_actions,
+                q_init=q_init,
+                wm_init=wm_init,
+                mask=masks_stacked[block_idx]
+            )
+            return total_ll + block_ll
+
+        total_log_lik = lax.fori_loop(0, num_blocks, body_fn, 0.0)
+
+    else:
+        # FALLBACK PATH: Python loop for variable-sized blocks
+        total_log_lik = 0.0
+
+        if masks_blocks is None:
+            masks_blocks = [None] * num_blocks
+
+        for block_idx, (stim_block, act_block, rew_block, set_block, mask_block) in enumerate(
+            zip(stimuli_blocks, actions_blocks, rewards_blocks, set_sizes_blocks, masks_blocks)
+        ):
+            block_log_lik = wmrl_m3_block_likelihood(
+                stimuli=stim_block,
+                actions=act_block,
+                rewards=rew_block,
+                set_sizes=set_block,
+                alpha_pos=alpha_pos,
+                alpha_neg=alpha_neg,
+                phi=phi,
+                rho=rho,
+                capacity=capacity,
+                kappa=kappa,
+                epsilon=epsilon,
+                num_stimuli=num_stimuli,
+                num_actions=num_actions,
+                q_init=q_init,
+                wm_init=wm_init,
+                mask=mask_block
+            )
+            total_log_lik += block_log_lik
+
+    if verbose:
+        print(f"  >> Total log-likelihood: {float(total_log_lik):.2f} ({num_blocks} blocks)\n", flush=True)
+
+    return total_log_lik
+
+
+def wmrl_m3_multiblock_likelihood_stacked(
+    stimuli_stacked: jnp.ndarray,
+    actions_stacked: jnp.ndarray,
+    rewards_stacked: jnp.ndarray,
+    set_sizes_stacked: jnp.ndarray,
+    masks_stacked: jnp.ndarray,
+    alpha_pos: float,
+    alpha_neg: float,
+    phi: float,
+    rho: float,
+    capacity: float,
+    kappa: float,
+    epsilon: float = DEFAULT_EPSILON,
+    num_stimuli: int = 6,
+    num_actions: int = 3,
+    q_init: float = 0.5,
+    wm_init: float = 1.0 / 3.0,
+) -> float:
+    """
+    FAST WM-RL M3 multiblock likelihood that takes pre-stacked arrays directly.
+
+    See wmrl_m3_multiblock_likelihood for full documentation.
+    This version avoids list/restack overhead inside JIT.
+    """
+    num_blocks = stimuli_stacked.shape[0]
+
+    def body_fn(block_idx, total_ll):
+        block_ll = wmrl_m3_block_likelihood(
+            stimuli=stimuli_stacked[block_idx],
+            actions=actions_stacked[block_idx],
+            rewards=rewards_stacked[block_idx],
+            set_sizes=set_sizes_stacked[block_idx],
             alpha_pos=alpha_pos,
             alpha_neg=alpha_neg,
             phi=phi,
@@ -1051,17 +1614,12 @@ def wmrl_m3_multiblock_likelihood(
             num_stimuli=num_stimuli,
             num_actions=num_actions,
             q_init=q_init,
-            wm_init=wm_init
+            wm_init=wm_init,
+            mask=masks_stacked[block_idx]
         )
-        total_log_lik += block_log_lik
+        return total_ll + block_ll
 
-        if verbose and block_idx == 0:
-            print(f"     [Block 1/{num_blocks}] Compiled! Log-lik: {float(block_log_lik):.2f}", flush=True)
-
-    if verbose:
-        print(f"  >> Total log-likelihood: {float(total_log_lik):.2f} ({num_blocks} blocks)\n", flush=True)
-
-    return total_log_lik
+    return lax.fori_loop(0, num_blocks, body_fn, 0.0)
 
 
 # JIT-compile WM-RL for performance
@@ -1106,7 +1664,7 @@ def test_wmrl_single_block():
         stimuli, actions, rewards, set_sizes, **params
     )
 
-    print(f"✓ WM-RL single block log-likelihood: {log_lik:.2f}")
+    print(f"[OK] WM-RL single block log-likelihood: {log_lik:.2f}")
     print(f"  Average log-prob per trial: {log_lik / n_trials:.3f}")
 
     # Test JIT compilation
@@ -1114,7 +1672,7 @@ def test_wmrl_single_block():
         stimuli, actions, rewards, set_sizes, **params
     )
 
-    print(f"✓ JIT-compiled result matches: {jnp.allclose(log_lik, log_lik_jit)}")
+    print(f"[OK] JIT-compiled result matches: {jnp.allclose(log_lik, log_lik_jit)}")
 
     return log_lik
 
@@ -1162,7 +1720,7 @@ def test_wmrl_multiblock():
     )
 
     total_trials = sum(block_sizes)
-    print(f"✓ WM-RL multi-block log-likelihood: {log_lik:.2f}")
+    print(f"[OK] WM-RL multi-block log-likelihood: {log_lik:.2f}")
     print(f"  Total trials: {total_trials}")
     print(f"  Average log-prob per trial: {log_lik / total_trials:.3f}")
 
@@ -1171,7 +1729,7 @@ def test_wmrl_multiblock():
         wmrl_block_likelihood(stim, act, rew, sets, **params)
         for stim, act, rew, sets in zip(stimuli_blocks, actions_blocks, rewards_blocks, set_sizes_blocks)
     ])
-    print(f"✓ Matches manual block summation: {jnp.allclose(log_lik, manual_sum)}")
+    print(f"[OK] Matches manual block summation: {jnp.allclose(log_lik, manual_sum)}")
 
     return log_lik
 
@@ -1254,6 +1812,208 @@ def test_wmrl_m3_backward_compatibility():
     return match
 
 
+# ============================================================================
+# PADDING EQUIVALENCE TESTS (Critical for verifying mask correctness)
+# ============================================================================
+
+def test_padding_equivalence_qlearning():
+    """
+    Verify padded and unpadded Q-learning likelihoods are mathematically equivalent.
+
+    This is a CRITICAL test: the mask must correctly zero out padding contributions
+    so that the likelihood is IDENTICAL regardless of padding.
+
+    Mathematical proof:
+    Original: L = Σₜ₌₁ⁿ log P(aₜ|sₜ)
+    Padded:   L = Σₜ₌₁¹⁰⁰ mask[t] × log P(aₜ|sₜ)
+                = Σₜ₌₁ⁿ 1×log P(...) + Σₜ₌ₙ₊₁¹⁰⁰ 0×log P(...)
+                = Σₜ₌₁ⁿ log P(aₜ|sₜ)  [OK] Identical
+    """
+    print("\nTesting Q-learning padding equivalence (CRITICAL)...")
+
+    key = jax.random.PRNGKey(42)
+    n_real_trials = 30
+
+    # Generate real trial data
+    stimuli = jax.random.randint(key, (n_real_trials,), 0, 6)
+    key, subkey = jax.random.split(key)
+    actions = jax.random.randint(subkey, (n_real_trials,), 0, 3)
+    key, subkey = jax.random.split(key)
+    rewards = jax.random.bernoulli(subkey, 0.7, (n_real_trials,)).astype(jnp.float32)
+
+    params = {'alpha_pos': 0.3, 'alpha_neg': 0.1, 'epsilon': 0.05}
+
+    # Unpadded likelihood (original)
+    log_lik_original = q_learning_block_likelihood(
+        stimuli, actions, rewards, **params
+    )
+
+    # Padded likelihood (with mask)
+    stimuli_pad, actions_pad, rewards_pad, mask = pad_block_to_max(
+        stimuli, actions, rewards, max_trials=100
+    )
+    log_lik_padded = q_learning_block_likelihood(
+        stimuli_pad, actions_pad, rewards_pad, **params, mask=mask
+    )
+
+    # Verify equivalence
+    match = jnp.allclose(log_lik_original, log_lik_padded, rtol=1e-6)
+    print(f"  Original (unpadded) log-lik: {log_lik_original:.8f}")
+    print(f"  Padded (with mask) log-lik:  {log_lik_padded:.8f}")
+    print(f"  Difference: {abs(float(log_lik_original - log_lik_padded)):.2e}")
+    print(f"[OK] Q-learning padding equivalence: {'PASSED' if match else 'FAILED'}")
+
+    assert match, "Q-learning padded/unpadded must be IDENTICAL!"
+    return match
+
+
+def test_padding_equivalence_wmrl():
+    """
+    Verify padded and unpadded WM-RL likelihoods are mathematically equivalent.
+    """
+    print("\nTesting WM-RL padding equivalence (CRITICAL)...")
+
+    key = jax.random.PRNGKey(123)
+    n_real_trials = 45
+
+    # Generate real trial data
+    stimuli = jax.random.randint(key, (n_real_trials,), 0, 6)
+    key, subkey = jax.random.split(key)
+    actions = jax.random.randint(subkey, (n_real_trials,), 0, 3)
+    key, subkey = jax.random.split(key)
+    rewards = jax.random.bernoulli(subkey, 0.7, (n_real_trials,)).astype(jnp.float32)
+    set_sizes = jnp.full((n_real_trials,), 5, dtype=jnp.int32)
+
+    params = {
+        'alpha_pos': 0.3, 'alpha_neg': 0.1, 'phi': 0.1,
+        'rho': 0.7, 'capacity': 4.0, 'epsilon': 0.05
+    }
+
+    # Unpadded likelihood (original)
+    log_lik_original = wmrl_block_likelihood(
+        stimuli, actions, rewards, set_sizes, **params
+    )
+
+    # Padded likelihood (with mask)
+    stimuli_pad, actions_pad, rewards_pad, set_sizes_pad, mask = pad_block_to_max(
+        stimuli, actions, rewards, max_trials=100, set_sizes=set_sizes
+    )
+    log_lik_padded = wmrl_block_likelihood(
+        stimuli_pad, actions_pad, rewards_pad, set_sizes_pad, **params, mask=mask
+    )
+
+    # Verify equivalence
+    match = jnp.allclose(log_lik_original, log_lik_padded, rtol=1e-6)
+    print(f"  Original (unpadded) log-lik: {log_lik_original:.8f}")
+    print(f"  Padded (with mask) log-lik:  {log_lik_padded:.8f}")
+    print(f"  Difference: {abs(float(log_lik_original - log_lik_padded)):.2e}")
+    print(f"[OK] WM-RL padding equivalence: {'PASSED' if match else 'FAILED'}")
+
+    assert match, "WM-RL padded/unpadded must be IDENTICAL!"
+    return match
+
+
+def test_padding_equivalence_wmrl_m3():
+    """
+    Verify padded and unpadded WM-RL M3 likelihoods are mathematically equivalent.
+    """
+    print("\nTesting WM-RL M3 padding equivalence (CRITICAL)...")
+
+    key = jax.random.PRNGKey(456)
+    n_real_trials = 60
+
+    # Generate real trial data
+    stimuli = jax.random.randint(key, (n_real_trials,), 0, 6)
+    key, subkey = jax.random.split(key)
+    actions = jax.random.randint(subkey, (n_real_trials,), 0, 3)
+    key, subkey = jax.random.split(key)
+    rewards = jax.random.bernoulli(subkey, 0.7, (n_real_trials,)).astype(jnp.float32)
+    set_sizes = jnp.full((n_real_trials,), 5, dtype=jnp.int32)
+
+    params = {
+        'alpha_pos': 0.3, 'alpha_neg': 0.1, 'phi': 0.1,
+        'rho': 0.7, 'capacity': 4.0, 'kappa': 0.3, 'epsilon': 0.05
+    }
+
+    # Unpadded likelihood (original)
+    log_lik_original = wmrl_m3_block_likelihood(
+        stimuli, actions, rewards, set_sizes, **params
+    )
+
+    # Padded likelihood (with mask)
+    stimuli_pad, actions_pad, rewards_pad, set_sizes_pad, mask = pad_block_to_max(
+        stimuli, actions, rewards, max_trials=100, set_sizes=set_sizes
+    )
+    log_lik_padded = wmrl_m3_block_likelihood(
+        stimuli_pad, actions_pad, rewards_pad, set_sizes_pad, **params, mask=mask
+    )
+
+    # Verify equivalence
+    match = jnp.allclose(log_lik_original, log_lik_padded, rtol=1e-6)
+    print(f"  Original (unpadded) log-lik: {log_lik_original:.8f}")
+    print(f"  Padded (with mask) log-lik:  {log_lik_padded:.8f}")
+    print(f"  Difference: {abs(float(log_lik_original - log_lik_padded)):.2e}")
+    print(f"[OK] WM-RL M3 padding equivalence: {'PASSED' if match else 'FAILED'}")
+
+    assert match, "WM-RL M3 padded/unpadded must be IDENTICAL!"
+    return match
+
+
+def test_multiblock_padding_equivalence():
+    """
+    Verify padding equivalence works across multiple blocks (full participant).
+    """
+    print("\nTesting multiblock padding equivalence...")
+
+    key = jax.random.PRNGKey(789)
+
+    # Create blocks of varying sizes (like real data: 30, 45, 75, 88, 90)
+    block_sizes = [30, 45, 75]
+    stimuli_blocks = []
+    actions_blocks = []
+    rewards_blocks = []
+
+    for size in block_sizes:
+        key, k1, k2, k3 = jax.random.split(key, 4)
+        stimuli_blocks.append(jax.random.randint(k1, (size,), 0, 6))
+        actions_blocks.append(jax.random.randint(k2, (size,), 0, 3))
+        rewards_blocks.append(jax.random.bernoulli(k3, 0.7, (size,)).astype(jnp.float32))
+
+    params = {'alpha_pos': 0.3, 'alpha_neg': 0.1, 'epsilon': 0.05}
+
+    # Unpadded multiblock likelihood
+    log_lik_original = q_learning_multiblock_likelihood(
+        stimuli_blocks, actions_blocks, rewards_blocks, **params
+    )
+
+    # Padded multiblock likelihood
+    stimuli_padded = []
+    actions_padded = []
+    rewards_padded = []
+    masks = []
+
+    for stim, act, rew in zip(stimuli_blocks, actions_blocks, rewards_blocks):
+        s_pad, a_pad, r_pad, mask = pad_block_to_max(stim, act, rew, max_trials=100)
+        stimuli_padded.append(s_pad)
+        actions_padded.append(a_pad)
+        rewards_padded.append(r_pad)
+        masks.append(mask)
+
+    log_lik_padded = q_learning_multiblock_likelihood(
+        stimuli_padded, actions_padded, rewards_padded,
+        masks_blocks=masks, **params
+    )
+
+    match = jnp.allclose(log_lik_original, log_lik_padded, rtol=1e-6)
+    print(f"  Original (variable sizes) log-lik: {log_lik_original:.8f}")
+    print(f"  Padded (fixed size 100) log-lik:   {log_lik_padded:.8f}")
+    print(f"  Difference: {abs(float(log_lik_original - log_lik_padded)):.2e}")
+    print(f"[OK] Multiblock padding equivalence: {'PASSED' if match else 'FAILED'}")
+
+    assert match, "Multiblock padded/unpadded must be IDENTICAL!"
+    return match
+
+
 if __name__ == "__main__":
     print("=" * 80)
     print("JAX Q-LEARNING LIKELIHOOD TESTS")
@@ -1275,6 +2035,15 @@ if __name__ == "__main__":
 
     test_wmrl_m3_single_block()
     test_wmrl_m3_backward_compatibility()
+
+    print("\n" + "=" * 80)
+    print("PADDING EQUIVALENCE TESTS (CRITICAL)")
+    print("=" * 80)
+
+    test_padding_equivalence_qlearning()
+    test_padding_equivalence_wmrl()
+    test_padding_equivalence_wmrl_m3()
+    test_multiblock_padding_equivalence()
 
     print("\n" + "=" * 80)
     print("ALL TESTS PASSED!")

@@ -1,0 +1,9 @@
+usage: fit_mle.py [-h] --model {qlearning,wmrl,wmrl_m3} --data DATA
+                  [--output OUTPUT] [--n-starts N_STARTS] [--seed SEED]
+                  [--quiet] [--include-practice] [--limit LIMIT]
+                  [--n-jobs N_JOBS] [--use-gpu]
+fit_mle.py: error: the following arguments are required: --data
+
+real	0m26.132s
+user	0m1.794s
+sys	0m1.060s

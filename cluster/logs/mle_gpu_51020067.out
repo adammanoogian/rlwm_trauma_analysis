@@ -1,0 +1,527 @@
+============================================================
+RLWM GPU-Accelerated MLE Fitting - M3 SLURM Job
+============================================================
+Job ID: 51020067
+Node: m3g112
+Partition: gpu
+GPU(s): 0
+Project: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis
+Start time: Thu Feb  5 11:13:39 PM AEDT 2026
+============================================================
+Activated rlwm_gpu by name
+
+Verifying GPU access...
+JAX devices: [CudaDevice(id=0)]
+GPU(s) available: [CudaDevice(id=0)]
+
+JAX cache: /scratch/fc37/aman0087/.jax_cache_gpu
+
+Cleaning up stale checkpoints...
+
+
+============================================================
+Fitting model: wmrl (GPU-accelerated)
+Started: Thu Feb  5 11:13:40 PM AEDT 2026
+============================================================
+GPU detected: [CudaDevice(id=0)]
+
+============================================================
+MLE Fitting: WMRL
+============================================================
+Data: output/task_trials_long.csv
+Random starts: 50
+Seed: 42
+Output: output/mle/
+Include practice: False
+Parallel workers: 1
+GPU acceleration: enabled
+Hessian diagnostics: disabled
+============================================================
+
+Loading data...
+  Total participants in data: 47
+  Excluded participants: 2 (insufficient data/duplicates)
+  Final sample: 45
+  Total trials: 34806
+
+[MEMORY] START: 522.7MB (psutil)
+
+============================================================
+MLE Fitting: WMRL
+============================================================
+Start time: 2026-02-05 23:13:44
+Participants: 45
+Random starts per participant: 50
+Parallel workers: 1
+============================================================
+
+Preparing participant data...
+  Prepared 10/45 participants...
+  Prepared 20/45 participants...
+  Prepared 30/45 participants...
+  Prepared 40/45 participants...
+  Data preparation complete (5.5s)
+
+
+[23:13:50] [  1/45] (  0.0%) Fitting 10000 (988 trials)
+      [1/5] Counting trials... done (0.00s)
+      [2/5] Preparing JAX arrays... done (0.02s)
+      [3/5] Creating objective functions... done (0.20s)
+      [4/5] Creating L-BFGS-B solver... done (0.01s)
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (5.40s, NLL=771.1)
+            Starts 2-50... done (total: 163.7s)
+            Optimizer: 49/50 scipy-converged, 1 hit maxiter
+            NLLs: best=724.6 | 3 within 1.0 | 3 within 5.0 | range=95.1
+[MEMORY] POST-JIT (compilation complete): 2079.7MB (psutil)
+      Result: [OK] NLL=724.6, R²=0.33, near_best=3, total=164.0s
+
+[23:16:34] [  2/45] (  2.2%) Fitting 9187 (990 trials) | ETA: 120.2min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (4.92s, NLL=877.4)
+            Starts 2-50... done (total: 160.0s)
+            Optimizer: 50/50 scipy-converged, 0 hit maxiter
+            NLLs: best=820.5 | 7 within 1.0 | 8 within 5.0 | range=60.1
+      Result: [OK] NLL=820.5, R²=0.25, near_best=7, total=160.0s
+
+[23:19:14] [  3/45] (  4.4%) Fitting 10002 (986 trials) | ETA: 114.7min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (3.15s, NLL=491.8)
+            Starts 2-50... done (total: 198.5s)
+            Optimizer: 50/50 scipy-converged, 0 hit maxiter
+            NLLs: best=466.8 | 5 within 1.0 | 5 within 5.0 | range=34.1
+      Result: [OK] NLL=466.8, R²=0.57, near_best=5, total=198.6s
+
+[23:22:32] [  4/45] (  6.7%) Fitting 10003 (973 trials) | ETA: 125.5min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (4.85s, NLL=660.5)
+            Starts 2-50... done (total: 167.8s)
+            Optimizer: 50/50 scipy-converged, 0 hit maxiter
+            NLLs: best=623.9 | 1 within 1.0 | 3 within 5.0 | range=95.5
+      Result: [OK] NLL=623.9, R²=0.42, near_best=1, total=167.8s
+
+[23:25:20] [  5/45] (  8.9%) Fitting 10004 (990 trials) | ETA: 119.9min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (4.29s, NLL=405.4)
+            Starts 2-50... done (total: 186.5s)
+            Optimizer: 50/50 scipy-converged, 0 hit maxiter
+            NLLs: best=394.3 | 1 within 1.0 | 10 within 5.0 | range=17.9
+      Result: [OK] NLL=394.3, R²=0.64, near_best=1, total=186.6s
+
+[23:28:27] [  6/45] ( 11.1%) Fitting 10005 (985 trials) | ETA: 118.8min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (5.17s, NLL=449.6)
+            Starts 2-50... done (total: 188.7s)
+            Optimizer: 50/50 scipy-converged, 0 hit maxiter
+            NLLs: best=410.3 | 3 within 1.0 | 3 within 5.0 | range=55.6
+      Result: [OK] NLL=410.3, R²=0.62, near_best=3, total=188.7s
+
+[23:31:35] [  7/45] ( 13.3%) Fitting 10006 (987 trials) | ETA: 117.2min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (5.73s, NLL=373.0)
+            Starts 2-50... done (total: 180.4s)
+            Optimizer: 50/50 scipy-converged, 0 hit maxiter
+            NLLs: best=349.7 | 1 within 1.0 | 1 within 5.0 | range=47.3
+      Result: [OK] NLL=349.7, R²=0.68, near_best=1, total=180.5s
+
+[23:34:36] [  8/45] ( 15.6%) Fitting 10007 (987 trials) | ETA: 114.2min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (2.96s, NLL=963.8)
+            Starts 2-50... done (total: 151.9s)
+            Optimizer: 50/50 scipy-converged, 0 hit maxiter
+            NLLs: best=903.7 | 2 within 1.0 | 6 within 5.0 | range=67.5
+      Result: [OK] NLL=903.7, R²=0.17, near_best=2, total=151.9s
+
+[23:37:08] [  9/45] ( 17.8%) Fitting 10016 (987 trials) | ETA: 108.7min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (4.55s, NLL=421.8)
+            Starts 2-50... done (total: 173.9s)
+            Optimizer: 50/50 scipy-converged, 0 hit maxiter
+            NLLs: best=403.7 | 2 within 1.0 | 2 within 5.0 | range=87.3
+      Result: [OK] NLL=403.7, R²=0.63, near_best=2, total=174.0s
+
+[23:40:02] [ 10/45] ( 20.0%) Fitting 10017 (986 trials) | ETA: 105.6min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (7.13s, NLL=409.2)
+            Starts 2-50... done (total: 175.8s)
+            Optimizer: 49/50 scipy-converged, 1 hit maxiter
+            NLLs: best=408.6 | 42 within 1.0 | 50 within 5.0 | range=2.6
+      Result: [OK] NLL=408.6, R²=0.62, near_best=42, total=175.8s
+
+    +----------------------------------------------------------
+    | PROGRESS: 10/45 (22%)
+    | Elapsed: 29.2min | Remaining: ~102.7min
+    | Converged: 10/10 (100%) | Avg: 176.0s/participant
+    | Memory: 2.11GB
+    +----------------------------------------------------------
+
+
+[23:42:58] [ 11/45] ( 22.2%) Fitting 10018 (986 trials) | ETA: 102.7min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (7.77s, NLL=560.2)
+            Starts 2-50... done (total: 176.6s)
+            Optimizer: 50/50 scipy-converged, 0 hit maxiter
+            NLLs: best=560.2 | 8 within 1.0 | 8 within 5.0 | range=93.8
+      Result: [OK] NLL=560.2, R²=0.48, near_best=8, total=176.6s
+
+[23:45:54] [ 12/45] ( 24.4%) Fitting 10024 (718 trials) | ETA: 99.8min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (4.44s, NLL=298.5)
+            Starts 2-50... done (total: 184.8s)
+            Optimizer: 50/50 scipy-converged, 0 hit maxiter
+            NLLs: best=282.6 | 7 within 1.0 | 7 within 5.0 | range=56.0
+      Result: [OK] NLL=282.6, R²=0.64, near_best=7, total=184.8s
+
+[23:48:59] [ 13/45] ( 26.7%) Fitting 10025 (414 trials) | ETA: 97.3min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (7.28s, NLL=285.2)
+            Starts 2-50... done (total: 198.1s)
+            Optimizer: 50/50 scipy-converged, 0 hit maxiter
+            NLLs: best=253.5 | 1 within 1.0 | 11 within 5.0 | range=51.1
+      Result: [OK] NLL=253.5, R²=0.44, near_best=1, total=198.2s
+
+[23:52:17] [ 14/45] ( 28.9%) Fitting 10027 (718 trials) | ETA: 95.3min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (4.96s, NLL=333.6)
+            Starts 2-50... done (total: 180.9s)
+            Optimizer: 50/50 scipy-converged, 0 hit maxiter
+            NLLs: best=285.6 | 3 within 1.0 | 3 within 5.0 | range=65.0
+      Result: [OK] NLL=285.6, R²=0.64, near_best=3, total=180.9s
+
+[23:55:18] [ 15/45] ( 31.1%) Fitting 10028 (699 trials) | ETA: 92.4min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (3.68s, NLL=707.7)
+            Starts 2-50... done (total: 140.4s)
+            Optimizer: 49/50 scipy-converged, 1 hit maxiter
+            NLLs: best=691.4 | 2 within 1.0 | 4 within 5.0 | range=42.2
+      Result: [OK] NLL=691.4, R²=0.10, near_best=2, total=140.4s
+
+[23:57:38] [ 16/45] ( 33.3%) Fitting 10029 (720 trials) | ETA: 88.0min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (5.50s, NLL=298.0)
+            Starts 2-50... done (total: 206.0s)
+            Optimizer: 50/50 scipy-converged, 0 hit maxiter
+            NLLs: best=276.4 | 4 within 1.0 | 6 within 5.0 | range=35.5
+      Result: [OK] NLL=276.4, R²=0.65, near_best=4, total=206.0s
+
+[00:01:04] [ 17/45] ( 35.6%) Fitting 10030 (716 trials) | ETA: 86.1min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (2.58s, NLL=271.2)
+            Starts 2-50... done (total: 212.0s)
+            Optimizer: 50/50 scipy-converged, 0 hit maxiter
+            NLLs: best=234.1 | 2 within 1.0 | 4 within 5.0 | range=43.5
+      Result: [OK] NLL=234.1, R²=0.70, near_best=2, total=212.0s
+
+[00:04:36] [ 18/45] ( 37.8%) Fitting 10031 (719 trials) | ETA: 84.1min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (4.40s, NLL=391.2)
+            Starts 2-50... done (total: 185.7s)
+            Optimizer: 50/50 scipy-converged, 0 hit maxiter
+            NLLs: best=367.7 | 1 within 1.0 | 5 within 5.0 | range=39.1
+      Result: [OK] NLL=367.7, R²=0.53, near_best=1, total=185.8s
+
+[00:07:42] [ 19/45] ( 40.0%) Fitting 10035 (717 trials) | ETA: 81.2min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (4.80s, NLL=361.3)
+            Starts 2-50... done (total: 165.2s)
+            Optimizer: 50/50 scipy-converged, 0 hit maxiter
+            NLLs: best=322.2 | 1 within 1.0 | 2 within 5.0 | range=55.6
+      Result: [OK] NLL=322.2, R²=0.59, near_best=1, total=165.3s
+
+[00:10:28] [ 20/45] ( 42.2%) Fitting 10036 (713 trials) | ETA: 77.8min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (3.91s, NLL=525.9)
+            Starts 2-50... done (total: 149.3s)
+            Optimizer: 49/50 scipy-converged, 1 hit maxiter
+            NLLs: best=498.5 | 1 within 1.0 | 1 within 5.0 | range=103.2
+      Result: [OK] NLL=498.5, R²=0.36, near_best=1, total=149.3s
+
+    +----------------------------------------------------------
+    | PROGRESS: 20/45 (44%)
+    | Elapsed: 59.2min | Remaining: ~74.2min
+    | Converged: 20/20 (100%) | Avg: 178.0s/participant
+    | Memory: 2.11GB
+    +----------------------------------------------------------
+
+
+[00:12:57] [ 21/45] ( 44.4%) Fitting 10039 (711 trials) | ETA: 74.2min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (3.56s, NLL=385.4)
+            Starts 2-50... done (total: 201.9s)
+            Optimizer: 50/50 scipy-converged, 0 hit maxiter
+            NLLs: best=375.7 | 8 within 1.0 | 11 within 5.0 | range=27.5
+      Result: [OK] NLL=375.7, R²=0.52, near_best=8, total=201.9s
+
+[00:16:19] [ 22/45] ( 46.7%) Fitting 10041 (696 trials) | ETA: 71.7min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (2.48s, NLL=672.6)
+            Starts 2-50... done (total: 138.0s)
+            Optimizer: 49/50 scipy-converged, 1 hit maxiter
+            NLLs: best=645.3 | 8 within 1.0 | 8 within 5.0 | range=55.7
+      Result: [OK] NLL=645.3, R²=0.16, near_best=8, total=138.0s
+
+[00:18:37] [ 23/45] ( 48.9%) Fitting 10043 (716 trials) | ETA: 68.0min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (5.95s, NLL=512.2)
+            Starts 2-50... done (total: 238.3s)
+            Optimizer: 50/50 scipy-converged, 0 hit maxiter
+            NLLs: best=507.6 | 7 within 1.0 | 36 within 5.0 | range=46.7
+      Result: [OK] NLL=507.6, R²=0.35, near_best=7, total=238.3s
+
+[00:22:35] [ 24/45] ( 51.1%) Fitting 10047 (717 trials) | ETA: 66.0min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (3.41s, NLL=472.7)
+            Starts 2-50... done (total: 136.7s)
+            Optimizer: 50/50 scipy-converged, 0 hit maxiter
+            NLLs: best=432.4 | 2 within 1.0 | 2 within 5.0 | range=97.9
+      Result: [OK] NLL=432.4, R²=0.45, near_best=2, total=136.8s
+
+[00:24:52] [ 25/45] ( 53.3%) Fitting 10048 (702 trials) | ETA: 62.4min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (6.34s, NLL=661.3)
+            Starts 2-50... done (total: 185.2s)
+            Optimizer: 50/50 scipy-converged, 0 hit maxiter
+            NLLs: best=535.7 | 1 within 1.0 | 4 within 5.0 | range=144.3
+      Result: [OK] NLL=535.7, R²=0.31, near_best=1, total=185.2s
+
+[00:27:57] [ 26/45] ( 55.6%) Fitting 10050 (717 trials) | ETA: 59.5min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (5.63s, NLL=457.7)
+            Starts 2-50... done (total: 199.4s)
+            Optimizer: 50/50 scipy-converged, 0 hit maxiter
+            NLLs: best=431.1 | 4 within 1.0 | 6 within 5.0 | range=52.2
+      Result: [OK] NLL=431.1, R²=0.45, near_best=4, total=199.4s
+
+[00:31:16] [ 27/45] ( 57.8%) Fitting 10051 (709 trials) | ETA: 56.8min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (5.19s, NLL=362.4)
+            Starts 2-50... done (total: 188.9s)
+            Optimizer: 50/50 scipy-converged, 0 hit maxiter
+            NLLs: best=338.9 | 1 within 1.0 | 1 within 5.0 | range=47.5
+      Result: [OK] NLL=338.9, R²=0.56, near_best=1, total=188.9s
+
+[00:34:25] [ 28/45] ( 60.0%) Fitting 10052 (709 trials) | ETA: 53.9min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (2.73s, NLL=513.7)
+            Starts 2-50... done (total: 125.7s)
+            Optimizer: 50/50 scipy-converged, 0 hit maxiter
+            NLLs: best=476.6 | 2 within 1.0 | 3 within 5.0 | range=39.2
+      Result: [OK] NLL=476.6, R²=0.39, near_best=2, total=125.7s
+
+[00:36:31] [ 29/45] ( 62.2%) Fitting 10055 (719 trials) | ETA: 50.3min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (6.63s, NLL=365.6)
+            Starts 2-50... done (total: 152.7s)
+            Optimizer: 50/50 scipy-converged, 0 hit maxiter
+            NLLs: best=353.2 | 1 within 1.0 | 11 within 5.0 | range=16.1
+      Result: [OK] NLL=353.2, R²=0.55, near_best=1, total=152.7s
+
+[00:39:04] [ 30/45] ( 64.4%) Fitting 10057 (712 trials) | ETA: 47.1min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (8.80s, NLL=488.4)
+            Starts 2-50... done (total: 153.9s)
+            Optimizer: 49/50 scipy-converged, 1 hit maxiter
+            NLLs: best=488.4 | 5 within 1.0 | 9 within 5.0 | range=79.1
+      Result: [OK] NLL=488.4, R²=0.38, near_best=5, total=153.9s
+
+    +----------------------------------------------------------
+    | PROGRESS: 30/45 (67%)
+    | Elapsed: 87.9min | Remaining: ~44.0min
+    | Converged: 30/30 (100%) | Avg: 176.0s/participant
+    | Memory: 1.99GB
+    +----------------------------------------------------------
+
+
+[00:41:38] [ 31/45] ( 66.7%) Fitting 10058 (697 trials) | ETA: 44.0min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (4.53s, NLL=508.6)
+            Starts 2-50... done (total: 175.9s)
+            Optimizer: 50/50 scipy-converged, 0 hit maxiter
+            NLLs: best=479.4 | 2 within 1.0 | 9 within 5.0 | range=60.4
+      Result: [OK] NLL=479.4, R²=0.37, near_best=2, total=175.9s
+
+[00:44:34] [ 32/45] ( 68.9%) Fitting 10059 (718 trials) | ETA: 41.1min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (6.45s, NLL=327.3)
+            Starts 2-50... done (total: 160.2s)
+            Optimizer: 49/50 scipy-converged, 1 hit maxiter
+            NLLs: best=310.7 | 4 within 1.0 | 4 within 5.0 | range=59.1
+      Result: [OK] NLL=310.7, R²=0.61, near_best=4, total=160.2s
+
+[00:47:14] [ 33/45] ( 71.1%) Fitting 10062 (718 trials) | ETA: 38.0min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (3.33s, NLL=189.1)
+            Starts 2-50... done (total: 161.8s)
+            Optimizer: 50/50 scipy-converged, 0 hit maxiter
+            NLLs: best=175.8 | 2 within 1.0 | 3 within 5.0 | range=13.3
+      Result: [OK] NLL=175.8, R²=0.78, near_best=2, total=161.8s
+
+[00:49:56] [ 34/45] ( 73.3%) Fitting 10063 (713 trials) | ETA: 35.0min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (5.19s, NLL=620.8)
+            Starts 2-50... done (total: 158.6s)
+            Optimizer: 49/50 scipy-converged, 1 hit maxiter
+            NLLs: best=594.0 | 7 within 1.0 | 7 within 5.0 | range=42.9
+      Result: [OK] NLL=594.0, R²=0.24, near_best=7, total=158.6s
+
+[00:52:34] [ 35/45] ( 75.6%) Fitting 10064 (712 trials) | ETA: 32.0min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (5.25s, NLL=476.5)
+            Starts 2-50... done (total: 189.4s)
+            Optimizer: 50/50 scipy-converged, 0 hit maxiter
+            NLLs: best=449.8 | 2 within 1.0 | 5 within 5.0 | range=41.3
+      Result: [OK] NLL=449.8, R²=0.42, near_best=2, total=189.4s
+
+[00:55:44] [ 36/45] ( 77.8%) Fitting 10065 (719 trials) | ETA: 29.2min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (5.33s, NLL=266.9)
+            Starts 2-50... done (total: 179.3s)
+            Optimizer: 50/50 scipy-converged, 0 hit maxiter
+            NLLs: best=263.3 | 3 within 1.0 | 50 within 5.0 | range=3.9
+      Result: [OK] NLL=263.3, R²=0.67, near_best=3, total=179.3s
+
+[00:58:43] [ 37/45] ( 80.0%) Fitting 10066 (706 trials) | ETA: 26.3min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (3.75s, NLL=302.2)
+            Starts 2-50... done (total: 158.8s)
+            Optimizer: 50/50 scipy-converged, 0 hit maxiter
+            NLLs: best=281.9 | 1 within 1.0 | 1 within 5.0 | range=20.3
+      Result: [OK] NLL=281.9, R²=0.64, near_best=1, total=158.8s
+
+[01:01:22] [ 38/45] ( 82.2%) Fitting 10067 (716 trials) | ETA: 23.3min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (5.55s, NLL=635.4)
+            Starts 2-50... done (total: 157.6s)
+            Optimizer: 50/50 scipy-converged, 0 hit maxiter
+            NLLs: best=596.0 | 4 within 1.0 | 4 within 5.0 | range=77.5
+      Result: [OK] NLL=596.0, R²=0.24, near_best=4, total=157.6s
+
+[01:03:59] [ 39/45] ( 84.4%) Fitting 10071 (720 trials) | ETA: 20.3min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (7.81s, NLL=317.2)
+            Starts 2-50... done (total: 178.3s)
+            Optimizer: 50/50 scipy-converged, 0 hit maxiter
+            NLLs: best=306.1 | 3 within 1.0 | 4 within 5.0 | range=33.8
+      Result: [OK] NLL=306.1, R²=0.61, near_best=3, total=178.3s
+
+[01:06:58] [ 40/45] ( 86.7%) Fitting 10072 (718 trials) | ETA: 17.4min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (4.25s, NLL=337.7)
+            Starts 2-50... done (total: 197.8s)
+            Optimizer: 50/50 scipy-converged, 0 hit maxiter
+            NLLs: best=307.3 | 3 within 1.0 | 5 within 5.0 | range=45.5
+      Result: [OK] NLL=307.3, R²=0.61, near_best=3, total=197.8s
+
+    +----------------------------------------------------------
+    | PROGRESS: 40/45 (89%)
+    | Elapsed: 116.5min | Remaining: ~14.6min
+    | Converged: 40/40 (100%) | Avg: 174.9s/participant
+    | Memory: 1.96GB
+    +----------------------------------------------------------
+
+
+[01:10:15] [ 41/45] ( 88.9%) Fitting 10074 (717 trials) | ETA: 14.6min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (4.96s, NLL=411.4)
+            Starts 2-50... done (total: 168.9s)
+            Optimizer: 49/50 scipy-converged, 1 hit maxiter
+            NLLs: best=393.4 | 2 within 1.0 | 5 within 5.0 | range=24.8
+      Result: [OK] NLL=393.4, R²=0.50, near_best=2, total=168.9s
+
+[01:13:04] [ 42/45] ( 91.1%) Fitting 10075 (717 trials) | ETA: 11.7min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (3.55s, NLL=396.8)
+            Starts 2-50... done (total: 172.9s)
+            Optimizer: 50/50 scipy-converged, 0 hit maxiter
+            NLLs: best=387.9 | 4 within 1.0 | 7 within 5.0 | range=39.4
+      Result: [OK] NLL=387.9, R²=0.51, near_best=4, total=172.9s
+
+[01:15:57] [ 43/45] ( 93.3%) Fitting 10076 (710 trials) | ETA: 8.7min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (3.96s, NLL=548.1)
+            Starts 2-50... done (total: 151.8s)
+            Optimizer: 50/50 scipy-converged, 0 hit maxiter
+            NLLs: best=496.8 | 3 within 1.0 | 3 within 5.0 | range=99.0
+      Result: [OK] NLL=496.8, R²=0.36, near_best=3, total=151.8s
+
+[01:18:29] [ 44/45] ( 95.6%) Fitting 10077 (719 trials) | ETA: 5.8min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (4.45s, NLL=341.6)
+            Starts 2-50... done (total: 157.6s)
+            Optimizer: 50/50 scipy-converged, 0 hit maxiter
+            NLLs: best=326.6 | 1 within 1.0 | 3 within 5.0 | range=24.1
+      Result: [OK] NLL=326.6, R²=0.59, near_best=1, total=157.6s
+
+[01:21:07] [ 45/45] ( 97.8%) Fitting 10078 (719 trials) | ETA: 2.9min
+      [5/5] Running 50 optimizations (L-BFGS-B)...
+            Start 1/50 (JIT compiling)... done (4.85s, NLL=385.5)
+            Starts 2-50... done (total: 174.4s)
+            Optimizer: 50/50 scipy-converged, 0 hit maxiter
+            NLLs: best=369.6 | 1 within 1.0 | 2 within 5.0 | range=25.4
+      Result: [OK] NLL=369.6, R²=0.53, near_best=1, total=174.4s
+[MEMORY] FINAL: 2051.5MB (psutil)
+
+============================================================
+FITTING COMPLETE
+============================================================
+End time: 2026-02-06 01:24:01
+Total duration: 130.3 min (7817s)
+Participants: 45 | Converged: 45 (100%)
+JIT compilation: 164.0s | Avg steady-state: 173.8s/participant
+Peak memory: 2.11GB
+============================================================
+
+
+============================================================
+RESULTS
+============================================================
+
+Convergence: 45/45 (100.0%)
+
+Group Statistics (n=45):
+--------------------------------------------------
+  alpha_pos   : 0.098 +/- 0.036  (SD=0.243)
+  alpha_neg   : 0.024 +/- 0.022  (SD=0.149)
+  phi         : 0.285 +/- 0.030  (SD=0.202)
+  rho         : 0.739 +/- 0.036  (SD=0.243)
+  capacity    : 3.643 +/- 0.242  (SD=1.627)
+  epsilon     : 0.049 +/- 0.006  (SD=0.038)
+
+Model Fit:
+--------------------------------------------------
+  NLL         : 435.60 +/- 23.31
+  AIC         : 883.20 +/- 46.63
+  BIC         : 911.02 +/- 46.69
+  PSEUDO-R²   : 0.486 +/- 0.162
+
+Warning: Parameters hitting bounds:
+  alpha_neg: 44 participants
+  epsilon: 9 participants
+  rho: 7 participants
+  phi: 5 participants
+  alpha_pos: 3 participants
+  capacity: 2 participants
+
+============================================================
+Results saved to:
+  Individual fits:     output/mle/wmrl_individual_fits.csv
+  Group summary:       output/mle/wmrl_group_summary.csv
+  Timing log:          output/mle/wmrl_timing_log.csv
+  Performance summary: output/mle/wmrl_performance_summary.json
+============================================================
+
+============================================================
+STATUS: SUCCESS - All 45 participants fit successfully
+============================================================
+
+Completed: Fri Feb  6 01:24:03 AM AEDT 2026
+
+============================================================
+All models complete!
+End time: Fri Feb  6 01:24:03 AM AEDT 2026
+============================================================
+
+Results saved to:
+  output/mle/*_individual_fits.csv
+  output/mle/*_group_summary.csv
+============================================================

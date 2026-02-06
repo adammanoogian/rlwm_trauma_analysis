@@ -156,10 +156,10 @@ conda env list
 
 ### 3.3 (Optional) Create GPU Environment
 ```bash
-# Load CUDA first
-module load cuda/12.1.1
+# Note: Do NOT load CUDA module - JAX pip packages bundle CUDA libraries
+# Loading system CUDA causes library conflicts (cuSPARSE not found, etc.)
 
-# Create GPU environment
+# Create GPU environment (JAX will install its own CUDA libs)
 mamba env create -f environment_gpu.yml
 
 # Verify
@@ -241,30 +241,66 @@ exit
 mkdir -p cluster/logs
 ```
 
-### 6.2 Submit CPU Parallel Job (Recommended First)
+### 6.2 Submit All 3 Models as Parallel GPU Jobs (Recommended)
+
+Submit qlearning, wmrl, and wmrl_m3 as separate parallel jobs for better fault isolation:
+
 ```bash
 cd /projects/$PROJECT/$USER/rlwm_trauma_analysis
 
-# Submit parallel fitting (16 cores, all 3 models)
-sbatch cluster/run_mle_parallel.slurm
+# Submit all 3 models as independent GPU jobs
+bash cluster/submit_all_models_gpu.sh
+
+# Check job status
+squeue -u $USER
+```
+
+This is the recommended approach because:
+- Each model runs independently (one failure doesn't affect others)
+- Better resource utilization on the cluster
+- Easy to resubmit a single failed model
+
+### 6.3 Submit Single GPU Job
+
+**⚠️ GPU fitting is now the recommended approach** because it avoids LLVM/CPU issues:
+- No LLVM thread spawning memory exhaustion
+- No CPU feature mismatch between heterogeneous cluster nodes
+- Comparable speed to parallel CPU (2-5 minutes per model)
+
+```bash
+cd /projects/$PROJECT/$USER/rlwm_trauma_analysis
+
+# Submit GPU-accelerated fitting (all 3 models sequentially in one job)
+sbatch cluster/run_mle_gpu.slurm
+
+# For specific model:
+sbatch --export=MODEL=wmrl_m3 cluster/run_mle_gpu.slurm
 
 # Check job status
 squeue -u $USER
 
 # Watch the output in real-time
-tail -f cluster/logs/mle_parallel_*.out
+tail -f cluster/logs/mle_gpu_*.out
 ```
 
-### 6.3 Submit GPU Job (After Setting Up GPU Env)
+### 6.4 Submit CPU Parallel Job (Alternative)
+
+Use CPU fitting if GPU queue is unavailable. Note: M3 has heterogeneous nodes with
+different CPU features, which can cause "CPU feature mismatch" errors if the JAX
+cache is shared between nodes. The scripts now use node-specific caching to avoid this.
+
 ```bash
-# Submit GPU-accelerated fitting
-sbatch cluster/run_mle_gpu.slurm
+# Submit parallel fitting (16 cores, all 3 models)
+sbatch cluster/run_mle.slurm
 
-# For specific GPU type:
-sbatch --gres=gpu:A100:1 cluster/run_mle_gpu.slurm
+# Check job status
+squeue -u $USER
+
+# Watch the output in real-time
+tail -f cluster/logs/mle_*.out
 ```
 
-### 6.4 Submit Single Model (For Testing)
+### 6.5 Submit Single Model (For Testing)
 ```bash
 # Quick timing test (3 participants only)
 sbatch --export=MODEL=wmrl_m3,LIMIT=3 cluster/run_mle_single.slurm
@@ -301,7 +337,26 @@ tail -100 cluster/logs/mle_parallel_*.out
 tail -f cluster/logs/mle_parallel_*.out
 ```
 
-### 7.3 Check Results
+### 7.3 Real-Time Monitoring (Comprehensive)
+
+```bash
+# Watch job queue (refresh every 5s)
+watch -n 5 'squeue -u $USER'
+
+# Detailed queue view (shows node, time, etc.)
+squeue -u $USER -o "%.8i %.9P %.20j %.8u %.2t %.10M %.6D %R"
+
+# Tail all GPU logs simultaneously
+tail -f cluster/logs/mle_gpu_*.out
+
+# Monitor GPU usage on compute node (get node name from squeue)
+ssh <NODE> 'watch -n 1 nvidia-smi'
+
+# Check resource usage after job completion
+sacct -j <JOBID> --format=JobID,Elapsed,MaxRSS,MaxVMSize,TotalCPU,State
+```
+
+### 7.4 Check Results
 ```bash
 # Results are saved to output/mle/
 ls -la output/mle/
@@ -312,7 +367,7 @@ cat output/mle/wmrl_group_summary.csv
 cat output/mle/wmrl_m3_group_summary.csv
 ```
 
-### 7.4 Download Results to Local Machine
+### 7.5 Download Results to Local Machine
 ```bash
 # From your LOCAL machine:
 scp -r YOUR_USERNAME@m3.massive.org.au:/projects/$PROJECT/$USER/rlwm_trauma_analysis/output/mle/ ./results/
@@ -355,7 +410,10 @@ scancel -u $USER  # Cancel ALL your jobs
 | `CondaEnvironmentNotFound` | Check `conda env list`, ensure env is in scratch |
 | Job stuck in `PENDING` | Run `squeue -u $USER` to see reason; try smaller resource request |
 | `ModuleNotFoundError: joblib` | Env may need updating: `mamba env update -f environment.yml` |
-| GPU not detected | Ensure `module load cuda/12.1.1` and using `rlwm_gpu` env |
+| GPU not detected | Ensure using `rlwm_gpu` env on a GPU node. Do NOT load cuda module (conflicts with JAX's bundled CUDA) |
+| `SIGILL` or CPU feature mismatch | Clear stale cache: `rm -rf /scratch/$PROJECT/$USER/.jax_cache` and retry |
+| `Cannot allocate memory` (LLVM) | Use GPU fitting, or use `run_mle_single.slurm` with its two-phase approach |
+| Stuck on one participant | Hessian computation after optimization. Use `--compute-diagnostics` flag only if needed, or wait ~30s |
 
 ---
 
@@ -363,9 +421,10 @@ scancel -u $USER  # Cancel ALL your jobs
 
 | Script | Description | Cores | Time |
 |--------|-------------|-------|------|
+| `submit_all_models_gpu.sh` | **Recommended**: Submits 3 independent GPU jobs | 4 + GPU each | ~5min/model |
 | `run_mle.slurm` | Sequential fitting (all models) | 4 | 4h |
 | `run_mle_parallel.slurm` | Parallel fitting (all models) | 16 | 30min |
-| `run_mle_gpu.slurm` | GPU-accelerated fitting | 4 + GPU | 15min |
+| `run_mle_gpu.slurm` | GPU-accelerated fitting (single job) | 4 + GPU | 15min |
 | `run_mle_single.slurm` | Single model (timing tests) | 4 | 2h |
 
 ---

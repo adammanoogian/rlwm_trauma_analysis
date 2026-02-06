@@ -4,12 +4,15 @@
 # Usage:
 #   # On M3 cluster:
 #   module load miniforge3
-#   module load cuda/12.1.1
 #   mamba env create -f environment_gpu.yml
 #   conda activate rlwm_gpu
 #
 # Or use the setup script:
 #   bash cluster/setup_env_gpu.sh
+#
+# Note: CUDA module is NOT required for env creation. JAX pip packages bundle
+# their own CUDA libraries. The GPU driver is accessed via the cluster's
+# NVIDIA kernel module (automatically available on GPU nodes).
 #
 # GPU support uses JAX with CUDA backend for accelerated optimization.
 # The CPU environment (environment.yml) is recommended for development.
@@ -17,11 +20,10 @@
 name: rlwm_gpu
 channels:
   - conda-forge
-  - nvidia
   - defaults
 
 dependencies:
-  - python=3.10
+  - python=3.11
 
   # Data processing
   - pandas>=2.0.0
@@ -39,13 +41,15 @@ dependencies:
   - scikit-learn>=1.0.0
   - statsmodels>=0.14.0
 
-  # CUDA toolkit (for JAX GPU support)
-  - cuda-nvcc>=12.0
+  # Note: Do NOT install cuda-nvcc or other CUDA packages via conda.
+  # JAX's pip packages bundle compatible CUDA libraries (cuSPARSE, cuBLAS, etc.)
+  # Mixing conda and pip CUDA causes library conflicts.
 
   # pip dependencies
   - pip
   - pip:
     # JAX with CUDA 12 support
-    # Note: jax[cuda12] installs jaxlib with CUDA support automatically
-    - jax[cuda12]>=0.4.20
-    - jaxopt>=0.8.0
+    # This installs jaxlib + all required CUDA runtime libraries:
+    # nvidia-cublas-cu12, nvidia-cusparse-cu12, nvidia-cudnn-cu12, etc.
+    - jax[cuda12]>=0.5.0
+    - jaxopt>=0.8.3

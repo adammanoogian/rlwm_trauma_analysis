@@ -6,8 +6,9 @@
 # Requires the rlwm_gpu conda environment (see environment_gpu.yml).
 #
 # Usage:
-#   sbatch cluster/run_mle_gpu.slurm                         # All models
-#   sbatch --export=MODEL=wmrl_m3 cluster/run_mle_gpu.slurm  # Single model
+#   sbatch cluster/run_mle_gpu.slurm                                    # All models
+#   sbatch --export=MODEL=wmrl_m3 cluster/run_mle_gpu.slurm             # Single model
+#   sbatch --export=MODEL=qlearning,LIMIT=3 cluster/run_mle_gpu.slurm   # Quick test (3 participants)
 #
 # Performance (approximate for 47 participants):
 #   - CPU sequential:  ~30 minutes per model
@@ -31,8 +32,8 @@
 #SBATCH --job-name=rlwm_mle_gpu
 #SBATCH --output=cluster/logs/mle_gpu_%j.out
 #SBATCH --error=cluster/logs/mle_gpu_%j.err
-#SBATCH --time=00:15:00
-#SBATCH --mem=16G
+#SBATCH --time=08:00:00
+#SBATCH --mem=64G
 #SBATCH --gres=gpu:1
 #SBATCH --partition=gpu
 #SBATCH --cpus-per-task=4
@@ -41,14 +42,15 @@
 # Configuration (set via --export or use defaults)
 # =============================================================================
 MODELS="${MODEL:-qlearning wmrl wmrl_m3}"
+LIMIT="${LIMIT:-}"
 
 # =============================================================================
 # Environment Setup (M3 specific)
 # =============================================================================
 
-# Load miniforge3 and CUDA
+# Load miniforge3 only - JAX pip packages bundle CUDA libraries
+# Do NOT load cuda module - it conflicts with pip-installed CUDA libraries
 module load miniforge3
-module load cuda/12.1.1
 
 # Navigate to project directory
 cd "${SLURM_SUBMIT_DIR:-$(dirname "$0")/..}"
@@ -66,7 +68,19 @@ echo "Start time: $(date)"
 echo "============================================================"
 
 # Activate GPU conda environment
-conda activate rlwm_gpu
+# Try by name first (uses user's .condarc), then fall back to common paths
+if conda activate rlwm_gpu 2>/dev/null; then
+    echo "Activated rlwm_gpu by name"
+elif conda activate /scratch/fc37/$USER/conda/envs/rlwm_gpu 2>/dev/null; then
+    echo "Activated rlwm_gpu from /scratch/fc37/$USER/"
+elif conda activate /scratch/$PROJECT/$USER/conda/envs/rlwm_gpu 2>/dev/null; then
+    echo "Activated rlwm_gpu from /scratch/$PROJECT/$USER/"
+else
+    echo "ERROR: Failed to activate 'rlwm_gpu' conda environment"
+    echo "Tried: rlwm_gpu (by name), /scratch/fc37/$USER/..., /scratch/$PROJECT/$USER/..."
+    echo "Create it first with: bash cluster/setup_env_gpu.sh"
+    exit 1
+fi
 
 # Verify GPU is available to JAX
 echo ""
@@ -88,6 +102,18 @@ echo ""
 mkdir -p cluster/logs
 
 # =============================================================================
+# JAX Compilation Cache (optional for GPU but helps with restarts)
+# =============================================================================
+# GPU compilation uses CUDA/PTX which is portable across GPU types, but caching
+# still reduces startup time on subsequent runs. Unlike CPU caching, GPU caching
+# doesn't have the CPU feature mismatch problem.
+export JAX_COMPILATION_CACHE_DIR="/scratch/fc37/aman0087/.jax_cache_gpu"
+export JAX_PERSISTENT_CACHE_MIN_ENTRY_SIZE_BYTES=0
+mkdir -p "$JAX_COMPILATION_CACHE_DIR"
+echo "JAX cache: $JAX_COMPILATION_CACHE_DIR"
+echo ""
+
+# =============================================================================
 # Run MLE Fitting (GPU-accelerated)
 # =============================================================================
 
@@ -101,6 +127,58 @@ if [[ ! -f "$DATA_FILE" ]]; then
     exit 1
 fi
 
+# =============================================================================
+# Checkpoint Cleanup (delete stale checkpoints unless opted out)
+# =============================================================================
+KEEP_CHECKPOINTS="${KEEP_CHECKPOINTS:-}"
+
+if [[ -z "$KEEP_CHECKPOINTS" ]]; then
+    echo "Cleaning up stale checkpoints..."
+    for model in $MODELS; do
+        CKPT="output/mle/${model}_checkpoint.csv"
+        if [[ -f "$CKPT" ]]; then
+            echo "  Deleted: $CKPT"
+            rm -f "$CKPT"
+        fi
+    done
+    echo ""
+else
+    echo "KEEP_CHECKPOINTS set — preserving existing checkpoints for resume"
+    echo ""
+fi
+
+# =============================================================================
+# Parallel Dispatch: if multiple models, submit separate jobs and exit
+# =============================================================================
+MODEL_COUNT=$(echo $MODELS | wc -w)
+
+if [[ "$MODEL_COUNT" -gt 1 ]]; then
+    echo "Dispatching $MODEL_COUNT models as parallel GPU jobs..."
+    echo ""
+
+    JOBIDS=()
+    for model in $MODELS; do
+        EXPORTS="MODEL=$model"
+        [[ -n "$LIMIT" ]] && EXPORTS="$EXPORTS,LIMIT=$LIMIT"
+        [[ -n "$KEEP_CHECKPOINTS" ]] && EXPORTS="$EXPORTS,KEEP_CHECKPOINTS=$KEEP_CHECKPOINTS"
+
+        JOBID=$(sbatch --export="$EXPORTS" --job-name="mle_${model}" "$0" | awk '{print $NF}')
+        JOBIDS+=("$JOBID")
+        echo "  $model -> Job $JOBID"
+    done
+
+    echo ""
+    echo "All jobs submitted. Monitor with:"
+    echo "  squeue -u $USER"
+    echo ""
+    echo "Tail logs:"
+    for i in "${!JOBIDS[@]}"; do
+        model=$(echo $MODELS | cut -d' ' -f$((i+1)))
+        echo "  tail -f cluster/logs/mle_gpu_${JOBIDS[$i]}.out   # $model"
+    done
+    exit 0
+fi
+
 for model in $MODELS; do
     echo ""
     echo "============================================================"
@@ -108,13 +186,20 @@ for model in $MODELS; do
     echo "Started: $(date)"
     echo "============================================================"
 
-    python scripts/fitting/fit_mle.py \
-        --model "$model" \
-        --data "$DATA_FILE" \
+    # Build command with optional --limit
+    CMD="python scripts/fitting/fit_mle.py \
+        --model $model \
+        --data $DATA_FILE \
         --output output/mle/ \
-        --n-starts 20 \
+        --n-starts 50 \
         --seed 42 \
-        --use-gpu
+        --use-gpu"
+
+    if [[ -n "$LIMIT" ]]; then
+        CMD="$CMD --limit $LIMIT"
+    fi
+
+    eval $CMD
 
     echo "Completed: $(date)"
 done
