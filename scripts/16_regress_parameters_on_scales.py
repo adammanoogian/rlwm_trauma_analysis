@@ -666,7 +666,13 @@ def main():
         '--output-dir',
         type=str,
         default='output/regressions',
-        help='Base output directory for results (model subdirectories created automatically)'
+        help='Base output directory for CSV results (model subdirectories created automatically)'
+    )
+    parser.add_argument(
+        '--figures-dir',
+        type=str,
+        default='figures/regressions',
+        help='Base output directory for figures (model subdirectories created automatically)'
     )
     parser.add_argument(
         '--min-accuracy',
@@ -693,6 +699,9 @@ def main():
     base_output_dir = Path(args.output_dir)
     base_output_dir.mkdir(parents=True, exist_ok=True)
 
+    base_figures_dir = Path(args.figures_dir)
+    base_figures_dir.mkdir(parents=True, exist_ok=True)
+
     print("=" * 80)
     print("REGRESSION ANALYSIS: PARAMETERS ON TRAUMA SCALES")
     print("=" * 80)
@@ -712,9 +721,12 @@ def main():
         print(f"MODEL: {model.upper()}")
         print("=" * 80)
 
-        # Create model-specific output directory
+        # Create model-specific output directories (CSV results and figures)
         model_output_dir = base_output_dir / model
         model_output_dir.mkdir(parents=True, exist_ok=True)
+
+        model_figures_dir = base_figures_dir / model
+        model_figures_dir.mkdir(parents=True, exist_ok=True)
 
         # Auto-detect params path from model name
         params_path = Path(f'output/mle/{model}_individual_fits.csv')
@@ -805,8 +817,8 @@ def main():
                           f"R2={results['r_squared']:.3f}, "
                           f"n={results['n']}{diag_str}")
 
-                    # Create individual plot
-                    plot_path = model_output_dir / f"{param}_{pred}.png"
+                    # Create individual plot (save to figures directory)
+                    plot_path = model_figures_dir / f"{param}_{pred}.png"
                     plot_regression_scatter(df, param, pred, results, plot_path,
                                           color_by=color_by, color_palette=color_palette)
 
@@ -839,8 +851,8 @@ def main():
         # Note: Skip console display due to Unicode encoding issues on Windows
         # Users can view the CSV file directly
 
-        # Create matrix plot
-        plot_regression_matrix(df, results_dict, model_output_dir, param_cols,
+        # Create matrix plot (save to figures directory)
+        plot_regression_matrix(df, results_dict, model_figures_dir, param_cols,
                              color_by=color_by, color_palette=color_palette)
 
         # Multiple regressions with IES-R subscales
@@ -915,19 +927,22 @@ def main():
             print(f"\nSaved multiple regression results: {multi_path}")
 
         print(f"\nCompleted analysis for {model}")
-        print(f"   Results saved to: {model_output_dir}/")
+        print(f"   CSV results: {model_output_dir}/")
+        print(f"   Figures: {model_figures_dir}/")
 
     # Final summary
     print("\n" + "=" * 80)
     print("ANALYSIS COMPLETE")
     print("=" * 80)
-    print(f"\nResults saved to: {base_output_dir}/")
+    print(f"\nCSV results: {base_output_dir}/")
+    print(f"Figures: {base_figures_dir}/")
     if args.model == 'all':
         print("  Model-specific subdirectories:")
         for model in models_to_run:
             model_dir = base_output_dir / model
+            fig_dir = base_figures_dir / model
             if model_dir.exists():
-                print(f"    - {model}/")
+                print(f"    - {model}/ (CSV + figures)")
     print("\nNext steps:")
     print("1. Review regression_results_simple.csv for all univariate associations")
     print("2. Check p_fdr column for FDR-corrected significance")

@@ -18,12 +18,12 @@ import seaborn as sns
 from typing import Dict, Optional, List, Union
 
 
-# Predefined trauma group colors (matching Script 15's GROUP_COLORS)
+# Predefined trauma group colors (matching actual group_assignments.csv values)
+# Note: All participants in this sample have trauma exposure (no "No Trauma" group)
 TRAUMA_GROUP_COLORS = {
-    'No Trauma': '#06A77D',  # Green
-    'Trauma-No Impact': '#F18F01',  # Orange
-    'Trauma-Ongoing Impact': '#D62246',  # Red
-    'Low Exposure-High Symptoms': '#6C757D',  # Gray (paradoxical)
+    'Trauma Exposure - No Ongoing Impact': '#F18F01',  # Orange
+    'Trauma Exposure - Ongoing Impact': '#D62246',  # Red
+    'Low Exposure-High Symptoms': '#6C757D',  # Gray (paradoxical, if present)
 }
 
 

@@ -217,8 +217,9 @@ def group_comparisons(df: pd.DataFrame, params: list, model_name: str) -> pd.Dat
     pd.DataFrame
         Results with U stats, p-values, corrected p-values, effect sizes
     """
-    # Define groups to compare (exclude paradoxical group)
-    groups = ['No Trauma', 'Trauma-No Impact', 'Trauma-Ongoing Impact']
+    # Define groups to compare (actual group names from group_assignments.csv)
+    # Note: All participants have trauma exposure - no "No Trauma" group
+    groups = ['Trauma Exposure - No Ongoing Impact', 'Trauma Exposure - Ongoing Impact']
     group_pairs = list(combinations(groups, 2))
 
     results = []
@@ -506,8 +507,8 @@ def plot_parameters_by_group(df: pd.DataFrame, params: list, model_name: str,
     """
     Create violin + swarm plots of parameters by trauma group.
     """
-    # Exclude paradoxical group for cleaner visualization
-    plot_df = df[df['hypothesis_group'].isin(['No Trauma', 'Trauma-No Impact', 'Trauma-Ongoing Impact'])].copy()
+    # Filter to main comparison groups (actual group names from data)
+    plot_df = df[df['hypothesis_group'].isin(['Trauma Exposure - No Ongoing Impact', 'Trauma Exposure - Ongoing Impact'])].copy()
 
     n_params = len(params)
     ncols = 3
@@ -519,8 +520,8 @@ def plot_parameters_by_group(df: pd.DataFrame, params: list, model_name: str,
     fig, axes = plt.subplots(nrows, ncols, figsize=figsize)
     axes = np.atleast_2d(axes)
 
-    group_order = ['No Trauma', 'Trauma-No Impact', 'Trauma-Ongoing Impact']
-    palette = [GROUP_COLORS[g] for g in group_order]
+    group_order = ['Trauma Exposure - No Ongoing Impact', 'Trauma Exposure - Ongoing Impact']
+    palette = [GROUP_COLORS.get(g, '#808080') for g in group_order]
 
     for idx, param in enumerate(params):
         row, col = idx // ncols, idx % ncols
@@ -539,8 +540,8 @@ def plot_parameters_by_group(df: pd.DataFrame, params: list, model_name: str,
 
         ax.set_xlabel('')
         ax.set_ylabel(PARAM_NAMES.get(param, param), fontsize=PlotConfig.AXIS_LABEL_SIZE)
-        ax.set_xticks([0, 1, 2])
-        ax.set_xticklabels(['No\nTrauma', 'Trauma\nNo Impact', 'Trauma\nOngoing'],
+        ax.set_xticks([0, 1])
+        ax.set_xticklabels(['No Ongoing\nImpact', 'Ongoing\nImpact'],
                           fontsize=PlotConfig.TICK_LABEL_SIZE - 2)
 
     # Remove empty subplots
@@ -600,10 +601,10 @@ def plot_forest_group_means(df: pd.DataFrame, params: list, model_name: str) -> 
     """
     Create forest plot showing group means with error bars.
     """
-    group_order = ['No Trauma', 'Trauma-No Impact', 'Trauma-Ongoing Impact']
+    group_order = ['Trauma Exposure - No Ongoing Impact', 'Trauma Exposure - Ongoing Impact']
     plot_df = df[df['hypothesis_group'].isin(group_order)].copy()
 
-    fig, axes = plt.subplots(1, len(params), figsize=(3 * len(params), 5))
+    fig, axes = plt.subplots(1, len(params), figsize=(3 * len(params), 4))
     if len(params) == 1:
         axes = [axes]
 
@@ -612,15 +613,17 @@ def plot_forest_group_means(df: pd.DataFrame, params: list, model_name: str) -> 
 
         for i, group in enumerate(group_order):
             data = plot_df[plot_df['hypothesis_group'] == group][param].dropna()
+            if len(data) == 0:
+                continue
             mean = data.mean()
             sem = data.std() / np.sqrt(len(data))
 
             ax.errorbar(mean, i, xerr=sem, fmt='o',
-                       color=GROUP_COLORS[group], markersize=10,
+                       color=GROUP_COLORS.get(group, '#808080'), markersize=10,
                        capsize=5, capthick=2, elinewidth=2)
 
         ax.set_yticks(y_positions)
-        ax.set_yticklabels(['No Trauma', 'Trauma-No Impact', 'Trauma-Ongoing'])
+        ax.set_yticklabels(['No Ongoing Impact', 'Ongoing Impact'])
         ax.set_xlabel(PARAM_NAMES.get(param, param), fontsize=PlotConfig.AXIS_LABEL_SIZE)
         ax.axvline(x=plot_df[param].mean(), color='gray', linestyle='--', alpha=0.5)
 
@@ -672,12 +675,12 @@ def plot_key_scatter(df: pd.DataFrame, model_name: str, color_by: Optional[str] 
             add_colored_scatter(ax, pred, param, df, color_by, palette,
                               alpha=0.7, s=50, show_legend=True)
         else:
-            # Default: color by hypothesis_group (legacy behavior)
-            for group in ['No Trauma', 'Trauma-No Impact', 'Trauma-Ongoing Impact']:
+            # Default: color by hypothesis_group (actual group names from data)
+            for group in ['Trauma Exposure - No Ongoing Impact', 'Trauma Exposure - Ongoing Impact']:
                 group_data = df[df['hypothesis_group'] == group]
                 ax.scatter(group_data[pred], group_data[param],
                           c=GROUP_COLORS.get(group, 'gray'),
-                          label=group, alpha=0.7, s=50)
+                          label=group.replace('Trauma Exposure - ', ''), alpha=0.7, s=50)
             ax.legend(fontsize=PlotConfig.SMALL_TEXT_SIZE)
 
         # Overall regression line

@@ -1,0 +1,10 @@
+Parameter,Predictor,β,SE,95% CI,t,p
+alpha_pos_mean,ies_intrusion,0.003,0.013,"[-0.023, 0.028]",0.21,0.833
+alpha_pos_mean,ies_avoidance,-0.012,0.010,"[-0.032, 0.007]",-1.29,0.204
+alpha_pos_mean,ies_hyperarousal,0.005,0.016,"[-0.026, 0.037]",0.33,0.739
+alpha_neg_mean,ies_intrusion,0.005,0.010,"[-0.016, 0.025]",0.44,0.662
+alpha_neg_mean,ies_avoidance,-0.003,0.008,"[-0.019, 0.013]",-0.34,0.732
+alpha_neg_mean,ies_hyperarousal,-0.005,0.013,"[-0.031, 0.020]",-0.41,0.683
+epsilon_mean,ies_intrusion,-0.003,0.003,"[-0.008, 0.002]",-1.10,0.276
+epsilon_mean,ies_avoidance,0.001,0.002,"[-0.003, 0.005]",0.47,0.644
+epsilon_mean,ies_hyperarousal,0.008,0.003,"[0.002, 0.015]",2.49,0.017*

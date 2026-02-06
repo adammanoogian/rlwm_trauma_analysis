@@ -1,28 +1,17 @@
 model,parameter,group1,group2,n1,n2,U,p_uncorrected,p_bonferroni,significant,r_rank_biserial,mean1,mean2,std1,std2
-Q-Learning,alpha_pos,No Trauma,Trauma-No Impact,0,0,,,,False,,,,,
-Q-Learning,alpha_pos,No Trauma,Trauma-Ongoing Impact,0,0,,,,False,,,,,
-Q-Learning,alpha_pos,Trauma-No Impact,Trauma-Ongoing Impact,0,0,,,,False,,,,,
-Q-Learning,alpha_neg,No Trauma,Trauma-No Impact,0,0,,,,False,,,,,
-Q-Learning,alpha_neg,No Trauma,Trauma-Ongoing Impact,0,0,,,,False,,,,,
-Q-Learning,alpha_neg,Trauma-No Impact,Trauma-Ongoing Impact,0,0,,,,False,,,,,
-Q-Learning,epsilon,No Trauma,Trauma-No Impact,0,0,,,,False,,,,,
-Q-Learning,epsilon,No Trauma,Trauma-Ongoing Impact,0,0,,,,False,,,,,
-Q-Learning,epsilon,Trauma-No Impact,Trauma-Ongoing Impact,0,0,,,,False,,,,,
-WM-RL,alpha_pos,No Trauma,Trauma-No Impact,0,0,,,,False,,,,,
-WM-RL,alpha_pos,No Trauma,Trauma-Ongoing Impact,0,0,,,,False,,,,,
-WM-RL,alpha_pos,Trauma-No Impact,Trauma-Ongoing Impact,0,0,,,,False,,,,,
-WM-RL,alpha_neg,No Trauma,Trauma-No Impact,0,0,,,,False,,,,,
-WM-RL,alpha_neg,No Trauma,Trauma-Ongoing Impact,0,0,,,,False,,,,,
-WM-RL,alpha_neg,Trauma-No Impact,Trauma-Ongoing Impact,0,0,,,,False,,,,,
-WM-RL,phi,No Trauma,Trauma-No Impact,0,0,,,,False,,,,,
-WM-RL,phi,No Trauma,Trauma-Ongoing Impact,0,0,,,,False,,,,,
-WM-RL,phi,Trauma-No Impact,Trauma-Ongoing Impact,0,0,,,,False,,,,,
-WM-RL,rho,No Trauma,Trauma-No Impact,0,0,,,,False,,,,,
-WM-RL,rho,No Trauma,Trauma-Ongoing Impact,0,0,,,,False,,,,,
-WM-RL,rho,Trauma-No Impact,Trauma-Ongoing Impact,0,0,,,,False,,,,,
-WM-RL,capacity,No Trauma,Trauma-No Impact,0,0,,,,False,,,,,
-WM-RL,capacity,No Trauma,Trauma-Ongoing Impact,0,0,,,,False,,,,,
-WM-RL,capacity,Trauma-No Impact,Trauma-Ongoing Impact,0,0,,,,False,,,,,
-WM-RL,epsilon,No Trauma,Trauma-No Impact,0,0,,,,False,,,,,
-WM-RL,epsilon,No Trauma,Trauma-Ongoing Impact,0,0,,,,False,,,,,
-WM-RL,epsilon,Trauma-No Impact,Trauma-Ongoing Impact,0,0,,,,False,,,,,
+Q-Learning,alpha_pos,Trauma Exposure - No Ongoing Impact,Trauma Exposure - Ongoing Impact,26,19,232.0,0.7389768076965719,1.0,False,0.06072874493927127,0.20095644862605974,0.22501394338905806,0.3065834957645936,0.30014419061496583
+Q-Learning,alpha_neg,Trauma Exposure - No Ongoing Impact,Trauma Exposure - Ongoing Impact,26,19,235.0,0.7804071805226853,1.0,False,0.04858299595141702,0.09345134511106429,0.11450492318621587,0.2313881276441531,0.2560140928481885
+Q-Learning,epsilon,Trauma Exposure - No Ongoing Impact,Trauma Exposure - Ongoing Impact,26,19,195.0,0.2365630948773383,0.7096892846320149,False,0.21052631578947367,0.10539553091019532,0.14588830835725128,0.05502610907045671,0.08006976765087329
+WM-RL,alpha_pos,Trauma Exposure - No Ongoing Impact,Trauma Exposure - Ongoing Impact,26,19,218.0,0.5125006733644555,1.0,False,0.11740890688259109,0.10249569342256734,0.09120911139210583,0.2591940814176913,0.21196203622481383
+WM-RL,alpha_neg,Trauma Exposure - No Ongoing Impact,Trauma Exposure - Ongoing Impact,26,19,246.5,1.0,1.0,False,0.002024291497975672,0.0013801203369019192,0.05441337480136238,0.0013848554553896448,0.22267291366168046
+WM-RL,phi,Trauma Exposure - No Ongoing Impact,Trauma Exposure - Ongoing Impact,26,19,185.0,0.15756438271364526,0.9453862962818715,False,0.2510121457489879,0.24860261262018377,0.33583792787976563,0.18199484382474004,0.21188846593597271
+WM-RL,rho,Trauma Exposure - No Ongoing Impact,Trauma Exposure - Ongoing Impact,26,19,277.0,0.49703579486114324,1.0,False,-0.12145748987854255,0.748901295547302,0.7255967369205073,0.25654092418915897,0.21486121606624992
+WM-RL,capacity,Trauma Exposure - No Ongoing Impact,Trauma Exposure - Ongoing Impact,26,19,221.0,0.5578579158397654,1.0,False,0.10526315789473684,3.498152847473438,3.8415267843949166,1.6102331819825568,1.5843785087105833
+WM-RL,epsilon,Trauma Exposure - No Ongoing Impact,Trauma Exposure - Ongoing Impact,26,19,265.0,0.6867528133093794,1.0,False,-0.07287449392712553,0.05130778938137849,0.04576227217177414,0.03977979061135056,0.034952068466491036
+WM-RL+K,alpha_pos,Trauma Exposure - No Ongoing Impact,Trauma Exposure - Ongoing Impact,26,19,254.0,0.881258286691291,1.0,False,-0.028340080971659853,0.13471759175165338,0.06424131641458519,0.2984875937770272,0.12134109693900295
+WM-RL+K,alpha_neg,Trauma Exposure - No Ongoing Impact,Trauma Exposure - Ongoing Impact,26,19,216.0,0.15570787882591605,1.0,False,0.1255060728744939,0.0015330384798848925,0.0789357599263128,0.002665192161937462,0.24040285517302562
+WM-RL+K,phi,Trauma Exposure - No Ongoing Impact,Trauma Exposure - Ongoing Impact,26,19,168.0,0.0712061847066653,0.4984432929466571,False,0.31983805668016196,0.2467627573552398,0.3466298076152605,0.1670493413069035,0.20723161116163585
+WM-RL+K,rho,Trauma Exposure - No Ongoing Impact,Trauma Exposure - Ongoing Impact,26,19,276.0,0.5117348954724408,1.0,False,-0.1174089068825912,0.7655966757581785,0.7289757414868003,0.24684283816990998,0.2411276631548412
+WM-RL+K,capacity,Trauma Exposure - No Ongoing Impact,Trauma Exposure - Ongoing Impact,26,19,240.0,0.8812621688775102,1.0,False,0.028340080971659964,3.4789323073167067,3.545837452537135,1.5561811106092207,1.4685959083905105
+WM-RL+K,kappa,Trauma Exposure - No Ongoing Impact,Trauma Exposure - Ongoing Impact,26,19,269.0,0.6049839865728912,1.0,False,-0.08906882591093113,0.05535632572495019,0.02615073009541157,0.10175209790540457,0.03390142465474457
+WM-RL+K,epsilon,Trauma Exposure - No Ongoing Impact,Trauma Exposure - Ongoing Impact,26,19,277.0,0.4946867027364352,1.0,False,-0.12145748987854255,0.037271232084514376,0.031016234449404975,0.034335627544311124,0.028491059212209763
