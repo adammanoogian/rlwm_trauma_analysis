@@ -144,9 +144,13 @@ def load_fitted_params(fitted_params_path: str, model: str) -> List[Dict]:
     param_names = get_param_names(model)
 
     params_list = []
+
+    # Determine ID column name (could be 'sona_id' or 'participant_id')
+    id_col = 'sona_id' if 'sona_id' in df.columns else 'participant_id'
+
     for _, row in df.iterrows():
-        params = {p: row[p] for p in param_names if p in row.columns}
-        params['sona_id'] = row['sona_id']
+        params = {p: row[p] for p in param_names if p in df.columns}
+        params['sona_id'] = row[id_col]  # Always use 'sona_id' key internally
         params_list.append(params)
 
     return params_list
