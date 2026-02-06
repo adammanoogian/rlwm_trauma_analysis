@@ -1067,6 +1067,134 @@ Examples:
 
 
 # =============================================================================
+# Model Recovery Check
+# =============================================================================
+
+def run_model_recovery_check(
+    synthetic_data_path: str,
+    generative_model: str,
+    output_dir: Path,
+    use_gpu: bool = False,
+    n_jobs: int = 1,
+    verbose: bool = True
+) -> Dict:
+    """
+    Fit all models to synthetic data and check if generative model wins.
+
+    This is the "model recovery" aspect of PPC - verifying that when we generate
+    data from model X, model X wins the model comparison on that data.
+
+    Per Senta et al. (2025), proper model recovery requires:
+    1. Generate data from known model with known parameters
+    2. Fit ALL models to this synthetic data
+    3. Compare via AIC/BIC
+    4. Generative model should win (lowest AIC)
+
+    Parameters
+    ----------
+    synthetic_data_path : str
+        Path to synthetic trial data CSV
+    generative_model : str
+        Model that generated the synthetic data ('qlearning', 'wmrl', 'wmrl_m3')
+    output_dir : Path
+        Directory to save MLE results
+    use_gpu : bool
+        Use GPU acceleration (default: False)
+    n_jobs : int
+        Number of parallel jobs for CPU fitting (default: 1)
+    verbose : bool
+        Show progress (default: True)
+
+    Returns
+    -------
+    Dict with:
+        - generative_model: str (model that generated data)
+        - winning_model: str (model with lowest AIC)
+        - generative_wins: bool (winning_model == generative_model)
+        - aic_scores: Dict[str, float] (AIC per model)
+        - bic_scores: Dict[str, float] (BIC per model)
+        - confusion_entry: (generative, winning) tuple for confusion matrix
+    """
+    import subprocess
+
+    models = ['qlearning', 'wmrl', 'wmrl_m3']
+    mle_results_dir = output_dir / 'mle_results'
+    mle_results_dir.mkdir(parents=True, exist_ok=True)
+
+    # Fit each model to synthetic data
+    for model in models:
+        if verbose:
+            print(f"\nFitting {model} to synthetic data...")
+
+        cmd = [
+            'python', 'scripts/12_fit_mle.py',
+            '--model', model,
+            '--data', str(synthetic_data_path),
+            '--output', str(mle_results_dir / f'{model}_individual_fits.csv')
+        ]
+
+        if use_gpu:
+            cmd.append('--use-gpu')
+        elif n_jobs > 1:
+            cmd.extend(['--n-jobs', str(n_jobs)])
+
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            print(f"Warning: Fitting {model} may have issues")
+            if verbose and result.stderr:
+                print(f"  stderr: {result.stderr[:200]}")
+
+    # Compare models
+    if verbose:
+        print("\nComparing models...")
+
+    # Load AIC/BIC from each model's results
+    aic_scores = {}
+    bic_scores = {}
+
+    for model in models:
+        results_path = mle_results_dir / f'{model}_individual_fits.csv'
+        if results_path.exists():
+            df = pd.read_csv(results_path)
+            # Sum AIC/BIC across all participants
+            aic_scores[model] = df['aic'].sum() if 'aic' in df.columns else float('inf')
+            bic_scores[model] = df['bic'].sum() if 'bic' in df.columns else float('inf')
+        else:
+            aic_scores[model] = float('inf')
+            bic_scores[model] = float('inf')
+
+    # Determine winner (lowest AIC)
+    winning_model = min(aic_scores, key=aic_scores.get)
+    generative_wins = winning_model == generative_model
+
+    result = {
+        'generative_model': generative_model,
+        'winning_model': winning_model,
+        'generative_wins': generative_wins,
+        'aic_scores': aic_scores,
+        'bic_scores': bic_scores,
+        'confusion_entry': (generative_model, winning_model)
+    }
+
+    # Print summary
+    if verbose:
+        print("\n" + "="*60)
+        print("MODEL RECOVERY RESULTS")
+        print("="*60)
+        print(f"Generative model: {generative_model}")
+        print(f"Winning model:    {winning_model}")
+        print(f"\nAIC Scores:")
+        for model, aic in sorted(aic_scores.items(), key=lambda x: x[1]):
+            marker = " <- WINNER" if model == winning_model else ""
+            gen_marker = " (generative)" if model == generative_model else ""
+            print(f"  {model}: {aic:.1f}{gen_marker}{marker}")
+        print(f"\nModel Recovery: {'PASS' if generative_wins else 'FAIL'}")
+        print("="*60)
+
+    return result
+
+
+# =============================================================================
 # Testing
 # =============================================================================
 
