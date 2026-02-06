@@ -55,10 +55,10 @@ Plans:
 - [x] 04-01-PLAN.md — Shared plotting utility + Script 15 (M3, --model, --color-by, full plot coverage)
 - [x] 04-02-PLAN.md — Script 16 (M3, --color-by, model subdirectories, structured output)
 
-### Phase 5: Parameter Recovery
-**Goal**: Complete parameter recovery pipeline validating MLE fitting quality per Senta et al. (2025)
+### Phase 5: Parameter Recovery & Posterior Predictive Checks
+**Goal**: Complete parameter recovery pipeline and posterior predictive checks validating MLE fitting quality per Senta et al. (2025) / Wilson & Collins (2019)
 **Depends on**: Nothing (independent infrastructure work)
-**Requirements**: RECV-01, RECV-02, RECV-03, RECV-04, RECV-05, RECV-06
+**Requirements**: RECV-01, RECV-02, RECV-03, RECV-04, RECV-05, RECV-06, PPC-01, PPC-02, PPC-03, PPC-04, PPC-05
 **Success Criteria** (what must be TRUE):
   1. User can run `python scripts/fitting/model_recovery.py --model wmrl_m3 --n-subjects 50 --n-datasets 10` from command line
   2. Model recovery generates synthetic data from sampled parameters, fits via MLE, and collects recovered parameters
@@ -66,12 +66,19 @@ Plans:
   4. Scatter plots are generated showing true vs. recovered parameters with r-squared annotations
   5. Recovery results CSV contains true parameters, recovered parameters, and metrics in structured format
   6. Script 11 invokes recovery pipeline and reports pass/fail against r >= 0.80 criterion
-**Plans**: 3 plans
+  7. User can run `python scripts/fitting/model_recovery.py --mode ppc --model wmrl_m3` to generate synthetic data from fitted params
+  8. Behavioral comparison shows real vs synthetic accuracy by set-size, learning curves, post-reversal behavior
+  9. Overlay plots visualize real vs synthetic behavioral patterns
+  10. Model recovery fits all models to synthetic data and reports if generative model wins
+  11. Script 09 orchestrates full PPC pipeline
+**Plans**: 5 plans
 
 Plans:
 - [x] 05-01-PLAN.md — Core recovery pipeline (synthetic data generator + recovery loop + metrics)
 - [x] 05-02-PLAN.md — CLI, output, and visualization (argparse CLI + CSV output + scatter/KDE plots)
 - [x] 05-03-PLAN.md — Script 11 wrapper + end-to-end verification
+- [ ] 05-04-PLAN.md — PPC mode + behavioral comparison (load fitted params, generate synthetic, compare behavior)
+- [ ] 05-05-PLAN.md — Model recovery evaluation + Script 09 orchestrator
 
 ### Phase 6: Cluster Monitoring
 **Goal**: GPU utilization monitoring and memory checkpoint persistence for cluster execution
@@ -112,6 +119,6 @@ Phases execute in numeric order: 4 → 5 → 6 → 7
 | 2. MLE Infrastructure | v1.0 | 2/2 | Complete | 2026-01-30 |
 | 3. Model Comparison | v1.0 | 2/2 | Complete | 2026-01-30 |
 | 4. Regression Visualization | v2.0 | 2/2 | Complete | 2026-02-06 |
-| 5. Parameter Recovery | v2.0 | 3/3 | Complete | 2026-02-06 |
+| 5. Parameter Recovery & PPC | v2.0 | 3/5 | In Progress | - |
 | 6. Cluster Monitoring | v2.0 | 0/TBD | Not started | - |
 | 7. Publication Polish | v2.0 | 0/TBD | Not started | - |

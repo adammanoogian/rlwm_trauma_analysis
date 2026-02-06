@@ -22,6 +22,14 @@ Requirements for post-fitting validation and publication readiness. Each maps to
 - [x] **RECV-05**: Recovery results saved to CSV (true params, recovered params, metrics)
 - [x] **RECV-06**: Script 11 invokes parameter recovery pipeline and reports pass/fail per Senta r >= 0.80 criterion
 
+### Posterior Predictive Checks
+
+- [ ] **PPC-01**: `model_recovery.py --mode ppc` loads fitted params from MLE results and generates synthetic data
+- [ ] **PPC-02**: Behavioral comparison metrics (accuracy by set-size, learning curves, post-reversal behavior)
+- [ ] **PPC-03**: Overlay plots comparing real vs synthetic behavioral patterns
+- [ ] **PPC-04**: Model recovery evaluation - fit all models to synthetic data, report if generative model wins
+- [ ] **PPC-05**: Script 09 orchestrates full PPC pipeline (generate → analyze → compare → model recovery)
+
 ### Cluster Monitoring
 
 - [ ] **MNTR-01**: `run_mle_gpu.slurm` runs background `nvidia-smi` polling at configurable interval, logging to file
@@ -35,12 +43,6 @@ Requirements for post-fitting validation and publication readiness. Each maps to
 ## Future Requirements
 
 Deferred to later milestones. Tracked but not in current roadmap.
-
-### Posterior Predictive Checks
-
-- **PPC-01**: Posterior predictive check comparison pipeline (Script 09) comparing synthetic vs. observed data
-- **PPC-02**: PPC visualization with overlay plots (learning curves, set-size effects, accuracy distributions)
-- **PPC-03**: Goodness-of-fit statistics (KS tests or similar) for synthetic vs. observed distributions
 
 ### Bayesian Comparison
 
@@ -73,16 +75,21 @@ Which phases cover which requirements. Updated during roadmap creation.
 | RECV-04 | Phase 5 | Complete |
 | RECV-05 | Phase 5 | Complete |
 | RECV-06 | Phase 5 | Complete |
+| PPC-01 | Phase 5 | Pending |
+| PPC-02 | Phase 5 | Pending |
+| PPC-03 | Phase 5 | Pending |
+| PPC-04 | Phase 5 | Pending |
+| PPC-05 | Phase 5 | Pending |
 | MNTR-01 | Phase 6 | Pending |
 | MNTR-02 | Phase 6 | Pending |
 | PUBL-01 | Phase 7 | Pending |
 | PUBL-02 | Phase 7 | Pending |
 
 **Coverage:**
-- v2 requirements: 13 total
-- Mapped to phases: 13/13 ✓
+- v2 requirements: 18 total
+- Mapped to phases: 18/18 ✓
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-05*
-*Last updated: 2026-02-06 after Phase 5 completion*
+*Last updated: 2026-02-06 — added PPC requirements to Phase 5*
