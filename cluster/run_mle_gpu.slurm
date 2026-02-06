@@ -193,7 +193,8 @@ for model in $MODELS; do
         --output output/mle/ \
         --n-starts 50 \
         --seed 42 \
-        --use-gpu"
+        --use-gpu \
+        --compute-diagnostics"
 
     if [[ -n "$LIMIT" ]]; then
         CMD="$CMD --limit $LIMIT"

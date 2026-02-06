@@ -1,8 +1,0 @@
-
-EnvironmentNameNotFound: Could not find conda environment: rlwm
-You can list all discoverable environments with `conda info --envs`.
-
-
-E0201 10:11:11.355155 3192403 execution_engine.cc:54] LLVM compilation error: Cannot allocate memory
-E0201 10:11:11.357228 3192401 execution_engine.cc:54] LLVM compilation error: JITDylib <xla_jit_dylib_0> is defunct
-/var/spool/slurmd/job50937074/slurm_script: line 98: 3191739 Segmentation fault      (core dumped) python scripts/fitting/fit_mle.py --model "$model" --data "$DATA_FILE" --output output/mle/ --n-starts 20 --seed 42 --n-jobs "$NJOBS"

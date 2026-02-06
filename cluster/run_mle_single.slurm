@@ -218,7 +218,7 @@ if [[ ! -f "$DATA_FILE" ]]; then
 fi
 
 # Build command
-CMD="python scripts/fitting/fit_mle.py --model $MODEL --data $DATA_FILE --output output/mle/ --n-starts 20 --seed 42"
+CMD="python scripts/fitting/fit_mle.py --model $MODEL --data $DATA_FILE --output output/mle/ --n-starts 20 --seed 42 --compute-diagnostics"
 
 if [[ -n "$LIMIT" ]]; then
     CMD="$CMD --limit $LIMIT"
@@ -294,7 +294,7 @@ echo ""
 echo "Phase 2: Main fitting with full CPU allocation..."
 
 # Build args for srun (need to reconstruct since $CMD includes 'python')
-FITTING_ARGS="--model $MODEL --data $DATA_FILE --output output/mle/ --n-starts 20 --seed 42"
+FITTING_ARGS="--model $MODEL --data $DATA_FILE --output output/mle/ --n-starts 20 --seed 42 --compute-diagnostics"
 if [[ -n "$LIMIT" ]]; then
     FITTING_ARGS="$FITTING_ARGS --limit $LIMIT"
 fi

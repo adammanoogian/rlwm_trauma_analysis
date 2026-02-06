@@ -1,4 +1,0 @@
-Traceback (most recent call last):
-  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/diagnose_gpu.py", line 109, in <module>
-    log()
-TypeError: log() missing 1 required positional argument: 'msg'

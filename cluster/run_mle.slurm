@@ -197,7 +197,8 @@ for model in $MODELS; do
         --output output/mle/ \
         --n-starts 20 \
         --seed 42 \
-        --n-jobs "$NJOBS"
+        --n-jobs "$NJOBS" \
+        --compute-diagnostics
 
     EXIT_CODE=$?
     if [[ $EXIT_CODE -ne 0 ]]; then

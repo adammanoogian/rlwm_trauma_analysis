@@ -1,9 +1,0 @@
-
-EnvironmentNameNotFound: Could not find conda environment: rlwm
-You can list all discoverable environments with `conda info --envs`.
-
-
-2026-02-01 09:40:48.940339: E external/xla/xla/backends/cpu/codegen/contiguous_section_memory_manager.cc:101] allocateMappedMemory failed with error: Cannot allocate memory
-2026-02-01 09:40:48.940811: E external/xla/xla/backends/cpu/codegen/contiguous_section_memory_manager.cc:139] Failed to satisfy suballocation request for 88
-LLVM ERROR: Unable to allocate section memory!
-/var/spool/slurmd/job50937007/slurm_script: line 98: 91485 Aborted                 (core dumped) python scripts/fitting/fit_mle.py --model "$model" --data "$DATA_FILE" --output output/mle/ --n-starts 20 --seed 42 --n-jobs "$NJOBS"
