@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-05)
 ## Current Position
 
 Phase: 5 of 7 (Parameter Recovery & PPC)
-Plan: 4 of 5 complete
-Status: Parameter Recovery done, PPC mode implemented
-Last activity: 2026-02-06 — Completed 05-04-PLAN.md (PPC mode implementation)
+Plan: 5 of 5 complete
+Status: Phase 5 complete - Parameter Recovery + PPC validation operational
+Last activity: 2026-02-06 — Completed 05-05-PLAN.md (Model recovery check + Script 09 orchestrator)
 
-Progress: [█████░░░░░] 50% (v2: 1/4 phases complete, 6/12 total plans complete)
+Progress: [██████░░░░] 58% (v2: 2/4 phases complete, 7/12 total plans complete)
 
 ## Performance Metrics
 
@@ -33,9 +33,9 @@ Progress: [█████░░░░░] 50% (v2: 1/4 phases complete, 6/12 to
 | 3 | 2 | 52 min | 26 min |
 
 **v2 Milestone:**
-- Total plans completed: 6
-- Average duration: 22 min
-- Total execution time: 131 min
+- Total plans completed: 7
+- Average duration: 20 min
+- Total execution time: 140 min
 - Timeline: Started 2026-02-05
 
 **By Phase:**
@@ -43,7 +43,7 @@ Progress: [█████░░░░░] 50% (v2: 1/4 phases complete, 6/12 to
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 4 | 2/2 | 37 min | 19 min | ✓
-| 5 | 4/5 | 94 min | 24 min | ◆
+| 5 | 5/5 | 103 min | 21 min | ✓
 
 ## Accumulated Context
 
@@ -56,8 +56,8 @@ Progress: [█████░░░░░] 50% (v2: 1/4 phases complete, 6/12 to
 ### v2 Roadmap Structure
 
 - Phase 4: Regression Visualization (REGR-01, REGR-02, REGR-03) — ✓ complete
-- Phase 5: Parameter Recovery & PPC (RECV-01-06, PPC-01-05) — ◆ in progress (3/5 plans)
-- Phase 6: Cluster Monitoring (MNTR-01, MNTR-02) — after Phase 5
+- Phase 5: Parameter Recovery & PPC (RECV-01-06, PPC-01-05) — ✓ complete
+- Phase 6: Cluster Monitoring (MNTR-01, MNTR-02) — ready to start
 - Phase 7: Publication Polish (PUBL-01, PUBL-02) — depends on Phase 4
 
 ### Key Decisions
@@ -88,6 +88,10 @@ See PROJECT.md Key Decisions table for full history.
 - Auto-detect fitted params path from model name if not specified in PPC mode
 - Use participant sona_id as seed for reproducible PPC synthetic data
 - Behavioral metrics: overall accuracy, set-size accuracy, learning curve, post-reversal
+- Model recovery via subprocess calls to Script 12 (maintains pipeline separation)
+- Winner determined by summed AIC across participants (lowest wins)
+- Auto-detect ID column (sona_id or participant_id) for MLE results compatibility
+- Script 09 exit code 0 if pass, 1 if fail (enables automated validation)
 
 ### Pending Todos
 
@@ -99,6 +103,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-02-06 19:45:00
-Stopped at: Completed 05-04-PLAN.md (PPC mode implementation)
+Last session: 2026-02-06 18:51:06
+Stopped at: Completed 05-05-PLAN.md (Model recovery check + Script 09 orchestrator)
 Resume file: None
