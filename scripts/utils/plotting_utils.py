@@ -188,3 +188,182 @@ def add_colored_scatter(
         ax.legend(ncol=ncol, loc='best', fontsize=10)
 
     return handles
+
+
+def plot_scatter_with_annotations(
+    ax: plt.Axes,
+    x: np.ndarray,
+    y: np.ndarray,
+    annotations: Dict[str, float],
+    show_identity: bool = True,
+    show_regression: bool = True,
+    identity_color: str = 'black',
+    regression_color: str = 'red',
+    point_color: str = '#1f77b4',
+    alpha: float = 0.6,
+    s: float = 50,
+    pass_threshold: Optional[float] = None,
+    pass_key: str = 'r',
+    **kwargs
+) -> None:
+    """
+    Add scatter plot with identity line, regression line, and annotations.
+
+    Generic function for comparing two related variables (e.g., true vs recovered,
+    predicted vs actual). Follows existing ax-based pattern for composability.
+
+    Args:
+        ax: Matplotlib axes object
+        x, y: Arrays of values to plot
+        annotations: Dict of stats to display (e.g., {'r': 0.85, 'RMSE': 0.05})
+        show_identity: Show y=x identity line (dashed)
+        show_regression: Show regression line (solid)
+        identity_color: Color for identity line (default: 'black')
+        regression_color: Color for regression line (default: 'red')
+        point_color: Color for scatter points (default: '#1f77b4')
+        alpha: Point transparency (default: 0.6)
+        s: Point size (default: 50)
+        pass_threshold: If provided, adds PASS/FAIL badge based on annotations[pass_key]
+        pass_key: Key in annotations dict for pass/fail check (default: 'r')
+        **kwargs: Additional arguments passed to ax.scatter()
+
+    Examples:
+        # Basic usage
+        fig, ax = plt.subplots()
+        plot_scatter_with_annotations(
+            ax, true_vals, recovered_vals,
+            annotations={'r': 0.85, 'RMSE': 0.05, 'Bias': -0.01}
+        )
+
+        # With pass/fail badge
+        plot_scatter_with_annotations(
+            ax, true_vals, recovered_vals,
+            annotations={'r': 0.92},
+            pass_threshold=0.80,
+            pass_key='r'
+        )
+    """
+    # Scatter plot
+    ax.scatter(x, y, c=point_color, alpha=alpha, s=s, edgecolors='white', linewidths=0.5, **kwargs)
+
+    # Identity line (y=x)
+    if show_identity:
+        lims = [
+            np.min([ax.get_xlim()[0], ax.get_ylim()[0]]),
+            np.max([ax.get_xlim()[1], ax.get_ylim()[1]])
+        ]
+        ax.plot(lims, lims, '--', color=identity_color, alpha=0.7, linewidth=1.5, label='Identity')
+
+    # Regression line
+    if show_regression:
+        # Fit linear regression
+        coeffs = np.polyfit(x, y, 1)
+        poly_fn = np.poly1d(coeffs)
+        x_sorted = np.sort(x)
+        ax.plot(x_sorted, poly_fn(x_sorted), '-', color=regression_color, linewidth=2, alpha=0.8, label='Regression')
+
+    # Annotations box (top-left)
+    annotation_text = []
+    for key, value in annotations.items():
+        if isinstance(value, float):
+            if abs(value) < 0.01:
+                annotation_text.append(f"{key}: {value:.4f}")
+            else:
+                annotation_text.append(f"{key}: {value:.3f}")
+        else:
+            annotation_text.append(f"{key}: {value}")
+
+    if annotation_text:
+        ax.text(
+            0.05, 0.95,
+            '\n'.join(annotation_text),
+            transform=ax.transAxes,
+            fontsize=10,
+            verticalalignment='top',
+            bbox=dict(boxstyle='round', facecolor='white', alpha=0.8, edgecolor='gray')
+        )
+
+    # PASS/FAIL badge (top-right)
+    if pass_threshold is not None and pass_key in annotations:
+        value = annotations[pass_key]
+        passed = value >= pass_threshold
+        badge_text = 'PASS' if passed else 'FAIL'
+        badge_color = '#28a745' if passed else '#dc3545'  # Green/Red
+
+        ax.text(
+            0.95, 0.95,
+            badge_text,
+            transform=ax.transAxes,
+            fontsize=12,
+            fontweight='bold',
+            verticalalignment='top',
+            horizontalalignment='right',
+            color='white',
+            bbox=dict(boxstyle='round', facecolor=badge_color, alpha=0.9, edgecolor='none', pad=0.5)
+        )
+
+    ax.grid(True, alpha=0.3)
+
+
+def plot_kde_comparison(
+    ax: plt.Axes,
+    distributions: Dict[str, np.ndarray],
+    colors: Optional[Dict[str, str]] = None,
+    fill: bool = True,
+    alpha: float = 0.3,
+    linewidth: float = 2,
+    **kwargs
+) -> None:
+    """
+    Plot overlapping KDE distributions for comparison.
+
+    Generic function for comparing same variable from different sources
+    (e.g., recovered vs real fitted parameters, model A vs model B).
+    Auto-generates colors if not provided.
+
+    Args:
+        ax: Matplotlib axes object
+        distributions: Dict mapping label -> array of values
+        colors: Optional dict mapping label -> color hex string
+        fill: Whether to fill under KDE curves (default: True)
+        alpha: Fill transparency (default: 0.3)
+        linewidth: Line width for KDE curves (default: 2)
+        **kwargs: Additional arguments passed to sns.kdeplot()
+
+    Examples:
+        # Basic usage
+        fig, ax = plt.subplots()
+        plot_kde_comparison(
+            ax,
+            {'Recovered': recovered_vals, 'Real Fitted': real_vals}
+        )
+
+        # With custom colors
+        plot_kde_comparison(
+            ax,
+            {'Group A': vals_a, 'Group B': vals_b},
+            colors={'Group A': '#1f77b4', 'Group B': '#ff7f0e'}
+        )
+    """
+    # Auto-generate colors if not provided
+    if colors is None:
+        n_dists = len(distributions)
+        palette = sns.color_palette('tab10', n_colors=n_dists)
+        colors = {label: matplotlib.colors.rgb2hex(palette[i]) for i, label in enumerate(distributions.keys())}
+
+    # Plot each distribution
+    for label, values in distributions.items():
+        color = colors.get(label, '#808080')  # Fallback to gray
+
+        sns.kdeplot(
+            data=values,
+            ax=ax,
+            color=color,
+            fill=fill,
+            alpha=alpha,
+            linewidth=linewidth,
+            label=label,
+            **kwargs
+        )
+
+    ax.grid(True, alpha=0.3)
