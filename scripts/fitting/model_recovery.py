@@ -37,6 +37,7 @@ from scripts.fitting.mle_utils import (
     QLEARNING_BOUNDS, WMRL_BOUNDS, WMRL_M3_BOUNDS,
     QLEARNING_PARAMS, WMRL_PARAMS, WMRL_M3_PARAMS
 )
+from scripts.utils.plotting_utils import plot_behavioral_comparison
 
 
 # =============================================================================

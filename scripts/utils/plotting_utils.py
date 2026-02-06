@@ -367,3 +367,101 @@ def plot_kde_comparison(
         )
 
     ax.grid(True, alpha=0.3)
+
+
+def plot_behavioral_comparison(
+    real_data: pd.DataFrame,
+    synthetic_data: pd.DataFrame,
+    output_dir,
+    model_name: str = 'Model'
+) -> None:
+    """
+    Generate overlay plots comparing real vs synthetic behavioral patterns.
+
+    Creates:
+    1. Set-size accuracy comparison (bar chart)
+    2. Learning curve comparison (line plot)
+    3. Overall accuracy distribution comparison (KDE)
+
+    Parameters
+    ----------
+    real_data : pd.DataFrame
+        Real trial data
+    synthetic_data : pd.DataFrame
+        Synthetic trial data
+    output_dir : Path
+        Directory to save figures
+    model_name : str
+        Model name for plot titles
+    """
+    from pathlib import Path
+
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # 1. Set-size accuracy comparison
+    fig, ax = plt.subplots(figsize=(8, 6))
+
+    set_sizes = [2, 3, 5, 6]
+    x = np.arange(len(set_sizes))
+    width = 0.35
+
+    real_acc = [real_data[real_data['set_size'] == ss]['reward'].mean() for ss in set_sizes]
+    syn_acc = [synthetic_data[synthetic_data['set_size'] == ss]['reward'].mean() for ss in set_sizes]
+
+    ax.bar(x - width/2, real_acc, width, label='Real', color='steelblue', alpha=0.8)
+    ax.bar(x + width/2, syn_acc, width, label='Synthetic', color='coral', alpha=0.8)
+
+    ax.set_xlabel('Set Size')
+    ax.set_ylabel('Accuracy')
+    ax.set_title(f'Accuracy by Set Size: Real vs Synthetic ({model_name})')
+    ax.set_xticks(x)
+    ax.set_xticklabels(set_sizes)
+    ax.legend()
+    ax.set_ylim(0, 1)
+
+    plt.tight_layout()
+    plt.savefig(output_dir / 'setsize_comparison.png', dpi=150)
+    plt.close()
+
+    # 2. Learning curve comparison
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    # Compute mean accuracy per block
+    real_by_block = real_data.groupby('block')['reward'].mean().reset_index()
+    syn_by_block = synthetic_data.groupby('block')['reward'].mean().reset_index()
+
+    ax.plot(real_by_block['block'], real_by_block['reward'],
+            'o-', label='Real', color='steelblue', linewidth=2, markersize=5)
+    ax.plot(syn_by_block['block'], syn_by_block['reward'],
+            's--', label='Synthetic', color='coral', linewidth=2, markersize=5)
+
+    ax.set_xlabel('Block')
+    ax.set_ylabel('Accuracy')
+    ax.set_title(f'Learning Curve: Real vs Synthetic ({model_name})')
+    ax.legend()
+    ax.set_ylim(0, 1)
+
+    plt.tight_layout()
+    plt.savefig(output_dir / 'learning_curve_comparison.png', dpi=150)
+    plt.close()
+
+    # 3. Per-participant accuracy distribution
+    fig, ax = plt.subplots(figsize=(8, 6))
+
+    real_subj_acc = real_data.groupby('sona_id')['reward'].mean()
+    syn_subj_acc = synthetic_data.groupby('sona_id')['reward'].mean()
+
+    sns.kdeplot(real_subj_acc, ax=ax, label='Real', color='steelblue', fill=True, alpha=0.3)
+    sns.kdeplot(syn_subj_acc, ax=ax, label='Synthetic', color='coral', fill=True, alpha=0.3)
+
+    ax.set_xlabel('Per-Participant Accuracy')
+    ax.set_ylabel('Density')
+    ax.set_title(f'Accuracy Distribution: Real vs Synthetic ({model_name})')
+    ax.legend()
+
+    plt.tight_layout()
+    plt.savefig(output_dir / 'accuracy_distribution_comparison.png', dpi=150)
+    plt.close()
+
+    print(f"Saved comparison plots to: {output_dir}")
