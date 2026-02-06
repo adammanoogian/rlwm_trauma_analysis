@@ -1,0 +1,58 @@
+Table 8
+Parameter-Trauma Associations: Spearman Rank Correlations
+================================================================================
+
+Q-Learning Model (M1)
+--------------------------------------------------------------------------------
+Model Parameter     Trauma Measure      ρ      p
+   M1        α₊         LESS Total -0.105 0.4820
+   M1        α₊        IES-R Total  0.053 0.7232
+   M1        α₊    IES-R Intrusion  0.068 0.6519
+   M1        α₊    IES-R Avoidance  0.018 0.9069
+   M1        α₊ IES-R Hyperarousal  0.019 0.9003
+   M1        α₋         LESS Total -0.256 0.0824
+   M1        α₋        IES-R Total -0.045 0.7656
+   M1        α₋    IES-R Intrusion -0.104 0.4864
+   M1        α₋    IES-R Avoidance  0.009 0.9509
+   M1        α₋ IES-R Hyperarousal -0.051 0.7343
+   M1         ε         LESS Total  0.040 0.7900
+   M1         ε        IES-R Total -0.001 0.9954
+   M1         ε    IES-R Intrusion -0.006 0.9679
+   M1         ε    IES-R Avoidance  0.002 0.9889
+   M1         ε IES-R Hyperarousal -0.035 0.8154
+
+WM-RL Hybrid Model (M2)
+--------------------------------------------------------------------------------
+Model Parameter     Trauma Measure      ρ      p
+   M2        α₊         LESS Total -0.066 0.6576
+   M2        α₊        IES-R Total  0.043 0.7718
+   M2        α₊    IES-R Intrusion  0.053 0.7218
+   M2        α₊    IES-R Avoidance -0.007 0.9633
+   M2        α₊ IES-R Hyperarousal  0.184 0.2166
+   M2        α₋         LESS Total -0.163 0.2735
+   M2        α₋        IES-R Total  0.046 0.7594
+   M2        α₋    IES-R Intrusion  0.075 0.6152
+   M2        α₋    IES-R Avoidance  0.055 0.7134
+   M2        α₋ IES-R Hyperarousal -0.019 0.8982
+   M2         φ         LESS Total  0.168 0.2577
+   M2         φ        IES-R Total -0.035 0.8174
+   M2         φ    IES-R Intrusion  0.029 0.8478
+   M2         φ    IES-R Avoidance -0.075 0.6148
+   M2         φ IES-R Hyperarousal -0.097 0.5165
+   M2         ρ         LESS Total  0.151 0.3113
+   M2         ρ        IES-R Total  0.060 0.6907
+   M2         ρ    IES-R Intrusion  0.058 0.6970
+   M2         ρ    IES-R Avoidance  0.075 0.6151
+   M2         ρ IES-R Hyperarousal  0.057 0.7040
+   M2         K         LESS Total -0.194 0.1903
+   M2         K        IES-R Total  0.207 0.1622
+   M2         K    IES-R Intrusion  0.213 0.1510
+   M2         K    IES-R Avoidance  0.196 0.1863
+   M2         K IES-R Hyperarousal  0.057 0.7026
+   M2         ε         LESS Total -0.118 0.4294
+   M2         ε        IES-R Total  0.001 0.9954
+   M2         ε    IES-R Intrusion -0.048 0.7495
+   M2         ε    IES-R Avoidance  0.036 0.8118
+   M2         ε IES-R Hyperarousal  0.032 0.8330
+
+Note. ρ = Spearman rank correlation coefficient. LESS = Life Events Scale for Students; IES-R = Impact of Event Scale-Revised. All correlations non-significant after FDR correction (all q > .50). N = 47.

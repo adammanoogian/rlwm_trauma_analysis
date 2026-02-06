@@ -1,0 +1,8 @@
+Model,Predictor,β,t,p,R²,Adj. R²,F,Model p
+Model 1,LESS Total Events,-0.0099,-0.68,0.501,0.010,-0.012,"F(1, 46) = 0.46",0.501
+Model 2,IES-R Total Score,-0.0157,-1.09,0.283,0.025,0.004,"F(1, 46) = 1.18",0.283
+Model 3,IES-R Intrusion,0.0082,0.31,0.757,0.036,-0.029,"F(3, 44) = 0.55",0.648
+,IES-R Avoidance,-0.0034,-0.17,0.869,,,,
+,IES-R Hyperarousal,-0.0229,-0.95,0.348,,,,
+Model 4,LESS Total Events,-0.0095,-0.67,0.506,0.034,-0.009,"F(2, 45) = 0.79",0.459
+,IES-R Total Score,-0.0155,-1.10,0.279,,,,

@@ -1,0 +1,73 @@
+Results
+
+Participants
+
+Data were collected from 54 participants, of whom 48 (n = 29 Trauma - No Ongoing Impact; n = 19 Trauma - Ongoing Impact) completed both trauma assessment scales and the full RLWM task and were included in group-level analyses (Table 1). Six participants were excluded: four due to incomplete task sessions (<100 trials) and two due to duplicate session records. All remaining participants reported at least one significant life event on the LESS measure, indicating universal trauma exposure within the sample.
+
+Table 1: 
+Participant Characteristics (N = 48)
+
+Characteristic	N	Mean	Median	SD	Min	Max
+Age	48	37.6	33	14.2	22	65
+LESS total	48	10.6	11	3.2	2	15
+IES-R total	48	21.9	20.5	16.5	0	64
+
+The two groups did not differ significantly in the total number of significant events recognised on the LESS; however, they differed substantially in persisting symptom severity across all IES-R subscales (Table 2), confirming the intended psychological distinction between groups. This pattern reflects the characteristics of the recruited sample rather than selective attrition and allows comparison of variability in current psychological impact among trauma-exposed individuals. The separation between groups at the clinical cutoff is illustrated in Supplementary Figure S2.
+
+Table 2: 
+Trauma exposure (LESS) and ongoing symptom severity (IES-R) by Trauma Group
+
+Measure	Trauma – No Ongoing Impact (n = 29)	Trauma – Ongoing Impact (n = 19)
+LESS Total Events	10.62 ± 2.82	10.68 ± 3.79
+IES-R Avoidance	4.79 ± 4.48	15.21 ± 5.44
+IES-R Hyperarousal	1.86 ± 2.40	9.42 ± 5.01
+IES-R Intrusion	4.34 ± 3.43	13.89 ± 4.34
+IES-R Total	11.00 ± 8.29	38.53 ± 11.01
+
+Note. Values are mean ± SD.
+
+Distributional characteristics were examined for all behavioural dependent variables on the task. Levene's tests confirmed homogeneity of variance for both accuracy, F(1, 46) = 0.13, p = .721, and reaction time, F(1, 46) = 0.07, p = .799. Shapiro–Wilk tests indicated violations of normality for accuracy in both trauma groups (both ps < .001) and for reaction time in the Trauma - Ongoing Impact group (p = .017). Inspection of distribution statistics showed moderate skewness typical of cognitive task data, with reaction time positively skewed and accuracy negatively skewed due to ceiling effects. Given the balanced group design (N = 48) and the robustness of ANOVA to normality violations under these conditions, parametric analyses were retained. Detailed distribution statistics are reported in Supplementary Table S2, and distributional plots are provided in Supplementary Figures S1 and S2.
+
+Behavioural Performance
+
+Overall Learning and Load Effects
+
+Participants demonstrated reliable learning of stimulus-response associations across both load conditions, with mean accuracy significantly exceeding chance performance (33.3%) in all cases (Figure 1). A 2 × 2 mixed ANOVA revealed a strong main effect of load on accuracy, with performance higher in low-load blocks than in high-load blocks, F(1, 46) = 82.81, p < .001, ηp² = .64 (Figure 2A; Table 3). This effect was highly consistent at the individual level, with 45 of 48 participants (93.8%) showing greater accuracy under low load.
+
+Figure 1. 
+Learning Across the Task 
+
+Note. Mean accuracy (%) across experimental blocks is shown separately for low-load and high-load conditions. Shaded bands represent ±1 SEM. The dashed horizontal line indicates chance-level performance (33.3%).
+
+Figure 2. 
+Effects of memory load on task performance
+
+Note. (A) Mean accuracy and (B) median reaction time as a function of working-memory load for participants with and without ongoing psychological impact. Error bars represent ±1 SEM for accuracy and ±1 SD for reaction time.
+
+Reaction times (RT) showed a parallel pattern, with significantly faster responses in low-load compared to high-load conditions, F(1, 46) = 126.04, p < .001, ηp² = .73 (Figure 2B; Table 3). Together, these findings indicate that increasing working-memory load reduced learning efficiency and slowed response selection. Distributional properties of accuracy and reaction time underlying these analyses are reported in Supplementary Table S2.
+
+Table 3: 
+Task Performance by Memory Load and Trauma Group
+
+Measure	Load	Trauma – No Ongoing Impact (n = 29)	Trauma – Ongoing Impact (n = 19)
+Accuracy (%)	Low	83.20 ± 7.47	82.51 ± 10.06
+	High	70.04 ± 13.33	69.33 ± 12.86
+Median RT (ms)	Low	493 ± 91	540 ± 77
+	High	627 ± 130	672 ± 111
+
+Note. Values are mean ± SD. Accuracy is expressed as percentage correct. Reaction times reflect median response times per participant, averaged within each condition.
+
+Trauma Group Comparisons
+
+There were no significant differences in behavioural performance between trauma groups. When performance was averaged across load conditions, there was no evidence of an overall effect of trauma group on accuracy, F(1, 46) = 0.06, p = .812, ηp² = .001, or reaction time, F(1, 46) = 2.55, p = .117, ηp² = .053 (Table 3). Participants with ongoing psychological impact performed comparably to those without ongoing symptoms across both load conditions.
+
+The Load × Group interaction was also non-significant for accuracy, F(1, 46) < 0.001, p = .995, ηp² < .001, and RT, F(1, 46) < 0.001, p = .981, ηp² < .001 (Figure 2), indicating that the performance cost associated with increased cognitive load was equivalent across trauma groups.
+
+Trauma Scores as Continuous Predictors
+
+To examine whether individual differences in trauma exposure or symptom severity predicted task performance, regression analyses were conducted using continuous trauma indices. Neither total traumatic events (LESS Total) nor ongoing symptom severity (IES-R Total) significantly predicted overall accuracy (LESS: β = -0.003, p = .501; IES-R: β = -0.001, p = .283; Figure 3; Supplementary Table S1). Additional models including IES-R subscales (Intrusion, Avoidance, Hyperarousal) likewise yielded non-significant associations (all ps > .36). This pattern remained unchanged when low- and high-load conditions were analysed separately, indicating no detectable relationship between trauma severity and observable behavioural performance.
+
+Figure 3. 
+Relationships Between Trauma Exposure, Symptom Severity, and Overall Task Accuracy
+
+Note. Points represent individual participants and are coloured by trauma group. Dashed lines indicate least-squares regression fits, with Pearson r and p-values shown.

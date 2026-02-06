@@ -1,0 +1,76 @@
+Table 7
+Parameter-Behavior Associations: Spearman Rank Correlations
+================================================================================
+
+Q-Learning Model (M1)
+--------------------------------------------------------------------------------
+Model Parameter          Behavioral Metric      ρ      p Sig
+   M1        α₊           Overall Accuracy  0.246 0.0959    
+   M1        α₊                    Mean RT -0.023 0.8762    
+   M1        α₊ Set-Size Effect (Accuracy) -0.172 0.2484    
+   M1        α₊       Set-Size Effect (RT) -0.107 0.4723    
+   M1        α₊             Learning Slope  0.161 0.2850    
+   M1        α₊       Feedback Sensitivity  0.202 0.1740    
+   M1        α₊        Perseveration Index -0.043 0.7804    
+   M1        α₋           Overall Accuracy -0.159 0.2870    
+   M1        α₋                    Mean RT -0.025 0.8658    
+   M1        α₋ Set-Size Effect (Accuracy)  0.045 0.7622    
+   M1        α₋       Set-Size Effect (RT) -0.155 0.2984    
+   M1        α₋             Learning Slope -0.126 0.4045    
+   M1        α₋       Feedback Sensitivity -0.106 0.4791    
+   M1        α₋        Perseveration Index  0.141 0.3572    
+   M1         ε           Overall Accuracy -0.837 0.0000 ***
+   M1         ε                    Mean RT  0.097 0.5150    
+   M1         ε Set-Size Effect (Accuracy)  0.653 0.0000 ***
+   M1         ε       Set-Size Effect (RT) -0.081 0.5881    
+   M1         ε             Learning Slope -0.242 0.1051    
+   M1         ε       Feedback Sensitivity -0.413 0.0039  **
+   M1         ε        Perseveration Index  0.215 0.1557    
+
+WM-RL Hybrid Model (M2)
+--------------------------------------------------------------------------------
+Model Parameter          Behavioral Metric      ρ      p Sig
+   M2        α₊           Overall Accuracy -0.087 0.5613    
+   M2        α₊                    Mean RT -0.134 0.3683    
+   M2        α₊ Set-Size Effect (Accuracy) -0.005 0.9723    
+   M2        α₊       Set-Size Effect (RT) -0.114 0.4440    
+   M2        α₊             Learning Slope  0.070 0.6422    
+   M2        α₊       Feedback Sensitivity -0.156 0.2944    
+   M2        α₊        Perseveration Index -0.150 0.3246    
+   M2        α₋           Overall Accuracy  0.062 0.6767    
+   M2        α₋                    Mean RT -0.174 0.2414    
+   M2        α₋ Set-Size Effect (Accuracy) -0.189 0.2041    
+   M2        α₋       Set-Size Effect (RT)  0.039 0.7960    
+   M2        α₋             Learning Slope -0.034 0.8232    
+   M2        α₋       Feedback Sensitivity -0.126 0.3981    
+   M2        α₋        Perseveration Index  0.082 0.5920    
+   M2         φ           Overall Accuracy -0.454 0.0014  **
+   M2         φ                    Mean RT  0.190 0.2009    
+   M2         φ Set-Size Effect (Accuracy)  0.323 0.0268   *
+   M2         φ       Set-Size Effect (RT) -0.065 0.6637    
+   M2         φ             Learning Slope -0.053 0.7254    
+   M2         φ       Feedback Sensitivity -0.230 0.1199    
+   M2         φ        Perseveration Index  0.046 0.7632    
+   M2         ρ           Overall Accuracy -0.217 0.1421    
+   M2         ρ                    Mean RT -0.076 0.6118    
+   M2         ρ Set-Size Effect (Accuracy)  0.193 0.1946    
+   M2         ρ       Set-Size Effect (RT) -0.056 0.7081    
+   M2         ρ             Learning Slope -0.180 0.2322    
+   M2         ρ       Feedback Sensitivity -0.245 0.0964    
+   M2         ρ        Perseveration Index  0.177 0.2436    
+   M2         K           Overall Accuracy -0.251 0.0883    
+   M2         K                    Mean RT  0.116 0.4389    
+   M2         K Set-Size Effect (Accuracy)  0.286 0.0516    
+   M2         K       Set-Size Effect (RT) -0.033 0.8265    
+   M2         K             Learning Slope -0.093 0.5385    
+   M2         K       Feedback Sensitivity -0.079 0.5961    
+   M2         K        Perseveration Index  0.055 0.7177    
+   M2         ε           Overall Accuracy -0.686 0.0000 ***
+   M2         ε                    Mean RT -0.187 0.2082    
+   M2         ε Set-Size Effect (Accuracy)  0.414 0.0038  **
+   M2         ε       Set-Size Effect (RT) -0.297 0.0424   *
+   M2         ε             Learning Slope -0.036 0.8137    
+   M2         ε       Feedback Sensitivity -0.403 0.0049  **
+   M2         ε        Perseveration Index  0.169 0.2660    
+
+Note. ρ = Spearman rank correlation coefficient. * p < .05, ** p < .01, *** p < .001 (uncorrected). N = 47.

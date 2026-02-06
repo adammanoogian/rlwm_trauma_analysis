@@ -1,0 +1,9 @@
+Table 4
+Model Specifications and Free Parameters
+================================================================================
+
+            Model  Free Parameters     Parameter List Fixed Parameters Blocks Used Sample Size
+  Q-Learning (M1)                3          α₊, α₋, ε           β = 50        3-23      N = 47
+WM-RL Hybrid (M2)                6 α₊, α₋, φ, ρ, K, ε           β = 50        3-23      N = 47
+
+Note. α₊ = positive learning rate; α₋ = negative learning rate; ε = decision noise/exploration; φ = working memory decay; ρ = working memory reliance; K = working memory capacity; β = inverse temperature (fixed). All models fit to experimental blocks only (practice blocks 1-2 excluded).
