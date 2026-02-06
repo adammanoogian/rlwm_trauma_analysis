@@ -9,9 +9,9 @@ Requirements for post-fitting validation and publication readiness. Each maps to
 
 ### Continuous Regression & Visualization
 
-- [ ] **REGR-01**: Script 16 output is cleanly organized by analysis (each scale x parameter regression grouped and structured)
-- [ ] **REGR-02**: All scatter/regression plots in Scripts 15-16 accept `--color-by <variable>` to color data points by any categorical grouping variable
-- [ ] **REGR-03**: Color-by grouping works with trauma group, gender, or any column present in the participant data
+- [x] **REGR-01**: Script 16 output is cleanly organized by analysis (each scale x parameter regression grouped and structured)
+- [x] **REGR-02**: All scatter/regression plots in Scripts 15-16 accept `--color-by <variable>` to color data points by any categorical grouping variable
+- [x] **REGR-03**: Color-by grouping works with trauma group, gender, or any column present in the participant data
 
 ### Parameter Recovery
 
@@ -64,9 +64,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| REGR-01 | Phase 4 | Pending |
-| REGR-02 | Phase 4 | Pending |
-| REGR-03 | Phase 4 | Pending |
+| REGR-01 | Phase 4 | Complete |
+| REGR-02 | Phase 4 | Complete |
+| REGR-03 | Phase 4 | Complete |
 | RECV-01 | Phase 5 | Pending |
 | RECV-02 | Phase 5 | Pending |
 | RECV-03 | Phase 5 | Pending |
@@ -85,4 +85,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-02-05*
-*Last updated: 2026-02-05 after roadmap creation*
+*Last updated: 2026-02-06 after Phase 4 completion*

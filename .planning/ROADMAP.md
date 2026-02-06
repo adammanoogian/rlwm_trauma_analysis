@@ -52,8 +52,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 04-01-PLAN.md — Shared plotting utility + Script 15 (M3, --model, --color-by, full plot coverage)
-- [ ] 04-02-PLAN.md — Script 16 (M3, --color-by, model subdirectories, structured output)
+- [x] 04-01-PLAN.md — Shared plotting utility + Script 15 (M3, --model, --color-by, full plot coverage)
+- [x] 04-02-PLAN.md — Script 16 (M3, --color-by, model subdirectories, structured output)
 
 ### Phase 5: Parameter Recovery
 **Goal**: Complete parameter recovery pipeline validating MLE fitting quality per Senta et al. (2025)
@@ -109,7 +109,7 @@ Phases execute in numeric order: 4 → 5 → 6 → 7
 | 1. Perseveration Extension | v1.0 | 2/2 | Complete | 2026-01-30 |
 | 2. MLE Infrastructure | v1.0 | 2/2 | Complete | 2026-01-30 |
 | 3. Model Comparison | v1.0 | 2/2 | Complete | 2026-01-30 |
-| 4. Regression Visualization | v2.0 | 0/2 | Planning complete | - |
+| 4. Regression Visualization | v2.0 | 2/2 | Complete | 2026-02-06 |
 | 5. Parameter Recovery | v2.0 | 0/TBD | Not started | - |
 | 6. Cluster Monitoring | v2.0 | 0/TBD | Not started | - |
 | 7. Publication Polish | v2.0 | 0/TBD | Not started | - |
