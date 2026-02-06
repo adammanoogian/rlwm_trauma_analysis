@@ -347,16 +347,20 @@ def run_parameter_recovery(
             df_synthetic = generate_synthetic_participant(true_params, model, subject_seed)
 
             # Prepare data for fitting (same as real data)
-            data_dict = prepare_participant_data(df_synthetic)
+            participant_id = int(df_synthetic['sona_id'].iloc[0])
+            data_dict = prepare_participant_data(df_synthetic, participant_id, model)
 
             # Fit via MLE with n_starts=50 (matching real fitting)
             fit_result = fit_participant_mle(
-                data_dict,
-                model,
+                stimuli_blocks=data_dict['stimuli_blocks'],
+                actions_blocks=data_dict['actions_blocks'],
+                rewards_blocks=data_dict['rewards_blocks'],
+                set_sizes_blocks=data_dict.get('set_sizes_blocks'),
+                masks_blocks=data_dict.get('masks_blocks'),
+                model=model,
                 n_starts=50,
-                use_gpu=use_gpu,
-                verbose=False,  # Suppress per-subject output
-                seed=subject_seed
+                seed=subject_seed,
+                verbose=False  # Suppress per-subject output
             )
 
             # Store results
