@@ -684,6 +684,9 @@ Examples:
   python scripts/fitting/model_recovery.py --model wmrl --n-subjects 10 --n-datasets 1 --seed 42
         """
     )
+    parser.add_argument('--mode', type=str, default='recovery',
+                        choices=['recovery', 'ppc'],
+                        help='recovery: sample params, validate fitting | ppc: use fitted params, validate model')
     parser.add_argument('--model', type=str, required=True,
                         choices=['qlearning', 'wmrl', 'wmrl_m3'],
                         help='Model to test recovery')
@@ -699,109 +702,159 @@ Examples:
                         help='Output directory for results (default: output/recovery)')
     parser.add_argument('--figures-dir', type=str, default='figures/recovery',
                         help='Output directory for figures (default: figures/recovery)')
+    parser.add_argument('--fitted-params', type=str, default=None,
+                        help='Path to fitted params CSV (auto-detected from --model if not specified)')
+    parser.add_argument('--real-data', type=str, default='output/task_trials_long.csv',
+                        help='Path to real trial data for behavioral comparison')
     parser.add_argument('--real-params', type=str, default=None,
                         help='Path to real fitted parameters CSV for distribution comparison')
     parser.add_argument('--quiet', action='store_true',
                         help='Suppress progress output')
     args = parser.parse_args()
 
+    # Auto-detect fitted params path if PPC mode and not specified
+    if args.mode == 'ppc' and args.fitted_params is None:
+        args.fitted_params = f'output/mle_results/{args.model}_individual_fits.csv'
+
     # Create output directories
-    output_dir = Path(args.output_dir) / args.model
-    figures_dir = Path(args.figures_dir) / args.model
+    if args.mode == 'recovery':
+        output_dir = Path(args.output_dir) / args.model
+        figures_dir = Path(args.figures_dir) / args.model
+    else:  # ppc mode
+        output_dir = Path('output/ppc') / args.model
+        figures_dir = Path('figures/ppc') / args.model
+
     output_dir.mkdir(parents=True, exist_ok=True)
     figures_dir.mkdir(parents=True, exist_ok=True)
 
-    # Print configuration
-    if not args.quiet:
-        print("=" * 80)
-        print("PARAMETER RECOVERY ANALYSIS")
-        print("=" * 80)
-        print(f"Model:        {args.model}")
-        print(f"N subjects:   {args.n_subjects}")
-        print(f"N datasets:   {args.n_datasets}")
-        print(f"Seed:         {args.seed}")
-        print(f"Output dir:   {output_dir}")
-        print(f"Figures dir:  {figures_dir}")
+    # Branch on mode
+    if args.mode == 'recovery':
+        # ===== PARAMETER RECOVERY MODE =====
+        # Print configuration
+        if not args.quiet:
+            print("=" * 80)
+            print("PARAMETER RECOVERY ANALYSIS")
+            print("=" * 80)
+            print(f"Model:        {args.model}")
+            print(f"N subjects:   {args.n_subjects}")
+            print(f"N datasets:   {args.n_datasets}")
+            print(f"Seed:         {args.seed}")
+            print(f"Output dir:   {output_dir}")
+            print(f"Figures dir:  {figures_dir}")
 
-        # Check GPU availability
-        if args.use_gpu:
-            try:
-                devices = jax.devices('gpu')
-                print(f"GPU:          {len(devices)} device(s) available")
-            except RuntimeError:
-                print("GPU:          Requested but not available, using CPU")
+            # Check GPU availability
+            if args.use_gpu:
+                try:
+                    devices = jax.devices('gpu')
+                    print(f"GPU:          {len(devices)} device(s) available")
+                except RuntimeError:
+                    print("GPU:          Requested but not available, using CPU")
+            else:
+                print("GPU:          Not requested (using CPU)")
+
+            print("=" * 80)
+            print()
+
+        # Run recovery
+        if not args.quiet:
+            print("Running parameter recovery pipeline...")
+
+        results_df = run_parameter_recovery(
+            model=args.model,
+            n_subjects=args.n_subjects,
+            n_datasets=args.n_datasets,
+            seed=args.seed,
+            use_gpu=args.use_gpu,
+            verbose=not args.quiet
+        )
+
+        # Compute metrics
+        if not args.quiet:
+            print("\nComputing recovery metrics...")
+
+        metrics_df = compute_recovery_metrics(results_df, args.model)
+
+        # Save CSVs
+        results_path = output_dir / 'recovery_results.csv'
+        metrics_path = output_dir / 'recovery_metrics.csv'
+
+        results_df.to_csv(results_path, index=False)
+        metrics_df.to_csv(metrics_path, index=False)
+
+        if not args.quiet:
+            print(f"Saved results:  {results_path}")
+            print(f"Saved metrics:  {metrics_path}")
+
+        # Generate plots
+        if not args.quiet:
+            print("\nGenerating visualization plots...")
+
+        plot_recovery_scatter(results_df, metrics_df, args.model, figures_dir)
+
+        if not args.quiet:
+            print(f"Saved scatter plots: {figures_dir}/")
+
+        plot_distribution_comparison(results_df, args.real_params, args.model, figures_dir)
+
+        if not args.quiet:
+            print(f"Saved distribution plots: {figures_dir}/")
+
+        # Print summary table
+        if not args.quiet:
+            print("\n" + "=" * 80)
+            print("RECOVERY METRICS SUMMARY")
+            print("=" * 80)
+            print(metrics_df.to_string(index=False))
+            print("=" * 80)
+
+        # Determine exit code
+        all_passed = (metrics_df['pass_fail'] == 'PASS').all()
+
+        if all_passed:
+            if not args.quiet:
+                print("\n✓ ALL PARAMETERS PASSED (r >= 0.80)")
+                print("  Recovery quality is excellent.")
+            return 0
         else:
-            print("GPU:          Not requested (using CPU)")
+            failed_params = metrics_df[metrics_df['pass_fail'] == 'FAIL']['parameter'].tolist()
+            if not args.quiet:
+                print(f"\n✗ SOME PARAMETERS FAILED: {', '.join(failed_params)}")
+                print("  Recovery quality needs improvement.")
+            return 1
 
-        print("=" * 80)
-        print()
+    elif args.mode == 'ppc':
+        # ===== POSTERIOR PREDICTIVE CHECK MODE =====
+        # Print configuration
+        if not args.quiet:
+            print("=" * 80)
+            print("POSTERIOR PREDICTIVE CHECK")
+            print("=" * 80)
+            print(f"Model:         {args.model}")
+            print(f"Fitted params: {args.fitted_params}")
+            print(f"Real data:     {args.real_data}")
+            print(f"Output dir:    {output_dir}")
+            print(f"Figures dir:   {figures_dir}")
+            print("=" * 80)
+            print()
 
-    # Run recovery
-    if not args.quiet:
-        print("Running parameter recovery pipeline...")
+        # Run PPC
+        comparison = run_posterior_predictive_check(
+            model=args.model,
+            fitted_params_path=args.fitted_params,
+            real_data_path=args.real_data,
+            output_dir=output_dir,
+            figures_dir=figures_dir,
+            verbose=not args.quiet
+        )
 
-    results_df = run_parameter_recovery(
-        model=args.model,
-        n_subjects=args.n_subjects,
-        n_datasets=args.n_datasets,
-        seed=args.seed,
-        use_gpu=args.use_gpu,
-        verbose=not args.quiet
-    )
-
-    # Compute metrics
-    if not args.quiet:
-        print("\nComputing recovery metrics...")
-
-    metrics_df = compute_recovery_metrics(results_df, args.model)
-
-    # Save CSVs
-    results_path = output_dir / 'recovery_results.csv'
-    metrics_path = output_dir / 'recovery_metrics.csv'
-
-    results_df.to_csv(results_path, index=False)
-    metrics_df.to_csv(metrics_path, index=False)
-
-    if not args.quiet:
-        print(f"Saved results:  {results_path}")
-        print(f"Saved metrics:  {metrics_path}")
-
-    # Generate plots
-    if not args.quiet:
-        print("\nGenerating visualization plots...")
-
-    plot_recovery_scatter(results_df, metrics_df, args.model, figures_dir)
-
-    if not args.quiet:
-        print(f"Saved scatter plots: {figures_dir}/")
-
-    plot_distribution_comparison(results_df, args.real_params, args.model, figures_dir)
-
-    if not args.quiet:
-        print(f"Saved distribution plots: {figures_dir}/")
-
-    # Print summary table
-    if not args.quiet:
+        # Print summary
         print("\n" + "=" * 80)
-        print("RECOVERY METRICS SUMMARY")
+        print("POSTERIOR PREDICTIVE CHECK RESULTS")
         print("=" * 80)
-        print(metrics_df.to_string(index=False))
+        print(comparison.to_string(index=False))
         print("=" * 80)
 
-    # Determine exit code
-    all_passed = (metrics_df['pass_fail'] == 'PASS').all()
-
-    if all_passed:
-        if not args.quiet:
-            print("\n✓ ALL PARAMETERS PASSED (r >= 0.80)")
-            print("  Recovery quality is excellent.")
         return 0
-    else:
-        failed_params = metrics_df[metrics_df['pass_fail'] == 'FAIL']['parameter'].tolist()
-        if not args.quiet:
-            print(f"\n✗ SOME PARAMETERS FAILED: {', '.join(failed_params)}")
-            print("  Recovery quality needs improvement.")
-        return 1
 
 
 # =============================================================================
