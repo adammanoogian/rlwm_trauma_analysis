@@ -77,8 +77,8 @@ Plans:
 - [x] 05-01-PLAN.md — Core recovery pipeline (synthetic data generator + recovery loop + metrics)
 - [x] 05-02-PLAN.md — CLI, output, and visualization (argparse CLI + CSV output + scatter/KDE plots)
 - [x] 05-03-PLAN.md — Script 11 wrapper + end-to-end verification
-- [ ] 05-04-PLAN.md — PPC mode + behavioral comparison (load fitted params, generate synthetic, compare behavior)
-- [ ] 05-05-PLAN.md — Model recovery evaluation + Script 09 orchestrator
+- [x] 05-04-PLAN.md — PPC mode + behavioral comparison (load fitted params, generate synthetic, compare behavior)
+- [x] 05-05-PLAN.md — Model recovery evaluation + Script 09 orchestrator
 
 ### Phase 6: Cluster Monitoring
 **Goal**: GPU utilization monitoring and memory checkpoint persistence for cluster execution
@@ -119,6 +119,6 @@ Phases execute in numeric order: 4 → 5 → 6 → 7
 | 2. MLE Infrastructure | v1.0 | 2/2 | Complete | 2026-01-30 |
 | 3. Model Comparison | v1.0 | 2/2 | Complete | 2026-01-30 |
 | 4. Regression Visualization | v2.0 | 2/2 | Complete | 2026-02-06 |
-| 5. Parameter Recovery & PPC | v2.0 | 3/5 | In Progress | - |
+| 5. Parameter Recovery & PPC | v2.0 | 5/5 | Complete | 2026-02-06 |
 | 6. Cluster Monitoring | v2.0 | 0/TBD | Not started | - |
 | 7. Publication Polish | v2.0 | 0/TBD | Not started | - |

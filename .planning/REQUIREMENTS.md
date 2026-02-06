@@ -24,11 +24,11 @@ Requirements for post-fitting validation and publication readiness. Each maps to
 
 ### Posterior Predictive Checks
 
-- [ ] **PPC-01**: `model_recovery.py --mode ppc` loads fitted params from MLE results and generates synthetic data
-- [ ] **PPC-02**: Behavioral comparison metrics (accuracy by set-size, learning curves, post-reversal behavior)
-- [ ] **PPC-03**: Overlay plots comparing real vs synthetic behavioral patterns
-- [ ] **PPC-04**: Model recovery evaluation - fit all models to synthetic data, report if generative model wins
-- [ ] **PPC-05**: Script 09 orchestrates full PPC pipeline (generate → analyze → compare → model recovery)
+- [x] **PPC-01**: `model_recovery.py --mode ppc` loads fitted params from MLE results and generates synthetic data
+- [x] **PPC-02**: Behavioral comparison metrics (accuracy by set-size, learning curves, post-reversal behavior)
+- [x] **PPC-03**: Overlay plots comparing real vs synthetic behavioral patterns
+- [x] **PPC-04**: Model recovery evaluation - fit all models to synthetic data, report if generative model wins
+- [x] **PPC-05**: Script 09 orchestrates full PPC pipeline (generate → analyze → compare → model recovery)
 
 ### Cluster Monitoring
 
@@ -75,11 +75,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | RECV-04 | Phase 5 | Complete |
 | RECV-05 | Phase 5 | Complete |
 | RECV-06 | Phase 5 | Complete |
-| PPC-01 | Phase 5 | Pending |
-| PPC-02 | Phase 5 | Pending |
-| PPC-03 | Phase 5 | Pending |
-| PPC-04 | Phase 5 | Pending |
-| PPC-05 | Phase 5 | Pending |
+| PPC-01 | Phase 5 | Complete |
+| PPC-02 | Phase 5 | Complete |
+| PPC-03 | Phase 5 | Complete |
+| PPC-04 | Phase 5 | Complete |
+| PPC-05 | Phase 5 | Complete |
 | MNTR-01 | Phase 6 | Pending |
 | MNTR-02 | Phase 6 | Pending |
 | PUBL-01 | Phase 7 | Pending |
@@ -92,4 +92,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-02-05*
-*Last updated: 2026-02-06 — added PPC requirements to Phase 5*
+*Last updated: 2026-02-06 — Phase 5 complete (RECV-01-06, PPC-01-05 all verified)*
