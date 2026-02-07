@@ -439,7 +439,7 @@ def main():
 
     for _, row in aic_comparison.iloc[1:].iterrows():
         delta = row['delta_aic']
-        print(f"    {row['model']} vs {best_aic}: ΔAIC = {delta:.2f} ({interpret_delta(delta)})")
+        print(f"    {row['model']} vs {best_aic}: dAIC = {delta:.2f} ({interpret_delta(delta)})")
 
     # ==============================
     # PER-PARTICIPANT COMPARISON
@@ -508,9 +508,9 @@ def main():
     print(f"Preferred model (BIC): {best_bic}")
 
     if best_aic == best_bic:
-        print(f"\n✓ Both criteria agree: {best_aic} is the preferred model")
+        print(f"\n[OK] Both criteria agree: {best_aic} is the preferred model")
     else:
-        print(f"\n⚠ Criteria disagree - AIC favors {best_aic}, BIC favors {best_bic}")
+        print(f"\n[NOTE] Criteria disagree - AIC favors {best_aic}, BIC favors {best_bic}")
         print(f"  (BIC applies stronger penalty for model complexity)")
 
     print(f"\nResults saved to: {output_dir}/")
