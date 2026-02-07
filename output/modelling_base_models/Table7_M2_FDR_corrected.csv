@@ -1,0 +1,43 @@
+Parameter,Behavioral Metric,ρ,p,q_fdr,fdr_sig
+α+,Overall Accuracy,-0.087,0.5613,0.8463,False
+α+,Mean RT,-0.134,0.3683,0.7031,False
+α+,Set-Size Effect (Accuracy),-0.005,0.9723,0.9723,False
+α+,Set-Size Effect (RT),-0.114,0.4440,0.7459,False
+α+,Learning Slope,0.070,0.6422,0.8463,False
+α+,Feedback Sensitivity,-0.156,0.2944,0.6182,False
+α+,Perseveration Index,-0.150,0.3246,0.6492,False
+α-,Overall Accuracy,0.062,0.6767,0.8463,False
+α-,Mean RT,-0.174,0.2414,0.5684,False
+α-,Set-Size Effect (Accuracy),-0.189,0.2041,0.5684,False
+α-,Set-Size Effect (RT),0.039,0.7960,0.8467,False
+α-,Learning Slope,-0.034,0.8232,0.8467,False
+α-,Feedback Sensitivity,-0.126,0.3981,0.7270,False
+α-,Perseveration Index,0.082,0.5920,0.8463,False
+φ,Overall Accuracy,-0.454,0.0014,0.0294,True
+φ,Mean RT,0.190,0.2009,0.5684,False
+φ,Set-Size Effect (Accuracy),0.323,0.0268,0.2251,False
+φ,Set-Size Effect (RT),-0.065,0.6637,0.8463,False
+φ,Learning Slope,-0.053,0.7254,0.8463,False
+φ,Feedback Sensitivity,-0.230,0.1199,0.5036,False
+φ,Perseveration Index,0.046,0.7632,0.8467,False
+ρ,Overall Accuracy,-0.217,0.1421,0.5426,False
+ρ,Mean RT,-0.076,0.6118,0.8463,False
+ρ,Set-Size Effect (Accuracy),0.193,0.1946,0.5684,False
+ρ,Set-Size Effect (RT),-0.056,0.7081,0.8463,False
+ρ,Learning Slope,-0.180,0.2322,0.5684,False
+ρ,Feedback Sensitivity,-0.245,0.0964,0.4499,False
+ρ,Perseveration Index,0.177,0.2436,0.5684,False
+K,Overall Accuracy,-0.251,0.0883,0.4499,False
+K,Mean RT,0.116,0.4389,0.7459,False
+K,Set-Size Effect (Accuracy),0.286,0.0516,0.3096,False
+K,Set-Size Effect (RT),-0.033,0.8265,0.8467,False
+K,Learning Slope,-0.093,0.5385,0.8463,False
+K,Feedback Sensitivity,-0.079,0.5961,0.8463,False
+K,Perseveration Index,0.055,0.7177,0.8463,False
+ε,Overall Accuracy,-0.686,0.0000,0.0000,True
+ε,Mean RT,-0.187,0.2082,0.5684,False
+ε,Set-Size Effect (Accuracy),0.414,0.0038,0.0515,False
+ε,Set-Size Effect (RT),-0.297,0.0424,0.2968,False
+ε,Learning Slope,-0.036,0.8137,0.8467,False
+ε,Feedback Sensitivity,-0.403,0.0049,0.0515,False
+ε,Perseveration Index,0.169,0.2660,0.5880,False

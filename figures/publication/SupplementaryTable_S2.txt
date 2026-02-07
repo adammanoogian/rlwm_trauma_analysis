@@ -1,0 +1,16 @@
+Supplementary Table S2
+Distributional Statistics for Behavioural Variables
+====================================================================================================
+
+             Variable             Group N (trials)  N (participants)   Mean Median     SD   Min     Max Skewness Kurtosis
+   Reaction Time (ms)           Overall     29,847                48 612.90 575.70 270.19  0.10 2000.70     1.20     2.98
+                      No Ongoing Impact     18,020                29 592.01 560.10 261.35  0.10 1981.00     1.21     3.39
+                         Ongoing Impact     11,827                19 644.72 599.50 280.18  1.00 2000.70     1.18     2.48
+Accuracy (proportion)           Overall     40,219                48  0.738  0.778  0.099 0.471   0.862    -0.97     0.06
+                      No Ongoing Impact     24,106                29  0.742  0.783  0.098 0.513   0.853    -0.81    -0.62
+                         Ongoing Impact     16,113                19  0.733  0.755  0.105 0.471   0.862    -1.14     0.74
+
+Note. Reaction time statistics based on correct trials only.
+Accuracy statistics aggregated at participant level.
+Skewness and kurtosis values characterize distributional properties;
+values within |skew| < 2, |kurtosis| < 7 are acceptable for parametric analyses.

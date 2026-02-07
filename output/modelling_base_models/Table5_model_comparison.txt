@@ -1,0 +1,9 @@
+Table 5
+Model Comparison Statistics and Win Counts
+================================================================================
+
+        Metric   Mean (SD) Median          Range    M1 Wins    M2 Wins     Z     p
+ΔAIC (M2 - M1) -3.6 (37.0)   -3.1 [-104.6, 93.1] 22 (46.8%) 25 (53.2%) 473.0 0.341
+ΔBIC (M2 - M1) 10.1 (37.0)   10.1 [-89.9, 107.8] 28 (59.6%) 19 (40.4%) 368.0 0.038
+
+Note. ΔAIC and ΔBIC = difference in Akaike and Bayesian Information Criteria (WM-RL minus Q-learning; negative favors M2, positive favors M1). Win counts indicate number of participants for whom each model provided superior fit. Statistical tests based on paired Wilcoxon signed-rank tests. N = 47.
