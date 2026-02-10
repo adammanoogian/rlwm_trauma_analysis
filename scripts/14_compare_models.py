@@ -74,12 +74,13 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+from scipy import stats as scipy_stats
 import sys
 
 project_root = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(project_root))
 
-from config import FIGURES_DIR, OUTPUT_DIR
+from config import FIGURES_DIR, OUTPUT_DIR, EXCLUDED_PARTICIPANTS
 
 # ============================================================================
 # MLE COMPARISON FUNCTIONS
@@ -301,6 +302,241 @@ def plot_participant_wins(
 
 
 # ============================================================================
+# STRATIFIED COMPARISON FUNCTIONS
+# ============================================================================
+
+def get_per_participant_winners(
+    fits_dict: Dict[str, pd.DataFrame],
+    metric: str = 'aic'
+) -> pd.DataFrame:
+    """Get per-participant winning model.
+
+    Returns DataFrame with columns: participant_id, winner, and per-model IC values.
+    """
+    merged = None
+    for model_name, fits_df in fits_dict.items():
+        cols = ['participant_id', metric]
+        model_df = fits_df[cols].copy()
+        model_df = model_df.rename(columns={metric: f'{metric}_{model_name}'})
+        if merged is None:
+            merged = model_df
+        else:
+            merged = pd.merge(merged, model_df, on='participant_id', how='inner')
+
+    ic_cols = [col for col in merged.columns if col.startswith(f'{metric}_')]
+    merged['winner'] = merged[ic_cols].idxmin(axis=1).str.replace(f'{metric}_', '')
+    return merged
+
+
+def stratified_comparison(
+    fits_dict: Dict[str, pd.DataFrame],
+    output_dir: Path,
+    figures_dir: Path,
+    metric: str = 'aic'
+) -> None:
+    """Compare winning models stratified by trauma group.
+
+    Loads trauma group assignments, merges with per-participant model wins,
+    and reports: crosstab, Fisher's exact test, per-group Akaike weights.
+    """
+    groups_path = Path('output/trauma_groups/group_assignments.csv')
+    if not groups_path.exists():
+        print("\n[SKIP] Stratified comparison: group_assignments.csv not found")
+        return
+
+    # Load group assignments
+    groups_df = pd.read_csv(groups_path)
+    groups_df['sona_id'] = groups_df['sona_id'].astype(str)
+
+    # Exclude participants per config
+    excluded_str = [str(x) for x in EXCLUDED_PARTICIPANTS]
+    groups_df = groups_df[~groups_df['sona_id'].isin(excluded_str)].copy()
+
+    # Shorten group labels for display
+    label_map = {
+        'Trauma Exposure - No Ongoing Impact': 'No Ongoing Impact',
+        'Trauma Exposure - Ongoing Impact': 'Ongoing Impact',
+    }
+    groups_df['group'] = groups_df['hypothesis_group'].map(label_map).fillna(
+        groups_df['hypothesis_group']
+    )
+
+    # Get per-participant winners
+    winners = get_per_participant_winners(fits_dict, metric)
+    winners['sona_id'] = winners['participant_id'].astype(str)
+
+    # Merge with groups
+    merged = winners.merge(groups_df[['sona_id', 'group']], on='sona_id', how='inner')
+    print(f"\n  Matched {len(merged)} participants with group assignments")
+
+    if len(merged) == 0:
+        print("  [SKIP] No matched participants")
+        return
+
+    # ---- Crosstab: winner x group ----
+    ct = pd.crosstab(merged['winner'], merged['group'], margins=True)
+    print(f"\n  Crosstab (winner x group, {metric.upper()}):")
+    print(ct.to_string())
+
+    # Save crosstab
+    ct_path = output_dir / 'model_group_crosstab.csv'
+    ct.to_csv(ct_path)
+    print(f"  [SAVED] {ct_path}")
+
+    # ---- Fisher's exact test (2x2: focus on M2 vs M3) ----
+    # Build 2x2 table for models that actually have wins
+    unique_models = sorted(merged['winner'].unique())
+    unique_groups = sorted(merged['group'].unique())
+
+    if len(unique_models) >= 2 and len(unique_groups) == 2:
+        # For 2x2 Fisher's: use the two most common models
+        top_models = merged['winner'].value_counts().head(2).index.tolist()
+        subset = merged[merged['winner'].isin(top_models)]
+        ct_2x2 = pd.crosstab(subset['winner'], subset['group'])
+
+        if ct_2x2.shape == (2, 2):
+            odds_ratio, fisher_p = scipy_stats.fisher_exact(ct_2x2.values)
+            print(f"\n  Fisher's exact test ({top_models[0]} vs {top_models[1]}):")
+            print(f"    Odds ratio = {odds_ratio:.3f}")
+            print(f"    p = {fisher_p:.4f}")
+            if fisher_p < 0.05:
+                print(f"    -> Significant: model preference differs by group")
+            else:
+                print(f"    -> Not significant: no evidence model preference differs by group")
+        else:
+            fisher_p = np.nan
+            odds_ratio = np.nan
+            print(f"\n  Fisher's exact test: cannot form 2x2 table (shape={ct_2x2.shape})")
+    else:
+        fisher_p = np.nan
+        odds_ratio = np.nan
+        print(f"\n  Fisher's exact test: need 2 groups and 2+ models")
+
+    # ---- Per-group Akaike weights ----
+    print(f"\n  Per-group aggregate {metric.upper()} and Akaike weights:")
+
+    group_results = []
+    for group_name in unique_groups:
+        group_ids = merged.loc[merged['group'] == group_name, 'sona_id'].values
+
+        # Filter each model's fits to this group
+        group_fits = {}
+        for model_name, fits_df in fits_dict.items():
+            mask = fits_df['participant_id'].astype(str).isin(group_ids)
+            group_fits[model_name] = fits_df[mask]
+
+        # Aggregate IC per group
+        group_ics = {m: compute_aggregate_ic(f, metric) for m, f in group_fits.items()}
+        group_weights = compute_akaike_weights_n(group_ics)
+        n_group = len(group_ids)
+
+        # Per-group win counts
+        group_winners = merged.loc[merged['group'] == group_name, 'winner']
+        win_counts = group_winners.value_counts().to_dict()
+
+        print(f"\n  {group_name} (n={n_group}):")
+        for model_name in fits_dict.keys():
+            wins = win_counts.get(model_name, 0)
+            pct = 100 * wins / n_group if n_group > 0 else 0
+            print(f"    {model_name}: {metric.upper()}={group_ics[model_name]:.0f}, "
+                  f"weight={group_weights[model_name]:.4f}, "
+                  f"wins={wins} ({pct:.1f}%)")
+
+        for model_name in fits_dict.keys():
+            group_results.append({
+                'group': group_name,
+                'n': n_group,
+                'model': model_name,
+                f'aggregate_{metric}': group_ics[model_name],
+                'akaike_weight': group_weights[model_name],
+                'wins': win_counts.get(model_name, 0),
+                'win_pct': 100 * win_counts.get(model_name, 0) / n_group if n_group > 0 else 0,
+            })
+
+    # Save stratified results
+    strat_df = pd.DataFrame(group_results)
+    strat_path = output_dir / 'stratified_results.csv'
+    strat_df.to_csv(strat_path, index=False)
+    print(f"\n  [SAVED] {strat_path}")
+
+    # ---- Visualization: stacked bar chart ----
+    plot_stratified_wins(merged, metric, figures_dir)
+
+    # ---- Summary row with Fisher's test ----
+    if not np.isnan(fisher_p):
+        summary_row = pd.DataFrame([{
+            'group': 'Fisher_exact_test',
+            'n': len(merged),
+            'model': f"{top_models[0]}_vs_{top_models[1]}",
+            f'aggregate_{metric}': np.nan,
+            'akaike_weight': np.nan,
+            'wins': np.nan,
+            'win_pct': odds_ratio,
+        }])
+        strat_df = pd.concat([strat_df, summary_row], ignore_index=True)
+        strat_df.to_csv(strat_path, index=False)
+
+
+def plot_stratified_wins(
+    merged: pd.DataFrame,
+    metric: str,
+    figures_dir: Path
+) -> None:
+    """Create stacked bar chart of model wins by trauma group."""
+    fig, ax = plt.subplots(figsize=(8, 5))
+
+    groups = sorted(merged['group'].unique())
+    models = sorted(merged['winner'].unique())
+    colors = sns.color_palette('husl', len(models))
+    color_map = dict(zip(models, colors))
+
+    x = np.arange(len(groups))
+    bar_width = 0.5
+    bottoms = np.zeros(len(groups))
+
+    for model in models:
+        heights = []
+        for group in groups:
+            n_group = (merged['group'] == group).sum()
+            n_wins = ((merged['group'] == group) & (merged['winner'] == model)).sum()
+            pct = 100 * n_wins / n_group if n_group > 0 else 0
+            heights.append(pct)
+
+        bars = ax.bar(x, heights, bar_width, bottom=bottoms,
+                      label=model, color=color_map[model], alpha=0.85, edgecolor='black')
+
+        # Add count labels inside bars
+        for xi, h, b in zip(x, heights, bottoms):
+            if h > 5:  # Only label if bar segment is large enough
+                n_wins = int(round(h * (merged['group'] == groups[xi]).sum() / 100))
+                ax.text(xi, b + h / 2, f'{n_wins}\n({h:.0f}%)',
+                        ha='center', va='center', fontsize=9, fontweight='bold')
+
+        bottoms += heights
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(groups, fontsize=11)
+    ax.set_ylabel('Percentage of Participants', fontsize=12, fontweight='bold')
+    ax.set_title(f'Winning Model by Trauma Group ({metric.upper()})',
+                 fontsize=14, fontweight='bold')
+    ax.set_ylim([0, 110])
+    ax.legend(title='Winning Model', fontsize=10, title_fontsize=11)
+    ax.grid(True, alpha=0.3, axis='y')
+
+    # Add group sizes
+    for xi, group in enumerate(groups):
+        n = (merged['group'] == group).sum()
+        ax.text(xi, 103, f'n={n}', ha='center', va='bottom', fontsize=10, fontstyle='italic')
+
+    plt.tight_layout()
+
+    output_path = figures_dir / 'stratified_wins.png'
+    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    print(f"  [SAVED] {output_path}")
+    plt.close()
+
+
+# ============================================================================
 # MAIN
 # ============================================================================
 
@@ -497,6 +733,15 @@ def main():
     wins_path = output_dir / 'participant_wins.csv'
     wins_combined.to_csv(wins_path, index=False)
     print(f"[SAVED] {wins_path}")
+
+    # ==============================
+    # STRATIFIED BY TRAUMA GROUP
+    # ==============================
+    print("\n" + "-" * 80)
+    print("STRATIFIED COMPARISON (by trauma group)")
+    print("-" * 80)
+
+    stratified_comparison(fits_dict, output_dir, figures_dir, metric='aic')
 
     # ==============================
     # SUMMARY
