@@ -1,4 +1,5 @@
-# Keep directory structure
+# Ignore cluster logs (contain user-specific paths)
+*.out
+*.err
 !.gitkeep
 !.gitignore
-# Now tracking logs for debugging (removed *.out and *.err exclusions)

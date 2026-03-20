@@ -5,26 +5,28 @@ Tests that PyMC models correctly integrate with agent classes
 and can sample from posteriors.
 """
 
-import pytest
-import numpy as np
-import pandas as pd
+from __future__ import annotations
+
 import sys
 from pathlib import Path
+
+import pandas as pd
+import pytest
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 try:
-    import pymc as pm
     import arviz as az
+    import pymc as pm
     PYMC_AVAILABLE = True
 except ImportError:
     PYMC_AVAILABLE = False
 
 pytestmark = pytest.mark.skipif(not PYMC_AVAILABLE, reason="PyMC not installed")
 
-from scripts.fitting.pymc_models import build_qlearning_model, build_wmrl_model
+from scripts.fitting.legacy.pymc_models import build_qlearning_model, build_wmrl_model
 
 
 class TestPyMCModelBuilding:

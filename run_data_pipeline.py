@@ -1,96 +1,161 @@
 #!/usr/bin/env python3
 """
-Complete Data Processing and Analysis Pipeline
-Runs all data parsing, cleaning, and behavioral analysis (excludes model fitting/simulation)
+Complete Data Processing and Analysis Pipeline (Steps 01-08)
 
-By default, syncs data from experiment folder before processing.
+Runs all data parsing, cleaning, and behavioral analysis.
+Model fitting (steps 09-16) is handled separately via cluster scripts.
+
+By default, syncs data from the experiment folder before processing.
 Use --no-sync to skip data synchronization.
+
+Usage:
+    python run_data_pipeline.py              # Full pipeline with data sync
+    python run_data_pipeline.py --no-sync    # Skip data sync (data already present)
+    python run_data_pipeline.py --from 5     # Resume from step 5
 """
 
+from __future__ import annotations
+
+import argparse
 import subprocess
 import sys
-import argparse
-from pathlib import Path
+
 
 def run_command(step_num, total_steps, description, command):
     """Run a command and handle errors."""
-    print(f"\n[{step_num}/{total_steps}] {description}...")
+    print(f"\n{'=' * 60}")
+    print(f"[{step_num}/{total_steps}] {description}")
+    print(f"  Command: {command}")
+    print("=" * 60)
     try:
-        result = subprocess.run(
-            command,
-            shell=True,
-            check=True,
-            capture_output=False,
-            text=True
-        )
+        subprocess.run(command, shell=True, check=True, capture_output=False, text=True)
+        print(f"  -> Step {step_num} complete.")
         return True
-    except subprocess.CalledProcessError as e:
-        print(f"ERROR: Step {step_num} failed!")
-        print(f"Command: {command}")
+    except subprocess.CalledProcessError:
+        print(f"  -> ERROR: Step {step_num} failed!")
         return False
 
+
 def main():
-    # Parse command line arguments
     parser = argparse.ArgumentParser(
-        description='Complete data processing and analysis pipeline for RLWM trauma study'
+        description="Complete data processing and analysis pipeline for RLWM trauma study"
     )
     parser.add_argument(
-        '--no-sync',
-        action='store_true',
-        help='Skip syncing data from experiment folder (default: sync is enabled)'
+        "--no-sync",
+        action="store_true",
+        help="Skip syncing data from experiment folder",
+    )
+    parser.add_argument(
+        "--from",
+        type=int,
+        default=1,
+        dest="from_step",
+        help="Resume from this step number (default: 1)",
     )
     args = parser.parse_args()
 
-    print("=" * 50)
-    print("RLWM Trauma Analysis - Data Pipeline")
-    print("=" * 50)
+    print("=" * 60)
+    print("RLWM Trauma Analysis — Data Pipeline (Steps 01-08)")
+    print("=" * 60)
 
+    # ----------------------------------------------------------------
     # Define pipeline steps
+    # ----------------------------------------------------------------
     steps = []
 
-    # Add sync step (unless --no-sync flag is set)
+    # Step 0 (optional): Sync data from experiment folder
     if not args.no_sync:
-        steps.append(("Syncing data from experiment folder", "python sync_experiment_data.py"))
+        steps.append((
+            "Syncing data from experiment folder",
+            "python scripts/utils/sync_experiment_data.py",
+        ))
     else:
         print("\nSkipping data sync (--no-sync flag set)")
 
-    # Add remaining pipeline steps
+    # Steps 01-04: Data Processing
     steps.extend([
-        ("Updating participant ID mapping", "python scripts/update_participant_mapping.py"),
-        ("Parsing raw jsPsych data", "python scripts/01_parse_raw_data.py"),
-        ("Creating collated participant data", "python scripts/02_create_collated_csv.py"),
-        ("Creating task trials CSV", "python scripts/03_create_task_trials_csv.py"),
-        ("Creating summary CSV", "python scripts/04_create_summary_csv.py"),
-        ("Parsing all participants (including partial data)", "python scripts/parse_all_participants.py"),
-        ("Generating human performance visualizations", "python scripts/analysis/visualize_human_performance.py --data output/task_trials_long_all_participants.csv"),
-        ("Generating scale distributions", "python scripts/analysis/visualize_scale_distributions.py"),
-        ("Generating scale correlations", "python scripts/analysis/visualize_scale_correlations.py"),
-        ("Creating summary report", "python scripts/analysis/summarize_behavioral_data.py"),
-        ("Generating descriptive statistics tables", "python scripts/generate_descriptive_tables.py"),
-        ("Running statistical analyses (ANOVAs & regressions)", "python scripts/run_statistical_analyses.py"),
+        (
+            "01 — Parsing raw jsPsych data",
+            "python scripts/01_parse_raw_data.py",
+        ),
+        (
+            "02 — Creating collated participant data",
+            "python scripts/02_create_collated_csv.py",
+        ),
+        (
+            "03 — Creating task trials CSV",
+            "python scripts/03_create_task_trials_csv.py",
+        ),
+        (
+            "04 — Creating summary CSV",
+            "python scripts/04_create_summary_csv.py",
+        ),
+    ])
+
+    # Steps 05-08: Behavioral Analysis
+    steps.extend([
+        (
+            "05 — Summarizing behavioral data",
+            "python scripts/05_summarize_behavioral_data.py",
+        ),
+        (
+            "06 — Visualizing task performance",
+            "python scripts/06_visualize_task_performance.py",
+        ),
+        (
+            "06_1 — Plotting task performance details",
+            "python scripts/06_1_plot_task_performance.py",
+        ),
+        (
+            "07 — Analyzing trauma groups",
+            "python scripts/07_analyze_trauma_groups.py",
+        ),
+        (
+            "07_1 — Visualizing by trauma group",
+            "python scripts/07_1_visualize_by_trauma_group.py",
+        ),
+        (
+            "08 — Running statistical analyses",
+            "python scripts/08_run_statistical_analyses.py",
+        ),
     ])
 
     total_steps = len(steps)
 
+    # ----------------------------------------------------------------
     # Run each step
+    # ----------------------------------------------------------------
     for i, (description, command) in enumerate(steps, 1):
+        if i < args.from_step:
+            print(f"\n  [Skipping step {i}: {description}]")
+            continue
+
         success = run_command(i, total_steps, description, command)
         if not success:
-            print("\n" + "=" * 50)
-            print("Pipeline FAILED at step", i)
-            print("=" * 50)
+            print(f"\nPipeline FAILED at step {i}.")
+            print(f"Fix the issue and resume with: python run_data_pipeline.py --from {i}")
             sys.exit(1)
 
-    # Success message
-    print("\n" + "=" * 50)
-    print("Pipeline Complete!")
-    print("=" * 50)
-    print("\nOutputs generated in:")
-    print("  - output/*.csv")
-    print("  - output/descriptives/*.csv (demographic & task performance tables)")
-    print("  - output/statistical_analyses/*.csv (ANOVA & regression results)")
-    print("  - figures/behavioral_summary/*.png")
-    print("  - output/behavioral_summary/data_summary_report.txt")
+    # ----------------------------------------------------------------
+    # Success
+    # ----------------------------------------------------------------
+    print("\n" + "=" * 60)
+    print("Pipeline Complete! (Steps 01-08)")
+    print("=" * 60)
+    print("\nOutputs:")
+    print("  output/task_trials_long.csv          — Main task trial data")
+    print("  output/summary_participant_metrics.csv — Participant summaries")
+    print("  output/trauma_groups/                 — Group assignments")
+    print("  output/descriptives/                  — Descriptive tables")
+    print("  output/statistical_analyses/          — ANOVA & regression")
+    print("  figures/behavioral_summary/           — Performance plots")
+    print("  figures/trauma_groups/                — Group visualizations")
+    print()
+    print("Next steps (run on cluster):")
+    print("  sbatch cluster/13_full_pipeline.slurm   # Steps 03-16")
+    print("  # or individually:")
+    print("  sbatch cluster/12_mle_gpu.slurm         # MLE fitting only")
+
 
 if __name__ == "__main__":
     main()

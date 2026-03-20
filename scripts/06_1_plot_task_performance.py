@@ -28,20 +28,23 @@ Next Steps:
     - Run 07_1_visualize_by_trauma_group.py for group-specific visualizations
 """
 
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 import seaborn as sns
-from pathlib import Path
-from typing import Optional, Tuple, List, Dict
-import sys
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from config import AnalysisParams, TaskParams, DataParams, FIGURES_DIR
-
+from config import AnalysisParams
 
 # ============================================================================
 # Plotting Utilities
@@ -69,7 +72,6 @@ def setup_plot_style():
     plt.rcParams['legend.fontsize'] = 10
     plt.rcParams['lines.linewidth'] = 2
     plt.rcParams['lines.markersize'] = 6
-
 
 def save_figure(
     fig: plt.Figure,
@@ -105,12 +107,11 @@ def save_figure(
     fig.savefig(output_path, dpi=AnalysisParams.FIG_DPI, bbox_inches='tight')
     print(f"Saved figure: {output_path}")
 
-
 def aggregate_by_condition(
     data: pd.DataFrame,
     x_col: str,
     y_col: str,
-    group_cols: Optional[List[str]] = None,
+    group_cols: list[str] | None = None,
     participant_col: str = 'sona_id'
 ) -> pd.DataFrame:
     """
@@ -149,7 +150,6 @@ def aggregate_by_condition(
     ]).reset_index()
 
     return agg_data
-
 
 def plot_line_with_error(
     ax: plt.Axes,
@@ -198,14 +198,13 @@ def plot_line_with_error(
         alpha=alpha
     )
 
-
 def format_axes(
     ax: plt.Axes,
     xlabel: str,
     ylabel: str,
-    title: Optional[str] = None,
-    xlim: Optional[Tuple[float, float]] = None,
-    ylim: Optional[Tuple[float, float]] = None,
+    title: str | None = None,
+    xlim: tuple[float, float] | None = None,
+    ylim: tuple[float, float] | None = None,
     add_legend: bool = True,
     legend_loc: str = 'best'
 ):
@@ -254,8 +253,7 @@ def format_axes(
         spine.set_edgecolor('black')
         spine.set_linewidth(1)
 
-
-def get_color_palette(palette_name: str = 'set_size') -> Dict:
+def get_color_palette(palette_name: str = 'set_size') -> dict:
     """
     Get color palette from config.
 
@@ -277,7 +275,6 @@ def get_color_palette(palette_name: str = 'set_size') -> Dict:
         return AnalysisParams.COLORS_PHASE
     else:
         raise ValueError(f"Unknown palette: {palette_name}")
-
 
 # ============================================================================
 # Behavioral Plotting Functions
@@ -381,12 +378,11 @@ def plot_accuracy_by_setsize(
         save_figure(fig, 'accuracy_by_setsize', subdir='behavioral_analysis')
 
     if show:
-        plt.show()
+        pass  # plt.show() removed for headless compatibility
     else:
         plt.close(fig)
 
     return fig
-
 
 def plot_learning_curves(
     data: pd.DataFrame,
@@ -484,12 +480,11 @@ def plot_learning_curves(
         save_figure(fig, 'learning_curves_by_setsize', subdir='behavioral_analysis')
 
     if show:
-        plt.show()
+        pass  # plt.show() removed for headless compatibility
     else:
         plt.close(fig)
 
     return fig
-
 
 def plot_post_reversal_learning(
     data: pd.DataFrame,
@@ -628,12 +623,11 @@ def plot_post_reversal_learning(
         save_figure(fig, 'post_reversal_learning', subdir='behavioral_analysis')
 
     if show:
-        plt.show()
+        pass  # plt.show() removed for headless compatibility
     else:
         plt.close(fig)
 
     return fig
-
 
 # ============================================================================
 # Main Pipeline
@@ -663,7 +657,6 @@ def load_task_data() -> pd.DataFrame:
 
     return data
 
-
 def filter_main_task_data(data: pd.DataFrame) -> pd.DataFrame:
     """
     Filter to main task blocks only (exclude practice).
@@ -684,7 +677,6 @@ def filter_main_task_data(data: pd.DataFrame) -> pd.DataFrame:
     print(f"Filtered to {len(main_data)} main task trials from {main_data['sona_id'].nunique()} participants")
 
     return main_data
-
 
 def main():
     """
@@ -746,7 +738,6 @@ def main():
     print("  - Run 07_analyze_trauma_groups.py for group analysis")
     print("  - Run 07_1_visualize_by_trauma_group.py for group-specific visualizations")
     print()
-
 
 if __name__ == "__main__":
     main()

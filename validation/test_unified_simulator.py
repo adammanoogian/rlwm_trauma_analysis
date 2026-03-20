@@ -5,27 +5,30 @@ Tests both fixed parameter and sampled parameter simulation modes,
 ensuring consistency across parameter sweeps, PyMC fitting, and data generation.
 """
 
-import pytest
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
-from pathlib import Path
-import sys
+import pytest
 
 # Add project root
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
+from environments.rlwm_env import create_rlwm_env
+from models.q_learning import QLearningAgent
+from models.wm_rl_hybrid import WMRLHybridAgent
 from scripts.simulations.unified_simulator import (
+    SimulationResult,
+    results_to_dataframe,
     simulate_agent_fixed,
     simulate_agent_sampled,
     simulate_qlearning_for_likelihood,
     simulate_wmrl_for_likelihood,
-    results_to_dataframe,
-    SimulationResult
 )
-from models.q_learning import QLearningAgent
-from models.wm_rl_hybrid import WMRLHybridAgent
-from environments.rlwm_env import create_rlwm_env
 
 
 class TestSimulateAgentFixed:
@@ -365,7 +368,7 @@ class TestResultsToDataFrame:
         assert 'stimulus' in df.columns
         assert 'action' in df.columns
         assert 'reward' in df.columns
-        assert 'alpha' in df.columns
+        assert 'alpha_pos' in df.columns
         assert 'beta' in df.columns
 
     def test_multiple_results_to_dataframe(self):
@@ -461,9 +464,10 @@ class TestConsistencyAcrossCodePaths:
         agent = QLearningAgent(
             num_stimuli=6,
             num_actions=3,
-            alpha=0.3,
+            alpha_pos=0.3,
+            alpha_neg=0.1,
             beta=2.0,
-            gamma=0.95,
+            gamma=0.0,
             q_init=0.5,
             seed=None
         )

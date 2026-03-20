@@ -5,25 +5,32 @@ Functions for visualizing parameter sweep results, including individual model
 plots and comparative visualizations across Q-learning and WM-RL models.
 """
 
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 import seaborn as sns
-from pathlib import Path
-from typing import Optional, List, Tuple
-import sys
 
 # Add project root
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from config import AnalysisParams
-from scripts.analysis.plotting_utils import setup_plot_style, save_figure, get_color_palette
+from scripts.analysis.plotting_utils import (
+    get_color_palette,
+    save_figure,
+    setup_plot_style,
+)
 
 
 def plot_qlearning_sweep(
     df: pd.DataFrame,
-    save_dir: Optional[Path] = None,
+    save_dir: Path | None = None,
     show: bool = False
 ) -> plt.Figure:
     """
@@ -110,16 +117,15 @@ def plot_qlearning_sweep(
         save_figure(fig, 'qlearning_individual', subdir='parameter_sweeps')
 
     if show:
-        plt.show()
+        pass  # plt.show() removed for headless compatibility
     else:
         plt.close(fig)
 
     return fig
 
-
 def plot_wmrl_sweep(
     df: pd.DataFrame,
-    save_dir: Optional[Path] = None,
+    save_dir: Path | None = None,
     show: bool = False
 ) -> plt.Figure:
     """
@@ -206,17 +212,16 @@ def plot_wmrl_sweep(
         save_figure(fig, 'wmrl_individual', subdir='parameter_sweeps')
 
     if show:
-        plt.show()
+        pass  # plt.show() removed for headless compatibility
     else:
         plt.close(fig)
 
     return fig
 
-
 def plot_comparative_accuracy_by_setsize(
     qlearning_df: pd.DataFrame,
     wmrl_df: pd.DataFrame,
-    save_dir: Optional[Path] = None,
+    save_dir: Path | None = None,
     show: bool = False
 ) -> plt.Figure:
     """
@@ -288,17 +293,16 @@ def plot_comparative_accuracy_by_setsize(
         save_figure(fig, 'comparative_accuracy', subdir='parameter_sweeps')
 
     if show:
-        plt.show()
+        pass  # plt.show() removed for headless compatibility
     else:
         plt.close(fig)
 
     return fig
 
-
 def plot_comparative_heatmaps(
     qlearning_df: pd.DataFrame,
     wmrl_df: pd.DataFrame,
-    save_dir: Optional[Path] = None,
+    save_dir: Path | None = None,
     show: bool = False
 ) -> plt.Figure:
     """
@@ -352,12 +356,11 @@ def plot_comparative_heatmaps(
         save_figure(fig, 'comparative_heatmaps', subdir='parameter_sweeps')
 
     if show:
-        plt.show()
+        pass  # plt.show() removed for headless compatibility
     else:
         plt.close(fig)
 
     return fig
-
 
 def main():
     """
@@ -412,7 +415,6 @@ def main():
     print("=" * 80)
     print("COMPLETE! All visualizations saved to figures/parameter_sweeps/")
     print("=" * 80)
-
 
 if __name__ == "__main__":
     main()

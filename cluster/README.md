@@ -2,6 +2,27 @@
 
 Complete step-by-step guide for running the RLWM project on Monash M3 cluster.
 
+## Cluster Script Index
+
+Scripts are numbered to match the pipeline scripts they invoke:
+
+```
+cluster/
+├── 00_setup_env.sh          # CPU conda environment setup
+├── 00_setup_env_gpu.sh      # GPU conda environment setup (JAX CUDA)
+├── 01_diagnostic_gpu.slurm  # GPU/JAX validation (run first)
+├── 09_ppc_gpu.slurm         # Posterior predictive checks  → scripts/09_run_ppc.py
+├── 11_recovery_gpu.slurm    # Parameter recovery           → scripts/11_run_model_recovery.py
+├── 12_mle.slurm             # MLE fitting (CPU parallel)   → scripts/12_fit_mle.py
+├── 12_mle_gpu.slurm         # MLE fitting (GPU)            → scripts/12_fit_mle.py
+├── 12_mle_single.slurm      # MLE fitting (single model)   → scripts/12_fit_mle.py
+├── 12_submit_all.sh         # Submit all CPU MLE jobs
+├── 12_submit_all_gpu.sh     # Submit all GPU MLE jobs
+├── 13_full_pipeline.slurm   # FULL PIPELINE: steps 05-16 (GPU)
+├── logs/                    # SLURM output (gitignored)
+└── README.md                # This file
+```
+
 ---
 
 ## Step 1: Initial Login & Project Setup
@@ -13,13 +34,11 @@ ssh YOUR_USERNAME@m3.massive.org.au
 
 ### 1.2 Configure Conda for Scratch Storage (CRITICAL - Do Once)
 
-**⚠️ M3 Rule: Store conda envs in `/scratch/`, NOT home directory!**
+**M3 Rule: Store conda envs in `/scratch/`, NOT home directory!**
 
 ```bash
-# Create conda config directory
 mkdir -p ~/.conda
 
-# Create/edit conda config
 cat > ~/.condarc << 'EOF'
 pkgs_dirs:
   - /scratch/$PROJECT/$USER/conda/pkgs
@@ -27,22 +46,17 @@ envs_dirs:
   - /scratch/$PROJECT/$USER/conda/envs
 EOF
 
-# Create the directories (replace $PROJECT with your actual project code)
 mkdir -p /scratch/$PROJECT/$USER/conda/pkgs
 mkdir -p /scratch/$PROJECT/$USER/conda/envs
 ```
 
 ### 1.3 Verify You Haven't Run `conda init`
 
-**⚠️ M3 Rule: NEVER run `conda init` - it breaks Strudel!**
+**M3 Rule: NEVER run `conda init` - it breaks Strudel!**
 
 ```bash
-# Check if conda init block exists in your .bashrc
 grep -A5 ">>> conda initialize >>>" ~/.bashrc
-
-# If you see output, remove it:
-nano ~/.bashrc
-# Delete everything between ">>> conda initialize >>>" and "<<< conda initialize <<<"
+# If output exists, remove the block from ~/.bashrc
 ```
 
 ---
@@ -51,41 +65,31 @@ nano ~/.bashrc
 
 ### 2.1 Clone from GitHub (Recommended for Code)
 
-GitHub is the preferred method for syncing code between local and cluster.
-
 ```bash
-# Navigate to your project space
 cd /projects/$PROJECT/$USER
-
-# Clone the repo (use HTTPS or SSH depending on your setup)
 git clone https://github.com/YOUR_USERNAME/rlwm_trauma_analysis.git
-# OR with SSH key:
-git clone git@github.com:YOUR_USERNAME/rlwm_trauma_analysis.git
-
 cd rlwm_trauma_analysis
 ```
 
 ### 2.2 Set Up Git on M3 (First Time Only)
 
 ```bash
-# Configure git identity
 git config --global user.name "Your Name"
 git config --global user.email "your.email@monash.edu"
 
-# (Optional) Set up SSH key for GitHub
+# (Optional) SSH key for GitHub
 ssh-keygen -t ed25519 -C "your.email@monash.edu"
 cat ~/.ssh/id_ed25519.pub
-# Copy output and add to GitHub: Settings > SSH Keys > New SSH Key
+# Add to GitHub: Settings > SSH Keys > New SSH Key
 ```
 
 ### 2.3 Sync Changes with GitHub
 
 ```bash
-# Pull latest changes from GitHub (do this before each session)
 cd /projects/$PROJECT/$USER/rlwm_trauma_analysis
 git pull origin main
 
-# Push results/changes back to GitHub
+# Push results back
 git add output/mle/*.csv
 git commit -m "Add MLE fitting results from M3"
 git push origin main
@@ -93,45 +97,21 @@ git push origin main
 
 ### 2.4 Transfer Large Data Files via SCP
 
-**⚠️ GitHub has a 100MB file limit.** Large data files should be transferred via SCP.
-
 ```bash
-# FROM LOCAL → M3 (upload raw data)
+# LOCAL → M3 (upload raw data)
 scp output/task_trials_long.csv YOUR_USERNAME@m3.massive.org.au:/projects/$PROJECT/$USER/rlwm_trauma_analysis/output/
 
-# Upload entire data directory
-scp -r data/ YOUR_USERNAME@m3.massive.org.au:/projects/$PROJECT/$USER/rlwm_trauma_analysis/
-
-# FROM M3 → LOCAL (download results)
-scp YOUR_USERNAME@m3.massive.org.au:/projects/$PROJECT/$USER/rlwm_trauma_analysis/output/mle/*.csv ./results/
-
-# Download recursively
-scp -r YOUR_USERNAME@m3.massive.org.au:/projects/$PROJECT/$USER/rlwm_trauma_analysis/output/ ./local_output/
+# M3 → LOCAL (download results)
+scp -r YOUR_USERNAME@m3.massive.org.au:/projects/$PROJECT/$USER/rlwm_trauma_analysis/output/mle/ ./results/
 ```
-
-### 2.5 Recommended Workflow: Code vs Data
 
 | Content | Sync Method | Reason |
 |---------|-------------|--------|
-| Python scripts, configs | **GitHub** | Version control, easy sync |
-| `environment.yml`, SLURM scripts | **GitHub** | Part of codebase |
+| Python scripts, configs | **GitHub** | Version control |
+| SLURM scripts | **GitHub** | Part of codebase |
 | Raw data (`*.csv` > 50MB) | **SCP** | Too large for GitHub |
 | Results (`output/mle/`) | **GitHub** or **SCP** | Small CSVs can go to GitHub |
 | Participant data (sensitive) | **SCP only** | May not belong in repo |
-
-### 2.6 Add Large Files to .gitignore
-
-Ensure large data files aren't accidentally committed:
-
-```bash
-# Check current .gitignore
-cat .gitignore
-
-# Add patterns for large files if needed
-echo "data/raw/*.csv" >> .gitignore
-echo "*.pkl" >> .gitignore
-echo "*.npy" >> .gitignore
-```
 
 ---
 
@@ -142,27 +122,20 @@ echo "*.npy" >> .gitignore
 module load miniforge3
 ```
 
-### 3.2 Create CPU Environment (For Parallel Fitting)
+### 3.2 Create CPU Environment
 ```bash
 cd /projects/$PROJECT/$USER/rlwm_trauma_analysis
-
-# Use mamba (faster than conda)
 mamba env create -f environment.yml
 
-# Verify it was created in scratch
 conda env list
 # Should show: /scratch/$PROJECT/$USER/conda/envs/rlwm
 ```
 
 ### 3.3 (Optional) Create GPU Environment
 ```bash
-# Note: Do NOT load CUDA module - JAX pip packages bundle CUDA libraries
-# Loading system CUDA causes library conflicts (cuSPARSE not found, etc.)
-
-# Create GPU environment (JAX will install its own CUDA libs)
+# Note: Do NOT load CUDA module — JAX pip packages bundle CUDA libraries
 mamba env create -f environment_gpu.yml
 
-# Verify
 conda env list
 # Should show: /scratch/$PROJECT/$USER/conda/envs/rlwm_gpu
 ```
@@ -171,28 +144,12 @@ conda env list
 
 ## Step 4: Check Available Resources
 
-### 4.1 See Cluster Status
 ```bash
-# Overall cluster utilization
-show_cluster
-
-# Check specific partition availability
-sinfo -p comp      # CPU partition (up to 96 CPUs/node)
-sinfo -p gpu       # GPU partition (A100, T4, A40)
-sinfo -p m3g       # V100 GPUs
+show_cluster            # Overall cluster utilization
+sinfo -p comp           # CPU partition (up to 96 CPUs/node)
+sinfo -p gpu            # GPU partition (A100, T4, A40)
+show_budget             # Your project allocations
 ```
-
-### 4.2 Check Your Quota/Allocations
-```bash
-# See your project allocations
-show_budget
-
-# Check disk usage
-lfs quota -h /projects/$PROJECT
-lfs quota -h /scratch/$PROJECT
-```
-
-### 4.3 M3 Resource Summary
 
 | Partition | Max CPUs/node | Max Memory | GPUs | Use For |
 |-----------|---------------|------------|------|---------|
@@ -205,22 +162,15 @@ lfs quota -h /scratch/$PROJECT
 
 ## Step 5: Run a Quick Test (Interactive)
 
-### 5.1 Start Interactive Session
 ```bash
-# Request 4 CPUs for 30 minutes (for testing)
+# Request 4 CPUs for 30 minutes
 srun --partition=comp --cpus-per-task=4 --mem=8G --time=00:30:00 --pty bash
-```
 
-### 5.2 Activate Environment & Test
-```bash
-# Load module and activate env
+# Activate and test
 module load miniforge3
 conda activate rlwm
-
-# Navigate to project
 cd /projects/$PROJECT/$USER/rlwm_trauma_analysis
 
-# Quick test: fit 2 participants with 4 cores
 python scripts/fitting/fit_mle.py \
     --model qlearning \
     --data output/task_trials_long.csv \
@@ -228,7 +178,6 @@ python scripts/fitting/fit_mle.py \
     --n-jobs 4 \
     --n-starts 5
 
-# Exit interactive session when done
 exit
 ```
 
@@ -241,72 +190,58 @@ exit
 mkdir -p cluster/logs
 ```
 
-### 6.2 Submit All 3 Models as Parallel GPU Jobs (Recommended)
+### 6.2 Full Pipeline (Steps 05-16, Recommended)
 
-Submit qlearning, wmrl, and wmrl_m3 as separate parallel jobs for better fault isolation:
+Run behavioral analysis, MLE fitting, and results analysis in one job:
 
 ```bash
 cd /projects/$PROJECT/$USER/rlwm_trauma_analysis
-
-# Submit all 3 models as independent GPU jobs
-bash cluster/submit_all_models_gpu.sh
-
-# Check job status
+sbatch cluster/13_full_pipeline.slurm                          # Standard
+sbatch --export=VALIDATE=true cluster/13_full_pipeline.slurm   # + validation (09, 11)
+sbatch --export=SKIP_BEHAVIORAL=true cluster/13_full_pipeline.slurm  # Skip 05-08
 squeue -u $USER
 ```
 
-This is the recommended approach because:
-- Each model runs independently (one failure doesn't affect others)
-- Better resource utilization on the cluster
-- Easy to resubmit a single failed model
+### 6.3 Submit All 3 Models as Parallel GPU Jobs
+
+```bash
+bash cluster/12_submit_all_gpu.sh
+squeue -u $USER
+```
 
 ### 6.3 Submit Single GPU Job
 
-**⚠️ GPU fitting is now the recommended approach** because it avoids LLVM/CPU issues:
-- No LLVM thread spawning memory exhaustion
-- No CPU feature mismatch between heterogeneous cluster nodes
-- Comparable speed to parallel CPU (2-5 minutes per model)
+GPU fitting avoids LLVM/CPU issues and is comparable speed to parallel CPU.
 
 ```bash
-cd /projects/$PROJECT/$USER/rlwm_trauma_analysis
-
-# Submit GPU-accelerated fitting (all 3 models sequentially in one job)
-sbatch cluster/run_mle_gpu.slurm
-
-# For specific model:
-sbatch --export=MODEL=wmrl_m3 cluster/run_mle_gpu.slurm
-
-# Check job status
-squeue -u $USER
-
-# Watch the output in real-time
+sbatch cluster/12_mle_gpu.slurm                                    # All 3 models
+sbatch --export=MODEL=wmrl_m3 cluster/12_mle_gpu.slurm             # Single model
 tail -f cluster/logs/mle_gpu_*.out
 ```
 
 ### 6.4 Submit CPU Parallel Job (Alternative)
 
-Use CPU fitting if GPU queue is unavailable. Note: M3 has heterogeneous nodes with
-different CPU features, which can cause "CPU feature mismatch" errors if the JAX
-cache is shared between nodes. The scripts now use node-specific caching to avoid this.
-
 ```bash
-# Submit parallel fitting (16 cores, all 3 models)
-sbatch cluster/run_mle.slurm
-
-# Check job status
-squeue -u $USER
-
-# Watch the output in real-time
+sbatch cluster/12_mle.slurm
 tail -f cluster/logs/mle_*.out
 ```
 
 ### 6.5 Submit Single Model (For Testing)
 ```bash
-# Quick timing test (3 participants only)
-sbatch --export=MODEL=wmrl_m3,LIMIT=3 cluster/run_mle_single.slurm
+sbatch --export=MODEL=wmrl_m3,LIMIT=3 cluster/12_mle_single.slurm  # Quick timing test
+sbatch --export=MODEL=wmrl_m3 cluster/12_mle_single.slurm          # Full dataset
+```
 
-# Single model, full dataset
-sbatch --export=MODEL=wmrl_m3 cluster/run_mle_parallel.slurm
+### 6.6 Parameter Recovery
+```bash
+sbatch cluster/11_recovery_gpu.slurm
+sbatch --export=MODEL=qlearning cluster/11_recovery_gpu.slurm
+```
+
+### 6.7 Posterior Predictive Checks
+```bash
+sbatch cluster/09_ppc_gpu.slurm
+sbatch --export=MODEL=wmrl_m3 cluster/09_ppc_gpu.slurm
 ```
 
 ---
@@ -315,89 +250,61 @@ sbatch --export=MODEL=wmrl_m3 cluster/run_mle_parallel.slurm
 
 ### 7.1 Check Job Status
 ```bash
-# Your jobs
 squeue -u $USER
-
-# Detailed job info
 scontrol show job JOBID
-
-# Cancel a job if needed
 scancel JOBID
 ```
 
 ### 7.2 View Output Logs
 ```bash
-# List log files
 ls -la cluster/logs/
-
-# View latest output
-tail -100 cluster/logs/mle_parallel_*.out
-
-# Real-time monitoring
-tail -f cluster/logs/mle_parallel_*.out
+tail -f cluster/logs/mle_gpu_*.out
 ```
 
-### 7.3 Real-Time Monitoring (Comprehensive)
+### 7.3 Real-Time Monitoring
 
 ```bash
-# Watch job queue (refresh every 5s)
 watch -n 5 'squeue -u $USER'
-
-# Detailed queue view (shows node, time, etc.)
 squeue -u $USER -o "%.8i %.9P %.20j %.8u %.2t %.10M %.6D %R"
-
-# Tail all GPU logs simultaneously
-tail -f cluster/logs/mle_gpu_*.out
-
-# Monitor GPU usage on compute node (get node name from squeue)
-ssh <NODE> 'watch -n 1 nvidia-smi'
-
-# Check resource usage after job completion
 sacct -j <JOBID> --format=JobID,Elapsed,MaxRSS,MaxVMSize,TotalCPU,State
 ```
 
 ### 7.4 Check Results
 ```bash
-# Results are saved to output/mle/
 ls -la output/mle/
-
-# View summary
 cat output/mle/qlearning_group_summary.csv
-cat output/mle/wmrl_group_summary.csv
-cat output/mle/wmrl_m3_group_summary.csv
 ```
 
-### 7.5 Download Results to Local Machine
+### 7.5 Download Results
 ```bash
-# From your LOCAL machine:
+# From LOCAL machine:
 scp -r YOUR_USERNAME@m3.massive.org.au:/projects/$PROJECT/$USER/rlwm_trauma_analysis/output/mle/ ./results/
 ```
 
 ---
 
-## Quick Reference: Common Commands
+## Quick Reference
 
 ```bash
-# Load environment (do this every session)
+# Load environment (every session)
 module load miniforge3
 conda activate rlwm
 
-# Check cluster
-show_cluster
-sinfo -p comp
-sinfo -p gpu
-
 # Submit jobs
-sbatch cluster/run_mle_parallel.slurm          # CPU parallel (recommended)
-sbatch cluster/run_mle_gpu.slurm               # GPU (if env set up)
+sbatch cluster/13_full_pipeline.slurm     # FULL PIPELINE: steps 05-16 (recommended)
+bash cluster/12_submit_all_gpu.sh         # All 3 models (GPU, fitting only)
+sbatch cluster/12_mle.slurm               # All 3 models (CPU parallel)
+sbatch cluster/12_mle_gpu.slurm           # All 3 models (GPU, single job)
+sbatch cluster/11_recovery_gpu.slurm      # Parameter recovery
+sbatch cluster/09_ppc_gpu.slurm           # Posterior predictive checks
 
 # Monitor
 squeue -u $USER
-tail -f cluster/logs/mle_parallel_*.out
+tail -f cluster/logs/mle_gpu_*.out
 
 # Cancel
 scancel JOBID
-scancel -u $USER  # Cancel ALL your jobs
+scancel -u $USER
 ```
 
 ---
@@ -409,33 +316,32 @@ scancel -u $USER  # Cancel ALL your jobs
 | `conda: command not found` | Run `module load miniforge3` |
 | `CondaEnvironmentNotFound` | Check `conda env list`, ensure env is in scratch |
 | Job stuck in `PENDING` | Run `squeue -u $USER` to see reason; try smaller resource request |
-| `ModuleNotFoundError: joblib` | Env may need updating: `mamba env update -f environment.yml` |
-| GPU not detected | Ensure using `rlwm_gpu` env on a GPU node. Do NOT load cuda module (conflicts with JAX's bundled CUDA) |
+| GPU not detected | Ensure using `rlwm_gpu` env on a GPU node. Do NOT load cuda module |
 | `SIGILL` or CPU feature mismatch | Clear stale cache: `rm -rf /scratch/$PROJECT/$USER/.jax_cache` and retry |
-| `Cannot allocate memory` (LLVM) | Use GPU fitting, or use `run_mle_single.slurm` with its two-phase approach |
-| Stuck on one participant | Hessian computation after optimization. Use `--compute-diagnostics` flag only if needed, or wait ~30s |
+| `Cannot allocate memory` (LLVM) | Use GPU fitting, or use `12_mle_single.slurm` with two-phase approach |
 
 ---
 
-## Available SLURM Scripts
+## Available Scripts
 
-| Script | Description | Cores | Time |
-|--------|-------------|-------|------|
-| `submit_all_models_gpu.sh` | **Recommended**: Submits 3 independent GPU jobs | 4 + GPU each | ~5min/model |
-| `run_mle.slurm` | Sequential fitting (all models) | 4 | 4h |
-| `run_mle_parallel.slurm` | Parallel fitting (all models) | 16 | 30min |
-| `run_mle_gpu.slurm` | GPU-accelerated fitting (single job) | 4 + GPU | 15min |
-| `run_mle_single.slurm` | Single model (timing tests) | 4 | 2h |
-
----
+| Script | Description | Resources | Time |
+|--------|-------------|-----------|------|
+| `13_full_pipeline.slurm` | **Full pipeline**: steps 05-16 | 4 CPU + GPU | ~25min |
+| `12_submit_all_gpu.sh` | 3 independent GPU MLE jobs | 4 CPU + GPU each | ~5min/model |
+| `12_mle.slurm` | CPU parallel fitting (all models) | 16 CPU | 30min |
+| `12_mle_gpu.slurm` | GPU fitting (single job, all models) | 4 CPU + GPU | 15min |
+| `12_mle_single.slurm` | Single model (timing tests) | 16 CPU | 2h |
+| `11_recovery_gpu.slurm` | Parameter recovery validation | 4 CPU + GPU | 30min |
+| `09_ppc_gpu.slurm` | Posterior predictive checks | 4 CPU + GPU | 8h |
+| `01_diagnostic_gpu.slurm` | GPU/JAX validation | 4 CPU + GPU | 30min |
 
 ## Expected Runtimes (47 Participants, All 3 Models)
 
-| Configuration | Time | SLURM Script |
-|---------------|------|--------------|
-| Sequential (1 CPU) | ~90 min | `run_mle.slurm` |
-| Parallel (16 CPUs) | ~10 min | `run_mle_parallel.slurm` |
-| GPU (1x A100) | ~5-10 min | `run_mle_gpu.slurm` |
+| Configuration | Time | Script |
+|---------------|------|--------|
+| Sequential (1 CPU) | ~90 min | `12_mle.slurm` (NJOBS=1) |
+| Parallel (16 CPUs) | ~10 min | `12_mle.slurm` |
+| GPU (1x A100) | ~5-10 min | `12_mle_gpu.slurm` |
 
 ---
 

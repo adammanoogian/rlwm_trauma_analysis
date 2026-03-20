@@ -205,17 +205,17 @@ python scripts/12_fit_mle.py --model wmrl_m3 --data output/task_trials_long.csv 
 ### Cluster Execution (Monash M3)
 
 ```bash
-# Sequential (original, ~30 min per model)
-sbatch cluster/run_mle.slurm
-
-# Parallel CPU (16 cores, ~3 min per model)
-sbatch cluster/run_mle_parallel.slurm
+# CPU parallel (16 cores, ~3 min per model)
+sbatch cluster/12_mle.slurm
 
 # GPU-accelerated (requires rlwm_gpu env)
-sbatch cluster/run_mle_gpu.slurm
+sbatch cluster/12_mle_gpu.slurm
+
+# All 3 models as independent GPU jobs (recommended)
+bash cluster/12_submit_all_gpu.sh
 
 # Single model with custom settings
-sbatch --export=MODEL=wmrl_m3,NJOBS=8 cluster/run_mle_parallel.slurm
+sbatch --export=MODEL=wmrl_m3,NJOBS=8 cluster/12_mle.slurm
 ```
 
 ### Run Bayesian Fitting (Hierarchical, Posterior Distributions)

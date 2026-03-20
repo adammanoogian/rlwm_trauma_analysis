@@ -1,11 +1,28 @@
 .claude/
+.planning/
 
 # Regression figures (can be regenerated, large file count)
 output/regressions/**/*.png
 
-# Raw participant data (contains potentially sensitive information)
+# Bayesian traces (large NetCDF files, transfer via SCP)
+output/bayesian_fits/*.nc
+output/*.nc
+
+# Parameter sweep outputs (can be large, regenerable)
+output/parameter_sweeps/
+
+# Raw participant data (sensitive — not for public distribution)
 data/rlwm_trauma_PARTICIPANT_SESSION_*.csv
 data/backup_*.csv
+data/participant_id_mapping.json
+data/sync_log.txt
+
+# Parsed intermediates (contain raw survey responses + demographics)
+output/parsed_demographics.csv
+output/parsed_survey*.csv
+output/parsed_task_trials.csv
+output/demographics_complete.csv
+output/participant_info.csv
 
 # Python cache
 __pycache__/
@@ -13,6 +30,11 @@ __pycache__/
 *.pyo
 *.pyd
 .Python
+
+# Build / packaging
+*.egg-info/
+dist/
+build/
 
 # Jupyter
 .ipynb_checkpoints/
