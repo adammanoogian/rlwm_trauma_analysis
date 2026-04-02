@@ -13,14 +13,13 @@ Usage:
     python scripts/fitting/fit_mle.py --model wmrl_m3 --data output/task_trials_long.csv
 """
 
-import os
-import sys
+from __future__ import annotations
+
 import argparse
+import sys
 import warnings
-from pathlib import Path
-from functools import partial
-from typing import Dict, List, Tuple, Optional
 from datetime import datetime
+from pathlib import Path
 
 # Optional memory tracking
 try:
@@ -36,11 +35,9 @@ try:
 except ImportError:
     HAS_RESOURCE = False
 
-
 def timestamp() -> str:
     """Return current time as HH:MM:SS string for logging."""
     return datetime.now().strftime('%H:%M:%S')
-
 
 def log_memory_usage(label: str, verbose: bool = True) -> float:
     """
@@ -74,10 +71,10 @@ def log_memory_usage(label: str, verbose: bool = True) -> float:
 
     return mem_mb
 
-import numpy as np
-import pandas as pd
 import jax
 import jax.numpy as jnp
+import numpy as np
+import pandas as pd
 from jaxopt import ScipyBoundedMinimize
 
 # Add project root to path
@@ -89,51 +86,57 @@ from config import EXCLUDED_PARTICIPANTS
 
 # Import JAX likelihood functions
 from scripts.fitting.jax_likelihoods import (
-    q_learning_multiblock_likelihood,
-    q_learning_multiblock_likelihood_stacked,  # Fast stacked version
-    wmrl_multiblock_likelihood,
-    wmrl_multiblock_likelihood_stacked,  # Fast stacked version
-    wmrl_m3_multiblock_likelihood,
-    wmrl_m3_multiblock_likelihood_stacked,  # Fast stacked version
-    prepare_block_data,
+    MAX_BLOCKS,
+    MAX_TRIALS_PER_BLOCK,
     pad_block_to_max,
     pad_blocks_to_max,
-    MAX_TRIALS_PER_BLOCK,
-    MAX_BLOCKS,
+    q_learning_multiblock_likelihood,
+    q_learning_multiblock_likelihood_stacked,  # Fast stacked version
+    wmrl_m3_multiblock_likelihood,
+    wmrl_m3_multiblock_likelihood_stacked,  # Fast stacked version
+    wmrl_m5_multiblock_likelihood,
+    wmrl_m5_multiblock_likelihood_stacked,  # Fast stacked version (M5)
+    wmrl_multiblock_likelihood,
+    wmrl_multiblock_likelihood_stacked,  # Fast stacked version
 )
 
 # Import MLE utilities
 from scripts.fitting.mle_utils import (
-    params_to_unconstrained,
-    sample_lhs_starts,
-    get_default_params,
-    compute_aic,
-    compute_bic,
-    compute_aicc,
-    get_n_params,
-    summarize_all_parameters,
-    check_convergence,
+    QLEARNING_BOUNDS,
+    QLEARNING_PARAMS,
+    WMRL_BOUNDS,
+    WMRL_M3_BOUNDS,
+    WMRL_M3_PARAMS,
+    WMRL_M5_BOUNDS,
+    WMRL_M5_PARAMS,
+    WMRL_PARAMS,
     check_at_bounds,
+    check_convergence,
+    check_gradient_norm,
+    compute_aic,
+    compute_aicc,
+    compute_bic,
+    compute_confidence_intervals,
+    compute_hessian_diagnostics,
+    # Diagnostic functions
+    compute_pseudo_r2,
+    get_high_correlations,
+    get_n_params,
+    jax_bounded_to_unconstrained_qlearning,
+    jax_bounded_to_unconstrained_wmrl,
+    jax_bounded_to_unconstrained_wmrl_m3,
+    jax_bounded_to_unconstrained_wmrl_m5,
     jax_unconstrained_to_params_qlearning,
     jax_unconstrained_to_params_wmrl,
     jax_unconstrained_to_params_wmrl_m3,
-    QLEARNING_PARAMS,
-    WMRL_PARAMS,
-    WMRL_M3_PARAMS,
-    QLEARNING_BOUNDS,
-    WMRL_BOUNDS,
-    WMRL_M3_BOUNDS,
-    # Diagnostic functions
-    compute_pseudo_r2,
-    check_gradient_norm,
-    compute_hessian_diagnostics,
-    compute_confidence_intervals,
-    get_high_correlations,
+    jax_unconstrained_to_params_wmrl_m5,
+    params_to_unconstrained,
+    sample_lhs_starts,
+    summarize_all_parameters,
 )
 
 # Suppress JAX warnings
 warnings.filterwarnings('ignore', category=FutureWarning)
-
 
 # =============================================================================
 # JAX Compilation Warmup (for parallel execution)
@@ -189,20 +192,25 @@ def warmup_jax_compilation(model: str, verbose: bool = True):
             alpha_pos=0.3, alpha_neg=0.1, phi=0.1, rho=0.7, capacity=4.0,
             kappa=0.3, epsilon=0.05
         )
+    elif model == 'wmrl_m5':
+        wmrl_m5_multiblock_likelihood(
+            stimuli_blocks, actions_blocks, rewards_blocks, set_sizes_blocks,
+            alpha_pos=0.3, alpha_neg=0.1, phi=0.1, rho=0.7, capacity=4.0,
+            kappa=0.3, phi_rl=0.1, epsilon=0.05
+        )
 
     if verbose:
         print(f"  JAX compilation cached for {model}\n")
-
 
 # =============================================================================
 # JAX-Compatible Objective Functions (for jaxopt with automatic differentiation)
 # =============================================================================
 
 def _make_jax_objective_qlearning(
-    stimuli_blocks: List[jnp.ndarray],
-    actions_blocks: List[jnp.ndarray],
-    rewards_blocks: List[jnp.ndarray],
-    masks_blocks: List[jnp.ndarray] = None,
+    stimuli_blocks: list[jnp.ndarray],
+    actions_blocks: list[jnp.ndarray],
+    rewards_blocks: list[jnp.ndarray],
+    masks_blocks: list[jnp.ndarray] = None,
 ):
     """
     Create a JAX-compatible objective function for Q-learning.
@@ -213,10 +221,10 @@ def _make_jax_objective_qlearning(
     - With JIT: Function is compiled to XLA and runs entirely on GPU
 
     Args:
-        stimuli_blocks: List of stimulus arrays per block
-        actions_blocks: List of action arrays per block
-        rewards_blocks: List of reward arrays per block
-        masks_blocks: List of mask arrays per block (1.0 for real trials, 0.0 for padding).
+        stimuli_blocks: list of stimulus arrays per block
+        actions_blocks: list of action arrays per block
+        rewards_blocks: list of reward arrays per block
+        masks_blocks: list of mask arrays per block (1.0 for real trials, 0.0 for padding).
                      When provided, enables fixed-size compilation for efficiency.
     """
     # Pre-stack blocks ONCE - use stacked version to avoid list/restack overhead
@@ -245,13 +253,12 @@ def _make_jax_objective_qlearning(
     # JIT-compile for massive speedup (eliminates Python dispatch overhead)
     return jax.jit(objective)
 
-
 def _make_jax_objective_wmrl(
-    stimuli_blocks: List[jnp.ndarray],
-    actions_blocks: List[jnp.ndarray],
-    rewards_blocks: List[jnp.ndarray],
-    set_sizes_blocks: List[jnp.ndarray],
-    masks_blocks: List[jnp.ndarray] = None,
+    stimuli_blocks: list[jnp.ndarray],
+    actions_blocks: list[jnp.ndarray],
+    rewards_blocks: list[jnp.ndarray],
+    set_sizes_blocks: list[jnp.ndarray],
+    masks_blocks: list[jnp.ndarray] = None,
 ):
     """
     Create a JAX-compatible objective function for WM-RL.
@@ -260,11 +267,11 @@ def _make_jax_objective_wmrl(
     and returns NLL. The JIT compilation is CRITICAL for performance.
 
     Args:
-        stimuli_blocks: List of stimulus arrays per block
-        actions_blocks: List of action arrays per block
-        rewards_blocks: List of reward arrays per block
-        set_sizes_blocks: List of set size arrays per block
-        masks_blocks: List of mask arrays per block (1.0 for real trials, 0.0 for padding).
+        stimuli_blocks: list of stimulus arrays per block
+        actions_blocks: list of action arrays per block
+        rewards_blocks: list of reward arrays per block
+        set_sizes_blocks: list of set size arrays per block
+        masks_blocks: list of mask arrays per block (1.0 for real trials, 0.0 for padding).
                      When provided, enables fixed-size compilation for efficiency.
     """
     # Pre-stack blocks ONCE - use stacked version to avoid list/restack overhead
@@ -298,13 +305,12 @@ def _make_jax_objective_wmrl(
     # JIT-compile for massive speedup (eliminates Python dispatch overhead)
     return jax.jit(objective)
 
-
 def _make_jax_objective_wmrl_m3(
-    stimuli_blocks: List[jnp.ndarray],
-    actions_blocks: List[jnp.ndarray],
-    rewards_blocks: List[jnp.ndarray],
-    set_sizes_blocks: List[jnp.ndarray],
-    masks_blocks: List[jnp.ndarray] = None,
+    stimuli_blocks: list[jnp.ndarray],
+    actions_blocks: list[jnp.ndarray],
+    rewards_blocks: list[jnp.ndarray],
+    set_sizes_blocks: list[jnp.ndarray],
+    masks_blocks: list[jnp.ndarray] = None,
 ):
     """
     Create a JAX-compatible objective function for WM-RL M3.
@@ -313,11 +319,11 @@ def _make_jax_objective_wmrl_m3(
     and returns NLL. The JIT compilation is CRITICAL for performance.
 
     Args:
-        stimuli_blocks: List of stimulus arrays per block
-        actions_blocks: List of action arrays per block
-        rewards_blocks: List of reward arrays per block
-        set_sizes_blocks: List of set size arrays per block
-        masks_blocks: List of mask arrays per block (1.0 for real trials, 0.0 for padding).
+        stimuli_blocks: list of stimulus arrays per block
+        actions_blocks: list of action arrays per block
+        rewards_blocks: list of reward arrays per block
+        set_sizes_blocks: list of set size arrays per block
+        masks_blocks: list of mask arrays per block (1.0 for real trials, 0.0 for padding).
                      When provided, enables fixed-size compilation for efficiency.
     """
     # Pre-stack blocks ONCE - use stacked version to avoid list/restack overhead
@@ -352,6 +358,58 @@ def _make_jax_objective_wmrl_m3(
     # JIT-compile for massive speedup (eliminates Python dispatch overhead)
     return jax.jit(objective)
 
+def _make_jax_objective_wmrl_m5(
+    stimuli_blocks: list[jnp.ndarray],
+    actions_blocks: list[jnp.ndarray],
+    rewards_blocks: list[jnp.ndarray],
+    set_sizes_blocks: list[jnp.ndarray],
+    masks_blocks: list[jnp.ndarray] = None,
+):
+    """
+    Create a JAX-compatible objective function for WM-RL M5 (RL forgetting).
+
+    Returns a JIT-compiled pure function that takes unconstrained parameters
+    and returns NLL. The JIT compilation is CRITICAL for performance.
+
+    Args:
+        stimuli_blocks: list of stimulus arrays per block
+        actions_blocks: list of action arrays per block
+        rewards_blocks: list of reward arrays per block
+        set_sizes_blocks: list of set size arrays per block
+        masks_blocks: list of mask arrays per block (1.0 for real trials, 0.0 for padding).
+    """
+    # Pre-stack blocks ONCE - use stacked version to avoid list/restack overhead
+    stimuli_stacked = jnp.stack(stimuli_blocks)
+    actions_stacked = jnp.stack(actions_blocks)
+    rewards_stacked = jnp.stack(rewards_blocks)
+    set_sizes_stacked = jnp.stack(set_sizes_blocks)
+    if masks_blocks is not None:
+        masks_stacked = jnp.stack(masks_blocks)
+    else:
+        masks_stacked = jnp.ones((len(stimuli_blocks), stimuli_stacked.shape[1]))
+
+    def objective(x: jnp.ndarray) -> float:
+        alpha_pos, alpha_neg, phi, rho, capacity, kappa, phi_rl, epsilon = jax_unconstrained_to_params_wmrl_m5(x)
+        # Use stacked version directly - avoids list conversion and restacking
+        log_lik = wmrl_m5_multiblock_likelihood_stacked(
+            stimuli_stacked=stimuli_stacked,
+            actions_stacked=actions_stacked,
+            rewards_stacked=rewards_stacked,
+            set_sizes_stacked=set_sizes_stacked,
+            masks_stacked=masks_stacked,
+            alpha_pos=alpha_pos,
+            alpha_neg=alpha_neg,
+            phi=phi,
+            rho=rho,
+            capacity=capacity,
+            kappa=kappa,
+            phi_rl=phi_rl,
+            epsilon=epsilon,
+        )
+        return -log_lik
+
+    # JIT-compile for massive speedup (eliminates Python dispatch overhead)
+    return jax.jit(objective)
 
 # =============================================================================
 # Bounded Objective Functions (for ScipyBoundedMinimize / L-BFGS-B)
@@ -360,10 +418,10 @@ def _make_jax_objective_wmrl_m3(
 # L-BFGS-B handles bounds natively, so we skip the logit/inv_logit layer.
 
 def _make_bounded_objective_qlearning(
-    stimuli_blocks: List[jnp.ndarray],
-    actions_blocks: List[jnp.ndarray],
-    rewards_blocks: List[jnp.ndarray],
-    masks_blocks: List[jnp.ndarray] = None,
+    stimuli_blocks: list[jnp.ndarray],
+    actions_blocks: list[jnp.ndarray],
+    rewards_blocks: list[jnp.ndarray],
+    masks_blocks: list[jnp.ndarray] = None,
 ):
     """
     Create bounded-space objective for Q-learning (no parameter transforms).
@@ -394,13 +452,12 @@ def _make_bounded_objective_qlearning(
 
     return objective
 
-
 def _make_bounded_objective_wmrl(
-    stimuli_blocks: List[jnp.ndarray],
-    actions_blocks: List[jnp.ndarray],
-    rewards_blocks: List[jnp.ndarray],
-    set_sizes_blocks: List[jnp.ndarray],
-    masks_blocks: List[jnp.ndarray] = None,
+    stimuli_blocks: list[jnp.ndarray],
+    actions_blocks: list[jnp.ndarray],
+    rewards_blocks: list[jnp.ndarray],
+    set_sizes_blocks: list[jnp.ndarray],
+    masks_blocks: list[jnp.ndarray] = None,
 ):
     """
     Create bounded-space objective for WM-RL (no parameter transforms).
@@ -441,13 +498,12 @@ def _make_bounded_objective_wmrl(
 
     return objective
 
-
 def _make_bounded_objective_wmrl_m3(
-    stimuli_blocks: List[jnp.ndarray],
-    actions_blocks: List[jnp.ndarray],
-    rewards_blocks: List[jnp.ndarray],
-    set_sizes_blocks: List[jnp.ndarray],
-    masks_blocks: List[jnp.ndarray] = None,
+    stimuli_blocks: list[jnp.ndarray],
+    actions_blocks: list[jnp.ndarray],
+    rewards_blocks: list[jnp.ndarray],
+    set_sizes_blocks: list[jnp.ndarray],
+    masks_blocks: list[jnp.ndarray] = None,
 ):
     """
     Create bounded-space objective for WM-RL M3 (no parameter transforms).
@@ -490,6 +546,584 @@ def _make_bounded_objective_wmrl_m3(
 
     return objective
 
+def _make_bounded_objective_wmrl_m5(
+    stimuli_blocks: list[jnp.ndarray],
+    actions_blocks: list[jnp.ndarray],
+    rewards_blocks: list[jnp.ndarray],
+    set_sizes_blocks: list[jnp.ndarray],
+    masks_blocks: list[jnp.ndarray] = None,
+):
+    """
+    Create bounded-space objective for WM-RL M5 (no parameter transforms).
+
+    Used with ScipyBoundedMinimize which handles bounds natively via L-BFGS-B.
+    8 parameters: alpha_pos, alpha_neg, phi, rho, capacity, kappa, phi_rl, epsilon
+    """
+    stimuli_stacked = jnp.stack(stimuli_blocks)
+    actions_stacked = jnp.stack(actions_blocks)
+    rewards_stacked = jnp.stack(rewards_blocks)
+    set_sizes_stacked = jnp.stack(set_sizes_blocks)
+    if masks_blocks is not None:
+        masks_stacked = jnp.stack(masks_blocks)
+    else:
+        masks_stacked = jnp.ones((len(stimuli_blocks), stimuli_stacked.shape[1]))
+
+    @jax.jit
+    def objective(params: jnp.ndarray) -> float:
+        alpha_pos = params[0]
+        alpha_neg = params[1]
+        phi = params[2]
+        rho = params[3]
+        capacity = params[4]
+        kappa = params[5]
+        phi_rl = params[6]
+        epsilon = params[7]
+        log_lik = wmrl_m5_multiblock_likelihood_stacked(
+            stimuli_stacked=stimuli_stacked,
+            actions_stacked=actions_stacked,
+            rewards_stacked=rewards_stacked,
+            set_sizes_stacked=set_sizes_stacked,
+            masks_stacked=masks_stacked,
+            alpha_pos=alpha_pos,
+            alpha_neg=alpha_neg,
+            phi=phi,
+            rho=rho,
+            capacity=capacity,
+            kappa=kappa,
+            phi_rl=phi_rl,
+            epsilon=epsilon,
+        )
+        return -log_lik
+
+    return objective
+
+# =============================================================================
+# GPU Objective Functions (data-as-args for vmap compatibility)
+# =============================================================================
+# Unlike the closure-based objectives above, these take data arrays as explicit
+# positional arguments so jax.vmap can vary over them (participants dimension)
+# and over starting points (parameter dimension).
+
+def _gpu_objective_qlearning(x, stimuli, actions, rewards, masks):
+    """
+    Unconstrained objective for Q-learning with data as explicit args.
+
+    Args:
+        x: unconstrained parameter vector, shape (3,)
+        stimuli: shape (n_blocks, max_trials)
+        actions: shape (n_blocks, max_trials)
+        rewards: shape (n_blocks, max_trials)
+        masks: shape (n_blocks, max_trials)
+
+    Returns:
+        Scalar negative log-likelihood
+    """
+    alpha_pos, alpha_neg, epsilon = jax_unconstrained_to_params_qlearning(x)
+    log_lik = q_learning_multiblock_likelihood_stacked(
+        stimuli_stacked=stimuli,
+        actions_stacked=actions,
+        rewards_stacked=rewards,
+        masks_stacked=masks,
+        alpha_pos=alpha_pos,
+        alpha_neg=alpha_neg,
+        epsilon=epsilon,
+    )
+    return -log_lik
+
+def _gpu_objective_wmrl(x, stimuli, actions, rewards, masks, set_sizes):
+    """
+    Unconstrained objective for WM-RL with data as explicit args.
+
+    Args:
+        x: unconstrained parameter vector, shape (6,)
+        stimuli, actions, rewards, masks: shape (n_blocks, max_trials)
+        set_sizes: shape (n_blocks, max_trials)
+
+    Returns:
+        Scalar negative log-likelihood
+    """
+    alpha_pos, alpha_neg, phi, rho, capacity, epsilon = jax_unconstrained_to_params_wmrl(x)
+    log_lik = wmrl_multiblock_likelihood_stacked(
+        stimuli_stacked=stimuli,
+        actions_stacked=actions,
+        rewards_stacked=rewards,
+        set_sizes_stacked=set_sizes,
+        masks_stacked=masks,
+        alpha_pos=alpha_pos,
+        alpha_neg=alpha_neg,
+        phi=phi,
+        rho=rho,
+        capacity=capacity,
+        epsilon=epsilon,
+    )
+    return -log_lik
+
+def _gpu_objective_wmrl_m3(x, stimuli, actions, rewards, masks, set_sizes):
+    """
+    Unconstrained objective for WM-RL M3 with data as explicit args.
+
+    Args:
+        x: unconstrained parameter vector, shape (7,)
+        stimuli, actions, rewards, masks: shape (n_blocks, max_trials)
+        set_sizes: shape (n_blocks, max_trials)
+
+    Returns:
+        Scalar negative log-likelihood
+    """
+    alpha_pos, alpha_neg, phi, rho, capacity, kappa, epsilon = jax_unconstrained_to_params_wmrl_m3(x)
+    log_lik = wmrl_m3_multiblock_likelihood_stacked(
+        stimuli_stacked=stimuli,
+        actions_stacked=actions,
+        rewards_stacked=rewards,
+        set_sizes_stacked=set_sizes,
+        masks_stacked=masks,
+        alpha_pos=alpha_pos,
+        alpha_neg=alpha_neg,
+        phi=phi,
+        rho=rho,
+        capacity=capacity,
+        kappa=kappa,
+        epsilon=epsilon,
+    )
+    return -log_lik
+
+def _gpu_objective_wmrl_m5(x, stimuli, actions, rewards, masks, set_sizes):
+    """
+    Unconstrained objective for WM-RL M5 (RL forgetting) with data as explicit args.
+
+    Args:
+        x: unconstrained parameter vector, shape (8,)
+        stimuli, actions, rewards, masks: shape (n_blocks, max_trials)
+        set_sizes: shape (n_blocks, max_trials)
+
+    Returns:
+        Scalar negative log-likelihood
+    """
+    alpha_pos, alpha_neg, phi, rho, capacity, kappa, phi_rl, epsilon = jax_unconstrained_to_params_wmrl_m5(x)
+    log_lik = wmrl_m5_multiblock_likelihood_stacked(
+        stimuli_stacked=stimuli,
+        actions_stacked=actions,
+        rewards_stacked=rewards,
+        set_sizes_stacked=set_sizes,
+        masks_stacked=masks,
+        alpha_pos=alpha_pos,
+        alpha_neg=alpha_neg,
+        phi=phi,
+        rho=rho,
+        capacity=capacity,
+        kappa=kappa,
+        phi_rl=phi_rl,
+        epsilon=epsilon,
+    )
+    return -log_lik
+
+# =============================================================================
+# GPU-Vectorized Fitting (jaxopt.LBFGS + vmap over starts and participants)
+# =============================================================================
+
+def fit_all_gpu(
+    data: pd.DataFrame,
+    model: str = 'qlearning',
+    n_starts: int = 50,
+    seed: int = 42,
+    verbose: bool = True,
+    compute_diagnostics: bool = False,
+) -> tuple[pd.DataFrame, dict, list[dict]]:
+    """
+    GPU-accelerated MLE fitting using vectorized jaxopt.LBFGS.
+
+    Fits ALL participants x ALL starting points in a single JIT-compiled call
+    using nested vmap over participants (outer) and starts (inner). This replaces
+    the sequential loop in fit_all_participants() when GPU is available.
+
+    Args:
+        data: DataFrame with columns [sona_id, block, stimulus, key_press, reward, set_size]
+        model: 'qlearning', 'wmrl', or 'wmrl_m3'
+        n_starts: Number of random starting points per participant
+        seed: Random seed
+        verbose: Show progress output
+        compute_diagnostics: Whether to compute Hessian diagnostics post-fit
+
+    Returns:
+        Same tuple format as fit_all_participants():
+        (fits_df, timing_info, timing_records)
+    """
+    import time
+    import jaxopt
+
+    start_time = time.time()
+    participants = data['sona_id'].unique()
+    n_participants = len(participants)
+
+    if verbose:
+        start_datetime = datetime.now()
+        print(f"\n{'='*60}")
+        print(f"GPU-Vectorized MLE Fitting: {model.upper()}")
+        print(f"{'='*60}")
+        print(f"Start time: {start_datetime.strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"Participants: {n_participants}")
+        print(f"Random starts per participant: {n_starts}")
+        print(f"Method: jaxopt.LBFGS + jax.vmap (fully vectorized)")
+        print(f"{'='*60}\n")
+
+    # =========================================================================
+    # Stage 1: Prepare and stack all participant data
+    # =========================================================================
+    if verbose:
+        print("Stage 1: Preparing and stacking participant data...", flush=True)
+        t0 = time.time()
+
+    all_stimuli = []
+    all_actions = []
+    all_rewards = []
+    all_masks = []
+    all_set_sizes = []
+    trial_counts = []
+
+    for pid in participants:
+        pdata = prepare_participant_data(data, pid, model, pad_blocks=True)
+        all_stimuli.append(jnp.stack(pdata['stimuli_blocks']))
+        all_actions.append(jnp.stack(pdata['actions_blocks']))
+        all_rewards.append(jnp.stack(pdata['rewards_blocks']))
+        all_masks.append(jnp.stack(pdata['masks_blocks']))
+
+        if model in ('wmrl', 'wmrl_m3', 'wmrl_m5'):
+            all_set_sizes.append(jnp.stack(pdata['set_sizes_blocks']))
+
+        trial_counts.append(int(sum(jnp.sum(m) for m in pdata['masks_blocks'])))
+
+    # Stack into batched arrays: (n_participants, MAX_BLOCKS, MAX_TRIALS_PER_BLOCK)
+    stimuli_batch = jnp.stack(all_stimuli)
+    actions_batch = jnp.stack(all_actions)
+    rewards_batch = jnp.stack(all_rewards)
+    masks_batch = jnp.stack(all_masks)
+    set_sizes_batch = jnp.stack(all_set_sizes) if model in ('wmrl', 'wmrl_m3', 'wmrl_m5') else None
+
+    if verbose:
+        print(f"  Stacked data shape: {stimuli_batch.shape} ({time.time() - t0:.1f}s)")
+
+    # =========================================================================
+    # Stage 2: Generate LHS starting points in unconstrained space
+    # =========================================================================
+    if verbose:
+        print("Stage 2: Generating unconstrained starting points...", flush=True)
+
+    x0_bounded = jnp.array(sample_lhs_starts(model, n_starts, seed=seed))
+
+    if model == 'qlearning':
+        to_unc = jax_bounded_to_unconstrained_qlearning
+    elif model == 'wmrl':
+        to_unc = jax_bounded_to_unconstrained_wmrl
+    elif model == 'wmrl_m3':
+        to_unc = jax_bounded_to_unconstrained_wmrl_m3
+    else:
+        to_unc = jax_bounded_to_unconstrained_wmrl_m5
+
+    x0_unc = jax.vmap(to_unc)(x0_bounded)  # (n_starts, n_params)
+
+    if verbose:
+        print(f"  Starting points: {x0_unc.shape}")
+
+    # =========================================================================
+    # Stage 3: Create solver and vmapped fitting function
+    # =========================================================================
+    if verbose:
+        print("Stage 3: Building vmapped optimizer...", flush=True)
+
+    # Select model-specific objective
+    if model == 'qlearning':
+        objective = _gpu_objective_qlearning
+    elif model == 'wmrl':
+        objective = _gpu_objective_wmrl
+    elif model == 'wmrl_m3':
+        objective = _gpu_objective_wmrl_m3
+    else:
+        objective = _gpu_objective_wmrl_m5
+
+    solver = jaxopt.LBFGS(
+        fun=objective,
+        maxiter=1000,
+        tol=1e-5,
+        history_size=10,
+        jit=True,            # Must be True for lax.while_loop (needed by vmap)
+        implicit_diff=False,  # Not doing bilevel optimization
+    )
+
+    # Build nested vmap: starts (inner) → participants (outer)
+    if model == 'qlearning':
+        def _run_one(x0, stimuli, actions, rewards, masks):
+            params, state = solver.run(x0, stimuli, actions, rewards, masks)
+            nll = objective(params, stimuli, actions, rewards, masks)
+            return params, nll, state.error
+
+        # vmap over starts: x0 varies (axis 0), data fixed (None)
+        _run_all_starts = jax.vmap(_run_one, in_axes=(0, None, None, None, None))
+        # vmap over participants: x0 fixed (None), data varies (axis 0)
+        _run_all = jax.jit(jax.vmap(_run_all_starts, in_axes=(None, 0, 0, 0, 0)))
+    else:
+        # wmrl, wmrl_m3, and wmrl_m5 share the same data signature (includes set_sizes)
+        def _run_one(x0, stimuli, actions, rewards, masks, set_sizes):
+            params, state = solver.run(x0, stimuli, actions, rewards, masks, set_sizes)
+            nll = objective(params, stimuli, actions, rewards, masks, set_sizes)
+            return params, nll, state.error
+
+        _run_all_starts = jax.vmap(_run_one, in_axes=(0, None, None, None, None, None))
+        _run_all = jax.jit(jax.vmap(_run_all_starts, in_axes=(None, 0, 0, 0, 0, 0)))
+
+    # =========================================================================
+    # Stage 4: Execute single JIT-compiled fitting call
+    # =========================================================================
+    if verbose:
+        print("Stage 4: Running GPU-vectorized fitting (JIT compiling + executing)...", flush=True)
+        t0 = time.time()
+
+    initial_mem = log_memory_usage("PRE-GPU-FIT", verbose=verbose)
+
+    if model == 'qlearning':
+        all_params, all_nlls, all_errors = _run_all(
+            x0_unc, stimuli_batch, actions_batch, rewards_batch, masks_batch
+        )
+    else:
+        all_params, all_nlls, all_errors = _run_all(
+            x0_unc, stimuli_batch, actions_batch, rewards_batch, masks_batch, set_sizes_batch
+        )
+
+    # Block until GPU computation is complete
+    all_params.block_until_ready()
+    gpu_time = time.time() - t0
+
+    post_mem = log_memory_usage("POST-GPU-FIT", verbose=verbose)
+
+    if verbose:
+        print(f"  GPU fitting complete: {gpu_time:.1f}s")
+        print(f"  Output shapes: params={all_params.shape}, nlls={all_nlls.shape}")
+
+    # all_params: (n_participants, n_starts, n_params) in unconstrained space
+    # all_nlls:   (n_participants, n_starts)
+    # all_errors: (n_participants, n_starts) gradient norms at convergence
+
+    # =========================================================================
+    # Stage 5: Select best starts and transform back to bounded space
+    # =========================================================================
+    if verbose:
+        print("Stage 5: Selecting best results and transforming parameters...", flush=True)
+
+    # Find best start per participant (lowest NLL)
+    best_idx = jnp.argmin(all_nlls, axis=1)  # (n_participants,)
+    best_params_unc = all_params[jnp.arange(n_participants), best_idx]
+    best_nlls = all_nlls[jnp.arange(n_participants), best_idx]
+    best_errors = all_errors[jnp.arange(n_participants), best_idx]
+
+    # Transform best params back to bounded space (vectorized)
+    if model == 'qlearning':
+        bounded_tuple = jax.vmap(jax_unconstrained_to_params_qlearning)(best_params_unc)
+        param_names = QLEARNING_PARAMS
+        bounds_dict = QLEARNING_BOUNDS
+    elif model == 'wmrl':
+        bounded_tuple = jax.vmap(jax_unconstrained_to_params_wmrl)(best_params_unc)
+        param_names = WMRL_PARAMS
+        bounds_dict = WMRL_BOUNDS
+    elif model == 'wmrl_m3':
+        bounded_tuple = jax.vmap(jax_unconstrained_to_params_wmrl_m3)(best_params_unc)
+        param_names = WMRL_M3_PARAMS
+        bounds_dict = WMRL_M3_BOUNDS
+    else:
+        bounded_tuple = jax.vmap(jax_unconstrained_to_params_wmrl_m5)(best_params_unc)
+        param_names = WMRL_M5_PARAMS
+        bounds_dict = WMRL_M5_BOUNDS
+
+    # =========================================================================
+    # Stage 6: Build result dictionaries
+    # =========================================================================
+    if verbose:
+        print("Stage 6: Building result dictionaries...", flush=True)
+
+    n_params_model = get_n_params(model)
+    results = []
+
+    for i in range(n_participants):
+        pid = participants[i]
+        nll = float(best_nlls[i])
+        n_trials = trial_counts[i]
+
+        # Extract bounded parameters for this participant
+        best_params = {}
+        for j, name in enumerate(param_names):
+            best_params[name] = float(bounded_tuple[j][i])
+
+        # Information criteria
+        k = n_params_model
+        aic = compute_aic(nll, k)
+        bic = compute_bic(nll, k, n_trials)
+        aicc = compute_aicc(nll, k, n_trials)
+        pseudo_r2 = compute_pseudo_r2(nll, n_trials)
+
+        # Convergence: gradient norm at best solution
+        grad_norm = float(best_errors[i])
+        converged = grad_norm < 1e-4
+
+        # Count starts near best
+        participant_nlls = np.array(all_nlls[i])
+        finite_nlls = participant_nlls[np.isfinite(participant_nlls)]
+        n_successful = len(finite_nlls)
+        n_near_best = int(np.sum(np.abs(finite_nlls - nll) < 1.0)) if len(finite_nlls) > 0 else 0
+
+        # Check at bounds
+        at_bounds = check_at_bounds(best_params, model)
+
+        result = {
+            'participant_id': pid,
+            **best_params,
+            'nll': nll,
+            'aic': aic,
+            'bic': bic,
+            'aicc': aicc,
+            'pseudo_r2': pseudo_r2,
+            'n_trials': n_trials,
+            'converged': converged,
+            'n_successful_starts': n_successful,
+            'n_near_best': n_near_best,
+            'at_bounds': at_bounds,
+            'grad_norm': grad_norm,
+        }
+
+        results.append(result)
+
+    # =========================================================================
+    # Stage 7: Optional Hessian diagnostics (sequential, post-vmap)
+    # =========================================================================
+    if compute_diagnostics:
+        if verbose:
+            print("Stage 7: Computing Hessian diagnostics (sequential)...", flush=True)
+            t0 = time.time()
+
+        for i, result in enumerate(results):
+            pid = result['participant_id']
+            best_params = {name: result[name] for name in param_names}
+
+            # Create closure-based unbounded objective for Hessian computation
+            pdata = prepare_participant_data(data, pid, model)
+            if model == 'qlearning':
+                objective_fn = _make_jax_objective_qlearning(
+                    pdata['stimuli_blocks'], pdata['actions_blocks'],
+                    pdata['rewards_blocks'], masks_blocks=pdata.get('masks_blocks')
+                )
+            elif model == 'wmrl':
+                objective_fn = _make_jax_objective_wmrl(
+                    pdata['stimuli_blocks'], pdata['actions_blocks'],
+                    pdata['rewards_blocks'], pdata['set_sizes_blocks'],
+                    masks_blocks=pdata.get('masks_blocks')
+                )
+            elif model == 'wmrl_m3':
+                objective_fn = _make_jax_objective_wmrl_m3(
+                    pdata['stimuli_blocks'], pdata['actions_blocks'],
+                    pdata['rewards_blocks'], pdata['set_sizes_blocks'],
+                    masks_blocks=pdata.get('masks_blocks')
+                )
+            else:
+                objective_fn = _make_jax_objective_wmrl_m5(
+                    pdata['stimuli_blocks'], pdata['actions_blocks'],
+                    pdata['rewards_blocks'], pdata['set_sizes_blocks'],
+                    masks_blocks=pdata.get('masks_blocks')
+                )
+
+            x_unconstrained = params_to_unconstrained(best_params, model)
+
+            # Check gradient norm in unconstrained space
+            grad_norm_unc, _ = check_gradient_norm(objective_fn, x_unconstrained)
+            result['grad_norm'] = grad_norm_unc
+
+            # Hessian diagnostics
+            hess_diag = compute_hessian_diagnostics(objective_fn, x_unconstrained, model)
+            if hess_diag['success']:
+                result['hessian_condition'] = hess_diag['condition_number']
+                result['hessian_invertible'] = hess_diag['hessian_invertible']
+                se_bounded = hess_diag.get('se_bounded', {})
+                for param, se in se_bounded.items():
+                    result[f'{param}_se'] = se
+                ci = compute_confidence_intervals(best_params, se_bounded)
+                for param, (lower, upper) in ci.items():
+                    result[f'{param}_ci_lower'] = lower
+                    result[f'{param}_ci_upper'] = upper
+                correlations = hess_diag.get('correlations', {})
+                high_corr = get_high_correlations(correlations, threshold=0.9)
+                result['high_correlations'] = high_corr
+            else:
+                result['hessian_condition'] = np.nan
+                result['hessian_invertible'] = False
+
+            if verbose and (i + 1) % 10 == 0:
+                print(f"    Hessian: {i + 1}/{n_participants} done", flush=True)
+
+        if verbose:
+            hess_success = sum(1 for r in results if r.get('hessian_invertible', False))
+            print(f"  Hessian diagnostics complete: {hess_success}/{n_participants} successful ({time.time() - t0:.1f}s)")
+
+    # =========================================================================
+    # Summary and return
+    # =========================================================================
+    total_time = time.time() - start_time
+
+    if verbose:
+        n_converged = sum(r['converged'] for r in results)
+        conv_rate = 100.0 * n_converged / n_participants if n_participants > 0 else 0
+
+        print(f"\n{'='*60}")
+        print("GPU FITTING COMPLETE")
+        print(f"{'='*60}")
+        print(f"Total duration: {total_time:.1f}s ({total_time/60:.1f}min)")
+        print(f"  GPU optimization: {gpu_time:.1f}s")
+        print(f"Participants: {n_participants} | Converged: {n_converged} ({conv_rate:.0f}%)")
+        if post_mem > 0:
+            print(f"Peak memory: {max(initial_mem, post_mem)/1024:.2f}GB")
+        print(f"{'='*60}\n")
+
+    # Build DataFrame with same column order as fit_all_participants()
+    df = pd.DataFrame(results)
+
+    # Reorder columns
+    cols = ['participant_id'] + param_names
+    se_cols = [f'{p}_se' for p in param_names]
+    ci_lower_cols = [f'{p}_ci_lower' for p in param_names]
+    ci_upper_cols = [f'{p}_ci_upper' for p in param_names]
+    cols += ['nll', 'aic', 'bic', 'aicc', 'pseudo_r2']
+    cols += ['grad_norm', 'hessian_condition', 'hessian_invertible']
+    cols += se_cols + ci_lower_cols + ci_upper_cols
+    cols += ['n_trials', 'converged', 'n_successful_starts', 'n_near_best', 'at_bounds', 'high_correlations']
+    cols = [c for c in cols if c in df.columns]
+    df = df[cols]
+
+    # Build timing info
+    timing_info = {
+        'total_time': total_time,
+        'gpu_time': gpu_time,
+        'fit_times': [],
+        'jit_time': None,
+        'steady_state_times': [],
+        'n_jobs': 1,
+        'n_participants': n_participants,
+        'initial_mem_mb': initial_mem,
+        'peak_mem_mb': max(initial_mem, post_mem),
+        'model': model,
+        'method': 'gpu_vmap',
+    }
+
+    # Build timing records (one per participant, times not individually tracked in GPU mode)
+    timing_records = []
+    for i, pid in enumerate(participants):
+        timing_records.append({
+            'participant_id': pid,
+            'n_trials': trial_counts[i],
+            'n_blocks': int(stimuli_batch.shape[1]),
+            'fit_time_s': gpu_time / n_participants,  # Average estimate
+            'is_first_fit': False,
+            'memory_before_mb': initial_mem,
+            'memory_after_mb': post_mem,
+            'nll': results[i].get('nll', np.nan),
+            'converged': results[i].get('converged', False),
+        })
+
+    return df, timing_info, timing_records
 
 # =============================================================================
 # Single Participant Fitting (using L-BFGS-B with analytical gradients)
@@ -502,20 +1136,19 @@ class _JaxoptResult:
         self.fun = fun
         self.success = success
 
-
 def fit_participant_mle(
-    stimuli_blocks: List[np.ndarray],
-    actions_blocks: List[np.ndarray],
-    rewards_blocks: List[np.ndarray],
-    set_sizes_blocks: Optional[List[np.ndarray]] = None,
-    masks_blocks: Optional[List[np.ndarray]] = None,
+    stimuli_blocks: list[np.ndarray],
+    actions_blocks: list[np.ndarray],
+    rewards_blocks: list[np.ndarray],
+    set_sizes_blocks: list[np.ndarray] | None = None,
+    masks_blocks: list[np.ndarray] | None = None,
     model: str = 'qlearning',
     n_starts: int = 50,
-    seed: Optional[int] = None,
+    seed: int | None = None,
     compute_diagnostics: bool = True,
     verbose: bool = False,
     participant_index: int = 0,
-) -> Dict:
+) -> dict:
     """
     Fit a single participant using MLE with multiple starting points.
 
@@ -526,11 +1159,11 @@ def fit_participant_mle(
     Note: Beta is fixed at 50 inside the likelihood functions.
 
     Args:
-        stimuli_blocks: List of stimulus arrays per block
-        actions_blocks: List of action arrays per block
-        rewards_blocks: List of reward arrays per block
-        set_sizes_blocks: List of set size arrays per block (WM-RL/M3 only)
-        masks_blocks: List of mask arrays per block (1.0 for real trials, 0.0 for padding).
+        stimuli_blocks: list of stimulus arrays per block
+        actions_blocks: list of action arrays per block
+        rewards_blocks: list of reward arrays per block
+        set_sizes_blocks: list of set size arrays per block (WM-RL/M3 only)
+        masks_blocks: list of mask arrays per block (1.0 for real trials, 0.0 for padding).
                      When provided, enables fixed-size compilation for JAX efficiency.
         model: 'qlearning', 'wmrl', or 'wmrl_m3'
         n_starts: Number of random starting points
@@ -555,7 +1188,7 @@ def fit_participant_mle(
 
     # Count total REAL trials (accounting for masks if provided)
     if show_setup_steps:
-        print(f"      [1/5] Counting trials...", end=" ", flush=True)
+        print("      [1/5] Counting trials...", end=" ", flush=True)
         _t0 = _time.time()
     if masks_blocks is not None:
         # Sum of mask values = number of real trials (mask=1 for real, 0 for padding)
@@ -569,7 +1202,7 @@ def fit_participant_mle(
     # Note: If data is already JAX arrays (from prepare_participant_data with padding),
     # jnp.array() is a no-op
     if show_setup_steps:
-        print(f"      [2/5] Preparing JAX arrays...", end=" ", flush=True)
+        print("      [2/5] Preparing JAX arrays...", end=" ", flush=True)
         _t0 = _time.time()
     stimuli_jax = [jnp.array(s, dtype=jnp.int32) for s in stimuli_blocks]
     actions_jax = [jnp.array(a, dtype=jnp.int32) for a in actions_blocks]
@@ -584,7 +1217,7 @@ def fit_participant_mle(
     #   1. bounded_objective: for L-BFGS-B (takes bounded params directly)
     #   2. objective: unbounded version (kept for Hessian diagnostics which need transforms)
     if show_setup_steps:
-        print(f"      [3/5] Creating objective functions...", end=" ", flush=True)
+        print("      [3/5] Creating objective functions...", end=" ", flush=True)
         _t0 = _time.time()
     if model == 'qlearning':
         bounded_objective = _make_bounded_objective_qlearning(
@@ -623,6 +1256,19 @@ def fit_participant_mle(
         n_params = 7
         param_names = WMRL_M3_PARAMS
         bounds_dict = WMRL_M3_BOUNDS
+    elif model == 'wmrl_m5':
+        if set_sizes_blocks is None:
+            raise ValueError("set_sizes_blocks required for WM-RL M5 model")
+        set_sizes_jax = [jnp.array(s, dtype=jnp.int32) for s in set_sizes_blocks]
+        bounded_objective = _make_bounded_objective_wmrl_m5(
+            stimuli_jax, actions_jax, rewards_jax, set_sizes_jax, masks_blocks=masks_jax
+        )
+        objective = _make_jax_objective_wmrl_m5(
+            stimuli_jax, actions_jax, rewards_jax, set_sizes_jax, masks_blocks=masks_jax
+        )
+        n_params = 8
+        param_names = WMRL_M5_PARAMS
+        bounds_dict = WMRL_M5_BOUNDS
     else:
         raise ValueError(f"Unknown model: {model}")
     if show_setup_steps:
@@ -630,7 +1276,7 @@ def fit_participant_mle(
 
     # Create ScipyBoundedMinimize solver (L-BFGS-B with native bounds)
     if show_setup_steps:
-        print(f"      [4/5] Creating L-BFGS-B solver...", end=" ", flush=True)
+        print("      [4/5] Creating L-BFGS-B solver...", end=" ", flush=True)
         _t0 = _time.time()
 
     lower_bounds = jnp.array([bounds_dict[p][0] for p in param_names])
@@ -780,7 +1426,7 @@ def fit_participant_mle(
     # Compute Hessian-based diagnostics if requested
     if compute_diagnostics:
         if verbose:
-            print(f"    Computing Hessian diagnostics...", flush=True)
+            print("    Computing Hessian diagnostics...", flush=True)
         # Convert bounded params to unconstrained space for Hessian computation
         # (the unbounded objective + Hessian SEs use the transform-based parameterization)
         x_unconstrained = params_to_unconstrained(best_params, model)
@@ -819,7 +1465,6 @@ def fit_participant_mle(
 
     return result
 
-
 # =============================================================================
 # Checkpoint Functions for Incremental Saving
 # =============================================================================
@@ -828,12 +1473,11 @@ def _get_checkpoint_path(output_dir: Path, model: str) -> Path:
     """Get path to checkpoint file for incremental saves."""
     return output_dir / f'{model}_checkpoint.csv'
 
-
-def _load_checkpoint(checkpoint_path: Path) -> Tuple[pd.DataFrame, set]:
+def _load_checkpoint(checkpoint_path: Path) -> tuple[pd.DataFrame, set]:
     """Load existing checkpoint if it exists.
 
     Returns:
-        Tuple of (results_df, completed_participant_ids)
+        tuple of (results_df, completed_participant_ids)
     """
     if checkpoint_path.exists():
         df = pd.read_csv(checkpoint_path)
@@ -847,8 +1491,7 @@ def _load_checkpoint(checkpoint_path: Path) -> Tuple[pd.DataFrame, set]:
         return df, completed
     return pd.DataFrame(), set()
 
-
-def _save_checkpoint(result: Dict, checkpoint_path: Path, is_first: bool = False):
+def _save_checkpoint(result: dict, checkpoint_path: Path, is_first: bool = False):
     """Append a single result to checkpoint file.
 
     Args:
@@ -862,7 +1505,6 @@ def _save_checkpoint(result: Dict, checkpoint_path: Path, is_first: bool = False
     else:
         df.to_csv(checkpoint_path, index=False, mode='a', header=False)
 
-
 # =============================================================================
 # Multi-Participant Fitting
 # =============================================================================
@@ -873,7 +1515,7 @@ def prepare_participant_data(
     model: str = 'qlearning',
     pad_blocks: bool = True,
     max_trials: int = MAX_TRIALS_PER_BLOCK
-) -> Dict:
+) -> dict:
     """
     Prepare data for a single participant with optional block padding.
 
@@ -909,7 +1551,7 @@ def prepare_participant_data(
         actions = jnp.array(block_data['key_press'].values, dtype=jnp.int32)
         rewards = jnp.array(block_data['reward'].values, dtype=jnp.float32)
 
-        if model in ('wmrl', 'wmrl_m3') and 'set_size' in block_data.columns:
+        if model in ('wmrl', 'wmrl_m3', 'wmrl_m5') and 'set_size' in block_data.columns:
             set_sizes = jnp.array(block_data['set_size'].values, dtype=jnp.int32)
         else:
             set_sizes = None
@@ -946,7 +1588,7 @@ def prepare_participant_data(
             stimuli_blocks, actions_blocks, rewards_blocks,
             masks_blocks,
             max_blocks=MAX_BLOCKS,
-            set_sizes_blocks=set_sizes_blocks if model in ('wmrl', 'wmrl_m3') else None
+            set_sizes_blocks=set_sizes_blocks if model in ('wmrl', 'wmrl_m3', 'wmrl_m5') else None
         )
 
     result = {
@@ -958,13 +1600,12 @@ def prepare_participant_data(
     if pad_blocks:
         result['masks_blocks'] = masks_blocks
 
-    if model in ('wmrl', 'wmrl_m3'):
+    if model in ('wmrl', 'wmrl_m3', 'wmrl_m5'):
         result['set_sizes_blocks'] = set_sizes_blocks
 
     return result
 
-
-def _fit_single_participant_worker(args: Tuple) -> Dict:
+def _fit_single_participant_worker(args: tuple) -> dict:
     """
     Picklable worker function for parallel fitting.
 
@@ -972,7 +1613,7 @@ def _fit_single_participant_worker(args: Tuple) -> Dict:
     The function receives all arguments as a tuple and unpacks them.
 
     Args:
-        args: Tuple of (pid, data_dict, model, n_starts, seed,
+        args: tuple of (pid, data_dict, model, n_starts, seed,
                [compute_diagnostics, [verbose, [participant_index]]])
 
     Returns:
@@ -1010,7 +1651,6 @@ def _fit_single_participant_worker(args: Tuple) -> Dict:
     result['participant_id'] = pid
     return result
 
-
 def fit_all_participants(
     data: pd.DataFrame,
     model: str = 'qlearning',
@@ -1019,8 +1659,8 @@ def fit_all_participants(
     verbose: bool = True,
     n_jobs: int = 1,
     compute_diagnostics: bool = False,
-    output_dir: Optional[Path] = None,
-) -> Tuple[pd.DataFrame, Dict, List[Dict]]:
+    output_dir: Path | None = None,
+) -> tuple[pd.DataFrame, dict, list[dict]]:
     """
     Fit all participants using MLE.
 
@@ -1035,13 +1675,13 @@ def fit_all_participants(
         output_dir: Output directory for checkpoint files (enables incremental saving)
 
     Returns:
-        Tuple of (fits_df, timing_info, timing_records):
+        tuple of (fits_df, timing_info, timing_records):
         - fits_df: DataFrame with fitted parameters and diagnostics
         - timing_info: Summary timing dict for extrapolation
-        - timing_records: List of per-participant timing dicts for logging
+        - timing_records: list of per-participant timing dicts for logging
     """
     import time
-    import json
+
     from joblib import Parallel, delayed
 
     participants = data['sona_id'].unique()
@@ -1086,7 +1726,21 @@ def fit_all_participants(
     timing_records = []  # Per-participant timing for log file
 
     if n_jobs == 1:
-        # Sequential execution with per-participant progress and incremental saving
+        # Check for GPU — use vectorized GPU path if available
+        gpu_devices = [d for d in jax.devices() if d.platform == 'gpu']
+        if gpu_devices:
+            if verbose:
+                print(f"GPU detected ({gpu_devices[0]}). Using vectorized GPU fitting path.\n")
+            return fit_all_gpu(
+                data=data,
+                model=model,
+                n_starts=n_starts,
+                seed=seed,
+                verbose=verbose,
+                compute_diagnostics=compute_diagnostics,
+            )
+
+        # Sequential CPU execution with per-participant progress and incremental saving
         results = []
         fit_times = []
 
@@ -1192,12 +1846,12 @@ def fit_all_participants(
                     conv_rate = 100.0 * n_converged / len(results)
 
                     print()
-                    print(f"    +----------------------------------------------------------")
+                    print("    +----------------------------------------------------------")
                     print(f"    | PROGRESS: {i+1}/{n_participants} ({100.0*(i+1)/n_participants:.0f}%)")
                     print(f"    | Elapsed: {elapsed_time/60:.1f}min | Remaining: ~{remaining/60:.1f}min")
                     print(f"    | Converged: {n_converged}/{len(results)} ({conv_rate:.0f}%) | Avg: {steady_avg:.1f}s/participant")
                     print(f"    | Memory: {mem_str}")
-                    print(f"    +----------------------------------------------------------")
+                    print("    +----------------------------------------------------------")
                     print()
     else:
         # Parallel execution using joblib
@@ -1281,7 +1935,7 @@ def fit_all_participants(
         conv_rate = 100.0 * n_converged / n_participants if n_participants > 0 else 0
 
         print(f"\n{'='*60}")
-        print(f"FITTING COMPLETE")
+        print("FITTING COMPLETE")
         print(f"{'='*60}")
         print(f"End time: {end_datetime.strftime('%Y-%m-%d %H:%M:%S')}")
         print(f"Total duration: {total_time/60:.1f} min ({total_time:.0f}s)")
@@ -1319,6 +1973,8 @@ def fit_all_participants(
         param_cols = WMRL_PARAMS
     elif model == 'wmrl_m3':
         param_cols = WMRL_M3_PARAMS
+    elif model == 'wmrl_m5':
+        param_cols = WMRL_M5_PARAMS
     else:
         param_cols = []
 
@@ -1360,7 +2016,6 @@ def fit_all_participants(
     }
 
     return df, timing_info, timing_records
-
 
 # =============================================================================
 # Group Statistics
@@ -1428,7 +2083,6 @@ def compute_group_summary(
 
     return pd.DataFrame(rows)
 
-
 # =============================================================================
 # Main CLI
 # =============================================================================
@@ -1459,14 +2113,13 @@ def load_and_prepare_data(filepath: str, exclude_practice: bool = True) -> pd.Da
 
     return data
 
-
 def main():
     parser = argparse.ArgumentParser(
         description='MLE fitting for RLWM models (Senta et al. methodology)'
     )
     parser.add_argument('--model', type=str, required=True,
-                        choices=['qlearning', 'wmrl', 'wmrl_m3'],
-                        help='Model to fit (qlearning=M1, wmrl=M2, wmrl_m3=M3)')
+                        choices=['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5'],
+                        help='Model to fit (qlearning=M1, wmrl=M2, wmrl_m3=M3, wmrl_m5=M5)')
     parser.add_argument('--data', type=str, required=True,
                         help='Path to trial data CSV')
     parser.add_argument('--output', type=str, default='output/mle/',
@@ -1527,11 +2180,11 @@ def main():
         print(f"GPU acceleration: {'enabled' if gpu_available else 'requested but unavailable'}")
     print(f"Hessian diagnostics: {'enabled (adds 5-30s per participant)' if args.compute_diagnostics else 'disabled'}")
     if args.debug_timing:
-        print(f"Debug timing: ENABLED (detailed instrumentation)")
+        print("Debug timing: ENABLED (detailed instrumentation)")
         # Enable JAX compile logging for debugging
         import os
         os.environ['JAX_LOG_COMPILES'] = '1'
-        print(f"  JAX_LOG_COMPILES=1 (will log every JIT compilation)")
+        print("  JAX_LOG_COMPILES=1 (will log every JIT compilation)")
     if args.limit:
         print(f"Limit: {args.limit} participants (testing mode)")
     print(f"{'='*60}\n")
@@ -1540,13 +2193,13 @@ def main():
     print("Loading data...")
     exclude_practice = not args.include_practice
     data = load_and_prepare_data(args.data, exclude_practice=exclude_practice)
-    
+
     # Exclude participants based on data quality
     initial_n = data['sona_id'].nunique()
     data = data[~data['sona_id'].isin(EXCLUDED_PARTICIPANTS)].copy()
     n_participants = data['sona_id'].nunique()
     n_excluded = initial_n - n_participants
-    
+
     n_trials = len(data)
     print(f"  Total participants in data: {initial_n}")
     if n_excluded > 0:
@@ -1605,9 +2258,9 @@ def main():
             # Conservative estimate: assume JIT time includes ~50% overhead
             steady_estimate = jit_time * 0.6
             estimated = jit_time + (total_n - 1) * steady_estimate
-            print(f"\nNote: Only 1 participant tested (includes JIT overhead)")
+            print("\nNote: Only 1 participant tested (includes JIT overhead)")
             print(f"Rough estimate for {total_n} participants: {estimated/60:.1f} min")
-            print(f"(Run with --limit 3 for more accurate extrapolation)")
+            print("(Run with --limit 3 for more accurate extrapolation)")
 
         # Memory usage if psutil available
         if HAS_PSUTIL:
@@ -1678,13 +2331,15 @@ def main():
         param_names = WMRL_PARAMS
     elif args.model == 'wmrl_m3':
         param_names = WMRL_M3_PARAMS
+    elif args.model == 'wmrl_m5':
+        param_names = WMRL_M5_PARAMS
     else:
         param_names = []
     for param in param_names:
         row = summary_df[summary_df['parameter'] == param].iloc[0]
         print(f"  {param:12s}: {row['mean']:.3f} +/- {row['se']:.3f}  (SD={row['sd']:.3f})")
 
-    print(f"\nModel Fit:")
+    print("\nModel Fit:")
     print("-" * 50)
     for metric in ['nll', 'aic', 'bic']:
         row = summary_df[summary_df['parameter'] == metric].iloc[0]
@@ -1700,7 +2355,7 @@ def main():
     if 'hessian_invertible' in fits_df.columns:
         hess_success = fits_df['hessian_invertible'].sum()
         hess_total = len(fits_df)
-        print(f"\nHessian Diagnostics:")
+        print("\nHessian Diagnostics:")
         print("-" * 50)
         print(f"  Successfully computed: {hess_success}/{hess_total}")
         if 'hessian_condition' in fits_df.columns:
@@ -1720,12 +2375,12 @@ def main():
     if all_at_bounds:
         from collections import Counter
         bounds_counts = Counter(all_at_bounds)
-        print(f"\nWarning: Parameters hitting bounds:")
+        print("\nWarning: Parameters hitting bounds:")
         for param, count in bounds_counts.items():
             print(f"  {param}: {count} participants")
 
     print(f"\n{'='*60}")
-    print(f"Results saved to:")
+    print("Results saved to:")
     print(f"  Individual fits:     {fits_path}")
     print(f"  Group summary:       {summary_path}")
     if timing_records:
@@ -1747,7 +2402,6 @@ def main():
         failed_pids = fits_df[fits_df['nll'].isna()]['participant_id'].tolist()
         print(f"  Failed participants: {failed_pids[:10]}{'...' if len(failed_pids) > 10 else ''}")
     print(f"{'='*60}\n")
-
 
 if __name__ == '__main__':
     main()
