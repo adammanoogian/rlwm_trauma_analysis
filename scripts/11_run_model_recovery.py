@@ -56,7 +56,8 @@ from scripts.fitting.model_recovery import (
 
 
 def run_recovery_for_model(model: str, n_subjects: int, n_datasets: int,
-                           seed: int, use_gpu: bool, verbose: bool) -> bool:
+                           seed: int, use_gpu: bool, verbose: bool,
+                           n_starts: int = 50, n_jobs: int = 1) -> bool:
     """
     Run parameter recovery for a single model and evaluate pass/fail.
 
@@ -67,6 +68,8 @@ def run_recovery_for_model(model: str, n_subjects: int, n_datasets: int,
     print(f"{'='*60}")
     print(f"N subjects: {n_subjects}")
     print(f"N datasets: {n_datasets}")
+    print(f"N starts: {n_starts}")
+    print(f"N jobs: {n_jobs}")
     print(f"Seed: {seed}")
     print(f"GPU: {use_gpu}")
     print(f"{'='*60}\n")
@@ -78,7 +81,9 @@ def run_recovery_for_model(model: str, n_subjects: int, n_datasets: int,
         n_datasets=n_datasets,
         seed=seed,
         use_gpu=use_gpu,
-        verbose=verbose
+        verbose=verbose,
+        n_starts=n_starts,
+        n_jobs=n_jobs
     )
 
     # Compute metrics
@@ -126,12 +131,16 @@ def main():
         description='Run parameter recovery analysis (Senta et al. methodology)'
     )
     parser.add_argument('--model', type=str, required=True,
-                        choices=['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5', 'all'],
+                        choices=['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'all'],
                         help='Model to test (or "all" for all models)')
     parser.add_argument('--n-subjects', type=int, default=50,
                         help='Number of synthetic subjects per dataset')
     parser.add_argument('--n-datasets', type=int, default=10,
                         help='Number of independent datasets')
+    parser.add_argument('--n-starts', type=int, default=50,
+                        help='Number of random starts for MLE optimization (default: 50)')
+    parser.add_argument('--n-jobs', type=int, default=1,
+                        help='Number of parallel jobs (default: 1)')
     parser.add_argument('--seed', type=int, default=42,
                         help='Random seed')
     parser.add_argument('--use-gpu', action='store_true',
@@ -142,7 +151,7 @@ def main():
 
     # Determine which models to run
     if args.model == 'all':
-        models = ['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5']
+        models = ['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a']
     else:
         models = [args.model]
 
@@ -155,7 +164,9 @@ def main():
             n_datasets=args.n_datasets,
             seed=args.seed,
             use_gpu=args.use_gpu,
-            verbose=not args.quiet
+            verbose=not args.quiet,
+            n_starts=args.n_starts,
+            n_jobs=args.n_jobs
         )
         all_results[model] = passed
 

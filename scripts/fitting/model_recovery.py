@@ -42,6 +42,8 @@ from scripts.fitting.mle_utils import (
     WMRL_M3_PARAMS,
     WMRL_M5_BOUNDS,
     WMRL_M5_PARAMS,
+    WMRL_M6A_BOUNDS,
+    WMRL_M6A_PARAMS,
     WMRL_PARAMS,
 )
 from scripts.utils.plotting_utils import plot_behavioral_comparison
@@ -79,6 +81,8 @@ def get_param_names(model: str) -> list[str]:
         return WMRL_M3_PARAMS
     elif model == 'wmrl_m5':
         return WMRL_M5_PARAMS
+    elif model == 'wmrl_m6a':
+        return WMRL_M6A_PARAMS
     else:
         raise ValueError(f"Unknown model: {model}")
 
@@ -115,6 +119,9 @@ def sample_parameters(model: str, n_subjects: int, seed: int) -> list[dict[str, 
     elif model == 'wmrl_m5':
         bounds = WMRL_M5_BOUNDS
         param_names = WMRL_M5_PARAMS
+    elif model == 'wmrl_m6a':
+        bounds = WMRL_M6A_BOUNDS
+        param_names = WMRL_M6A_PARAMS
     else:
         raise ValueError(f"Unknown model: {model}")
 
@@ -202,7 +209,7 @@ def generate_synthetic_participant(
     epsilon = params['epsilon']
 
     # Model-specific parameters
-    if model in ['wmrl', 'wmrl_m3', 'wmrl_m5']:
+    if model in ['wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a']:
         phi = params['phi']
         rho = params['rho']
         capacity = params['capacity']
@@ -214,8 +221,12 @@ def generate_synthetic_participant(
             phi_rl = params['phi_rl']
         else:
             phi_rl = 0.0
+        if model == 'wmrl_m6a':
+            kappa_s = params['kappa_s']
+        else:
+            kappa_s = 0.0
     else:
-        phi = rho = capacity = kappa = phi_rl = None
+        phi = rho = capacity = kappa = phi_rl = kappa_s = None
 
     # Initialize data collection
     all_trials = []
@@ -229,7 +240,7 @@ def generate_synthetic_participant(
         # Initialize Q-table and WM matrix at start of block
         Q = np.ones((NUM_STIMULI, NUM_ACTIONS)) * 0.5
 
-        if model in ['wmrl', 'wmrl_m3', 'wmrl_m5']:
+        if model in ['wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a']:
             WM = np.ones((NUM_STIMULI, NUM_ACTIONS)) * (1.0 / NUM_ACTIONS)  # Baseline = 0.333
             wm_baseline = 1.0 / NUM_ACTIONS
         else:
@@ -240,8 +251,10 @@ def generate_synthetic_participant(
         reversal_threshold = rng.integers(MIN_CORRECT_FOR_REVERSAL, MAX_CORRECT_FOR_REVERSAL + 1)
         reward_mapping = rng.permutation(NUM_ACTIONS)  # Initial stimulus-action mapping
 
-        # Last action for perseveration
+        # Last action for perseveration (M3/M5: global scalar; M6a: per-stimulus dict)
         last_action = None
+        if model == 'wmrl_m6a':
+            last_actions = {}  # dict: stimulus -> last action (None = never seen in this block)
 
         for trial_in_block in range(1, n_trials_block + 1):
             # Sample stimulus (uniform random)
@@ -249,7 +262,7 @@ def generate_synthetic_participant(
             stimulus = int(jax.random.randint(subkey, (), 0, NUM_STIMULI))
 
             # Compute action probabilities
-            if model in ['wmrl', 'wmrl_m3', 'wmrl_m5']:
+            if model in ['wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a']:
                 # WM-RL hybrid
                 # Apply WM decay first
                 WM = (1 - phi) * WM + phi * wm_baseline
@@ -275,10 +288,16 @@ def generate_synthetic_participant(
                 # Hybrid policy
                 hybrid_probs = omega * wm_probs + (1 - omega) * rl_probs
 
-                # Perseveration (M3 and M5)
+                # Perseveration (M3 and M5: global last_action)
                 if model in ('wmrl_m3', 'wmrl_m5') and last_action is not None:
                     hybrid_probs = hybrid_probs.copy()
                     hybrid_probs[last_action] += kappa
+                    hybrid_probs = hybrid_probs / np.sum(hybrid_probs)
+
+                # M6a: per-stimulus perseveration (only if this stimulus was seen before in block)
+                elif model == 'wmrl_m6a' and last_actions.get(stimulus) is not None:
+                    hybrid_probs = hybrid_probs.copy()
+                    hybrid_probs[last_actions[stimulus]] += kappa_s
                     hybrid_probs = hybrid_probs / np.sum(hybrid_probs)
 
                 action_probs = hybrid_probs
@@ -318,7 +337,7 @@ def generate_synthetic_participant(
             Q[stimulus, action] = Q[stimulus, action] + alpha * delta
 
             # Update WM (immediate overwrite)
-            if model in ['wmrl', 'wmrl_m3', 'wmrl_m5']:
+            if model in ['wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a']:
                 WM[stimulus, action] = reward
 
             # Store trial
@@ -334,6 +353,9 @@ def generate_synthetic_participant(
 
             # Update last action for perseveration
             last_action = action
+            # M6a: update per-stimulus tracking
+            if model == 'wmrl_m6a':
+                last_actions[stimulus] = action
 
             # Check for reversal
             if consecutive_correct >= reversal_threshold:
@@ -517,7 +539,9 @@ def run_parameter_recovery(
     n_datasets: int,
     seed: int,
     use_gpu: bool = False,
-    verbose: bool = True
+    verbose: bool = True,
+    n_starts: int = 50,
+    n_jobs: int = 1
 ) -> pd.DataFrame:
     """
     Run complete parameter recovery pipeline.
@@ -577,7 +601,7 @@ def run_parameter_recovery(
             participant_id = int(df_synthetic['sona_id'].iloc[0])
             data_dict = prepare_participant_data(df_synthetic, participant_id, model)
 
-            # Fit via MLE with n_starts=50 (matching real fitting)
+            # Fit via MLE
             fit_result = fit_participant_mle(
                 stimuli_blocks=data_dict['stimuli_blocks'],
                 actions_blocks=data_dict['actions_blocks'],
@@ -585,8 +609,9 @@ def run_parameter_recovery(
                 set_sizes_blocks=data_dict.get('set_sizes_blocks'),
                 masks_blocks=data_dict.get('masks_blocks'),
                 model=model,
-                n_starts=50,
+                n_starts=n_starts,
                 seed=subject_seed,
+                compute_diagnostics=False,  # Not needed for recovery
                 verbose=False  # Suppress per-subject output
             )
 
@@ -642,6 +667,8 @@ def compute_recovery_metrics(results_df: pd.DataFrame, model: str) -> pd.DataFra
         param_names = WMRL_M3_PARAMS
     elif model == 'wmrl_m5':
         param_names = WMRL_M5_PARAMS
+    elif model == 'wmrl_m6a':
+        param_names = WMRL_M6A_PARAMS
     else:
         raise ValueError(f"Unknown model: {model}")
 
@@ -721,6 +748,8 @@ def plot_recovery_scatter(
         param_names = WMRL_M3_PARAMS
     elif model == 'wmrl_m5':
         param_names = WMRL_M5_PARAMS
+    elif model == 'wmrl_m6a':
+        param_names = WMRL_M6A_PARAMS
     else:
         raise ValueError(f"Unknown model: {model}")
 
@@ -820,6 +849,8 @@ def plot_distribution_comparison(
         param_names = WMRL_M3_PARAMS
     elif model == 'wmrl_m5':
         param_names = WMRL_M5_PARAMS
+    elif model == 'wmrl_m6a':
+        param_names = WMRL_M6A_PARAMS
     else:
         raise ValueError(f"Unknown model: {model}")
 
@@ -916,7 +947,7 @@ Examples:
                         choices=['recovery', 'ppc'],
                         help='recovery: sample params, validate fitting | ppc: use fitted params, validate model')
     parser.add_argument('--model', type=str, required=True,
-                        choices=['qlearning', 'wmrl', 'wmrl_m3'],
+                        choices=['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a'],
                         help='Model to test recovery')
     parser.add_argument('--n-subjects', type=int, default=50,
                         help='Number of synthetic subjects per dataset (default: 50)')
