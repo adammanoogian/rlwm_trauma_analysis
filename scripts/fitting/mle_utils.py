@@ -13,13 +13,15 @@ Extended with Hessian-based diagnostics:
 - Pseudo-R² for model fit quality
 """
 
-import numpy as np
+from __future__ import annotations
+
+from typing import Any
+
 import jax
 import jax.numpy as jnp
+import numpy as np
 from scipy import stats
 from scipy.stats import qmc
-from typing import Dict, Tuple, List, Optional, Any
-
 
 # =============================================================================
 # Parameter Bounds
@@ -53,13 +55,27 @@ WMRL_M3_BOUNDS = {
     'epsilon': (0.001, 0.999),
 }
 
+# WM-RL M5 parameter bounds (M3 + phi_rl RL forgetting)
+WMRL_M5_BOUNDS = {
+    'alpha_pos': (0.001, 0.999),
+    'alpha_neg': (0.001, 0.999),
+    'phi': (0.001, 0.999),
+    'rho': (0.001, 0.999),
+    'capacity': (1.0, 7.0),
+    'kappa': (0.0, 1.0),      # Perseveration parameter
+    'phi_rl': (0.001, 0.999),  # RL forgetting rate (decay toward Q0=1/nA before delta-rule)
+    'epsilon': (0.001, 0.999),
+}
+
 # Parameter names in order (for array-dict conversion)
 QLEARNING_PARAMS = ['alpha_pos', 'alpha_neg', 'epsilon']
 WMRL_PARAMS = ['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'epsilon']
 # CRITICAL: Order must match wmrl_m3_multiblock_likelihood() signature
 # Signature: alpha_pos, alpha_neg, phi, rho, capacity, kappa, epsilon
 WMRL_M3_PARAMS = ['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'kappa', 'epsilon']
-
+# CRITICAL: Order must match wmrl_m5_multiblock_likelihood() signature
+# Signature: alpha_pos, alpha_neg, phi, rho, capacity, kappa, phi_rl, epsilon
+WMRL_M5_PARAMS = ['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'kappa', 'phi_rl', 'epsilon']
 
 # =============================================================================
 # Parameter Transformations
@@ -69,11 +85,9 @@ def logit(p: float) -> float:
     """Transform probability p in (0,1) to unbounded space (-inf, inf)."""
     return np.log(p / (1 - p))
 
-
 def inv_logit(x: float) -> float:
     """Transform unbounded x to probability space (0, 1)."""
     return 1 / (1 + np.exp(-x))
-
 
 def bounded_to_unbounded(value: float, lower: float, upper: float) -> float:
     """Transform value from [lower, upper] to unbounded space."""
@@ -82,14 +96,12 @@ def bounded_to_unbounded(value: float, lower: float, upper: float) -> float:
     # Then apply logit
     return logit(p)
 
-
 def unbounded_to_bounded(x: float, lower: float, upper: float) -> float:
     """Transform unbounded x to [lower, upper]."""
     # Apply inverse logit to get (0, 1)
     p = inv_logit(x)
     # Then scale to bounds
     return lower + p * (upper - lower)
-
 
 # =============================================================================
 # JAX-Compatible Transformations (for jaxopt optimization)
@@ -99,14 +111,12 @@ def jax_inv_logit(x):
     """JAX-compatible inverse logit transformation."""
     return 1 / (1 + jnp.exp(-x))
 
-
 def jax_unbounded_to_bounded(x, lower: float, upper: float):
     """JAX-compatible unbounded to bounded transformation."""
     p = jax_inv_logit(x)
     return lower + p * (upper - lower)
 
-
-def jax_unconstrained_to_params_qlearning(x: jnp.ndarray) -> Tuple:
+def jax_unconstrained_to_params_qlearning(x: jnp.ndarray) -> tuple:
     """
     JAX-compatible parameter transformation for Q-learning.
 
@@ -118,8 +128,7 @@ def jax_unconstrained_to_params_qlearning(x: jnp.ndarray) -> Tuple:
     epsilon = jax_unbounded_to_bounded(x[2], *bounds['epsilon'])
     return alpha_pos, alpha_neg, epsilon
 
-
-def jax_unconstrained_to_params_wmrl(x: jnp.ndarray) -> Tuple:
+def jax_unconstrained_to_params_wmrl(x: jnp.ndarray) -> tuple:
     """
     JAX-compatible parameter transformation for WM-RL.
 
@@ -134,8 +143,7 @@ def jax_unconstrained_to_params_wmrl(x: jnp.ndarray) -> Tuple:
     epsilon = jax_unbounded_to_bounded(x[5], *bounds['epsilon'])
     return alpha_pos, alpha_neg, phi, rho, capacity, epsilon
 
-
-def jax_unconstrained_to_params_wmrl_m3(x: jnp.ndarray) -> Tuple:
+def jax_unconstrained_to_params_wmrl_m3(x: jnp.ndarray) -> tuple:
     """
     JAX-compatible parameter transformation for WM-RL M3.
 
@@ -151,14 +159,117 @@ def jax_unconstrained_to_params_wmrl_m3(x: jnp.ndarray) -> Tuple:
     epsilon = jax_unbounded_to_bounded(x[6], *bounds['epsilon'])
     return alpha_pos, alpha_neg, phi, rho, capacity, kappa, epsilon
 
+# =============================================================================
+# JAX-Compatible Inverse Transformations (bounded → unconstrained)
+# Used for transforming LHS starting points before jaxopt.LBFGS optimization
+# =============================================================================
 
-def params_to_unconstrained(params: Dict[str, float], model: str) -> np.ndarray:
+def jax_logit(p):
+    """JAX-compatible logit transformation: (0,1) → (-inf, inf)."""
+    return jnp.log(p / (1 - p))
+
+def jax_bounded_to_unbounded(x, lower: float, upper: float):
+    """JAX-compatible bounded to unbounded transformation."""
+    p = (x - lower) / (upper - lower)
+    return jax_logit(p)
+
+def jax_bounded_to_unconstrained_qlearning(x: jnp.ndarray) -> jnp.ndarray:
+    """
+    Transform bounded Q-learning params to unconstrained space (JAX-compatible).
+
+    Inverse of jax_unconstrained_to_params_qlearning.
+    Input: array of shape (3,) with [alpha_pos, alpha_neg, epsilon] in bounded space.
+    Output: array of shape (3,) in unconstrained space.
+    """
+    bounds = QLEARNING_BOUNDS
+    return jnp.array([
+        jax_bounded_to_unbounded(x[0], *bounds['alpha_pos']),
+        jax_bounded_to_unbounded(x[1], *bounds['alpha_neg']),
+        jax_bounded_to_unbounded(x[2], *bounds['epsilon']),
+    ])
+
+def jax_bounded_to_unconstrained_wmrl(x: jnp.ndarray) -> jnp.ndarray:
+    """
+    Transform bounded WM-RL params to unconstrained space (JAX-compatible).
+
+    Inverse of jax_unconstrained_to_params_wmrl.
+    Input: array of shape (6,) in bounded space.
+    Output: array of shape (6,) in unconstrained space.
+    """
+    bounds = WMRL_BOUNDS
+    return jnp.array([
+        jax_bounded_to_unbounded(x[0], *bounds['alpha_pos']),
+        jax_bounded_to_unbounded(x[1], *bounds['alpha_neg']),
+        jax_bounded_to_unbounded(x[2], *bounds['phi']),
+        jax_bounded_to_unbounded(x[3], *bounds['rho']),
+        jax_bounded_to_unbounded(x[4], *bounds['capacity']),
+        jax_bounded_to_unbounded(x[5], *bounds['epsilon']),
+    ])
+
+def jax_bounded_to_unconstrained_wmrl_m3(x: jnp.ndarray) -> jnp.ndarray:
+    """
+    Transform bounded WM-RL M3 params to unconstrained space (JAX-compatible).
+
+    Inverse of jax_unconstrained_to_params_wmrl_m3.
+    Input: array of shape (7,) in bounded space.
+    Output: array of shape (7,) in unconstrained space.
+    """
+    bounds = WMRL_M3_BOUNDS
+    return jnp.array([
+        jax_bounded_to_unbounded(x[0], *bounds['alpha_pos']),
+        jax_bounded_to_unbounded(x[1], *bounds['alpha_neg']),
+        jax_bounded_to_unbounded(x[2], *bounds['phi']),
+        jax_bounded_to_unbounded(x[3], *bounds['rho']),
+        jax_bounded_to_unbounded(x[4], *bounds['capacity']),
+        jax_bounded_to_unbounded(x[5], *bounds['kappa']),
+        jax_bounded_to_unbounded(x[6], *bounds['epsilon']),
+    ])
+
+def jax_unconstrained_to_params_wmrl_m5(x: jnp.ndarray) -> tuple:
+    """
+    JAX-compatible parameter transformation for WM-RL M5.
+
+    Returns tuple (alpha_pos, alpha_neg, phi, rho, capacity, kappa, phi_rl, epsilon) for direct use.
+    x[0..5] same as M3. x[6] = phi_rl. x[7] = epsilon.
+    """
+    bounds = WMRL_M5_BOUNDS
+    alpha_pos = jax_unbounded_to_bounded(x[0], *bounds['alpha_pos'])
+    alpha_neg = jax_unbounded_to_bounded(x[1], *bounds['alpha_neg'])
+    phi = jax_unbounded_to_bounded(x[2], *bounds['phi'])
+    rho = jax_unbounded_to_bounded(x[3], *bounds['rho'])
+    capacity = jax_unbounded_to_bounded(x[4], *bounds['capacity'])
+    kappa = jax_unbounded_to_bounded(x[5], *bounds['kappa'])
+    phi_rl = jax_unbounded_to_bounded(x[6], *bounds['phi_rl'])
+    epsilon = jax_unbounded_to_bounded(x[7], *bounds['epsilon'])
+    return alpha_pos, alpha_neg, phi, rho, capacity, kappa, phi_rl, epsilon
+
+def jax_bounded_to_unconstrained_wmrl_m5(x: jnp.ndarray) -> jnp.ndarray:
+    """
+    Transform bounded WM-RL M5 params to unconstrained space (JAX-compatible).
+
+    Inverse of jax_unconstrained_to_params_wmrl_m5.
+    Input: array of shape (8,) in bounded space.
+    Output: array of shape (8,) in unconstrained space.
+    """
+    bounds = WMRL_M5_BOUNDS
+    return jnp.array([
+        jax_bounded_to_unbounded(x[0], *bounds['alpha_pos']),
+        jax_bounded_to_unbounded(x[1], *bounds['alpha_neg']),
+        jax_bounded_to_unbounded(x[2], *bounds['phi']),
+        jax_bounded_to_unbounded(x[3], *bounds['rho']),
+        jax_bounded_to_unbounded(x[4], *bounds['capacity']),
+        jax_bounded_to_unbounded(x[5], *bounds['kappa']),
+        jax_bounded_to_unbounded(x[6], *bounds['phi_rl']),
+        jax_bounded_to_unbounded(x[7], *bounds['epsilon']),
+    ])
+
+def params_to_unconstrained(params: dict[str, float], model: str) -> np.ndarray:
     """
     Transform bounded parameter dict to unconstrained numpy array.
 
     Args:
         params: Dictionary of parameter values
-        model: 'qlearning', 'wmrl', or 'wmrl_m3'
+        model: 'qlearning', 'wmrl', 'wmrl_m3', or 'wmrl_m5'
 
     Returns:
         Unconstrained parameter array
@@ -172,6 +283,9 @@ def params_to_unconstrained(params: Dict[str, float], model: str) -> np.ndarray:
     elif model == 'wmrl_m3':
         bounds = WMRL_M3_BOUNDS
         param_names = WMRL_M3_PARAMS
+    elif model == 'wmrl_m5':
+        bounds = WMRL_M5_BOUNDS
+        param_names = WMRL_M5_PARAMS
     else:
         raise ValueError(f"Unknown model: {model}")
 
@@ -182,14 +296,13 @@ def params_to_unconstrained(params: Dict[str, float], model: str) -> np.ndarray:
 
     return np.array(x)
 
-
-def unconstrained_to_params(x: np.ndarray, model: str) -> Dict[str, float]:
+def unconstrained_to_params(x: np.ndarray, model: str) -> dict[str, float]:
     """
     Transform unconstrained array back to bounded parameter dict.
 
     Args:
         x: Unconstrained parameter array
-        model: 'qlearning', 'wmrl', or 'wmrl_m3'
+        model: 'qlearning', 'wmrl', 'wmrl_m3', or 'wmrl_m5'
 
     Returns:
         Dictionary of bounded parameter values
@@ -203,6 +316,9 @@ def unconstrained_to_params(x: np.ndarray, model: str) -> Dict[str, float]:
     elif model == 'wmrl_m3':
         bounds = WMRL_M3_BOUNDS
         param_names = WMRL_M3_PARAMS
+    elif model == 'wmrl_m5':
+        bounds = WMRL_M5_BOUNDS
+        param_names = WMRL_M5_PARAMS
     else:
         raise ValueError(f"Unknown model: {model}")
 
@@ -213,8 +329,7 @@ def unconstrained_to_params(x: np.ndarray, model: str) -> Dict[str, float]:
 
     return params
 
-
-def get_default_params(model: str) -> Dict[str, float]:
+def get_default_params(model: str) -> dict[str, float]:
     """Get default starting parameters for a model."""
     if model == 'qlearning':
         return {
@@ -241,9 +356,19 @@ def get_default_params(model: str) -> Dict[str, float]:
             'kappa': 0.0,  # Default to M2 behavior (no perseveration)
             'epsilon': 0.05
         }
+    elif model == 'wmrl_m5':
+        return {
+            'alpha_pos': 0.3,
+            'alpha_neg': 0.1,
+            'phi': 0.1,
+            'rho': 0.7,
+            'capacity': 4.0,
+            'kappa': 0.0,   # Default to no perseveration
+            'phi_rl': 0.1,  # Default: match phi's starting value
+            'epsilon': 0.05
+        }
     else:
         raise ValueError(f"Unknown model: {model}")
-
 
 def sample_random_start(model: str, rng: np.random.Generator) -> np.ndarray:
     """
@@ -265,11 +390,12 @@ def sample_random_start(model: str, rng: np.random.Generator) -> np.ndarray:
         n_params = len(WMRL_PARAMS)
     elif model == 'wmrl_m3':
         n_params = len(WMRL_M3_PARAMS)
+    elif model == 'wmrl_m5':
+        n_params = len(WMRL_M5_PARAMS)
     else:
         raise ValueError(f"Unknown model: {model}")
 
     return rng.normal(0, 1.5, size=n_params)  # SD=1.5 gives reasonable spread
-
 
 def sample_lhs_starts(model: str, n_starts: int, seed: int = None) -> np.ndarray:
     """
@@ -297,6 +423,9 @@ def sample_lhs_starts(model: str, n_starts: int, seed: int = None) -> np.ndarray
     elif model == 'wmrl_m3':
         bounds_dict = WMRL_M3_BOUNDS
         param_names = WMRL_M3_PARAMS
+    elif model == 'wmrl_m5':
+        bounds_dict = WMRL_M5_BOUNDS
+        param_names = WMRL_M5_PARAMS
     else:
         raise ValueError(f"Unknown model: {model}")
 
@@ -313,7 +442,6 @@ def sample_lhs_starts(model: str, n_starts: int, seed: int = None) -> np.ndarray
     scaled_samples = qmc.scale(samples, lower, upper)
 
     return scaled_samples
-
 
 # =============================================================================
 # Information Criteria
@@ -334,7 +462,6 @@ def compute_aic(nll: float, k: int) -> float:
     """
     return 2 * k + 2 * nll
 
-
 def compute_bic(nll: float, k: int, n: int) -> float:
     """
     Compute Bayesian Information Criterion.
@@ -350,7 +477,6 @@ def compute_bic(nll: float, k: int, n: int) -> float:
         BIC value (lower is better)
     """
     return k * np.log(n) + 2 * nll
-
 
 def compute_aicc(nll: float, k: int, n: int) -> float:
     """
@@ -373,7 +499,6 @@ def compute_aicc(nll: float, k: int, n: int) -> float:
         correction = np.inf  # Not enough data
     return aic + correction
 
-
 def get_n_params(model: str) -> int:
     """Get number of free parameters for a model."""
     if model == 'qlearning':
@@ -382,9 +507,10 @@ def get_n_params(model: str) -> int:
         return 6  # alpha_pos, alpha_neg, phi, rho, capacity, epsilon
     elif model == 'wmrl_m3':
         return 7  # alpha_pos, alpha_neg, phi, rho, capacity, kappa, epsilon
+    elif model == 'wmrl_m5':
+        return 8  # alpha_pos, alpha_neg, phi, rho, capacity, kappa, phi_rl, epsilon
     else:
         raise ValueError(f"Unknown model: {model}")
-
 
 # =============================================================================
 # Group Statistics (Senta et al. style)
@@ -393,7 +519,7 @@ def get_n_params(model: str) -> int:
 def compute_group_statistics(
     param_values: np.ndarray,
     param_name: str
-) -> Dict[str, float]:
+) -> dict[str, float]:
     """
     Compute group-level statistics for a parameter.
 
@@ -425,11 +551,10 @@ def compute_group_statistics(
         'n': n
     }
 
-
 def summarize_all_parameters(
     fits_df,  # pd.DataFrame
     model: str
-) -> Dict[str, Dict[str, float]]:
+) -> dict[str, dict[str, float]]:
     """
     Compute group statistics for all parameters.
 
@@ -446,6 +571,8 @@ def summarize_all_parameters(
         param_names = WMRL_PARAMS
     elif model == 'wmrl_m3':
         param_names = WMRL_M3_PARAMS
+    elif model == 'wmrl_m5':
+        param_names = WMRL_M5_PARAMS
     else:
         raise ValueError(f"Unknown model: {model}")
 
@@ -457,16 +584,15 @@ def summarize_all_parameters(
 
     return summary
 
-
 # =============================================================================
 # Convergence Diagnostics
 # =============================================================================
 
 def check_convergence(
-    results: List,  # List of scipy OptimizeResult (or _JaxoptResult wrappers)
-    iteration_stats: List[Dict] = None,
+    results: list,  # list of scipy OptimizeResult (or _JaxoptResult wrappers)
+    iteration_stats: list[dict] = None,
     tolerance: float = 1.0
-) -> Dict[str, any]:
+) -> dict[str, any]:
     """
     Check convergence based on optimizer success flags.
 
@@ -479,8 +605,8 @@ def check_convergence(
     independently confirmed essentially the same optimum.
 
     Args:
-        results: List of optimization results from different starts
-        iteration_stats: List of per-start dicts with 'scipy_converged', etc.
+        results: list of optimization results from different starts
+        iteration_stats: list of per-start dicts with 'scipy_converged', etc.
                         When provided, uses the best start's scipy_converged flag.
         tolerance: NLL tolerance for counting "near best" starts (default: 1.0)
 
@@ -551,12 +677,11 @@ def check_convergence(
         'converged': best_scipy_converged or any_converged_near_best,
     }
 
-
 def check_at_bounds(
-    params: Dict[str, float],
+    params: dict[str, float],
     model: str,
     tolerance: float = 0.01
-) -> List[str]:
+) -> list[str]:
     """
     Check if any parameters are at their bounds.
 
@@ -566,7 +691,7 @@ def check_at_bounds(
         tolerance: Distance from bound to consider "at bound"
 
     Returns:
-        List of parameter names that hit bounds.
+        list of parameter names that hit bounds.
     """
     if model == 'qlearning':
         bounds = QLEARNING_BOUNDS
@@ -574,6 +699,8 @@ def check_at_bounds(
         bounds = WMRL_BOUNDS
     elif model == 'wmrl_m3':
         bounds = WMRL_M3_BOUNDS
+    elif model == 'wmrl_m5':
+        bounds = WMRL_M5_BOUNDS
     else:
         raise ValueError(f"Unknown model: {model}")
 
@@ -586,7 +713,6 @@ def check_at_bounds(
 
     return at_bounds
 
-
 # =============================================================================
 # Model Comparison
 # =============================================================================
@@ -596,7 +722,7 @@ def compare_models_aic(
     aic_model2: float,
     model1_name: str = 'model1',
     model2_name: str = 'model2'
-) -> Dict[str, any]:
+) -> dict[str, any]:
     """
     Compare two models using AIC.
 
@@ -634,7 +760,6 @@ def compare_models_aic(
         'preferred_model': preferred
     }
 
-
 # =============================================================================
 # Hessian-Based Diagnostics
 # =============================================================================
@@ -668,12 +793,11 @@ def compute_pseudo_r2(nll: float, n_trials: int, n_actions: int = 3) -> float:
     pseudo_r2 = 1 - (nll / nll_null)
     return float(pseudo_r2)
 
-
 def check_gradient_norm(
     objective_fn,
     x_opt: np.ndarray,
     tolerance: float = 1e-4
-) -> Tuple[float, bool]:
+) -> tuple[float, bool]:
     """
     Check gradient norm at optimum using JAX autodiff.
 
@@ -686,7 +810,7 @@ def check_gradient_norm(
         tolerance: Maximum gradient norm to consider "converged"
 
     Returns:
-        Tuple of (gradient_norm, is_converged)
+        tuple of (gradient_norm, is_converged)
     """
     try:
         # JIT-compile for faster execution (especially on GPU)
@@ -696,16 +820,15 @@ def check_gradient_norm(
         grad_norm = float(jnp.linalg.norm(g))
         is_converged = grad_norm < tolerance
         return grad_norm, is_converged
-    except Exception as e:
+    except Exception:
         return np.nan, False
-
 
 def compute_hessian_diagnostics(
     objective_fn,
     x_opt: np.ndarray,
     model: str,
-    param_names: List[str] = None
-) -> Dict[str, Any]:
+    param_names: list[str] = None
+) -> dict[str, Any]:
     """
     Compute Hessian-based diagnostics for MLE fit quality.
 
@@ -722,7 +845,7 @@ def compute_hessian_diagnostics(
         objective_fn: JAX-compatible objective function (returns NLL)
         x_opt: Optimal parameter values (unconstrained space)
         model: Model name ('qlearning', 'wmrl', 'wmrl_m3')
-        param_names: List of parameter names (optional, will use defaults)
+        param_names: list of parameter names (optional, will use defaults)
 
     Returns:
         Dictionary with:
@@ -745,6 +868,8 @@ def compute_hessian_diagnostics(
             param_names = WMRL_PARAMS
         elif model == 'wmrl_m3':
             param_names = WMRL_M3_PARAMS
+        elif model == 'wmrl_m5':
+            param_names = WMRL_M5_PARAMS
         else:
             return {'success': False, 'error': f'Unknown model: {model}'}
 
@@ -837,13 +962,12 @@ def compute_hessian_diagnostics(
             'hessian_invertible': False
         }
 
-
 def _transform_se_to_bounded(
-    se_unconstrained: Dict[str, float],
+    se_unconstrained: dict[str, float],
     x_opt: np.ndarray,
     model: str,
-    param_names: List[str]
-) -> Dict[str, float]:
+    param_names: list[str]
+) -> dict[str, float]:
     """
     Transform standard errors from unconstrained to bounded space using delta method.
 
@@ -869,6 +993,8 @@ def _transform_se_to_bounded(
         bounds = WMRL_BOUNDS
     elif model == 'wmrl_m3':
         bounds = WMRL_M3_BOUNDS
+    elif model == 'wmrl_m5':
+        bounds = WMRL_M5_BOUNDS
     else:
         return {}
 
@@ -901,12 +1027,11 @@ def _transform_se_to_bounded(
 
     return se_bounded
 
-
 def compute_confidence_intervals(
-    params: Dict[str, float],
-    se_bounded: Dict[str, float],
+    params: dict[str, float],
+    se_bounded: dict[str, float],
     alpha: float = 0.05
-) -> Dict[str, Tuple[float, float]]:
+) -> dict[str, tuple[float, float]]:
     """
     Compute confidence intervals for fitted parameters.
 
@@ -932,11 +1057,10 @@ def compute_confidence_intervals(
 
     return ci
 
-
 def get_high_correlations(
-    correlations: Dict[str, Dict[str, float]],
+    correlations: dict[str, dict[str, float]],
     threshold: float = 0.9
-) -> List[Tuple[str, str, float]]:
+) -> list[tuple[str, str, float]]:
     """
     Find pairs of parameters with high correlations.
 
@@ -948,7 +1072,7 @@ def get_high_correlations(
         threshold: Absolute correlation threshold (default: 0.9)
 
     Returns:
-        List of (param1, param2, correlation) tuples for high correlations
+        list of (param1, param2, correlation) tuples for high correlations
     """
     high_corr = []
     seen_pairs = set()
@@ -966,7 +1090,6 @@ def get_high_correlations(
                 high_corr.append((param1, param2, corr))
 
     return high_corr
-
 
 # =============================================================================
 # Testing

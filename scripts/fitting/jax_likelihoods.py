@@ -27,19 +27,19 @@ Date: 2025-11-22
 Updated: 2026-01-20 - Added epsilon noise, fixed beta=50
 """
 
+from __future__ import annotations
+
+from typing import Any
+
 import jax
 import jax.numpy as jnp
 from jax import lax
-from typing import Tuple, Dict, Any, Optional
-import numpy as np
-import time
-
 
 # =============================================================================
 # TIMING AND DEBUGGING UTILITIES
 # =============================================================================
 
-def log_gpu_memory(label: str) -> Optional[Dict]:
+def log_gpu_memory(label: str) -> dict | None:
     """
     Log GPU memory usage for debugging.
 
@@ -65,7 +65,7 @@ def log_gpu_memory(label: str) -> Optional[Dict]:
                   f"used={stats.get('bytes_in_use', 0)/1e9:.2f}GB, "
                   f"peak={stats.get('peak_bytes_in_use', 0)/1e9:.2f}GB")
             return stats
-    except Exception as e:
+    except Exception:
         # Silently skip if not available
         pass
     return None
@@ -78,7 +78,6 @@ DEFAULT_EPSILON = 0.05  # Default epsilon noise
 NUM_ACTIONS = 3  # Number of possible actions
 MAX_TRIALS_PER_BLOCK = 100  # Fixed block size for JAX compilation efficiency
 MAX_BLOCKS = 17  # Fixed number of blocks for JAX compilation efficiency (actual max in data)
-
 
 # =============================================================================
 # BLOCK PADDING UTILITIES (for JAX compilation efficiency)
@@ -148,7 +147,6 @@ def pad_block_to_max(
         return stimuli_padded, actions_padded, rewards_padded, set_sizes_padded, mask
 
     return stimuli_padded, actions_padded, rewards_padded, mask
-
 
 def pad_blocks_to_max(
     stimuli_blocks: list,
@@ -232,7 +230,6 @@ def pad_blocks_to_max(
     return (stimuli_padded, actions_padded, rewards_padded,
             masks_padded, set_sizes_padded)
 
-
 def softmax_policy(q_values: jnp.ndarray, beta: float) -> jnp.ndarray:
     """
     Compute softmax action probabilities with numerical stability.
@@ -253,7 +250,6 @@ def softmax_policy(q_values: jnp.ndarray, beta: float) -> jnp.ndarray:
     q_scaled = beta * (q_values - jnp.max(q_values))
     exp_q = jnp.exp(q_scaled)
     return exp_q / jnp.sum(exp_q)
-
 
 def apply_epsilon_noise(probs: jnp.ndarray, epsilon: float, num_actions: int = NUM_ACTIONS) -> jnp.ndarray:
     """
@@ -284,11 +280,10 @@ def apply_epsilon_noise(probs: jnp.ndarray, epsilon: float, num_actions: int = N
     noisy_probs = epsilon * uniform_prob + (1 - epsilon) * probs
     return noisy_probs
 
-
 def q_learning_step(
-    carry: Tuple[jnp.ndarray, float],
-    inputs: Tuple[int, int, float]
-) -> Tuple[Tuple[jnp.ndarray, float], float]:
+    carry: tuple[jnp.ndarray, float],
+    inputs: tuple[int, int, float]
+) -> tuple[tuple[jnp.ndarray, float], float]:
     """
     Single Q-learning trial (functional, JIT-compilable).
 
@@ -353,7 +348,6 @@ def q_learning_step(
     log_lik_new = log_lik_accum + log_prob
 
     return (Q_table_new, log_lik_new), log_prob
-
 
 def q_learning_block_likelihood(
     stimuli: jnp.ndarray,
@@ -480,7 +474,6 @@ def q_learning_block_likelihood(
     (Q_final, log_lik_total), log_probs = lax.scan(step_fn, init_carry, scan_inputs)
 
     return log_lik_total
-
 
 def q_learning_multiblock_likelihood(
     stimuli_blocks: list,
@@ -624,13 +617,11 @@ def q_learning_multiblock_likelihood(
 
     return total_log_lik
 
-
 # JIT-compile for performance
 q_learning_block_likelihood_jit = jax.jit(
     q_learning_block_likelihood,
     static_argnums=(6, 7, 8)  # num_stimuli, num_actions, q_init are static (epsilon is at index 5)
 )
-
 
 def q_learning_multiblock_likelihood_stacked(
     stimuli_stacked: jnp.ndarray,
@@ -690,7 +681,6 @@ def q_learning_multiblock_likelihood_stacked(
 
     return lax.fori_loop(0, num_blocks, body_fn, 0.0)
 
-
 def prepare_block_data(
     data_df,
     participant_col: str = 'sona_id',
@@ -698,7 +688,7 @@ def prepare_block_data(
     stimulus_col: str = 'stimulus',
     action_col: str = 'key_press',
     reward_col: str = 'reward'
-) -> Dict[Any, Dict[int, Dict[str, jnp.ndarray]]]:
+) -> dict[Any, dict[int, dict[str, jnp.ndarray]]]:
     """
     Prepare data in block-structured format for JAX likelihoods.
 
@@ -749,7 +739,6 @@ def prepare_block_data(
 
     return block_data
 
-
 # ============================================================================
 # TEST FUNCTIONS
 # ============================================================================
@@ -790,7 +779,6 @@ def test_single_block():
     print(f"[OK] JIT-compiled result matches: {jnp.allclose(log_lik, log_lik_jit)}")
 
     return log_lik
-
 
 def test_multiblock():
     """Test Q-learning likelihood on multiple blocks."""
@@ -839,7 +827,6 @@ def test_multiblock():
     print(f"[OK] Matches manual block summation: {jnp.allclose(log_lik, manual_sum)}")
 
     return log_lik
-
 
 # ============================================================================
 # WM-RL HYBRID MODEL LIKELIHOODS
@@ -1010,7 +997,6 @@ def wmrl_block_likelihood(
     (Q_final, WM_final, _, log_lik_total), log_probs = lax.scan(step_fn, init_carry, scan_inputs)
 
     return log_lik_total
-
 
 def wmrl_m3_block_likelihood(
     stimuli: jnp.ndarray,
@@ -1212,7 +1198,6 @@ def wmrl_m3_block_likelihood(
 
     return log_lik_total
 
-
 def wmrl_multiblock_likelihood(
     stimuli_blocks: list,
     actions_blocks: list,
@@ -1361,7 +1346,6 @@ def wmrl_multiblock_likelihood(
 
     return total_log_lik
 
-
 def wmrl_multiblock_likelihood_stacked(
     stimuli_stacked: jnp.ndarray,
     actions_stacked: jnp.ndarray,
@@ -1408,7 +1392,6 @@ def wmrl_multiblock_likelihood_stacked(
         return total_ll + block_ll
 
     return lax.fori_loop(0, num_blocks, body_fn, 0.0)
-
 
 def wmrl_m3_multiblock_likelihood(
     stimuli_blocks: list,
@@ -1571,7 +1554,6 @@ def wmrl_m3_multiblock_likelihood(
 
     return total_log_lik
 
-
 def wmrl_m3_multiblock_likelihood_stacked(
     stimuli_stacked: jnp.ndarray,
     actions_stacked: jnp.ndarray,
@@ -1621,13 +1603,393 @@ def wmrl_m3_multiblock_likelihood_stacked(
 
     return lax.fori_loop(0, num_blocks, body_fn, 0.0)
 
-
 # JIT-compile WM-RL for performance
 wmrl_block_likelihood_jit = jax.jit(
     wmrl_block_likelihood,
     static_argnums=(10, 11, 12, 13)  # num_stimuli, num_actions, q_init, wm_init are static
 )
 
+# ============================================================================
+# WM-RL M5: RL FORGETTING MODEL (M3 + phi_rl Q-value decay)
+# ============================================================================
+
+def wmrl_m5_block_likelihood(
+    stimuli: jnp.ndarray,
+    actions: jnp.ndarray,
+    rewards: jnp.ndarray,
+    set_sizes: jnp.ndarray,
+    alpha_pos: float,
+    alpha_neg: float,
+    phi: float,
+    rho: float,
+    capacity: float,
+    kappa: float,
+    phi_rl: float,  # RL forgetting rate: decay Q-values toward Q0=1/nA before delta-rule
+    epsilon: float = DEFAULT_EPSILON,
+    num_stimuli: int = 6,
+    num_actions: int = 3,
+    q_init: float = 0.5,
+    wm_init: float = 1.0 / 3.0,  # WM baseline = 1/nA (uniform)
+    mask: jnp.ndarray = None
+) -> float:
+    """
+    Compute log-likelihood for WM-RL M5 model with RL forgetting on a SINGLE BLOCK.
+
+    M5 extends M3 by adding global per-trial Q-value decay toward baseline (Q0=1/nA)
+    BEFORE the delta-rule update. This dissociates RL forgetting from WM decay (phi),
+    enabling the model to capture participants who forget learned Q-values between trials.
+
+    Following Senta et al. (2025) M3 model, with additional Step 1a:
+    - Beta is fixed at 50 for both WM and RL (parameter identifiability)
+    - Epsilon noise is applied to the base policy before perseveration mixing
+    - WM baseline = 1/nA (uniform probability)
+    - phi_rl decay target is Q0 = 1/nA = 0.333 (NOT q_init=0.5)
+
+    When phi_rl=0, Q_decayed = Q_table, so M5 reduces exactly to M3.
+
+    Update sequence per trial:
+    1. Decay WM: WM <- (1-phi)WM + phi*WM_0
+    1a. RL forgetting: Q_decayed = (1-phi_rl)*Q_table + phi_rl*Q0
+    2. Compute hybrid policy using Q_decayed (not Q_table):
+       - P_base = omega*softmax(WM) + (1-omega)*softmax(Q_decayed)
+       - Apply epsilon: P_noisy = eps/nA + (1-eps)*P_base
+       - If kappa>0: P_M5 = (1-kappa)*P_noisy + kappa*Ck
+    3. Update WM: WM(s,a) <- r (immediate overwrite)
+    4. Update Q: Q_decayed(s,a) <- Q_decayed(s,a) + alpha*(r - Q_decayed(s,a))
+
+    Parameters
+    ----------
+    stimuli : array, shape (n_trials,)
+        Stimulus sequence
+    actions : array, shape (n_trials,)
+        Action sequence
+    rewards : array, shape (n_trials,)
+        Reward sequence (0 or 1)
+    set_sizes : array, shape (n_trials,)
+        Set size for each trial (for adaptive weighting)
+    alpha_pos : float
+        RL learning rate for positive PE
+    alpha_neg : float
+        RL learning rate for negative PE
+    phi : float
+        WM decay rate (0-1)
+    rho : float
+        Base WM reliance (0-1)
+    capacity : float
+        WM capacity (for adaptive weighting)
+    kappa : float
+        Perseveration parameter (0-1) - captures motor-level action stickiness
+    phi_rl : float
+        RL forgetting rate (0-1) - per-trial Q-value decay toward Q0=1/nA
+    epsilon : float
+        Epsilon noise parameter (probability of random action)
+    num_stimuli : int
+        Number of possible stimuli
+    num_actions : int
+        Number of possible actions
+    q_init : float
+        Initial Q-values
+    wm_init : float
+        Initial WM values (baseline = 1/nA for uniform)
+    mask : array, shape (n_trials,), optional
+        Mask for padded blocks: 1.0 for real trials, 0.0 for padding.
+
+    Returns
+    -------
+    float
+        Total log-likelihood for this block
+    """
+    # Initialize Q-table and WM matrix
+    Q_init = jnp.ones((num_stimuli, num_actions)) * q_init
+    WM_init = jnp.ones((num_stimuli, num_actions)) * wm_init
+    WM_0 = jnp.ones((num_stimuli, num_actions)) * wm_init  # Baseline for decay
+
+    # Q0 = uniform prior (decay target for RL forgetting)
+    # CRITICAL: This is 1/nA = 0.333, NOT q_init = 0.5
+    Q0 = 1.0 / num_actions
+
+    # Initial carry: (Q, WM, WM_0, log_likelihood, last_action)
+    # last_action = -1 (no previous action at block start)
+    init_carry = (Q_init, WM_init, WM_0, 0.0, -1)
+
+    # If no mask provided, all trials are valid (backward compatibility)
+    if mask is None:
+        mask = jnp.ones(len(stimuli))
+
+    # Prepare inputs (include mask)
+    scan_inputs = (stimuli, actions, rewards, set_sizes, mask)
+
+    def step_fn(carry, inputs):
+        Q_table, WM_table, WM_baseline, log_lik_accum, last_action = carry
+        stimulus, action, reward, set_size, valid = inputs
+
+        # =================================================================
+        # 1. DECAY WM: All values move toward baseline
+        # =================================================================
+        WM_decayed = (1 - phi) * WM_table + phi * WM_baseline
+
+        # =================================================================
+        # 1a. RL FORGETTING: Q-values decay toward Q0 BEFORE delta-rule
+        # When phi_rl=0: Q_decayed = Q_table (algebraic identity, exact M3)
+        # =================================================================
+        Q_decayed = (1 - phi_rl) * Q_table + phi_rl * Q0
+
+        # =================================================================
+        # 2. COMPUTE HYBRID POLICY (using Q_decayed, not Q_table)
+        # =================================================================
+        q_vals = Q_decayed[stimulus]
+        wm_vals = WM_decayed[stimulus]
+
+        # Adaptive weight: omega = rho * min(1, K/N_s)
+        omega = rho * jnp.minimum(1.0, capacity / set_size)
+
+        # Branch: M2 (probability mixing) vs M5 (probability mixing + perseveration)
+        use_m2_path = jnp.logical_or(kappa == 0.0, last_action < 0)
+
+        # =================================================================
+        # Both paths start with M2 probability mixing
+        # =================================================================
+        rl_probs = softmax_policy(q_vals, FIXED_BETA)
+        wm_probs = softmax_policy(wm_vals, FIXED_BETA)
+        base_probs = omega * wm_probs + (1 - omega) * rl_probs
+        base_probs = base_probs / jnp.sum(base_probs)  # Normalize
+
+        # Apply epsilon noise to base policy
+        noisy_base = apply_epsilon_noise(base_probs, epsilon, num_actions)
+
+        # =================================================================
+        # M5 path: Probability mixing with choice kernel (same as M3)
+        # P_M5 = (1-kappa)*P_noisy + kappa*Ck where Ck = one-hot(last_action)
+        # =================================================================
+        # Choice kernel = one-hot of last action (tau=1 simplification)
+        choice_kernel = jnp.eye(num_actions)[jnp.maximum(last_action, 0)]  # Clamp for indexing
+
+        # Probability mixing: (1-kappa)*noisy_base + kappa*choice_kernel
+        hybrid_probs_m5 = (1 - kappa) * noisy_base + kappa * choice_kernel
+
+        # Select correct path: M2 uses noisy_base, M5 uses probability mixing
+        noisy_probs = jnp.where(use_m2_path, noisy_base, hybrid_probs_m5)
+
+        # Log probability of observed action
+        log_prob = jnp.log(noisy_probs[action] + 1e-8)
+
+        # Mask log probability: padding trials contribute 0 to likelihood
+        log_prob_masked = log_prob * valid
+
+        # =================================================================
+        # 3. UPDATE WM: Immediate overwrite (masked)
+        # =================================================================
+        wm_current = WM_decayed[stimulus, action]
+        WM_updated = WM_decayed.at[stimulus, action].set(
+            jnp.where(valid, reward, wm_current)
+        )
+
+        # =================================================================
+        # 4. UPDATE Q-TABLE: Asymmetric learning on Q_decayed (masked)
+        # =================================================================
+        q_current = Q_decayed[stimulus, action]
+        delta = reward - q_current
+        alpha = jnp.where(delta > 0, alpha_pos, alpha_neg)
+        q_updated = q_current + alpha * delta
+        Q_updated = Q_decayed.at[stimulus, action].set(
+            jnp.where(valid, q_updated, q_current)
+        )
+
+        # Accumulate log-likelihood
+        log_lik_new = log_lik_accum + log_prob_masked
+
+        # Update last_action only for valid trials (masked perseveration)
+        # For padding trials, keep the previous last_action
+        new_last_action = jnp.where(valid, action, last_action).astype(jnp.int32)
+
+        # Return updated carry (Q_updated derived from Q_decayed)
+        return (Q_updated, WM_updated, WM_baseline, log_lik_new, new_last_action), log_prob_masked
+
+    # Run scan over trials
+    (Q_final, WM_final, _, log_lik_total, _), log_probs = lax.scan(step_fn, init_carry, scan_inputs)
+
+    return log_lik_total
+
+
+def wmrl_m5_multiblock_likelihood(
+    stimuli_blocks: list,
+    actions_blocks: list,
+    rewards_blocks: list,
+    set_sizes_blocks: list,
+    alpha_pos: float,
+    alpha_neg: float,
+    phi: float,
+    rho: float,
+    capacity: float,
+    kappa: float,
+    phi_rl: float,  # RL forgetting rate
+    epsilon: float = DEFAULT_EPSILON,
+    num_stimuli: int = 6,
+    num_actions: int = 3,
+    q_init: float = 0.5,
+    wm_init: float = 1.0 / 3.0,  # WM baseline = 1/nA (uniform)
+    masks_blocks: list = None,
+    verbose: bool = False,
+    participant_id: str = None
+) -> float:
+    """
+    Compute log-likelihood for WM-RL M5 (RL forgetting) across MULTIPLE BLOCKS.
+
+    Q-values, WM, and last_action reset at each block boundary.
+
+    When phi_rl=0, results match wmrl_m3_multiblock_likelihood exactly (M3 model).
+
+    PERFORMANCE NOTE: Uses jax.lax.fori_loop for GPU-efficient computation.
+
+    Parameters
+    ----------
+    stimuli_blocks : list of arrays
+    actions_blocks : list of arrays
+    rewards_blocks : list of arrays
+    set_sizes_blocks : list of arrays
+    alpha_pos, alpha_neg : float
+    phi : float (WM decay)
+    rho : float (WM reliance)
+    capacity : float (WM capacity)
+    kappa : float (perseveration)
+    phi_rl : float (RL forgetting rate)
+    epsilon : float
+    masks_blocks : list of arrays, optional
+
+    Returns
+    -------
+    float
+        Total log-likelihood summed across blocks
+    """
+    num_blocks = len(stimuli_blocks)
+
+    if verbose:
+        print(f"\n  >> Processing {num_blocks} blocks for participant {participant_id}...")
+
+    # Check if blocks are uniformly sized (for JAX-native fori_loop)
+    block_sizes = [len(b) for b in stimuli_blocks]
+    blocks_uniform = len(set(block_sizes)) == 1
+
+    if blocks_uniform and masks_blocks is not None:
+        # FAST PATH: Use JAX-native fori_loop for padded data
+        stimuli_stacked = jnp.stack(stimuli_blocks)
+        actions_stacked = jnp.stack(actions_blocks)
+        rewards_stacked = jnp.stack(rewards_blocks)
+        set_sizes_stacked = jnp.stack(set_sizes_blocks)
+        masks_stacked = jnp.stack(masks_blocks)
+
+        def body_fn(block_idx, total_ll):
+            block_ll = wmrl_m5_block_likelihood(
+                stimuli=stimuli_stacked[block_idx],
+                actions=actions_stacked[block_idx],
+                rewards=rewards_stacked[block_idx],
+                set_sizes=set_sizes_stacked[block_idx],
+                alpha_pos=alpha_pos,
+                alpha_neg=alpha_neg,
+                phi=phi,
+                rho=rho,
+                capacity=capacity,
+                kappa=kappa,
+                phi_rl=phi_rl,
+                epsilon=epsilon,
+                num_stimuli=num_stimuli,
+                num_actions=num_actions,
+                q_init=q_init,
+                wm_init=wm_init,
+                mask=masks_stacked[block_idx]
+            )
+            return total_ll + block_ll
+
+        total_log_lik = lax.fori_loop(0, num_blocks, body_fn, 0.0)
+
+    else:
+        # FALLBACK PATH: Python loop for variable-sized blocks
+        total_log_lik = 0.0
+
+        if masks_blocks is None:
+            masks_blocks = [None] * num_blocks
+
+        for block_idx, (stim_block, act_block, rew_block, set_block, mask_block) in enumerate(
+            zip(stimuli_blocks, actions_blocks, rewards_blocks, set_sizes_blocks, masks_blocks)
+        ):
+            block_log_lik = wmrl_m5_block_likelihood(
+                stimuli=stim_block,
+                actions=act_block,
+                rewards=rew_block,
+                set_sizes=set_block,
+                alpha_pos=alpha_pos,
+                alpha_neg=alpha_neg,
+                phi=phi,
+                rho=rho,
+                capacity=capacity,
+                kappa=kappa,
+                phi_rl=phi_rl,
+                epsilon=epsilon,
+                num_stimuli=num_stimuli,
+                num_actions=num_actions,
+                q_init=q_init,
+                wm_init=wm_init,
+                mask=mask_block
+            )
+            total_log_lik += block_log_lik
+
+    if verbose:
+        print(f"  >> Total log-likelihood: {float(total_log_lik):.2f} ({num_blocks} blocks)\n", flush=True)
+
+    return total_log_lik
+
+
+def wmrl_m5_multiblock_likelihood_stacked(
+    stimuli_stacked: jnp.ndarray,
+    actions_stacked: jnp.ndarray,
+    rewards_stacked: jnp.ndarray,
+    set_sizes_stacked: jnp.ndarray,
+    masks_stacked: jnp.ndarray,
+    alpha_pos: float,
+    alpha_neg: float,
+    phi: float,
+    rho: float,
+    capacity: float,
+    kappa: float,
+    phi_rl: float,
+    epsilon: float = DEFAULT_EPSILON,
+    num_stimuli: int = 6,
+    num_actions: int = 3,
+    q_init: float = 0.5,
+    wm_init: float = 1.0 / 3.0,
+) -> float:
+    """
+    FAST WM-RL M5 multiblock likelihood that takes pre-stacked arrays directly.
+
+    See wmrl_m5_multiblock_likelihood for full documentation.
+    This version avoids list/restack overhead inside JIT.
+    When phi_rl=0, results match wmrl_m3_multiblock_likelihood_stacked exactly.
+    """
+    num_blocks = stimuli_stacked.shape[0]
+
+    def body_fn(block_idx, total_ll):
+        block_ll = wmrl_m5_block_likelihood(
+            stimuli=stimuli_stacked[block_idx],
+            actions=actions_stacked[block_idx],
+            rewards=rewards_stacked[block_idx],
+            set_sizes=set_sizes_stacked[block_idx],
+            alpha_pos=alpha_pos,
+            alpha_neg=alpha_neg,
+            phi=phi,
+            rho=rho,
+            capacity=capacity,
+            kappa=kappa,
+            phi_rl=phi_rl,
+            epsilon=epsilon,
+            num_stimuli=num_stimuli,
+            num_actions=num_actions,
+            q_init=q_init,
+            wm_init=wm_init,
+            mask=masks_stacked[block_idx]
+        )
+        return total_ll + block_ll
+
+    return lax.fori_loop(0, num_blocks, body_fn, 0.0)
 
 # ============================================================================
 # WM-RL TEST FUNCTIONS
@@ -1675,7 +2037,6 @@ def test_wmrl_single_block():
     print(f"[OK] JIT-compiled result matches: {jnp.allclose(log_lik, log_lik_jit)}")
 
     return log_lik
-
 
 def test_wmrl_multiblock():
     """Test WM-RL likelihood on multiple blocks."""
@@ -1733,7 +2094,6 @@ def test_wmrl_multiblock():
 
     return log_lik
 
-
 def test_wmrl_m3_single_block():
     """Test WM-RL M3 likelihood on a single block."""
     print("\nTesting WM-RL M3 single block likelihood...")
@@ -1768,7 +2128,6 @@ def test_wmrl_m3_single_block():
     print(f"  Average log-prob per trial: {log_lik / n_trials:.3f}")
 
     return log_lik
-
 
 def test_wmrl_m3_backward_compatibility():
     """Verify M3 with kappa=0 matches M2 exactly."""
@@ -1810,7 +2169,6 @@ def test_wmrl_m3_backward_compatibility():
 
     assert match, "M3 with kappa=0 should match M2 exactly!"
     return match
-
 
 # ============================================================================
 # PADDING EQUIVALENCE TESTS (Critical for verifying mask correctness)
@@ -1866,7 +2224,6 @@ def test_padding_equivalence_qlearning():
     assert match, "Q-learning padded/unpadded must be IDENTICAL!"
     return match
 
-
 def test_padding_equivalence_wmrl():
     """
     Verify padded and unpadded WM-RL likelihoods are mathematically equivalent.
@@ -1912,7 +2269,6 @@ def test_padding_equivalence_wmrl():
     assert match, "WM-RL padded/unpadded must be IDENTICAL!"
     return match
 
-
 def test_padding_equivalence_wmrl_m3():
     """
     Verify padded and unpadded WM-RL M3 likelihoods are mathematically equivalent.
@@ -1956,6 +2312,143 @@ def test_padding_equivalence_wmrl_m3():
     print(f"[OK] WM-RL M3 padding equivalence: {'PASSED' if match else 'FAILED'}")
 
     assert match, "WM-RL M3 padded/unpadded must be IDENTICAL!"
+    return match
+
+def test_wmrl_m5_single_block():
+    """Smoke test for WM-RL M5 single block likelihood."""
+    print("\nTesting WM-RL M5 single block likelihood (smoke test)...")
+
+    key = jax.random.PRNGKey(42)
+    n_trials = 30
+
+    stimuli = jax.random.randint(key, (n_trials,), 0, 6)
+    key, subkey = jax.random.split(key)
+    actions = jax.random.randint(subkey, (n_trials,), 0, 3)
+    key, subkey = jax.random.split(key)
+    rewards = jax.random.bernoulli(subkey, 0.7, (n_trials,)).astype(jnp.float32)
+    set_sizes = jnp.ones((n_trials,)) * 5
+
+    params = {
+        'alpha_pos': 0.3,
+        'alpha_neg': 0.1,
+        'phi': 0.1,
+        'rho': 0.7,
+        'capacity': 4.0,
+        'kappa': 0.3,
+        'phi_rl': 0.2,  # Non-zero RL forgetting
+        'epsilon': 0.05,
+    }
+
+    log_lik = wmrl_m5_block_likelihood(
+        stimuli, actions, rewards, set_sizes, **params
+    )
+
+    nll = -float(log_lik)
+    is_finite = jnp.isfinite(log_lik)
+    is_negative = log_lik < 0  # log-likelihood should be negative
+
+    print(f"  WM-RL M5 log-likelihood: {float(log_lik):.4f}")
+    print(f"  NLL: {nll:.4f}")
+    print(f"  Is finite: {bool(is_finite)}")
+    print(f"  Is negative (expected): {bool(is_negative)}")
+
+    assert bool(is_finite), "M5 log-likelihood must be finite!"
+    print("[OK] WM-RL M5 single block smoke test passed")
+    return log_lik
+
+
+def test_wmrl_m5_backward_compatibility():
+    """Verify M5 with phi_rl=0 matches M3 exactly."""
+    print("\nTesting WM-RL M5 backward compatibility (phi_rl=0 == M3)...")
+
+    key = jax.random.PRNGKey(123)
+    n_trials = 50
+
+    # IDENTICAL test data for both M3 and M5 calls
+    stimuli = jax.random.randint(key, (n_trials,), 0, 6)
+    key, subkey = jax.random.split(key)
+    actions = jax.random.randint(subkey, (n_trials,), 0, 3)
+    key, subkey = jax.random.split(key)
+    rewards = jax.random.bernoulli(subkey, 0.7, (n_trials,)).astype(jnp.float32)
+    set_sizes = jnp.ones((n_trials,)) * 5
+
+    # kappa=0.3 (non-zero to exercise perseveration path in both models)
+    params_m3 = {
+        'alpha_pos': 0.3,
+        'alpha_neg': 0.1,
+        'phi': 0.1,
+        'rho': 0.7,
+        'capacity': 4.0,
+        'kappa': 0.3,
+        'epsilon': 0.05,
+    }
+
+    # M3 likelihood
+    log_lik_m3 = wmrl_m3_block_likelihood(
+        stimuli, actions, rewards, set_sizes, **params_m3
+    )
+
+    # M5 with phi_rl=0.0 (should match M3 exactly)
+    log_lik_m5 = wmrl_m5_block_likelihood(
+        stimuli, actions, rewards, set_sizes,
+        **params_m3, phi_rl=0.0
+    )
+
+    match = jnp.allclose(log_lik_m3, log_lik_m5, atol=1e-5)
+    print(f"  M3 log-likelihood:          {float(log_lik_m3):.8f}")
+    print(f"  M5 (phi_rl=0) log-likelihood: {float(log_lik_m5):.8f}")
+    print(f"  Difference: {abs(float(log_lik_m3 - log_lik_m5)):.2e}")
+    print(f"  Backward compatibility verified: {bool(match)}")
+
+    assert bool(match), "M5 with phi_rl=0 should match M3 exactly!"
+    print("[OK] WM-RL M5 backward compatibility test passed")
+    return match
+
+
+def test_padding_equivalence_wmrl_m5():
+    """
+    Verify padded and unpadded WM-RL M5 likelihoods are mathematically equivalent.
+    """
+    print("\nTesting WM-RL M5 padding equivalence (CRITICAL)...")
+
+    key = jax.random.PRNGKey(789)
+    n_real_trials = 55
+
+    # Generate real trial data
+    stimuli = jax.random.randint(key, (n_real_trials,), 0, 6)
+    key, subkey = jax.random.split(key)
+    actions = jax.random.randint(subkey, (n_real_trials,), 0, 3)
+    key, subkey = jax.random.split(key)
+    rewards = jax.random.bernoulli(subkey, 0.7, (n_real_trials,)).astype(jnp.float32)
+    set_sizes = jnp.full((n_real_trials,), 5, dtype=jnp.int32)
+
+    params = {
+        'alpha_pos': 0.3, 'alpha_neg': 0.1, 'phi': 0.1,
+        'rho': 0.7, 'capacity': 4.0, 'kappa': 0.3,
+        'phi_rl': 0.15, 'epsilon': 0.05
+    }
+
+    # Unpadded likelihood (original)
+    log_lik_original = wmrl_m5_block_likelihood(
+        stimuli, actions, rewards, set_sizes, **params
+    )
+
+    # Padded likelihood (with mask)
+    stimuli_pad, actions_pad, rewards_pad, set_sizes_pad, mask = pad_block_to_max(
+        stimuli, actions, rewards, max_trials=100, set_sizes=set_sizes
+    )
+    log_lik_padded = wmrl_m5_block_likelihood(
+        stimuli_pad, actions_pad, rewards_pad, set_sizes_pad, **params, mask=mask
+    )
+
+    # Verify equivalence
+    match = jnp.allclose(log_lik_original, log_lik_padded, rtol=1e-6)
+    print(f"  Original (unpadded) log-lik: {float(log_lik_original):.8f}")
+    print(f"  Padded (with mask) log-lik:  {float(log_lik_padded):.8f}")
+    print(f"  Difference: {abs(float(log_lik_original - log_lik_padded)):.2e}")
+    print(f"[OK] WM-RL M5 padding equivalence: {'PASSED' if match else 'FAILED'}")
+
+    assert bool(match), "WM-RL M5 padded/unpadded must be IDENTICAL!"
     return match
 
 
@@ -2013,7 +2506,6 @@ def test_multiblock_padding_equivalence():
     assert match, "Multiblock padded/unpadded must be IDENTICAL!"
     return match
 
-
 if __name__ == "__main__":
     print("=" * 80)
     print("JAX Q-LEARNING LIKELIHOOD TESTS")
@@ -2037,12 +2529,20 @@ if __name__ == "__main__":
     test_wmrl_m3_backward_compatibility()
 
     print("\n" + "=" * 80)
+    print("JAX WM-RL M5 (RL FORGETTING) LIKELIHOOD TESTS")
+    print("=" * 80)
+
+    test_wmrl_m5_single_block()
+    test_wmrl_m5_backward_compatibility()
+
+    print("\n" + "=" * 80)
     print("PADDING EQUIVALENCE TESTS (CRITICAL)")
     print("=" * 80)
 
     test_padding_equivalence_qlearning()
     test_padding_equivalence_wmrl()
     test_padding_equivalence_wmrl_m3()
+    test_padding_equivalence_wmrl_m5()
     test_multiblock_padding_equivalence()
 
     print("\n" + "=" * 80)
