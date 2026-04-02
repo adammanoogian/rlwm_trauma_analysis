@@ -867,8 +867,11 @@ Examples:
         params = config['params']
         data = config['data']
 
-        # Get correlation results for this model
-        model_corr_results = corr_df[corr_df['model'] == model_name]
+        # Get correlation results for this model (corr_df may be empty if n < 5)
+        if 'model' in corr_df.columns:
+            model_corr_results = corr_df[corr_df['model'] == model_name]
+        else:
+            model_corr_results = pd.DataFrame()
 
         # Parameter violin plots
         n_params = len(params)
@@ -916,20 +919,26 @@ Examples:
         print("  None")
 
     print("\nSignificant Correlations (FWE p < 0.05):")
-    sig_corrs = corr_df[corr_df['significant']]
-    if len(sig_corrs) > 0:
-        for _, row in sig_corrs.iterrows():
-            print(f"  {row['model']} {row['parameter']} ~ {row['predictor']}: rho = {row['rho']:.3f}, p_FWE = {row['p_fwe']:.4f}")
+    if 'significant' in corr_df.columns:
+        sig_corrs = corr_df[corr_df['significant']]
+        if len(sig_corrs) > 0:
+            for _, row in sig_corrs.iterrows():
+                print(f"  {row['model']} {row['parameter']} ~ {row['predictor']}: rho = {row['rho']:.3f}, p_FWE = {row['p_fwe']:.4f}")
+        else:
+            print("  None")
     else:
-        print("  None")
+        print("  None (insufficient data for correlation analysis)")
 
     print("\nSignificant OLS Predictors (uncorrected p < 0.05):")
-    sig_ols = ols_df[(ols_df['p'] < 0.05) & (ols_df['predictor'] != 'intercept')]
-    if len(sig_ols) > 0:
-        for _, row in sig_ols.iterrows():
-            print(f"  {row['model']} {row['outcome']} ~ {row['predictor']}: beta = {row['beta']:.4f}, p = {row['p']:.4f}")
+    if 'p' in ols_df.columns and 'predictor' in ols_df.columns:
+        sig_ols = ols_df[(ols_df['p'] < 0.05) & (ols_df['predictor'] != 'intercept')]
+        if len(sig_ols) > 0:
+            for _, row in sig_ols.iterrows():
+                print(f"  {row['model']} {row['outcome']} ~ {row['predictor']}: beta = {row['beta']:.4f}, p = {row['p']:.4f}")
+        else:
+            print("  None")
     else:
-        print("  None")
+        print("  None (insufficient data for OLS analysis)")
 
     print("\n" + "=" * 70)
     print("Analysis Complete!")
