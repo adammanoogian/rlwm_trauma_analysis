@@ -98,6 +98,7 @@ QLEARNING_PARAMS = ['alpha_pos', 'alpha_neg', 'epsilon']
 WMRL_PARAMS = ['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'epsilon']
 WMRL_M3_PARAMS = ['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'kappa', 'epsilon']
 WMRL_M5_PARAMS = ['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'kappa', 'phi_rl', 'epsilon']
+WMRL_M6A_PARAMS = ['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'kappa_s', 'epsilon']
 
 # Trauma scale predictors
 TRAUMA_PREDICTORS = [
@@ -115,6 +116,7 @@ PARAM_NAMES = {
     'capacity': 'K',
     'kappa': r'$\kappa$',
     'phi_rl': r'$\phi_{RL}$',
+    'kappa_s': r'$\kappa_s$',
 }
 
 def load_data() -> tuple:
@@ -139,12 +141,20 @@ def load_data() -> tuple:
         wmrl_m5_path = PROJECT_ROOT / "output" / "wmrl_m5_individual_fits.csv"
     wmrl_m5 = pd.read_csv(wmrl_m5_path) if wmrl_m5_path.exists() else None
 
+    # M6a: load defensively (file may not exist)
+    wmrl_m6a_path = OUTPUT_DIR / "wmrl_m6a_individual_fits.csv"
+    if not wmrl_m6a_path.exists():
+        wmrl_m6a_path = PROJECT_ROOT / "output" / "wmrl_m6a_individual_fits.csv"
+    wmrl_m6a = pd.read_csv(wmrl_m6a_path) if wmrl_m6a_path.exists() else None
+
     # Convert participant_id to string for consistent merging
     qlearning['participant_id'] = qlearning['participant_id'].astype(str)
     wmrl['participant_id'] = wmrl['participant_id'].astype(str)
     wmrl_m3['participant_id'] = wmrl_m3['participant_id'].astype(str)
     if wmrl_m5 is not None:
         wmrl_m5['participant_id'] = wmrl_m5['participant_id'].astype(str)
+    if wmrl_m6a is not None:
+        wmrl_m6a['participant_id'] = wmrl_m6a['participant_id'].astype(str)
 
     # Merge with surveys
     qlearning = qlearning.merge(
@@ -180,6 +190,15 @@ def load_data() -> tuple:
             on='sona_id', how='left'
         )
 
+    if wmrl_m6a is not None:
+        wmrl_m6a = wmrl_m6a.merge(
+            surveys, left_on='participant_id', right_on='sona_id', how='inner'
+        )
+        wmrl_m6a = wmrl_m6a.merge(
+            groups[['sona_id', 'hypothesis_group']],
+            on='sona_id', how='left'
+        )
+
     print(f"Q-learning participants with surveys: {len(qlearning)}")
     print(f"WM-RL participants with surveys: {len(wmrl)}")
     print(f"WM-RL+K participants with surveys: {len(wmrl_m3)}")
@@ -187,8 +206,12 @@ def load_data() -> tuple:
         print(f"WM-RL+M5 participants with surveys: {len(wmrl_m5)}")
     else:
         print("WM-RL+M5: not found (run 12_fit_mle.py --model wmrl_m5 first)")
+    if wmrl_m6a is not None:
+        print(f"WM-RL+M6a participants with surveys: {len(wmrl_m6a)}")
+    else:
+        print("WM-RL+M6a: not found (run 12_fit_mle.py --model wmrl_m6a first)")
 
-    return qlearning, wmrl, wmrl_m3, surveys, groups, wmrl_m5
+    return qlearning, wmrl, wmrl_m3, surveys, groups, wmrl_m5, wmrl_m6a
 
 def mann_whitney_with_effect_size(group1: np.ndarray, group2: np.ndarray) -> dict:
     """
@@ -734,7 +757,7 @@ Examples:
         """
     )
     parser.add_argument('--model', type=str, default='all',
-                       choices=['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5', 'all'],
+                       choices=['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'all'],
                        help='Model to analyze (default: all)')
     parser.add_argument('--color-by', type=str, default=None,
                        help='Column to color scatter plots by (default: hypothesis_group)')
@@ -751,7 +774,7 @@ Examples:
     FIGURES_DIR.mkdir(parents=True, exist_ok=True)
 
     # Load data
-    qlearning, wmrl, wmrl_m3, surveys, groups, wmrl_m5 = load_data()
+    qlearning, wmrl, wmrl_m3, surveys, groups, wmrl_m5, wmrl_m6a = load_data()
 
     # Model configuration
     MODEL_CONFIG = {
@@ -761,10 +784,12 @@ Examples:
     }
     if wmrl_m5 is not None:
         MODEL_CONFIG['wmrl_m5'] = {'name': 'WM-RL+M5', 'params': WMRL_M5_PARAMS, 'data': wmrl_m5}
+    if wmrl_m6a is not None:
+        MODEL_CONFIG['wmrl_m6a'] = {'name': 'WM-RL+M6a', 'params': WMRL_M6A_PARAMS, 'data': wmrl_m6a}
 
     # Determine which models to analyze
     if args.model == 'all':
-        models_to_analyze = [m for m in ['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5']
+        models_to_analyze = [m for m in ['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a']
                              if m in MODEL_CONFIG]
     else:
         if args.model not in MODEL_CONFIG:
