@@ -67,6 +67,17 @@ WMRL_M5_BOUNDS = {
     'epsilon': (0.001, 0.999),
 }
 
+# WM-RL M6a parameter bounds (M3 with per-stimulus perseveration; kappa_s replaces kappa)
+WMRL_M6A_BOUNDS = {
+    'alpha_pos': (0.001, 0.999),
+    'alpha_neg': (0.001, 0.999),
+    'phi': (0.001, 0.999),
+    'rho': (0.001, 0.999),
+    'capacity': (1.0, 7.0),
+    'kappa_s': (0.0, 1.0),     # Stimulus-specific perseveration (same bounds as kappa)
+    'epsilon': (0.001, 0.999),
+}
+
 # Parameter names in order (for array-dict conversion)
 QLEARNING_PARAMS = ['alpha_pos', 'alpha_neg', 'epsilon']
 WMRL_PARAMS = ['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'epsilon']
@@ -76,6 +87,9 @@ WMRL_M3_PARAMS = ['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'kappa', '
 # CRITICAL: Order must match wmrl_m5_multiblock_likelihood() signature
 # Signature: alpha_pos, alpha_neg, phi, rho, capacity, kappa, phi_rl, epsilon
 WMRL_M5_PARAMS = ['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'kappa', 'phi_rl', 'epsilon']
+# CRITICAL: Order must match wmrl_m6a_multiblock_likelihood() signature
+# Signature: alpha_pos, alpha_neg, phi, rho, capacity, kappa_s, epsilon
+WMRL_M6A_PARAMS = ['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'kappa_s', 'epsilon']
 
 # =============================================================================
 # Parameter Transformations
@@ -263,6 +277,43 @@ def jax_bounded_to_unconstrained_wmrl_m5(x: jnp.ndarray) -> jnp.ndarray:
         jax_bounded_to_unbounded(x[7], *bounds['epsilon']),
     ])
 
+def jax_unconstrained_to_params_wmrl_m6a(x: jnp.ndarray) -> tuple:
+    """
+    JAX-compatible parameter transformation for WM-RL M6a.
+
+    Returns tuple (alpha_pos, alpha_neg, phi, rho, capacity, kappa_s, epsilon).
+    x[0..4] same as M3. x[5] = kappa_s. x[6] = epsilon.
+    7 parameters total (same count as M3; kappa_s replaces kappa).
+    """
+    bounds = WMRL_M6A_BOUNDS
+    alpha_pos = jax_unbounded_to_bounded(x[0], *bounds['alpha_pos'])
+    alpha_neg = jax_unbounded_to_bounded(x[1], *bounds['alpha_neg'])
+    phi       = jax_unbounded_to_bounded(x[2], *bounds['phi'])
+    rho       = jax_unbounded_to_bounded(x[3], *bounds['rho'])
+    capacity  = jax_unbounded_to_bounded(x[4], *bounds['capacity'])
+    kappa_s   = jax_unbounded_to_bounded(x[5], *bounds['kappa_s'])
+    epsilon   = jax_unbounded_to_bounded(x[6], *bounds['epsilon'])
+    return alpha_pos, alpha_neg, phi, rho, capacity, kappa_s, epsilon
+
+def jax_bounded_to_unconstrained_wmrl_m6a(x: jnp.ndarray) -> jnp.ndarray:
+    """
+    Transform bounded WM-RL M6a params to unconstrained space (JAX-compatible).
+
+    Inverse of jax_unconstrained_to_params_wmrl_m6a.
+    Input: array of shape (7,) in bounded space.
+    Output: array of shape (7,) in unconstrained space.
+    """
+    bounds = WMRL_M6A_BOUNDS
+    return jnp.array([
+        jax_bounded_to_unbounded(x[0], *bounds['alpha_pos']),
+        jax_bounded_to_unbounded(x[1], *bounds['alpha_neg']),
+        jax_bounded_to_unbounded(x[2], *bounds['phi']),
+        jax_bounded_to_unbounded(x[3], *bounds['rho']),
+        jax_bounded_to_unbounded(x[4], *bounds['capacity']),
+        jax_bounded_to_unbounded(x[5], *bounds['kappa_s']),
+        jax_bounded_to_unbounded(x[6], *bounds['epsilon']),
+    ])
+
 def params_to_unconstrained(params: dict[str, float], model: str) -> np.ndarray:
     """
     Transform bounded parameter dict to unconstrained numpy array.
@@ -286,6 +337,9 @@ def params_to_unconstrained(params: dict[str, float], model: str) -> np.ndarray:
     elif model == 'wmrl_m5':
         bounds = WMRL_M5_BOUNDS
         param_names = WMRL_M5_PARAMS
+    elif model == 'wmrl_m6a':
+        bounds = WMRL_M6A_BOUNDS
+        param_names = WMRL_M6A_PARAMS
     else:
         raise ValueError(f"Unknown model: {model}")
 
@@ -319,6 +373,9 @@ def unconstrained_to_params(x: np.ndarray, model: str) -> dict[str, float]:
     elif model == 'wmrl_m5':
         bounds = WMRL_M5_BOUNDS
         param_names = WMRL_M5_PARAMS
+    elif model == 'wmrl_m6a':
+        bounds = WMRL_M6A_BOUNDS
+        param_names = WMRL_M6A_PARAMS
     else:
         raise ValueError(f"Unknown model: {model}")
 
@@ -367,6 +424,16 @@ def get_default_params(model: str) -> dict[str, float]:
             'phi_rl': 0.1,  # Default: match phi's starting value
             'epsilon': 0.05
         }
+    elif model == 'wmrl_m6a':
+        return {
+            'alpha_pos': 0.3,
+            'alpha_neg': 0.1,
+            'phi': 0.1,
+            'rho': 0.7,
+            'capacity': 4.0,
+            'kappa_s': 0.1,  # Default: small positive (like M3's kappa default)
+            'epsilon': 0.05
+        }
     else:
         raise ValueError(f"Unknown model: {model}")
 
@@ -392,6 +459,8 @@ def sample_random_start(model: str, rng: np.random.Generator) -> np.ndarray:
         n_params = len(WMRL_M3_PARAMS)
     elif model == 'wmrl_m5':
         n_params = len(WMRL_M5_PARAMS)
+    elif model == 'wmrl_m6a':
+        n_params = len(WMRL_M6A_PARAMS)
     else:
         raise ValueError(f"Unknown model: {model}")
 
@@ -426,6 +495,9 @@ def sample_lhs_starts(model: str, n_starts: int, seed: int = None) -> np.ndarray
     elif model == 'wmrl_m5':
         bounds_dict = WMRL_M5_BOUNDS
         param_names = WMRL_M5_PARAMS
+    elif model == 'wmrl_m6a':
+        bounds_dict = WMRL_M6A_BOUNDS
+        param_names = WMRL_M6A_PARAMS
     else:
         raise ValueError(f"Unknown model: {model}")
 
@@ -509,6 +581,8 @@ def get_n_params(model: str) -> int:
         return 7  # alpha_pos, alpha_neg, phi, rho, capacity, kappa, epsilon
     elif model == 'wmrl_m5':
         return 8  # alpha_pos, alpha_neg, phi, rho, capacity, kappa, phi_rl, epsilon
+    elif model == 'wmrl_m6a':
+        return 7  # alpha_pos, alpha_neg, phi, rho, capacity, kappa_s, epsilon
     else:
         raise ValueError(f"Unknown model: {model}")
 
@@ -573,6 +647,8 @@ def summarize_all_parameters(
         param_names = WMRL_M3_PARAMS
     elif model == 'wmrl_m5':
         param_names = WMRL_M5_PARAMS
+    elif model == 'wmrl_m6a':
+        param_names = WMRL_M6A_PARAMS
     else:
         raise ValueError(f"Unknown model: {model}")
 
@@ -701,6 +777,8 @@ def check_at_bounds(
         bounds = WMRL_M3_BOUNDS
     elif model == 'wmrl_m5':
         bounds = WMRL_M5_BOUNDS
+    elif model == 'wmrl_m6a':
+        bounds = WMRL_M6A_BOUNDS
     else:
         raise ValueError(f"Unknown model: {model}")
 
@@ -870,6 +948,8 @@ def compute_hessian_diagnostics(
             param_names = WMRL_M3_PARAMS
         elif model == 'wmrl_m5':
             param_names = WMRL_M5_PARAMS
+        elif model == 'wmrl_m6a':
+            param_names = WMRL_M6A_PARAMS
         else:
             return {'success': False, 'error': f'Unknown model: {model}'}
 
@@ -995,6 +1075,8 @@ def _transform_se_to_bounded(
         bounds = WMRL_M3_BOUNDS
     elif model == 'wmrl_m5':
         bounds = WMRL_M5_BOUNDS
+    elif model == 'wmrl_m6a':
+        bounds = WMRL_M6A_BOUNDS
     else:
         return {}
 
