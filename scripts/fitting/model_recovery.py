@@ -16,6 +16,8 @@ Author: Generated for RLWM trauma analysis project
 Date: 2026-02-06
 """
 
+from __future__ import annotations
+
 import sys
 from pathlib import Path
 
@@ -23,22 +25,26 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-import numpy as np
-import pandas as pd
 import jax
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 from scipy.stats import pearsonr
 from tqdm import tqdm
-from typing import Dict, List, Optional
 
 from scripts.fitting.fit_mle import fit_participant_mle, prepare_participant_data
 from scripts.fitting.mle_utils import (
-    QLEARNING_BOUNDS, WMRL_BOUNDS, WMRL_M3_BOUNDS,
-    QLEARNING_PARAMS, WMRL_PARAMS, WMRL_M3_PARAMS
+    QLEARNING_BOUNDS,
+    QLEARNING_PARAMS,
+    WMRL_BOUNDS,
+    WMRL_M3_BOUNDS,
+    WMRL_M3_PARAMS,
+    WMRL_M5_BOUNDS,
+    WMRL_M5_PARAMS,
+    WMRL_PARAMS,
 )
 from scripts.utils.plotting_utils import plot_behavioral_comparison
-
 
 # =============================================================================
 # Constants (matching real data structure)
@@ -59,12 +65,11 @@ MAX_TRIALS_PER_BLOCK = 90
 MIN_CORRECT_FOR_REVERSAL = 12
 MAX_CORRECT_FOR_REVERSAL = 18
 
-
 # =============================================================================
 # Parameter Sampling and Loading
 # =============================================================================
 
-def get_param_names(model: str) -> List[str]:
+def get_param_names(model: str) -> list[str]:
     """Get parameter names for a model."""
     if model == 'qlearning':
         return QLEARNING_PARAMS
@@ -72,11 +77,12 @@ def get_param_names(model: str) -> List[str]:
         return WMRL_PARAMS
     elif model == 'wmrl_m3':
         return WMRL_M3_PARAMS
+    elif model == 'wmrl_m5':
+        return WMRL_M5_PARAMS
     else:
         raise ValueError(f"Unknown model: {model}")
 
-
-def sample_parameters(model: str, n_subjects: int, seed: int) -> List[Dict[str, float]]:
+def sample_parameters(model: str, n_subjects: int, seed: int) -> list[dict[str, float]]:
     """
     Sample parameter sets uniformly from MLE bounds.
 
@@ -91,8 +97,8 @@ def sample_parameters(model: str, n_subjects: int, seed: int) -> List[Dict[str, 
 
     Returns
     -------
-    List[Dict[str, float]]
-        List of parameter dictionaries sampled from bounds
+    list[dict[str, float]]
+        list of parameter dictionaries sampled from bounds
     """
     rng = np.random.default_rng(seed)
 
@@ -106,6 +112,9 @@ def sample_parameters(model: str, n_subjects: int, seed: int) -> List[Dict[str, 
     elif model == 'wmrl_m3':
         bounds = WMRL_M3_BOUNDS
         param_names = WMRL_M3_PARAMS
+    elif model == 'wmrl_m5':
+        bounds = WMRL_M5_BOUNDS
+        param_names = WMRL_M5_PARAMS
     else:
         raise ValueError(f"Unknown model: {model}")
 
@@ -120,8 +129,7 @@ def sample_parameters(model: str, n_subjects: int, seed: int) -> List[Dict[str, 
 
     return params_list
 
-
-def load_fitted_params(fitted_params_path: str, model: str) -> List[Dict]:
+def load_fitted_params(fitted_params_path: str, model: str) -> list[dict]:
     """
     Load fitted parameters from MLE results CSV.
 
@@ -134,8 +142,8 @@ def load_fitted_params(fitted_params_path: str, model: str) -> List[Dict]:
 
     Returns
     -------
-    List[Dict]
-        List of parameter dictionaries, one per participant
+    list[dict]
+        list of parameter dictionaries, one per participant
         Each dict includes 'sona_id' and all model parameters
     """
     df = pd.read_csv(fitted_params_path)
@@ -155,13 +163,12 @@ def load_fitted_params(fitted_params_path: str, model: str) -> List[Dict]:
 
     return params_list
 
-
 # =============================================================================
 # Synthetic Data Generation
 # =============================================================================
 
 def generate_synthetic_participant(
-    params: Dict[str, float],
+    params: dict[str, float],
     model: str,
     seed: int
 ) -> pd.DataFrame:
@@ -173,7 +180,7 @@ def generate_synthetic_participant(
 
     Parameters
     ----------
-    params : Dict[str, float]
+    params : dict[str, float]
         True parameter values for simulation
     model : str
         Model name ('qlearning', 'wmrl', 'wmrl_m3')
@@ -195,16 +202,20 @@ def generate_synthetic_participant(
     epsilon = params['epsilon']
 
     # Model-specific parameters
-    if model in ['wmrl', 'wmrl_m3']:
+    if model in ['wmrl', 'wmrl_m3', 'wmrl_m5']:
         phi = params['phi']
         rho = params['rho']
         capacity = params['capacity']
-        if model == 'wmrl_m3':
+        if model in ('wmrl_m3', 'wmrl_m5'):
             kappa = params['kappa']
         else:
             kappa = 0.0
+        if model == 'wmrl_m5':
+            phi_rl = params['phi_rl']
+        else:
+            phi_rl = 0.0
     else:
-        phi = rho = capacity = kappa = None
+        phi = rho = capacity = kappa = phi_rl = None
 
     # Initialize data collection
     all_trials = []
@@ -218,7 +229,7 @@ def generate_synthetic_participant(
         # Initialize Q-table and WM matrix at start of block
         Q = np.ones((NUM_STIMULI, NUM_ACTIONS)) * 0.5
 
-        if model in ['wmrl', 'wmrl_m3']:
+        if model in ['wmrl', 'wmrl_m3', 'wmrl_m5']:
             WM = np.ones((NUM_STIMULI, NUM_ACTIONS)) * (1.0 / NUM_ACTIONS)  # Baseline = 0.333
             wm_baseline = 1.0 / NUM_ACTIONS
         else:
@@ -238,10 +249,15 @@ def generate_synthetic_participant(
             stimulus = int(jax.random.randint(subkey, (), 0, NUM_STIMULI))
 
             # Compute action probabilities
-            if model in ['wmrl', 'wmrl_m3']:
+            if model in ['wmrl', 'wmrl_m3', 'wmrl_m5']:
                 # WM-RL hybrid
                 # Apply WM decay first
                 WM = (1 - phi) * WM + phi * wm_baseline
+
+                # M5: RL forgetting (decay Q toward uniform baseline BEFORE policy)
+                if model == 'wmrl_m5':
+                    Q0 = 1.0 / NUM_ACTIONS  # = 0.333
+                    Q = (1 - phi_rl) * Q + phi_rl * Q0
 
                 # RL component (softmax)
                 q_vals = Q[stimulus, :]
@@ -259,8 +275,8 @@ def generate_synthetic_participant(
                 # Hybrid policy
                 hybrid_probs = omega * wm_probs + (1 - omega) * rl_probs
 
-                # Perseveration (M3 only)
-                if model == 'wmrl_m3' and last_action is not None:
+                # Perseveration (M3 and M5)
+                if model in ('wmrl_m3', 'wmrl_m5') and last_action is not None:
                     hybrid_probs = hybrid_probs.copy()
                     hybrid_probs[last_action] += kappa
                     hybrid_probs = hybrid_probs / np.sum(hybrid_probs)
@@ -302,7 +318,7 @@ def generate_synthetic_participant(
             Q[stimulus, action] = Q[stimulus, action] + alpha * delta
 
             # Update WM (immediate overwrite)
-            if model in ['wmrl', 'wmrl_m3']:
+            if model in ['wmrl', 'wmrl_m3', 'wmrl_m5']:
                 WM[stimulus, action] = reward
 
             # Store trial
@@ -327,7 +343,6 @@ def generate_synthetic_participant(
                 reversal_threshold = rng.integers(MIN_CORRECT_FOR_REVERSAL, MAX_CORRECT_FOR_REVERSAL + 1)
 
     return pd.DataFrame(all_trials)
-
 
 # =============================================================================
 # Posterior Predictive Check
@@ -406,7 +421,6 @@ def compare_behavior(real_data: pd.DataFrame, synthetic_data: pd.DataFrame) -> p
     comparison_df = pd.concat([comparison_df, pd.DataFrame([diff_row])], ignore_index=True)
 
     return comparison_df
-
 
 def run_posterior_predictive_check(
     model: str,
@@ -492,7 +506,6 @@ def run_posterior_predictive_check(
     plot_behavioral_comparison(real_data, synthetic_data, figures_dir, model_name=model.upper())
 
     return comparison_df
-
 
 # =============================================================================
 # Recovery Pipeline
@@ -594,7 +607,6 @@ def run_parameter_recovery(
 
     return pd.DataFrame(results)
 
-
 # =============================================================================
 # Recovery Metrics
 # =============================================================================
@@ -628,6 +640,8 @@ def compute_recovery_metrics(results_df: pd.DataFrame, model: str) -> pd.DataFra
         param_names = WMRL_PARAMS
     elif model == 'wmrl_m3':
         param_names = WMRL_M3_PARAMS
+    elif model == 'wmrl_m5':
+        param_names = WMRL_M5_PARAMS
     else:
         raise ValueError(f"Unknown model: {model}")
 
@@ -663,7 +677,6 @@ def compute_recovery_metrics(results_df: pd.DataFrame, model: str) -> pd.DataFra
         })
 
     return pd.DataFrame(metrics)
-
 
 # =============================================================================
 # Visualization (wired in main())
@@ -706,6 +719,8 @@ def plot_recovery_scatter(
         param_names = WMRL_PARAMS
     elif model == 'wmrl_m3':
         param_names = WMRL_M3_PARAMS
+    elif model == 'wmrl_m5':
+        param_names = WMRL_M5_PARAMS
     else:
         raise ValueError(f"Unknown model: {model}")
 
@@ -767,10 +782,9 @@ def plot_recovery_scatter(
     fig_combined.savefig(output_dir / 'all_parameters_recovery.png', dpi=300, bbox_inches='tight')
     plt.close(fig_combined)
 
-
 def plot_distribution_comparison(
     results_df: pd.DataFrame,
-    real_params_path: Optional[str],
+    real_params_path: str | None,
     model: str,
     output_dir: Path
 ) -> None:
@@ -804,6 +818,8 @@ def plot_distribution_comparison(
         param_names = WMRL_PARAMS
     elif model == 'wmrl_m3':
         param_names = WMRL_M3_PARAMS
+    elif model == 'wmrl_m5':
+        param_names = WMRL_M5_PARAMS
     else:
         raise ValueError(f"Unknown model: {model}")
 
@@ -860,7 +876,6 @@ def plot_distribution_comparison(
     fig.tight_layout()
     fig.savefig(output_dir / 'parameter_distributions.png', dpi=300, bbox_inches='tight')
     plt.close(fig)
-
 
 # =============================================================================
 # Main CLI
@@ -1069,7 +1084,6 @@ Examples:
 
         return 0
 
-
 # =============================================================================
 # Model Recovery Check
 # =============================================================================
@@ -1081,7 +1095,7 @@ def run_model_recovery_check(
     use_gpu: bool = False,
     n_jobs: int = 1,
     verbose: bool = True
-) -> Dict:
+) -> dict:
     """
     Fit all models to synthetic data and check if generative model wins.
 
@@ -1111,12 +1125,12 @@ def run_model_recovery_check(
 
     Returns
     -------
-    Dict with:
+    dict with:
         - generative_model: str (model that generated data)
         - winning_model: str (model with lowest AIC)
         - generative_wins: bool (winning_model == generative_model)
-        - aic_scores: Dict[str, float] (AIC per model)
-        - bic_scores: Dict[str, float] (BIC per model)
+        - aic_scores: dict[str, float] (AIC per model)
+        - bic_scores: dict[str, float] (BIC per model)
         - confusion_entry: (generative, winning) tuple for confusion matrix
     """
     import subprocess
@@ -1187,7 +1201,7 @@ def run_model_recovery_check(
         print("="*60)
         print(f"Generative model: {generative_model}")
         print(f"Winning model:    {winning_model}")
-        print(f"\nAIC Scores:")
+        print("\nAIC Scores:")
         for model, aic in sorted(aic_scores.items(), key=lambda x: x[1]):
             marker = " <- WINNER" if model == winning_model else ""
             gen_marker = " (generative)" if model == generative_model else ""
@@ -1196,7 +1210,6 @@ def run_model_recovery_check(
         print("="*60)
 
     return result
-
 
 # =============================================================================
 # Testing
@@ -1246,7 +1259,6 @@ def run_tests():
     print("\n" + "=" * 80)
     print("ALL TESTS PASSED!")
     print("=" * 80)
-
 
 if __name__ == '__main__':
     import sys

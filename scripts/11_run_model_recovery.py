@@ -37,8 +37,10 @@ Interpretation:
     - FAIL (r < 0.80): Parameter identifiability issues, investigate
 """
 
-import sys
+from __future__ import annotations
+
 import argparse
+import sys
 from pathlib import Path
 
 # Add project root to path
@@ -46,10 +48,10 @@ project_root = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(project_root))
 
 from scripts.fitting.model_recovery import (
-    run_parameter_recovery,
     compute_recovery_metrics,
-    plot_recovery_scatter,
     plot_distribution_comparison,
+    plot_recovery_scatter,
+    run_parameter_recovery,
 )
 
 
@@ -124,7 +126,7 @@ def main():
         description='Run parameter recovery analysis (Senta et al. methodology)'
     )
     parser.add_argument('--model', type=str, required=True,
-                        choices=['qlearning', 'wmrl', 'wmrl_m3', 'all'],
+                        choices=['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5', 'all'],
                         help='Model to test (or "all" for all models)')
     parser.add_argument('--n-subjects', type=int, default=50,
                         help='Number of synthetic subjects per dataset')
@@ -140,7 +142,7 @@ def main():
 
     # Determine which models to run
     if args.model == 'all':
-        models = ['qlearning', 'wmrl', 'wmrl_m3']
+        models = ['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5']
     else:
         models = [args.model]
 
