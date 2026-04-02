@@ -60,27 +60,31 @@ Next Steps:
     - Run 16_regress_parameters_on_scales.py for regression analysis
 """
 
-import os
-import sys
-import warnings
-import argparse
-from pathlib import Path
-from itertools import combinations
-from typing import Optional
+from __future__ import annotations
 
+import argparse
+import sys
+from itertools import combinations
+from pathlib import Path
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 import seaborn as sns
-from scipy import stats
 import statsmodels.api as sm
+from scipy import stats
 
 # Add project root to path
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
+from utils.plotting_utils import (
+    TRAUMA_GROUP_COLORS,
+    add_colored_scatter,
+    get_color_palette,
+)
+
 from plotting_config import PlotConfig
-from utils.plotting_utils import get_color_palette, add_colored_scatter, TRAUMA_GROUP_COLORS
 
 # Paths
 OUTPUT_DIR = PROJECT_ROOT / "output" / "mle"
@@ -93,6 +97,7 @@ GROUP_COLORS = TRAUMA_GROUP_COLORS
 QLEARNING_PARAMS = ['alpha_pos', 'alpha_neg', 'epsilon']
 WMRL_PARAMS = ['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'epsilon']
 WMRL_M3_PARAMS = ['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'kappa', 'epsilon']
+WMRL_M5_PARAMS = ['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'kappa', 'phi_rl', 'epsilon']
 
 # Trauma scale predictors
 TRAUMA_PREDICTORS = [
@@ -109,8 +114,8 @@ PARAM_NAMES = {
     'rho': r'$\rho$',
     'capacity': 'K',
     'kappa': r'$\kappa$',
+    'phi_rl': r'$\phi_{RL}$',
 }
-
 
 def load_data() -> tuple:
     """Load and merge MLE fits with survey/group data."""
@@ -127,10 +132,19 @@ def load_data() -> tuple:
     wmrl = pd.read_csv(OUTPUT_DIR / "wmrl_individual_fits.csv")
     wmrl_m3 = pd.read_csv(OUTPUT_DIR / "wmrl_m3_individual_fits.csv")
 
+    # M5: load defensively (file may not exist)
+    # Check output/mle/ first, then output/ (plan 01 used --output output)
+    wmrl_m5_path = OUTPUT_DIR / "wmrl_m5_individual_fits.csv"
+    if not wmrl_m5_path.exists():
+        wmrl_m5_path = PROJECT_ROOT / "output" / "wmrl_m5_individual_fits.csv"
+    wmrl_m5 = pd.read_csv(wmrl_m5_path) if wmrl_m5_path.exists() else None
+
     # Convert participant_id to string for consistent merging
     qlearning['participant_id'] = qlearning['participant_id'].astype(str)
     wmrl['participant_id'] = wmrl['participant_id'].astype(str)
     wmrl_m3['participant_id'] = wmrl_m3['participant_id'].astype(str)
+    if wmrl_m5 is not None:
+        wmrl_m5['participant_id'] = wmrl_m5['participant_id'].astype(str)
 
     # Merge with surveys
     qlearning = qlearning.merge(
@@ -157,12 +171,24 @@ def load_data() -> tuple:
         on='sona_id', how='left'
     )
 
+    if wmrl_m5 is not None:
+        wmrl_m5 = wmrl_m5.merge(
+            surveys, left_on='participant_id', right_on='sona_id', how='inner'
+        )
+        wmrl_m5 = wmrl_m5.merge(
+            groups[['sona_id', 'hypothesis_group']],
+            on='sona_id', how='left'
+        )
+
     print(f"Q-learning participants with surveys: {len(qlearning)}")
     print(f"WM-RL participants with surveys: {len(wmrl)}")
     print(f"WM-RL+K participants with surveys: {len(wmrl_m3)}")
+    if wmrl_m5 is not None:
+        print(f"WM-RL+M5 participants with surveys: {len(wmrl_m5)}")
+    else:
+        print("WM-RL+M5: not found (run 12_fit_mle.py --model wmrl_m5 first)")
 
-    return qlearning, wmrl, wmrl_m3, surveys, groups
-
+    return qlearning, wmrl, wmrl_m3, surveys, groups, wmrl_m5
 
 def mann_whitney_with_effect_size(group1: np.ndarray, group2: np.ndarray) -> dict:
     """
@@ -195,7 +221,6 @@ def mann_whitney_with_effect_size(group1: np.ndarray, group2: np.ndarray) -> dic
     r_rb = 1 - (2 * stat) / (n1 * n2)
 
     return {'U': stat, 'p': p, 'r_rb': r_rb, 'n1': n1, 'n2': n2}
-
 
 def group_comparisons(df: pd.DataFrame, params: list, model_name: str) -> pd.DataFrame:
     """
@@ -268,7 +293,6 @@ def group_comparisons(df: pd.DataFrame, params: list, model_name: str) -> pd.Dat
 
     return pd.DataFrame(results)
 
-
 def spearman_correlations(df: pd.DataFrame, params: list, predictors: list,
                           model_name: str) -> pd.DataFrame:
     """
@@ -327,7 +351,6 @@ def spearman_correlations(df: pd.DataFrame, params: list, predictors: list,
                 print(f"    rho = {rho:.3f}, p = {p:.4f} (FWE: {p_corrected:.4f})")
 
     return pd.DataFrame(results)
-
 
 def ols_regression(df: pd.DataFrame, params: list, model_name: str) -> pd.DataFrame:
     """
@@ -397,7 +420,6 @@ def ols_regression(df: pd.DataFrame, params: list, model_name: str) -> pd.DataFr
             print(f"  Error fitting {param}: {e}")
 
     return pd.DataFrame(results)
-
 
 def ols_regression_extended(df: pd.DataFrame, params: list, model_name: str) -> pd.DataFrame:
     """
@@ -501,7 +523,6 @@ def ols_regression_extended(df: pd.DataFrame, params: list, model_name: str) -> 
 
     return pd.DataFrame(results)
 
-
 def plot_parameters_by_group(df: pd.DataFrame, params: list, model_name: str,
                              figsize: tuple = None) -> plt.Figure:
     """
@@ -555,7 +576,6 @@ def plot_parameters_by_group(df: pd.DataFrame, params: list, model_name: str,
 
     return fig
 
-
 def plot_correlation_heatmap(corr_df: pd.DataFrame, params: list, model_name: str) -> plt.Figure:
     """
     Create heatmap of Spearman correlations.
@@ -596,7 +616,6 @@ def plot_correlation_heatmap(corr_df: pd.DataFrame, params: list, model_name: st
     plt.tight_layout()
     return fig
 
-
 def plot_forest_group_means(df: pd.DataFrame, params: list, model_name: str) -> plt.Figure:
     """
     Create forest plot showing group means with error bars.
@@ -633,8 +652,7 @@ def plot_forest_group_means(df: pd.DataFrame, params: list, model_name: str) -> 
 
     return fig
 
-
-def plot_key_scatter(df: pd.DataFrame, model_name: str, color_by: Optional[str] = None) -> plt.Figure:
+def plot_key_scatter(df: pd.DataFrame, model_name: str, color_by: str | None = None) -> plt.Figure:
     """
     Scatter plots for key correlations with regression lines.
 
@@ -702,7 +720,6 @@ def plot_key_scatter(df: pd.DataFrame, model_name: str, color_by: Optional[str] 
 
     return fig
 
-
 def main():
     """Main analysis pipeline."""
     # Parse command-line arguments
@@ -717,7 +734,7 @@ Examples:
         """
     )
     parser.add_argument('--model', type=str, default='all',
-                       choices=['qlearning', 'wmrl', 'wmrl_m3', 'all'],
+                       choices=['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5', 'all'],
                        help='Model to analyze (default: all)')
     parser.add_argument('--color-by', type=str, default=None,
                        help='Column to color scatter plots by (default: hypothesis_group)')
@@ -734,7 +751,7 @@ Examples:
     FIGURES_DIR.mkdir(parents=True, exist_ok=True)
 
     # Load data
-    qlearning, wmrl, wmrl_m3, surveys, groups = load_data()
+    qlearning, wmrl, wmrl_m3, surveys, groups, wmrl_m5 = load_data()
 
     # Model configuration
     MODEL_CONFIG = {
@@ -742,11 +759,18 @@ Examples:
         'wmrl': {'name': 'WM-RL', 'params': WMRL_PARAMS, 'data': wmrl},
         'wmrl_m3': {'name': 'WM-RL+K', 'params': WMRL_M3_PARAMS, 'data': wmrl_m3},
     }
+    if wmrl_m5 is not None:
+        MODEL_CONFIG['wmrl_m5'] = {'name': 'WM-RL+M5', 'params': WMRL_M5_PARAMS, 'data': wmrl_m5}
 
     # Determine which models to analyze
     if args.model == 'all':
-        models_to_analyze = ['qlearning', 'wmrl', 'wmrl_m3']
+        models_to_analyze = [m for m in ['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5']
+                             if m in MODEL_CONFIG]
     else:
+        if args.model not in MODEL_CONFIG:
+            print(f"ERROR: Model '{args.model}' not available. "
+                  f"Run 12_fit_mle.py --model {args.model} first.")
+            return
         models_to_analyze = [args.model]
 
     all_group_results = []
@@ -767,7 +791,7 @@ Examples:
         print("=" * 70)
 
         # Check data
-        print(f"\nGroup distribution:")
+        print("\nGroup distribution:")
         print(data['hypothesis_group'].value_counts())
 
         # Group comparisons
@@ -885,7 +909,6 @@ Examples:
     print("\n" + "=" * 70)
     print("Analysis Complete!")
     print("=" * 70)
-
 
 if __name__ == "__main__":
     main()

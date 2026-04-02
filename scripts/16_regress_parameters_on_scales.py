@@ -71,15 +71,18 @@ Note:
     Focus on effect sizes rather than p-values alone.
 """
 
+from __future__ import annotations
+
 import argparse
-from pathlib import Path
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-from scipy import stats
 import sys
 import warnings
+from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+from scipy import stats
 
 # Add parent directory for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -87,14 +90,18 @@ from config import EXCLUDED_PARTICIPANTS
 
 # Import plotting utilities for color-by functionality
 sys.path.insert(0, str(Path(__file__).parent))
-from utils.plotting_utils import get_color_palette, add_colored_scatter, TRAUMA_GROUP_COLORS
+from utils.plotting_utils import (
+    TRAUMA_GROUP_COLORS,
+    add_colored_scatter,
+    get_color_palette,
+)
 
 # Try statsmodels for regression
 try:
     import statsmodels.api as sm
-    from statsmodels.stats.outliers_influence import variance_inflation_factor
     from statsmodels.stats.diagnostic import het_breuschpagan
     from statsmodels.stats.multitest import multipletests
+    from statsmodels.stats.outliers_influence import variance_inflation_factor
     HAS_STATSMODELS = True
 except ImportError:
     HAS_STATSMODELS = False
@@ -142,7 +149,7 @@ def load_integrated_data(params_path: Path, model_type: str = 'qlearning',
             param_rename['beta'] = 'beta_mean'
         if 'epsilon' in params_df.columns:
             param_rename['epsilon'] = 'epsilon_mean'
-    else:  # wmrl or wmrl_m3
+    else:  # wmrl, wmrl_m3, or wmrl_m5
         if 'alpha_pos' in params_df.columns:
             param_rename['alpha_pos'] = 'alpha_pos_mean'
         if 'alpha_neg' in params_df.columns:
@@ -155,6 +162,8 @@ def load_integrated_data(params_path: Path, model_type: str = 'qlearning',
             param_rename['capacity'] = 'wm_capacity_mean'
         if 'kappa' in params_df.columns:
             param_rename['kappa'] = 'kappa_mean'
+        if 'phi_rl' in params_df.columns:
+            param_rename['phi_rl'] = 'phi_rl_mean'
         if 'epsilon' in params_df.columns:
             param_rename['epsilon'] = 'epsilon_mean'
 
@@ -550,6 +559,7 @@ def format_label(col_name: str) -> str:
         'rho_mean': 'rho (WM Weight)',
         'wm_capacity_mean': 'K (WM Capacity)',
         'kappa_mean': 'kappa (Perseveration)',
+        'phi_rl_mean': 'phi_rl (RL Forgetting Rate)',
         # Trauma scales
         'lec_total_events': 'LEC-5 Total Events',
         'lec_personal_events': 'LEC-5 Personal Events',
@@ -659,8 +669,8 @@ def main():
         '--model',
         type=str,
         default='qlearning',
-        choices=['qlearning', 'wmrl', 'wmrl_m3', 'all'],
-        help='Model type (qlearning, wmrl, wmrl_m3, or all)'
+        choices=['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5', 'all'],
+        help='Model type (qlearning, wmrl, wmrl_m3, wmrl_m5, or all)'
     )
     parser.add_argument(
         '--output-dir',
@@ -713,7 +723,7 @@ def main():
         print(f"[!] Color-by: {args.color_by}")
 
     # Determine models to run
-    models_to_run = ['qlearning', 'wmrl', 'wmrl_m3'] if args.model == 'all' else [args.model]
+    models_to_run = ['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5'] if args.model == 'all' else [args.model]
 
     # Loop over models
     for model in models_to_run:
@@ -729,9 +739,12 @@ def main():
         model_figures_dir.mkdir(parents=True, exist_ok=True)
 
         # Auto-detect params path from model name
+        # Check output/mle/ first, then output/ (M5 from plan 01 was written to output/)
         params_path = Path(f'output/mle/{model}_individual_fits.csv')
         if not params_path.exists():
-            print(f"Warning: {params_path} not found, skipping {model}")
+            params_path = Path(f'output/{model}_individual_fits.csv')
+        if not params_path.exists():
+            print(f"Warning: {model}_individual_fits.csv not found in output/mle/ or output/, skipping {model}")
             continue
 
         # Load data
@@ -762,6 +775,9 @@ def main():
         elif model == 'wmrl_m3':
             param_cols = ['alpha_pos_mean', 'alpha_neg_mean', 'phi_mean', 'rho_mean',
                           'wm_capacity_mean', 'kappa_mean', 'epsilon_mean']
+        elif model == 'wmrl_m5':
+            param_cols = ['alpha_pos_mean', 'alpha_neg_mean', 'phi_mean', 'rho_mean',
+                          'wm_capacity_mean', 'kappa_mean', 'phi_rl_mean', 'epsilon_mean']
         else:
             print(f"Unknown model: {model}")
             continue
@@ -881,7 +897,7 @@ def main():
                 print(f"  F({len(subscales)}, {results['n']-len(subscales)-1}) = {results['f_stat']:.2f}, "
                       f"p = {results['f_pvalue']:.4f}")
                 print(f"  AIC = {results['aic']:.1f}, BIC = {results['bic']:.1f}")
-                print(f"\n  Coefficients:")
+                print("\n  Coefficients:")
 
                 for pred, coef_info in results['coefficients'].items():
                     if pred == 'Intercept':
@@ -896,7 +912,7 @@ def main():
                           f"p={coef_info['p_value']:.4f}{sig}")
 
                 if 'vif' in results:
-                    print(f"\n  Multicollinearity (VIF):")
+                    print("\n  Multicollinearity (VIF):")
                     for _, row in results['vif'].iterrows():
                         warning = " (HIGH)" if row['VIF'] > 5 else ""
                         print(f"    {format_label(row['predictor']):30s}: {row['VIF']:.2f}{warning}")

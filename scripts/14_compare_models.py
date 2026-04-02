@@ -67,20 +67,22 @@ Next Steps:
     - Use comparison results for model selection in thesis
 """
 
+from __future__ import annotations
+
 import argparse
+import sys
 from pathlib import Path
-from typing import Dict, Tuple, Optional
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy import stats as scipy_stats
-import sys
 
 project_root = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(project_root))
 
-from config import FIGURES_DIR, OUTPUT_DIR, EXCLUDED_PARTICIPANTS
+from config import EXCLUDED_PARTICIPANTS, FIGURES_DIR
 
 # ============================================================================
 # MLE COMPARISON FUNCTIONS
@@ -90,7 +92,6 @@ def load_fits(filepath: str) -> pd.DataFrame:
     """Load individual fits CSV."""
     return pd.read_csv(filepath)
 
-
 def compute_aggregate_ic(fits_df: pd.DataFrame, metric: str = 'aic') -> float:
     """Compute aggregate information criterion across participants."""
     converged = fits_df[fits_df['converged'] == True] if 'converged' in fits_df.columns else fits_df
@@ -98,8 +99,7 @@ def compute_aggregate_ic(fits_df: pd.DataFrame, metric: str = 'aic') -> float:
         converged = fits_df
     return converged[metric].sum()
 
-
-def compute_akaike_weights_n(aic_values: Dict[str, float]) -> Dict[str, float]:
+def compute_akaike_weights_n(aic_values: dict[str, float]) -> dict[str, float]:
     """Compute Akaike weights for N models."""
     min_aic = min(aic_values.values())
     deltas = {model: aic - min_aic for model, aic in aic_values.items()}
@@ -107,9 +107,8 @@ def compute_akaike_weights_n(aic_values: Dict[str, float]) -> Dict[str, float]:
     total = sum(exp_values.values())
     return {model: exp_val / total for model, exp_val in exp_values.items()}
 
-
 def compare_models_mle(
-    fits_dict: Dict[str, pd.DataFrame],
+    fits_dict: dict[str, pd.DataFrame],
     metric: str = 'aic'
 ) -> pd.DataFrame:
     """Compare N models using aggregate information criteria."""
@@ -130,9 +129,8 @@ def compare_models_mle(
     df = pd.DataFrame(results)
     return df.sort_values(f'aggregate_{metric}')
 
-
 def count_participant_wins(
-    fits_dict: Dict[str, pd.DataFrame],
+    fits_dict: dict[str, pd.DataFrame],
     metric: str = 'aic'
 ) -> pd.DataFrame:
     """Count per-participant model wins."""
@@ -168,7 +166,7 @@ def count_participant_wins(
     win_counts = merged['winner'].value_counts().to_dict()
 
     summary = []
-    for model_name in fits_dict.keys():
+    for model_name in fits_dict:
         summary.append({
             'model': model_name,
             'wins': win_counts.get(model_name, 0),
@@ -177,7 +175,6 @@ def count_participant_wins(
         })
 
     return pd.DataFrame(summary)
-
 
 def interpret_delta(delta: float) -> str:
     """Interpret delta IC following Burnham & Anderson (2002)."""
@@ -192,7 +189,6 @@ def interpret_delta(delta: float) -> str:
         return 'Strong evidence'
     else:
         return 'Very strong evidence'
-
 
 # ============================================================================
 # VISUALIZATION FUNCTIONS
@@ -242,9 +238,8 @@ def plot_model_comparison(
     print(f"[SAVED] {output_path}")
     plt.close()
 
-
 def plot_model_weights(
-    weights: Dict[str, float],
+    weights: dict[str, float],
     output_dir: Path
 ) -> None:
     """Create model weights bar plot."""
@@ -271,7 +266,6 @@ def plot_model_weights(
     print(f"[SAVED] {output_path}")
     plt.close()
 
-
 def plot_participant_wins(
     wins_df: pd.DataFrame,
     metric: str,
@@ -285,7 +279,7 @@ def plot_participant_wins(
     colors = sns.color_palette('husl', len(models))
 
     bars = ax.bar(models, wins, color=colors, alpha=0.8, edgecolor='black')
-    ax.set_ylabel(f'Number of Participants', fontsize=12, fontweight='bold')
+    ax.set_ylabel('Number of Participants', fontsize=12, fontweight='bold')
     ax.set_title(f'Winning Model by {metric.upper()} (per participant)', fontsize=14, fontweight='bold')
     ax.grid(True, alpha=0.3, axis='y')
 
@@ -300,13 +294,12 @@ def plot_participant_wins(
     print(f"[SAVED] {output_path}")
     plt.close()
 
-
 # ============================================================================
 # STRATIFIED COMPARISON FUNCTIONS
 # ============================================================================
 
 def get_per_participant_winners(
-    fits_dict: Dict[str, pd.DataFrame],
+    fits_dict: dict[str, pd.DataFrame],
     metric: str = 'aic'
 ) -> pd.DataFrame:
     """Get per-participant winning model.
@@ -327,9 +320,8 @@ def get_per_participant_winners(
     merged['winner'] = merged[ic_cols].idxmin(axis=1).str.replace(f'{metric}_', '')
     return merged
 
-
 def stratified_comparison(
-    fits_dict: Dict[str, pd.DataFrame],
+    fits_dict: dict[str, pd.DataFrame],
     output_dir: Path,
     figures_dir: Path,
     metric: str = 'aic'
@@ -400,9 +392,9 @@ def stratified_comparison(
             print(f"    Odds ratio = {odds_ratio:.3f}")
             print(f"    p = {fisher_p:.4f}")
             if fisher_p < 0.05:
-                print(f"    -> Significant: model preference differs by group")
+                print("    -> Significant: model preference differs by group")
             else:
-                print(f"    -> Not significant: no evidence model preference differs by group")
+                print("    -> Not significant: no evidence model preference differs by group")
         else:
             fisher_p = np.nan
             odds_ratio = np.nan
@@ -410,7 +402,7 @@ def stratified_comparison(
     else:
         fisher_p = np.nan
         odds_ratio = np.nan
-        print(f"\n  Fisher's exact test: need 2 groups and 2+ models")
+        print("\n  Fisher's exact test: need 2 groups and 2+ models")
 
     # ---- Per-group Akaike weights ----
     print(f"\n  Per-group aggregate {metric.upper()} and Akaike weights:")
@@ -435,14 +427,14 @@ def stratified_comparison(
         win_counts = group_winners.value_counts().to_dict()
 
         print(f"\n  {group_name} (n={n_group}):")
-        for model_name in fits_dict.keys():
+        for model_name in fits_dict:
             wins = win_counts.get(model_name, 0)
             pct = 100 * wins / n_group if n_group > 0 else 0
             print(f"    {model_name}: {metric.upper()}={group_ics[model_name]:.0f}, "
                   f"weight={group_weights[model_name]:.4f}, "
                   f"wins={wins} ({pct:.1f}%)")
 
-        for model_name in fits_dict.keys():
+        for model_name in fits_dict:
             group_results.append({
                 'group': group_name,
                 'n': n_group,
@@ -475,7 +467,6 @@ def stratified_comparison(
         }])
         strat_df = pd.concat([strat_df, summary_row], ignore_index=True)
         strat_df.to_csv(strat_path, index=False)
-
 
 def plot_stratified_wins(
     merged: pd.DataFrame,
@@ -535,31 +526,41 @@ def plot_stratified_wins(
     print(f"  [SAVED] {output_path}")
     plt.close()
 
-
 # ============================================================================
 # MAIN
 # ============================================================================
 
-def find_mle_files(mle_dir: Path) -> Dict[str, Path]:
-    """Auto-detect MLE result files."""
+def find_mle_files(mle_dir: Path) -> dict[str, Path]:
+    """Auto-detect MLE result files.
+
+    Searches mle_dir first, then falls back to output/ root
+    (some models may have been fit with --output output instead of --output output/mle/).
+    """
     files = {}
 
     # Look for standard naming patterns
     patterns = {
         'M1': ['qlearning_individual_fits.csv', 'qlearning_mle_results.csv'],
         'M2': ['wmrl_individual_fits.csv', 'wmrl_mle_results.csv'],
-        'M3': ['wmrl_m3_individual_fits.csv', 'wmrl_m3_mle_results.csv']
+        'M3': ['wmrl_m3_individual_fits.csv', 'wmrl_m3_mle_results.csv'],
+        'M5': ['wmrl_m5_individual_fits.csv', 'wmrl_m5_mle_results.csv'],
     }
 
+    # Also search output/ root as fallback
+    fallback_dir = Path('output')
+    search_dirs = [mle_dir, fallback_dir] if mle_dir != fallback_dir else [mle_dir]
+
     for model, filenames in patterns.items():
-        for filename in filenames:
-            filepath = mle_dir / filename
-            if filepath.exists():
-                files[model] = filepath
+        for search_dir in search_dirs:
+            for filename in filenames:
+                filepath = search_dir / filename
+                if filepath.exists():
+                    files[model] = filepath
+                    break
+            if model in files:
                 break
 
     return files
-
 
 def main():
     parser = argparse.ArgumentParser(
@@ -573,6 +574,8 @@ def main():
                         help='Path to M2 (WM-RL) MLE results')
     parser.add_argument('--m3', type=str, default=None,
                         help='Path to M3 (WM-RL+kappa) MLE results')
+    parser.add_argument('--m5', type=str, default=None,
+                        help='Path to M5 (WM-RL+phi_rl) individual fits CSV')
 
     # Legacy arguments
     parser.add_argument('--qlearning', type=str, default=None,
@@ -581,7 +584,7 @@ def main():
                         help='Path to WM-RL fits (legacy, same as --m2)')
 
     # Options
-    parser.add_argument('--mle-dir', type=str, default='output/mle_results',
+    parser.add_argument('--mle-dir', type=str, default='output/mle',
                         help='Directory containing MLE results (for auto-detection)')
     parser.add_argument('--output-dir', type=str, default='output/model_comparison',
                         help='Output directory for results')
@@ -620,6 +623,8 @@ def main():
         fits_dict['M2'] = load_fits(args.m2)
     if args.m3:
         fits_dict['M3'] = load_fits(args.m3)
+    if args.m5:
+        fits_dict['M5'] = load_fits(args.m5)
 
     # Auto-detect if no models provided
     if not fits_dict:
@@ -756,11 +761,10 @@ def main():
         print(f"\n[OK] Both criteria agree: {best_aic} is the preferred model")
     else:
         print(f"\n[NOTE] Criteria disagree - AIC favors {best_aic}, BIC favors {best_bic}")
-        print(f"  (BIC applies stronger penalty for model complexity)")
+        print("  (BIC applies stronger penalty for model complexity)")
 
     print(f"\nResults saved to: {output_dir}/")
     print(f"Figures saved to: {figures_dir}/")
-
 
 if __name__ == '__main__':
     main()
