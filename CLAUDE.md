@@ -48,8 +48,16 @@ This file contains project-specific instructions for Claude Code when working on
 
 | Model | Free Parameters |
 |-------|-----------------|
-| Q-Learning | α₊, α₋, ε |
-| WM-RL | α₊, α₋, φ, ρ, K, ε |
+| M1: Q-Learning | α₊, α₋, ε |
+| M2: WM-RL | α₊, α₋, φ, ρ, K, ε |
+| M3: WM-RL+kappa | α₊, α₋, φ, ρ, K, κ, ε |
+| M5: WM-RL+phi_rl | α₊, α₋, φ, ρ, K, κ, φ_rl, ε |
+| M6a: WM-RL+kappa_s | α₊, α₋, φ, ρ, K, κ_s, ε |
+| M6b: WM-RL+dual | α₊, α₋, φ, ρ, K, κ_total, κ_share, ε |
+| M4: RLWM-LBA | α₊, α₋, φ, ρ, K, κ, v_scale, A, δ, t₀ |
+
+> M4 is the only joint choice+RT model. Its AIC is not comparable to choice-only models.
+> M5 is the current winning model among choice-only models (dAIC=435.6 over M3).
 
 ---
 
@@ -176,11 +184,15 @@ python scripts/08_run_statistical_analyses.py
 python scripts/12_fit_mle.py --model qlearning
 python scripts/12_fit_mle.py --model wmrl
 python scripts/12_fit_mle.py --model wmrl_m3
+python scripts/12_fit_mle.py --model wmrl_m5
+python scripts/12_fit_mle.py --model wmrl_m6a
+python scripts/12_fit_mle.py --model wmrl_m6b
+python scripts/12_fit_mle.py --model wmrl_m4
 python scripts/14_compare_models.py
 
 # Results Analysis (15-16)
-python scripts/15_analyze_mle_by_trauma.py --model all
-python scripts/16_regress_parameters_on_scales.py --model all
+python scripts/15_analyze_mle_by_trauma.py --model all   # all 7 models
+python scripts/16_regress_parameters_on_scales.py --model all  # all 7 models
 ```
 
 ### Run MLE Fitting (Fast, Point Estimates)
@@ -195,11 +207,23 @@ python scripts/12_fit_mle.py --model wmrl --data output/task_trials_long.csv
 # WM-RL with perseveration (M3)
 python scripts/12_fit_mle.py --model wmrl_m3 --data output/task_trials_long.csv
 
+# M5: WM-RL + RL Forgetting
+python scripts/12_fit_mle.py --model wmrl_m5 --data output/task_trials_long.csv
+
+# M6a: WM-RL + Stimulus-Specific Perseveration
+python scripts/12_fit_mle.py --model wmrl_m6a --data output/task_trials_long.csv
+
+# M6b: WM-RL + Dual Perseveration
+python scripts/12_fit_mle.py --model wmrl_m6b --data output/task_trials_long.csv
+
+# M4: RLWM-LBA Joint Choice+RT (requires float64)
+python scripts/12_fit_mle.py --model wmrl_m4 --data output/task_trials_long.csv
+
 # Parallel fitting (multi-core, ~4-8x speedup)
-python scripts/12_fit_mle.py --model wmrl_m3 --data output/task_trials_long.csv --n-jobs 16
+python scripts/12_fit_mle.py --model wmrl_m5 --data output/task_trials_long.csv --n-jobs 16
 
 # GPU-accelerated (requires rlwm_gpu environment)
-python scripts/12_fit_mle.py --model wmrl_m3 --data output/task_trials_long.csv --use-gpu
+python scripts/12_fit_mle.py --model wmrl_m5 --data output/task_trials_long.csv --use-gpu
 ```
 
 ### Cluster Execution (Monash M3)
@@ -234,14 +258,24 @@ python scripts/13_fit_bayesian.py --model wmrl --data data.csv --chains 4 --warm
 ### Model Comparison
 
 ```bash
-# Compare all fitted models (AIC/BIC)
+# Compare choice-only models (M1-M3, M5, M6a, M6b) by AIC/BIC
 python scripts/14_compare_models.py
+
+# Include M4 separate track
+python scripts/14_compare_models.py --m4
 
 # Compare specific models
 python scripts/14_compare_models.py --models qlearning wmrl wmrl_m3
 
 # With Bayesian comparison (WAIC/LOO)
 python scripts/14_compare_models.py --use-waic
+```
+
+### Cross-Model Recovery
+
+```bash
+# Validate all choice-only models are distinguishable by AIC
+python scripts/11_run_model_recovery.py --mode cross-model --model all --n-subjects 50 --n-datasets 10 --n-jobs 8
 ```
 
 ### Run Tests
