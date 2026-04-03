@@ -131,7 +131,7 @@ def main():
         description='Run parameter recovery analysis (Senta et al. methodology)'
     )
     parser.add_argument('--model', type=str, required=True,
-                        choices=['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'all'],
+                        choices=['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b', 'all'],
                         help='Model to test (or "all" for all models)')
     parser.add_argument('--n-subjects', type=int, default=50,
                         help='Number of synthetic subjects per dataset')
@@ -151,7 +151,7 @@ def main():
 
     # Determine which models to run
     if args.model == 'all':
-        models = ['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a']
+        models = ['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b']
     else:
         models = [args.model]
 
