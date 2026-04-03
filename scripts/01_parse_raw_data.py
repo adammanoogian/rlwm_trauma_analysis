@@ -19,12 +19,13 @@ Outputs:
     output/summary_participant_metrics.csv         - Combined participant metrics
 """
 
-import os
-import sys
+from __future__ import annotations
+
 import json
-import pandas as pd
-import numpy as np
+import sys
 from pathlib import Path
+
+import pandas as pd
 from tqdm import tqdm
 
 # Add project root to path for imports
@@ -37,7 +38,7 @@ from data_cleaning import (
     extract_survey1_data,
     extract_survey2_data,
 )
-from scoring_functions import score_less, score_ies_r, calculate_all_task_metrics
+from scoring_functions import score_ies_r, score_less
 
 # Import config for excluded participants
 try:
@@ -63,7 +64,7 @@ def load_participant_mapping():
         print("Will use sona_id from data files directly.")
         return None
 
-    with open(MAPPING_FILE, 'r') as f:
+    with open(MAPPING_FILE) as f:
         return json.load(f)
 
 
@@ -181,7 +182,9 @@ def clean_task_data(task_df: pd.DataFrame, filter_practice: bool = False) -> pd.
         df['correct'] = pd.to_numeric(df['correct'], errors='coerce')
 
     if 'block' in df.columns:
-        df['block'] = pd.to_numeric(df['block'], errors='coerce').astype(int)
+        df['block'] = pd.to_numeric(df['block'], errors='coerce')
+        df = df.dropna(subset=['block'])
+        df['block'] = df['block'].astype(int)
 
     if 'key_press' in df.columns:
         df['key_press'] = pd.to_numeric(df['key_press'], errors='coerce').fillna(-1).astype(int)
@@ -335,7 +338,7 @@ def main():
         task_df_main.to_csv(output_path_main, index=False)
         print(f"[SAVED] {output_path_main}")
         print(f"  {len(task_df_main):,} trials from {task_df_main['sona_id'].nunique()} participants")
-        print(f"  (main task only, practice excluded)")
+        print("  (main task only, practice excluded)")
 
         # Also save to legacy filename for compatibility
         output_path_legacy = OUTPUT_DIR / 'task_trials_long_all_participants.csv'
@@ -445,7 +448,7 @@ def main():
 
         print(f"\nTotal participants: {n_participants}")
         print(f"Total trials: {len(task_df):,}")
-        print(f"\nTrials per participant:")
+        print("\nTrials per participant:")
         print(f"  Mean: {trials_per_participant.mean():.1f}")
         print(f"  Min:  {trials_per_participant.min()}")
         print(f"  Max:  {trials_per_participant.max()}")
@@ -462,7 +465,7 @@ def main():
             print(f"\nOverall accuracy: {acc:.2%}")
 
             participant_acc = task_df.groupby('sona_id')['correct'].mean()
-            print(f"\nParticipant-level accuracy:")
+            print("\nParticipant-level accuracy:")
             print(f"  Mean: {participant_acc.mean():.2%}")
             print(f"  Std:  {participant_acc.std():.2%}")
             print(f"  Min:  {participant_acc.min():.2%}")
