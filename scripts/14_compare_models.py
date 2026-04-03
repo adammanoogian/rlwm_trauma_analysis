@@ -545,6 +545,7 @@ def find_mle_files(mle_dir: Path) -> dict[str, Path]:
         'M3': ['wmrl_m3_individual_fits.csv', 'wmrl_m3_mle_results.csv'],
         'M5': ['wmrl_m5_individual_fits.csv', 'wmrl_m5_mle_results.csv'],
         'M6a': ['wmrl_m6a_individual_fits.csv', 'wmrl_m6a_mle_results.csv'],
+        'M6b': ['wmrl_m6b_individual_fits.csv', 'wmrl_m6b_mle_results.csv'],
     }
 
     # Also search output/ root as fallback
@@ -579,6 +580,8 @@ def main():
                         help='Path to M5 (WM-RL+phi_rl) individual fits CSV')
     parser.add_argument('--m6a', type=str, default=None,
                         help='Path to M6a (WM-RL+kappa_s) individual fits CSV')
+    parser.add_argument('--m6b', type=str, default=None,
+                        help='Path to M6b (WM-RL+kappa+kappa_s dual) individual fits CSV')
 
     # Legacy arguments
     parser.add_argument('--qlearning', type=str, default=None,
@@ -630,6 +633,8 @@ def main():
         fits_dict['M5'] = load_fits(args.m5)
     if args.m6a:
         fits_dict['M6a'] = load_fits(args.m6a)
+    if args.m6b:
+        fits_dict['M6b'] = load_fits(args.m6b)
 
     # Auto-detect if no models provided
     if not fits_dict:

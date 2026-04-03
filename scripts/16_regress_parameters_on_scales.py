@@ -166,6 +166,10 @@ def load_integrated_data(params_path: Path, model_type: str = 'qlearning',
             param_rename['phi_rl'] = 'phi_rl_mean'
         if 'kappa_s' in params_df.columns:
             param_rename['kappa_s'] = 'kappa_s_mean'
+        if 'kappa_total' in params_df.columns:
+            param_rename['kappa_total'] = 'kappa_total_mean'
+        if 'kappa_share' in params_df.columns:
+            param_rename['kappa_share'] = 'kappa_share_mean'
         if 'epsilon' in params_df.columns:
             param_rename['epsilon'] = 'epsilon_mean'
 
@@ -563,6 +567,8 @@ def format_label(col_name: str) -> str:
         'kappa_mean': 'kappa (Perseveration)',
         'phi_rl_mean': 'phi_rl (RL Forgetting Rate)',
         'kappa_s_mean': 'kappa_s (Stimulus-Specific Perseveration)',
+        'kappa_total_mean': 'kappa_total (Total Perseveration Budget)',
+        'kappa_share_mean': 'kappa_share (Global Kernel Fraction)',
         # Trauma scales
         'lec_total_events': 'LEC-5 Total Events',
         'lec_personal_events': 'LEC-5 Personal Events',
@@ -672,8 +678,8 @@ def main():
         '--model',
         type=str,
         default='qlearning',
-        choices=['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'all'],
-        help='Model type (qlearning, wmrl, wmrl_m3, wmrl_m5, wmrl_m6a, or all)'
+        choices=['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b', 'all'],
+        help='Model type (qlearning, wmrl, wmrl_m3, wmrl_m5, wmrl_m6a, wmrl_m6b, or all)'
     )
     parser.add_argument(
         '--output-dir',
@@ -726,7 +732,7 @@ def main():
         print(f"[!] Color-by: {args.color_by}")
 
     # Determine models to run
-    models_to_run = ['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a'] if args.model == 'all' else [args.model]
+    models_to_run = ['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b'] if args.model == 'all' else [args.model]
 
     # Loop over models
     for model in models_to_run:
@@ -784,6 +790,9 @@ def main():
         elif model == 'wmrl_m6a':
             param_cols = ['alpha_pos_mean', 'alpha_neg_mean', 'phi_mean', 'rho_mean',
                           'wm_capacity_mean', 'kappa_s_mean', 'epsilon_mean']
+        elif model == 'wmrl_m6b':
+            param_cols = ['alpha_pos_mean', 'alpha_neg_mean', 'phi_mean', 'rho_mean',
+                          'wm_capacity_mean', 'kappa_total_mean', 'kappa_share_mean', 'epsilon_mean']
         else:
             print(f"Unknown model: {model}")
             continue
