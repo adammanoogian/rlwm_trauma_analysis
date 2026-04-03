@@ -6,18 +6,28 @@ Complete documentation for the RLWM computational models, mathematical formulati
 
 ## 1. Model Overview
 
-Two models are implemented for fitting human behavioral data:
+Seven models are implemented for fitting human behavioral data, organized by complexity:
 
 | Model | Description | Free Parameters |
 |-------|-------------|-----------------|
-| **Q-Learning** | Model-free RL baseline with asymmetric learning rates | 3: α₊, α₋, ε |
-| **WM-RL Hybrid** | Combines working memory and RL systems | 6: α₊, α₋, φ, ρ, K, ε |
+| **M1: Q-Learning** | Model-free RL baseline with asymmetric learning rates | 3: α₊, α₋, ε |
+| **M2: WM-RL Hybrid** | Combines working memory and RL systems | 6: α₊, α₋, φ, ρ, K, ε |
+| **M3: WM-RL + Perseveration** | M2 + global choice persistence kernel | 7: α₊, α₋, φ, ρ, K, κ, ε |
+| **M5: WM-RL + RL Forgetting** | M3 + Q-value decay toward baseline | 8: α₊, α₋, φ, ρ, K, κ, φ_rl, ε |
+| **M6a: WM-RL + Stim-Specific** | M2 + stimulus-specific perseveration | 7: α₊, α₋, φ, ρ, K, κ_s, ε |
+| **M6b: WM-RL + Dual Perseveration** | M2 + global + stimulus-specific kernels (stick-breaking) | 8: α₊, α₋, φ, ρ, K, κ_total, κ_share, ε |
+| **M4: RLWM-LBA** | M3 learning + Linear Ballistic Accumulator for joint choice+RT | 10: α₊, α₋, φ, ρ, K, κ, v_scale, A, δ, t₀ |
+
+> **Note on model numbering:** The numbering gap (M3 to M5) is intentional. M4 is listed last because it is the only joint choice+RT model. Its AIC is not comparable to choice-only models M1-M3, M5, M6a, M6b, because the likelihood domains differ (choice-only vs. joint choice+RT).
+
+> **Current winning model (choice-only):** M5 (dAIC=435.6 over M3, dBIC=226.9).
 
 **Key Design Principles:**
 - **Learning phase only**: This task has no separate testing phase
 - **Fixed β = 50**: Inverse temperature fixed during learning for identifiability
-- **Epsilon noise**: Small random exploration term for robustness
+- **Epsilon noise**: Small random exploration term for robustness (choice-only models M1-M6)
 - **Asymmetric learning**: Separate rates for positive/negative prediction errors
+- **Model hierarchy**: M2 extends M1; M3 extends M2; M5/M6a/M6b/M4 extend M3 or M2
 
 ---
 
@@ -534,6 +544,290 @@ KEY INSIGHT: WM quickly learned to avoid action 2 after one trial,
 while RL is still catching up. The hybrid model leverages both systems.
 ```
 
+### 3.6 M3: WM-RL + Perseveration (kappa)
+
+M3 extends M2 with a **choice kernel** that captures the tendency to repeat the last action taken for a given stimulus, independent of value.
+
+#### 3.6.1 Perseveration Mechanism
+
+**Choice Kernel:** A one-hot vector C_k tracking the last action taken for each stimulus:
+```
+C_k(a|s) = 1 if a was the last action chosen for stimulus s
+C_k(a|s) = 0 otherwise
+```
+
+At the first presentation of a stimulus within a block (no prior action), the kernel is not applied (uniform fallback).
+
+**Perseveration-augmented policy** (before epsilon noise):
+```
+p_persist(a|s) = (1 - κ) * p_hybrid(a|s) + κ * C_k(a|s)
+```
+
+Where `p_hybrid(a|s)` is the M2 hybrid policy (Section 3.1.3) and κ is the perseveration strength.
+
+**Final policy with epsilon noise:**
+```
+p(a|s) = ε/nA + (1-ε) * p_persist(a|s)
+```
+
+#### 3.6.2 Trial Sequence (extends M2)
+
+1. **Decay WM**: `WM <- (1-φ)WM + φ*WM_0`
+2. **Compute hybrid policy**: `p_hybrid = ω*p_WM + (1-ω)*p_RL`
+3. **Apply perseveration kernel**: `p_persist = (1-κ)*p_hybrid + κ*C_k` (if stimulus seen before in block)
+4. **Apply epsilon noise**: `p = ε/nA + (1-ε)*p_persist`
+5. **Update WM**: `WM(s,a) <- r`
+6. **Update Q**: `Q(s,a) <- Q(s,a) + α*(r - Q(s,a))`
+7. **Update kernel**: `C_k(s) <- one_hot(a_chosen)` (unconditional)
+
+#### 3.6.3 Parameters
+
+| Parameter | Symbol | Range | Description |
+|-----------|--------|-------|-------------|
+| RL learning rate (positive) | α₊ | [0, 1] | RL update rate for correct trials |
+| RL learning rate (negative) | α₋ | [0, 1] | RL update rate for incorrect trials |
+| WM decay rate | φ | [0, 1] | Global WM decay toward baseline |
+| Base WM reliance | ρ | [0, 1] | Base WM weight in adaptive formula |
+| WM capacity | K | [1, 7] | Capacity for adaptive weighting |
+| Perseveration strength | κ | [0, 1] | Strength of choice persistence; κ=0 reduces to M2 |
+| Epsilon noise | ε | [0, 1] | Random exploration probability |
+
+**Code reference:** `WMRL_M3_PARAMS` in `mle_utils.py` — 7 parameters: `['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'kappa', 'epsilon']`
+
+### 3.7 M5: WM-RL + RL Forgetting (phi_rl)
+
+M5 extends M3 with **Q-value decay toward baseline** before each delta-rule update, modeling RL forgetting.
+
+#### 3.7.1 RL Forgetting Mechanism
+
+Each trial, **before** the standard asymmetric delta-rule update, ALL Q-values decay toward the baseline:
+```
+For ALL (s,a) pairs:
+    Q(s,a) <- (1 - φ_rl) * Q(s,a) + φ_rl * Q_0
+```
+
+Where Q_0 = 1/nA = 0.333 (uniform baseline, matching WM baseline convention).
+
+Then the standard asymmetric delta-rule update is applied for the observed (s,a) pair:
+```
+δ = r - Q(s,a)
+α = α₊ if δ > 0 else α₋
+Q(s,a) <- Q(s,a) + α * δ
+```
+
+**Key property:** When φ_rl = 0, no decay occurs and M5 reduces exactly to M3 (verified: 0.00e+00 difference).
+
+#### 3.7.2 Trial Sequence (extends M3)
+
+1. **Decay WM**: `WM <- (1-φ)WM + φ*WM_0`
+2. **Decay Q-values**: `Q <- (1-φ_rl)*Q + φ_rl*Q_0` (ALL state-action pairs)
+3. **Compute hybrid policy**: `p_hybrid = ω*p_WM + (1-ω)*p_RL`
+4. **Apply perseveration kernel**: `p_persist = (1-κ)*p_hybrid + κ*C_k`
+5. **Apply epsilon noise**: `p = ε/nA + (1-ε)*p_persist`
+6. **Update WM**: `WM(s,a) <- r`
+7. **Update Q**: `Q(s,a) <- Q(s,a) + α*(r - Q(s,a))`
+8. **Update kernel**: `C_k(s) <- one_hot(a_chosen)`
+
+#### 3.7.3 Parameters
+
+| Parameter | Symbol | Range | Description |
+|-----------|--------|-------|-------------|
+| RL learning rate (positive) | α₊ | [0, 1] | RL update rate for correct trials |
+| RL learning rate (negative) | α₋ | [0, 1] | RL update rate for incorrect trials |
+| WM decay rate | φ | [0, 1] | Global WM decay toward baseline |
+| Base WM reliance | ρ | [0, 1] | Base WM weight in adaptive formula |
+| WM capacity | K | [1, 7] | Capacity for adaptive weighting |
+| Perseveration strength | κ | [0, 1] | Global choice persistence (inherited from M3) |
+| RL forgetting rate | φ_rl | [0, 1] | Q-value decay rate toward Q_0; φ_rl=0 reduces to M3 |
+| Epsilon noise | ε | [0, 1] | Random exploration probability |
+
+**Code reference:** `WMRL_M5_PARAMS` in `mle_utils.py` — 8 parameters: `['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'kappa', 'phi_rl', 'epsilon']`
+
+### 3.8 M6a: WM-RL + Stimulus-Specific Perseveration (kappa_s)
+
+M6a replaces M3's **global** perseveration with **per-stimulus** tracking. Instead of a single scalar tracking the last action across all stimuli, M6a maintains a separate last-action record for each stimulus.
+
+#### 3.8.1 Stimulus-Specific Kernel
+
+**Per-stimulus tracking:** An array `last_actions` of shape `(num_stimuli,)`, initialized to -1 (sentinel for "not yet seen in this block").
+
+On each trial for stimulus s:
+```
+If last_actions[s] >= 0:  (stimulus seen before in this block)
+    C_k(a|s) = 1 if a == last_actions[s], else 0
+    p_persist(a|s) = (1 - κ_s) * p_hybrid(a|s) + κ_s * C_k(a|s)
+Else:  (first presentation in block)
+    p_persist(a|s) = p_hybrid(a|s)  (no kernel, uniform fallback)
+
+After action: last_actions[s] = a_chosen  (unconditional update)
+```
+
+**Block boundaries:** All `last_actions` reset to -1 at the start of each block.
+
+#### 3.8.2 Key Difference from M3
+
+M3 uses a single global `last_action` scalar: whatever action was taken on the previous trial (regardless of stimulus). M6a tracks per-stimulus, so perseveration only reflects repeating the action most recently taken for *that specific stimulus*.
+
+M6a has the same number of free parameters as M3 (7) but a different perseveration mechanism.
+
+#### 3.8.3 Parameters
+
+| Parameter | Symbol | Range | Description |
+|-----------|--------|-------|-------------|
+| RL learning rate (positive) | α₊ | [0, 1] | RL update rate for correct trials |
+| RL learning rate (negative) | α₋ | [0, 1] | RL update rate for incorrect trials |
+| WM decay rate | φ | [0, 1] | Global WM decay toward baseline |
+| Base WM reliance | ρ | [0, 1] | Base WM weight in adaptive formula |
+| WM capacity | K | [1, 7] | Capacity for adaptive weighting |
+| Stimulus-specific perseveration | κ_s | [0, 1] | Per-stimulus choice persistence; κ_s=0 reduces to M2 |
+| Epsilon noise | ε | [0, 1] | Random exploration probability |
+
+**Code reference:** `WMRL_M6A_PARAMS` in `mle_utils.py` — 7 parameters: `['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'kappa_s', 'epsilon']`
+
+### 3.9 M6b: WM-RL + Dual Perseveration (stick-breaking)
+
+M6b combines **both** global (M3-style) and stimulus-specific (M6a-style) perseveration, using a stick-breaking reparameterization to enforce a total budget constraint.
+
+#### 3.9.1 Stick-Breaking Reparameterization
+
+**Fitted parameters:**
+```
+κ_total ∈ [0, 1]  — Total perseveration budget
+κ_share ∈ [0, 1]  — Proportion allocated to global kernel
+```
+
+**Decoded parameters:**
+```
+κ       = κ_total * κ_share          — Global perseveration strength
+κ_s     = κ_total * (1 - κ_share)    — Stimulus-specific perseveration strength
+```
+
+This enforces κ + κ_s = κ_total <= 1, preventing the kernels from dominating the hybrid policy.
+
+**Special cases:**
+- κ_share = 1 reduces exactly to M3 (only global kernel; verified: 0.0e+00 difference)
+- κ_share = 0 reduces exactly to M6a (only stimulus-specific kernel; verified: 0.0e+00 difference)
+
+#### 3.9.2 Dual Carry
+
+M6b maintains **both** carry variables:
+- `last_action` (scalar): The globally last-chosen action (M3-style)
+- `last_actions` (array, shape num_stimuli): Per-stimulus last-chosen actions (M6a-style)
+
+Both are reset at block boundaries. Both are updated unconditionally after each action.
+
+**Effective-weight gating:** If a stimulus has not yet been seen in the current block, the κ_s portion is zeroed out:
+```
+eff_kappa_s = κ_s if last_actions[s] >= 0 else 0
+```
+
+#### 3.9.3 Combined Policy
+
+```
+p_persist(a|s) = (1 - κ - eff_kappa_s) * p_hybrid(a|s)
+              + κ * C_global(a)
+              + eff_kappa_s * C_stim(a|s)
+```
+
+Where:
+- `C_global(a) = 1 if a == last_action` (global kernel)
+- `C_stim(a|s) = 1 if a == last_actions[s]` (stimulus-specific kernel)
+
+#### 3.9.4 Parameters
+
+| Parameter | Symbol | Range | Description |
+|-----------|--------|-------|-------------|
+| RL learning rate (positive) | α₊ | [0, 1] | RL update rate for correct trials |
+| RL learning rate (negative) | α₋ | [0, 1] | RL update rate for incorrect trials |
+| WM decay rate | φ | [0, 1] | Global WM decay toward baseline |
+| Base WM reliance | ρ | [0, 1] | Base WM weight in adaptive formula |
+| WM capacity | K | [1, 7] | Capacity for adaptive weighting |
+| Total perseveration budget | κ_total | [0, 1] | Combined perseveration strength |
+| Global share | κ_share | [0, 1] | Proportion of κ_total for global kernel |
+| Epsilon noise | ε | [0, 1] | Random exploration probability |
+
+**Code reference:** `WMRL_M6B_PARAMS` in `mle_utils.py` — 8 parameters: `['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'kappa_total', 'kappa_share', 'epsilon']`
+
+> **Note:** The stick-breaking decode (κ = κ_total * κ_share; κ_s = κ_total * (1 - κ_share)) is performed in objective functions only, not in transform functions. The block likelihood function receives decoded κ and κ_s.
+
+### 3.10 M4: RLWM-LBA Joint Choice+RT
+
+M4 combines M3's hybrid learning with a **Linear Ballistic Accumulator** (Brown & Heathcote, 2008) for joint choice and response time modeling.
+
+#### 3.10.1 Learning Module
+
+Same as M3: hybrid WM-RL policy with kappa perseveration. The learning module produces a choice probability vector `p_hybrid(a|s)` for each trial.
+
+#### 3.10.2 Decision Module: Linear Ballistic Accumulator
+
+The LBA replaces softmax action selection with a racing-accumulator model that jointly predicts **which** action is chosen and **how fast** the response is.
+
+**Accumulator setup** (one per action, i = 1, ..., nA):
+```
+Drift rate:   v_i = v_scale * p_hybrid(a_i | s_t)
+Start point:  k_i ~ Uniform(0, A)
+Threshold:    b = A + δ   (b > A by construction via reparameterization)
+Noise:        s = 0.1     (fixed, not a free parameter)
+```
+
+Where:
+- `v_scale` scales the hybrid policy probabilities into drift rates
+- `A` is the maximum start point (uniform start-point variability)
+- `δ` is the threshold gap (ensures b > A)
+- `t_0` is the non-decision time
+
+**Race dynamics:** Each accumulator i races from start point k_i toward threshold b with constant velocity v_i. The winner is the first accumulator to reach threshold.
+
+**Response time:**
+```
+RT = accumulation_time(winner) + t_0
+```
+
+#### 3.10.3 Joint Likelihood
+
+The joint log-likelihood of observing choice i at time t is:
+```
+log P(choice=i, RT=t) = log f_i(t - t_0) + Σ_{j≠i} log S_j(t - t_0)
+```
+
+Where:
+- `f_i(t)` = LBA probability density function for accumulator i at time t
+- `S_j(t)` = LBA survivor function (1 - CDF) for accumulator j at time t
+
+The LBA PDF and CDF involve the normal distribution:
+```
+f_i(t) = (1/A) * [ φ((b - v_i*t) / (s*t)) - φ((b - A - v_i*t) / (s*t)) ]
+         + (v_i / A) * [ Φ((b - v_i*t) / (s*t)) - Φ((b - A - v_i*t) / (s*t)) ]
+```
+
+Where φ is the standard normal PDF and Φ is the standard normal CDF.
+
+#### 3.10.4 Key Differences from Choice-Only Models
+
+- **No epsilon parameter**: Start-point variability A subsumes undirected exploration
+- **Requires float64**: CDF computations need double precision for numerical stability
+- **AIC not comparable**: Joint choice+RT likelihood operates on a different domain than choice-only likelihoods, so AIC values are incommensurable
+- **Log-density can be positive**: The defective PDF integrates to <1 over (0, inf) but can exceed 1 at a point
+
+#### 3.10.5 Parameters
+
+| Parameter | Symbol | Range | Description |
+|-----------|--------|-------|-------------|
+| RL learning rate (positive) | α₊ | [0, 1] | RL update rate for correct trials |
+| RL learning rate (negative) | α₋ | [0, 1] | RL update rate for incorrect trials |
+| WM decay rate | φ | [0, 1] | Global WM decay toward baseline |
+| Base WM reliance | ρ | [0, 1] | Base WM weight in adaptive formula |
+| WM capacity | K | [1, 7] | Capacity for adaptive weighting |
+| Perseveration strength | κ | [0, 1] | Global choice persistence (inherited from M3) |
+| Drift rate scaling | v_scale | [0.1, 20] | Scales hybrid policy into drift rates |
+| Max start point | A | [0.001, 2] | Uniform start-point variability (seconds) |
+| Threshold gap | δ | [0.001, 2] | b - A gap; b = A + δ (decoded in objectives) |
+| Non-decision time | t₀ | [0.05, 0.3] | Motor/encoding time (seconds) |
+
+**Code reference:** `WMRL_M4_PARAMS` in `mle_utils.py` — 10 parameters: `['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'kappa', 'v_scale', 'A', 'delta', 't0']`
+
+> **Reference:** Brown, S. D., & Heathcote, A. (2008). The simplest complete model of choice response time: Linear ballistic accumulation. *Cognitive Psychology*, 57(3), 153-178.
+
 ---
 
 ## 4. Comparison to Senta et al. (2025)
@@ -552,13 +846,15 @@ This implementation is based on Senta et al. (2025), "Dual process impairments i
 | Fixed β | β = 50 during learning | β = 50 | ✓ |
 | Epsilon Noise | ε/nA + (1-ε)·p | ε/nA + (1-ε)·p | ✓ |
 
-### 4.2 Intentional Simplifications
+### 4.2 Simplifications and Extensions
 
-Our implementation focuses on the **basic WM-RL model** without the following extensions from Senta et al.:
+Our implementation extends the basic WM-RL model with perseveration (M3, M5, M6a, M6b) and joint choice+RT modeling (M4). The following features from Senta et al. remain unimplemented:
 
 | Feature | Senta et al. | Our Implementation | Reason |
 |---------|--------------|-------------------|--------|
-| Information sharing (i) | RL receives scaled WM info | Not included | Adds complexity; start simple |
+| Perseveration (choice kernel) | Global choice repetition bias | **Implemented** as M3 (κ), M6a (κ_s), M6b (dual) | Core extension for dissociating perseveration from learning |
+| RL forgetting | Q-value decay toward baseline | **Implemented** as M5 (φ_rl) | Tests whether forgetting improves fit |
+| Information sharing (i) | RL receives scaled WM info | Not included | Adds complexity; not needed for current hypotheses |
 | Negative feedback bias (η) | Scales α₋ for WM-initiated | Not included | Advanced variant |
 | Split WM confidence (ρ_low, ρ_high) | Separate ρ for low/high load | Single ρ | Start with basic model |
 | Testing phase | Separate β_test | Not included | Task has no testing phase |
@@ -885,10 +1181,18 @@ mu_capacity ~ TruncNorm(4, 1.5, low=1, high=7)
 
 ### 6.1 Information Criteria
 
-- **WAIC** (Watanabe-Akaike Information Criterion)
-- **LOO** (Leave-One-Out Cross-Validation via PSIS)
+- **AIC** (Akaike Information Criterion) — used for MLE fitting
+- **BIC** (Bayesian Information Criterion) — used for MLE fitting
+- **WAIC** (Watanabe-Akaike Information Criterion) — used for Bayesian fitting
+- **LOO** (Leave-One-Out Cross-Validation via PSIS) — used for Bayesian fitting
 
 Lower values indicate better predictive performance.
+
+### 6.1.1 Two Comparison Tracks
+
+**Choice-only models (M1, M2, M3, M5, M6a, M6b):** Compared by AIC/BIC (MLE) or LOO/WAIC (Bayesian). These models share the same likelihood domain (choice probabilities only) and are directly comparable.
+
+**Joint choice+RT model (M4):** Reported separately. M4's likelihood operates on a different domain (joint probability of choice AND response time), making its AIC values incommensurable with choice-only models. M4 is evaluated by its own parameter recovery and predictive checks, not by direct AIC comparison with M1-M6.
 
 ### 6.2 Running Comparison
 
@@ -952,13 +1256,29 @@ Based on the literature, we predict the following parameter differences in traum
 
 ```
 scripts/fitting/
-├── jax_likelihoods.py      # Pure JAX likelihood functions
+├── jax_likelihoods.py      # Pure JAX likelihood functions (choice-only models M1-M3, M5, M6a, M6b)
 │   ├── softmax_policy()
 │   ├── q_learning_block_likelihood()
 │   ├── q_learning_multiblock_likelihood()
 │   ├── wmrl_block_likelihood()
-│   └── wmrl_multiblock_likelihood()
+│   ├── wmrl_multiblock_likelihood()
+│   ├── wmrl_m3_block_likelihood()
+│   ├── wmrl_m5_block_likelihood()
+│   ├── wmrl_m6a_block_likelihood()
+│   └── wmrl_m6b_block_likelihood()
 │
+├── lba_likelihood.py       # LBA density functions for M4 joint choice+RT (float64)
+│   ├── lba_pdf()
+│   ├── lba_cdf()
+│   └── lba_joint_log_lik()
+│
+├── mle_utils.py            # MLE utilities (transforms, bounds, info criteria)
+│   ├── WMRL_M*_PARAMS      # Parameter name constants for all models
+│   ├── WMRL_M*_BOUNDS      # Parameter bounds for all models
+│   ├── transform_*()       # Bounded <-> unbounded transforms
+│   └── compute_aic/bic()
+│
+├── fit_mle.py              # MLE fitting implementation (all 7 models)
 ├── numpyro_models.py       # Hierarchical Bayesian models
 │   ├── qlearning_hierarchical_model()
 │   ├── wmrl_hierarchical_model()
