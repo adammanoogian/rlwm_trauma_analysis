@@ -2335,6 +2335,366 @@ def wmrl_m6a_multiblock_likelihood_stacked(
     return lax.fori_loop(0, num_blocks, body_fn, 0.0)
 
 # ============================================================================
+# WM-RL M6b: DUAL PERSEVERATION MODEL (global + stimulus-specific, stick-breaking)
+# ============================================================================
+
+def wmrl_m6b_block_likelihood(
+    stimuli: jnp.ndarray,
+    actions: jnp.ndarray,
+    rewards: jnp.ndarray,
+    set_sizes: jnp.ndarray,
+    alpha_pos: float,
+    alpha_neg: float,
+    phi: float,
+    rho: float,
+    capacity: float,
+    kappa: float,   # DECODED global perseveration (= kappa_total * kappa_share)
+    kappa_s: float, # DECODED stimulus-specific perseveration (= kappa_total * (1 - kappa_share))
+    epsilon: float = DEFAULT_EPSILON,
+    num_stimuli: int = 6,
+    num_actions: int = 3,
+    q_init: float = 0.5,
+    wm_init: float = 1.0 / 3.0,  # WM baseline = 1/nA (uniform)
+    mask: jnp.ndarray = None
+) -> float:
+    """
+    Compute log-likelihood for WM-RL M6b model with DUAL perseveration.
+
+    M6b combines M3's global kernel (kappa) and M6a's stimulus-specific kernel (kappa_s)
+    in a single model. The constraint kappa + kappa_s <= 1 is enforced externally via
+    stick-breaking reparameterization in the objective functions (kappa = kappa_total *
+    kappa_share; kappa_s = kappa_total * (1 - kappa_share)).
+
+    CRITICAL: This function takes DECODED kappa and kappa_s directly. The stick-breaking
+    decode happens in the objective functions (_make_jax_objective_wmrl_m6b, etc.),
+    NOT in this function.
+
+    DUAL CARRY: Tracks both global last_action (scalar, M3-style) and per-stimulus
+    last_actions (array shape num_stimuli, M6a-style) independently.
+
+    Choice equation:
+        P = (1 - eff_kappa - eff_kappa_s) * P_noisy
+            + eff_kappa * Ck_global
+            + eff_kappa_s * Ck_stim
+
+    Where eff_kappa/eff_kappa_s are zero-gated when the respective kernel is
+    unavailable (first trial, or kappa=0/kappa_s=0).
+
+    When kappa_s=0, reduces to M3 (global only).
+    When kappa=0, reduces to M6a (stimulus-specific only).
+    When kappa_total=0 (both=0), reduces to M2 (no perseveration).
+
+    Parameters
+    ----------
+    stimuli : array, shape (n_trials,)
+    actions : array, shape (n_trials,)
+    rewards : array, shape (n_trials,)
+    set_sizes : array, shape (n_trials,)
+    alpha_pos : float
+    alpha_neg : float
+    phi : float (WM decay)
+    rho : float (WM reliance)
+    capacity : float (WM capacity)
+    kappa : float
+        DECODED global perseveration weight (= kappa_total * kappa_share)
+    kappa_s : float
+        DECODED stimulus-specific perseveration weight (= kappa_total * (1 - kappa_share))
+    epsilon : float
+    num_stimuli : int
+    num_actions : int
+    q_init : float
+    wm_init : float
+    mask : array, shape (n_trials,), optional
+
+    Returns
+    -------
+    float
+        Total log-likelihood for this block
+    """
+    # Initialize Q-table and WM matrix
+    Q_init = jnp.ones((num_stimuli, num_actions)) * q_init
+    WM_init = jnp.ones((num_stimuli, num_actions)) * wm_init
+    WM_0 = jnp.ones((num_stimuli, num_actions)) * wm_init  # Baseline for decay
+
+    # DUAL CARRY: Both global (M3-style) and per-stimulus (M6a-style) tracking
+    last_action_init = -1  # scalar int, global (resets to -1 at block start)
+    last_actions_init = jnp.full((num_stimuli,), -1, dtype=jnp.int32)  # (num_stimuli,)
+
+    # Initial carry: (Q, WM, WM_0, log_likelihood, last_action_scalar, last_actions_array)
+    init_carry = (Q_init, WM_init, WM_0, 0.0, last_action_init, last_actions_init)
+
+    # If no mask provided, all trials are valid (backward compatibility)
+    if mask is None:
+        mask = jnp.ones(len(stimuli))
+
+    scan_inputs = (stimuli, actions, rewards, set_sizes, mask)
+
+    def step_fn(carry, inputs):
+        Q_table, WM_table, WM_baseline, log_lik_accum, last_action, last_actions = carry
+        stimulus, action, reward, set_size, valid = inputs
+
+        # =================================================================
+        # 1. DECAY WM
+        # =================================================================
+        WM_decayed = (1 - phi) * WM_table + phi * WM_baseline
+
+        # =================================================================
+        # 2. COMPUTE HYBRID POLICY (M2 base)
+        # =================================================================
+        q_vals = Q_table[stimulus]
+        wm_vals = WM_decayed[stimulus]
+
+        omega = rho * jnp.minimum(1.0, capacity / set_size)
+
+        rl_probs = softmax_policy(q_vals, FIXED_BETA)
+        wm_probs = softmax_policy(wm_vals, FIXED_BETA)
+        base_probs = omega * wm_probs + (1 - omega) * rl_probs
+        base_probs = base_probs / jnp.sum(base_probs)  # Normalize
+
+        # Apply epsilon noise to base policy
+        P_noisy = apply_epsilon_noise(base_probs, epsilon, num_actions)
+
+        # =================================================================
+        # GLOBAL KERNEL (M3 component)
+        # Apply only if last_action >= 0 (any action was taken in block) AND kappa > 0
+        # =================================================================
+        has_global = jnp.logical_and(kappa > 0.0, last_action >= 0)
+        # Clamp: jnp.maximum prevents -1 from wrapping to last row of eye matrix
+        Ck_global = jnp.eye(num_actions)[jnp.maximum(last_action, 0)]
+        eff_kappa = jnp.where(has_global, kappa, 0.0)
+
+        # =================================================================
+        # STIMULUS-SPECIFIC KERNEL (M6a component)
+        # Apply only if this stimulus was seen before in block AND kappa_s > 0
+        # =================================================================
+        last_action_s = last_actions[stimulus]
+        has_stim = jnp.logical_and(kappa_s > 0.0, last_action_s >= 0)
+        # Clamp prevents -1 wrapping when sentinel
+        Ck_stim = jnp.eye(num_actions)[jnp.maximum(last_action_s, 0)]
+        eff_kappa_s = jnp.where(has_stim, kappa_s, 0.0)
+
+        # =================================================================
+        # THREE-WAY BLEND: M2 base + global kernel + stim-specific kernel
+        # After stick-breaking: kappa + kappa_s = kappa_total <= 1
+        # So base_weight = 1 - eff_kappa - eff_kappa_s >= 0 always
+        # =================================================================
+        noisy_probs = (
+            (1.0 - eff_kappa - eff_kappa_s) * P_noisy
+            + eff_kappa * Ck_global
+            + eff_kappa_s * Ck_stim
+        )
+
+        # Log probability of observed action
+        log_prob = jnp.log(noisy_probs[action] + 1e-8)
+
+        # Mask log probability: padding trials contribute 0 to likelihood
+        log_prob_masked = log_prob * valid
+
+        # =================================================================
+        # 3. UPDATE WM: Immediate overwrite (masked)
+        # =================================================================
+        wm_current = WM_decayed[stimulus, action]
+        WM_updated = WM_decayed.at[stimulus, action].set(
+            jnp.where(valid, reward, wm_current)
+        )
+
+        # =================================================================
+        # 4. UPDATE Q-TABLE: Asymmetric learning (masked)
+        # =================================================================
+        q_current = Q_table[stimulus, action]
+        delta = reward - q_current
+        alpha = jnp.where(delta > 0, alpha_pos, alpha_neg)
+        q_updated = q_current + alpha * delta
+        Q_updated = Q_table.at[stimulus, action].set(
+            jnp.where(valid, q_updated, q_current)
+        )
+
+        # Accumulate log-likelihood
+        log_lik_new = log_lik_accum + log_prob_masked
+
+        # =================================================================
+        # 5. UPDATE BOTH PERSEVERATION STATES
+        # Global: update on every valid trial (same as M3)
+        # Per-stimulus: update unconditionally on valid (same as M6a)
+        # =================================================================
+        new_last_action = jnp.where(valid, action, last_action).astype(jnp.int32)
+        new_last_actions = last_actions.at[stimulus].set(
+            jnp.where(valid, action, last_action_s).astype(jnp.int32)
+        )
+
+        return (Q_updated, WM_updated, WM_baseline, log_lik_new,
+                new_last_action, new_last_actions), log_prob_masked
+
+    # Run scan over trials
+    (Q_final, WM_final, _, log_lik_total, _, _), log_probs = lax.scan(
+        step_fn, init_carry, scan_inputs
+    )
+
+    return log_lik_total
+
+
+def wmrl_m6b_multiblock_likelihood(
+    stimuli_blocks: list,
+    actions_blocks: list,
+    rewards_blocks: list,
+    set_sizes_blocks: list,
+    alpha_pos: float,
+    alpha_neg: float,
+    phi: float,
+    rho: float,
+    capacity: float,
+    kappa: float,   # DECODED global perseveration (= kappa_total * kappa_share)
+    kappa_s: float, # DECODED stimulus-specific perseveration (= kappa_total * (1 - kappa_share))
+    epsilon: float = DEFAULT_EPSILON,
+    num_stimuli: int = 6,
+    num_actions: int = 3,
+    q_init: float = 0.5,
+    wm_init: float = 1.0 / 3.0,
+    masks_blocks: list = None,
+    verbose: bool = False,
+    participant_id: str = None
+) -> float:
+    """
+    Compute log-likelihood for WM-RL M6b (dual perseveration) across MULTIPLE BLOCKS.
+
+    Q-values, WM, last_action, and last_actions all reset at each block boundary.
+    Uses fori_loop fast path for uniformly-sized padded blocks, Python fallback otherwise.
+
+    CRITICAL: kappa and kappa_s are DECODED values (not kappa_total/kappa_share).
+    Caller must decode: kappa = kappa_total * kappa_share; kappa_s = kappa_total * (1 - kappa_share).
+    """
+    num_blocks = len(stimuli_blocks)
+
+    if verbose:
+        print(f"\n  >> Processing {num_blocks} blocks for participant {participant_id}...")
+
+    # Check if blocks are uniformly sized (for JAX-native fori_loop)
+    block_sizes = [len(b) for b in stimuli_blocks]
+    blocks_uniform = len(set(block_sizes)) == 1
+
+    if blocks_uniform and masks_blocks is not None:
+        # FAST PATH: Use JAX-native fori_loop for padded data
+        stimuli_stacked = jnp.stack(stimuli_blocks)
+        actions_stacked = jnp.stack(actions_blocks)
+        rewards_stacked = jnp.stack(rewards_blocks)
+        set_sizes_stacked = jnp.stack(set_sizes_blocks)
+        masks_stacked = jnp.stack(masks_blocks)
+
+        def body_fn(block_idx, total_ll):
+            block_ll = wmrl_m6b_block_likelihood(
+                stimuli=stimuli_stacked[block_idx],
+                actions=actions_stacked[block_idx],
+                rewards=rewards_stacked[block_idx],
+                set_sizes=set_sizes_stacked[block_idx],
+                alpha_pos=alpha_pos,
+                alpha_neg=alpha_neg,
+                phi=phi,
+                rho=rho,
+                capacity=capacity,
+                kappa=kappa,
+                kappa_s=kappa_s,
+                epsilon=epsilon,
+                num_stimuli=num_stimuli,
+                num_actions=num_actions,
+                q_init=q_init,
+                wm_init=wm_init,
+                mask=masks_stacked[block_idx]
+            )
+            return total_ll + block_ll
+
+        total_log_lik = lax.fori_loop(0, num_blocks, body_fn, 0.0)
+
+    else:
+        # FALLBACK PATH: Python loop for variable-sized blocks
+        total_log_lik = 0.0
+
+        if masks_blocks is None:
+            masks_blocks = [None] * num_blocks
+
+        for block_idx, (stim_block, act_block, rew_block, set_block, mask_block) in enumerate(
+            zip(stimuli_blocks, actions_blocks, rewards_blocks, set_sizes_blocks, masks_blocks)
+        ):
+            block_log_lik = wmrl_m6b_block_likelihood(
+                stimuli=stim_block,
+                actions=act_block,
+                rewards=rew_block,
+                set_sizes=set_block,
+                alpha_pos=alpha_pos,
+                alpha_neg=alpha_neg,
+                phi=phi,
+                rho=rho,
+                capacity=capacity,
+                kappa=kappa,
+                kappa_s=kappa_s,
+                epsilon=epsilon,
+                num_stimuli=num_stimuli,
+                num_actions=num_actions,
+                q_init=q_init,
+                wm_init=wm_init,
+                mask=mask_block
+            )
+            total_log_lik += block_log_lik
+
+    if verbose:
+        print(f"  >> Total log-likelihood: {float(total_log_lik):.2f} ({num_blocks} blocks)\n", flush=True)
+
+    return total_log_lik
+
+
+def wmrl_m6b_multiblock_likelihood_stacked(
+    stimuli_stacked: jnp.ndarray,
+    actions_stacked: jnp.ndarray,
+    rewards_stacked: jnp.ndarray,
+    set_sizes_stacked: jnp.ndarray,
+    masks_stacked: jnp.ndarray,
+    alpha_pos: float,
+    alpha_neg: float,
+    phi: float,
+    rho: float,
+    capacity: float,
+    kappa: float,   # DECODED global perseveration (= kappa_total * kappa_share)
+    kappa_s: float, # DECODED stimulus-specific perseveration (= kappa_total * (1 - kappa_share))
+    epsilon: float = DEFAULT_EPSILON,
+    num_stimuli: int = 6,
+    num_actions: int = 3,
+    q_init: float = 0.5,
+    wm_init: float = 1.0 / 3.0,
+) -> float:
+    """
+    FAST WM-RL M6b multiblock likelihood that takes pre-stacked arrays directly.
+
+    See wmrl_m6b_multiblock_likelihood for full documentation.
+    This version avoids list/restack overhead inside JIT.
+    kappa and kappa_s are DECODED values (kappa = kappa_total * kappa_share;
+    kappa_s = kappa_total * (1 - kappa_share)).
+    """
+    num_blocks = stimuli_stacked.shape[0]
+
+    def body_fn(block_idx, total_ll):
+        block_ll = wmrl_m6b_block_likelihood(
+            stimuli=stimuli_stacked[block_idx],
+            actions=actions_stacked[block_idx],
+            rewards=rewards_stacked[block_idx],
+            set_sizes=set_sizes_stacked[block_idx],
+            alpha_pos=alpha_pos,
+            alpha_neg=alpha_neg,
+            phi=phi,
+            rho=rho,
+            capacity=capacity,
+            kappa=kappa,
+            kappa_s=kappa_s,
+            epsilon=epsilon,
+            num_stimuli=num_stimuli,
+            num_actions=num_actions,
+            q_init=q_init,
+            wm_init=wm_init,
+            mask=masks_stacked[block_idx]
+        )
+        return total_ll + block_ll
+
+    return lax.fori_loop(0, num_blocks, body_fn, 0.0)
+
+# ============================================================================
 # WM-RL TEST FUNCTIONS
 # ============================================================================
 
@@ -2998,6 +3358,197 @@ def test_padding_equivalence_wmrl_m6a():
     return match
 
 
+def test_wmrl_m6b_single_block():
+    """Smoke test for WM-RL M6b single block likelihood (dual perseveration)."""
+    print("\nTesting WM-RL M6b single block likelihood (smoke test)...")
+
+    key = jax.random.PRNGKey(42)
+    n_trials = 30
+
+    stimuli = jax.random.randint(key, (n_trials,), 0, 6)
+    key, subkey = jax.random.split(key)
+    actions = jax.random.randint(subkey, (n_trials,), 0, 3)
+    key, subkey = jax.random.split(key)
+    rewards = jax.random.bernoulli(subkey, 0.7, (n_trials,)).astype(jnp.float32)
+    set_sizes = jnp.ones((n_trials,)) * 5
+
+    # kappa_total=0.3, kappa_share=0.667 => kappa=0.2, kappa_s=0.1
+    params = {
+        'alpha_pos': 0.3,
+        'alpha_neg': 0.1,
+        'phi': 0.1,
+        'rho': 0.7,
+        'capacity': 4.0,
+        'kappa': 0.2,   # decoded global
+        'kappa_s': 0.1, # decoded stim-specific
+        'epsilon': 0.05,
+    }
+
+    log_lik = wmrl_m6b_block_likelihood(
+        stimuli, actions, rewards, set_sizes, **params
+    )
+
+    nll = -float(log_lik)
+    is_finite = jnp.isfinite(log_lik)
+    is_negative = log_lik < 0
+
+    print(f"  WM-RL M6b log-likelihood: {float(log_lik):.4f}")
+    print(f"  NLL: {nll:.4f}")
+    print(f"  Is finite: {bool(is_finite)}")
+    print(f"  Is negative (expected): {bool(is_negative)}")
+
+    assert bool(is_finite), "M6b log-likelihood must be finite!"
+    print("[OK] WM-RL M6b single block smoke test passed")
+    return log_lik
+
+
+def test_wmrl_m6b_kappa_share_one_matches_m3():
+    """Verify M6b with kappa_share=1.0 reduces exactly to M3 (all budget to global)."""
+    print("\nTesting WM-RL M6b kappa_share=1.0 matches M3...")
+
+    key = jax.random.PRNGKey(123)
+    n_trials = 50
+
+    stimuli = jax.random.randint(key, (n_trials,), 0, 6)
+    key, subkey = jax.random.split(key)
+    actions = jax.random.randint(subkey, (n_trials,), 0, 3)
+    key, subkey = jax.random.split(key)
+    rewards = jax.random.bernoulli(subkey, 0.7, (n_trials,)).astype(jnp.float32)
+    set_sizes = jnp.ones((n_trials,)) * 5
+
+    shared_params = {
+        'alpha_pos': 0.3,
+        'alpha_neg': 0.1,
+        'phi': 0.1,
+        'rho': 0.7,
+        'capacity': 4.0,
+        'epsilon': 0.05,
+    }
+
+    # kappa_total=0.3, kappa_share=1.0 => kappa=0.3, kappa_s=0.0
+    kappa_total = 0.3
+    kappa_share = 1.0
+    kappa = kappa_total * kappa_share        # = 0.3
+    kappa_s = kappa_total * (1 - kappa_share)  # = 0.0
+
+    log_lik_m6b = wmrl_m6b_block_likelihood(
+        stimuli, actions, rewards, set_sizes,
+        **shared_params, kappa=kappa, kappa_s=kappa_s
+    )
+
+    # M3 with same kappa=0.3
+    log_lik_m3 = wmrl_m3_block_likelihood(
+        stimuli, actions, rewards, set_sizes,
+        **shared_params, kappa=kappa
+    )
+
+    diff = abs(float(log_lik_m6b) - float(log_lik_m3))
+    print(f"  M6b (kappa_share=1.0): log-lik = {float(log_lik_m6b):.8f}")
+    print(f"  M3 (kappa=0.3):        log-lik = {float(log_lik_m3):.8f}")
+    print(f"  Difference: {diff:.2e}")
+
+    assert diff < 1e-6, f"M6b kappa_share=1.0 must match M3! Diff={diff}"
+    print("[OK] M6b kappa_share=1.0 matches M3 exactly (diff < 1e-6)")
+    return diff
+
+
+def test_wmrl_m6b_kappa_share_zero_matches_m6a():
+    """Verify M6b with kappa_share=0.0 reduces exactly to M6a (all budget to stim-specific)."""
+    print("\nTesting WM-RL M6b kappa_share=0.0 matches M6a...")
+
+    key = jax.random.PRNGKey(456)
+    n_trials = 50
+
+    stimuli = jax.random.randint(key, (n_trials,), 0, 6)
+    key, subkey = jax.random.split(key)
+    actions = jax.random.randint(subkey, (n_trials,), 0, 3)
+    key, subkey = jax.random.split(key)
+    rewards = jax.random.bernoulli(subkey, 0.7, (n_trials,)).astype(jnp.float32)
+    set_sizes = jnp.ones((n_trials,)) * 5
+
+    shared_params = {
+        'alpha_pos': 0.3,
+        'alpha_neg': 0.1,
+        'phi': 0.1,
+        'rho': 0.7,
+        'capacity': 4.0,
+        'epsilon': 0.05,
+    }
+
+    # kappa_total=0.3, kappa_share=0.0 => kappa=0.0, kappa_s=0.3
+    kappa_total = 0.3
+    kappa_share = 0.0
+    kappa = kappa_total * kappa_share        # = 0.0
+    kappa_s = kappa_total * (1 - kappa_share)  # = 0.3
+
+    log_lik_m6b = wmrl_m6b_block_likelihood(
+        stimuli, actions, rewards, set_sizes,
+        **shared_params, kappa=kappa, kappa_s=kappa_s
+    )
+
+    # M6a with same kappa_s=0.3
+    log_lik_m6a = wmrl_m6a_block_likelihood(
+        stimuli, actions, rewards, set_sizes,
+        **shared_params, kappa_s=kappa_s
+    )
+
+    diff = abs(float(log_lik_m6b) - float(log_lik_m6a))
+    print(f"  M6b (kappa_share=0.0): log-lik = {float(log_lik_m6b):.8f}")
+    print(f"  M6a (kappa_s=0.3):     log-lik = {float(log_lik_m6a):.8f}")
+    print(f"  Difference: {diff:.2e}")
+
+    assert diff < 1e-6, f"M6b kappa_share=0.0 must match M6a! Diff={diff}"
+    print("[OK] M6b kappa_share=0.0 matches M6a exactly (diff < 1e-6)")
+    return diff
+
+
+def test_padding_equivalence_wmrl_m6b():
+    """
+    Verify padded and unpadded WM-RL M6b likelihoods are mathematically equivalent.
+    """
+    print("\nTesting WM-RL M6b padding equivalence (CRITICAL)...")
+
+    key = jax.random.PRNGKey(789)
+    n_real_trials = 48
+
+    # Generate real trial data
+    stimuli = jax.random.randint(key, (n_real_trials,), 0, 6)
+    key, subkey = jax.random.split(key)
+    actions = jax.random.randint(subkey, (n_real_trials,), 0, 3)
+    key, subkey = jax.random.split(key)
+    rewards = jax.random.bernoulli(subkey, 0.7, (n_real_trials,)).astype(jnp.float32)
+    set_sizes = jnp.full((n_real_trials,), 5, dtype=jnp.int32)
+
+    params = {
+        'alpha_pos': 0.3, 'alpha_neg': 0.1, 'phi': 0.1,
+        'rho': 0.7, 'capacity': 4.0,
+        'kappa': 0.2, 'kappa_s': 0.1, 'epsilon': 0.05
+    }
+
+    # Unpadded likelihood (original)
+    log_lik_original = wmrl_m6b_block_likelihood(
+        stimuli, actions, rewards, set_sizes, **params
+    )
+
+    # Padded likelihood (with mask)
+    stimuli_pad, actions_pad, rewards_pad, set_sizes_pad, mask = pad_block_to_max(
+        stimuli, actions, rewards, max_trials=100, set_sizes=set_sizes
+    )
+    log_lik_padded = wmrl_m6b_block_likelihood(
+        stimuli_pad, actions_pad, rewards_pad, set_sizes_pad, **params, mask=mask
+    )
+
+    # Verify equivalence
+    match = jnp.allclose(log_lik_original, log_lik_padded, rtol=1e-6)
+    print(f"  Original (unpadded) log-lik: {float(log_lik_original):.8f}")
+    print(f"  Padded (with mask) log-lik:  {float(log_lik_padded):.8f}")
+    print(f"  Difference: {abs(float(log_lik_original - log_lik_padded)):.2e}")
+    print(f"[OK] WM-RL M6b padding equivalence: {'PASSED' if match else 'FAILED'}")
+
+    assert bool(match), "WM-RL M6b padded/unpadded must be IDENTICAL!"
+    return match
+
+
 if __name__ == "__main__":
     print("=" * 80)
     print("JAX Q-LEARNING LIKELIHOOD TESTS")
@@ -3035,6 +3586,14 @@ if __name__ == "__main__":
     test_wmrl_m6a_per_stimulus_tracking()
 
     print("\n" + "=" * 80)
+    print("JAX WM-RL M6b (DUAL PERSEVERATION) LIKELIHOOD TESTS")
+    print("=" * 80)
+
+    test_wmrl_m6b_single_block()
+    test_wmrl_m6b_kappa_share_one_matches_m3()
+    test_wmrl_m6b_kappa_share_zero_matches_m6a()
+
+    print("\n" + "=" * 80)
     print("PADDING EQUIVALENCE TESTS (CRITICAL)")
     print("=" * 80)
 
@@ -3043,6 +3602,7 @@ if __name__ == "__main__":
     test_padding_equivalence_wmrl_m3()
     test_padding_equivalence_wmrl_m5()
     test_padding_equivalence_wmrl_m6a()
+    test_padding_equivalence_wmrl_m6b()
     test_multiblock_padding_equivalence()
 
     print("\n" + "=" * 80)
