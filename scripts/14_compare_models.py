@@ -84,6 +84,15 @@ sys.path.insert(0, str(project_root))
 
 from config import EXCLUDED_PARTICIPANTS, FIGURES_DIR
 
+# M4 parameter names (for per-param summary in separate track)
+try:
+    import sys as _sys
+    _sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from scripts.fitting.mle_utils import WMRL_M4_PARAMS
+except ImportError:
+    WMRL_M4_PARAMS = ['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'kappa',
+                      'v_scale', 'A', 'delta', 't0']
+
 # ============================================================================
 # MLE COMPARISON FUNCTIONS
 # ============================================================================
@@ -543,6 +552,7 @@ def find_mle_files(mle_dir: Path) -> dict[str, Path]:
         'M1': ['qlearning_individual_fits.csv', 'qlearning_mle_results.csv'],
         'M2': ['wmrl_individual_fits.csv', 'wmrl_mle_results.csv'],
         'M3': ['wmrl_m3_individual_fits.csv', 'wmrl_m3_mle_results.csv'],
+        'M4': ['wmrl_m4_individual_fits.csv', 'wmrl_m4_mle_results.csv'],
         'M5': ['wmrl_m5_individual_fits.csv', 'wmrl_m5_mle_results.csv'],
         'M6a': ['wmrl_m6a_individual_fits.csv', 'wmrl_m6a_mle_results.csv'],
         'M6b': ['wmrl_m6b_individual_fits.csv', 'wmrl_m6b_mle_results.csv'],
@@ -582,6 +592,8 @@ def main():
                         help='Path to M6a (WM-RL+kappa_s) individual fits CSV')
     parser.add_argument('--m6b', type=str, default=None,
                         help='Path to M6b (WM-RL+kappa+kappa_s dual) individual fits CSV')
+    parser.add_argument('--m4', type=str, default=None,
+                        help='Path to M4 (WM-RL+LBA joint choice+RT) individual fits CSV')
 
     # Legacy arguments
     parser.add_argument('--qlearning', type=str, default=None,
@@ -635,6 +647,8 @@ def main():
         fits_dict['M6a'] = load_fits(args.m6a)
     if args.m6b:
         fits_dict['M6b'] = load_fits(args.m6b)
+    if args.m4:
+        fits_dict['M4'] = load_fits(args.m4)
 
     # Auto-detect if no models provided
     if not fits_dict:
@@ -646,117 +660,172 @@ def main():
                 print(f"  Found {model}: {filepath}")
                 fits_dict[model] = load_fits(str(filepath))
 
-    if len(fits_dict) < 2:
+    # ==============================
+    # SEPARATE M4 FROM CHOICE-ONLY MODELS
+    # M4 uses joint choice+RT likelihood; its AIC/BIC is NOT comparable
+    # to choice-only models (M1, M2, M3, M5, M6a, M6b).
+    # ==============================
+    m4_fits = fits_dict.pop('M4', None)
+    choice_only_dict = fits_dict  # All remaining models are choice-only
+
+    if len(choice_only_dict) < 2 and m4_fits is None:
         print("\nERROR: At least 2 models required for comparison.")
         print("Provide paths via --m1/--m2/--m3 or ensure MLE results exist in output/mle_results/")
         return
 
+    if len(choice_only_dict) < 2 and m4_fits is not None:
+        print("\nNote: Only M4 found -- no choice-only comparison possible.")
+        print("      M4 will be reported in its separate track below.")
+
     # Print loaded models
-    print(f"\nLoaded {len(fits_dict)} models:")
-    for model_name, fits_df in fits_dict.items():
-        n_converged = fits_df['converged'].sum() if 'converged' in fits_df.columns else len(fits_df)
-        print(f"  {model_name}: {n_converged}/{len(fits_df)} converged")
+    if choice_only_dict:
+        print(f"\nLoaded {len(choice_only_dict)} choice-only models (AIC/BIC comparable):")
+        for model_name, fits_df in choice_only_dict.items():
+            n_converged = fits_df['converged'].sum() if 'converged' in fits_df.columns else len(fits_df)
+            print(f"  {model_name}: {n_converged}/{len(fits_df)} converged")
+    if m4_fits is not None:
+        n_converged = m4_fits['converged'].sum() if 'converged' in m4_fits.columns else len(m4_fits)
+        print(f"\nLoaded M4 (joint choice+RT, SEPARATE track): {n_converged}/{len(m4_fits)} converged")
 
     # ==============================
-    # AIC/BIC COMPARISON
-    # ==============================
-    print("\n" + "-" * 80)
-    print("INFORMATION CRITERIA COMPARISON")
-    print("-" * 80)
-
-    aic_comparison = compare_models_mle(fits_dict, 'aic')
-    bic_comparison = compare_models_mle(fits_dict, 'bic')
-
-    print("\nAIC Comparison:")
-    print(aic_comparison.to_string(index=False))
-
-    print("\nBIC Comparison:")
-    print(bic_comparison.to_string(index=False))
-
-    # Akaike weights
-    aic_values = {row['model']: row['aggregate_aic'] for _, row in aic_comparison.iterrows()}
-    weights = compute_akaike_weights_n(aic_values)
-
-    print("\nAkaike Weights:")
-    for model, weight in sorted(weights.items()):
-        print(f"  {model}: {weight:.4f} ({100*weight:.2f}%)")
-
-    # Interpretation
-    best_aic = aic_comparison.iloc[0]['model']
-    best_bic = bic_comparison.iloc[0]['model']
-
-    print(f"\n>>> Best model (AIC): {best_aic}")
-    print(f">>> Best model (BIC): {best_bic}")
-
-    for _, row in aic_comparison.iloc[1:].iterrows():
-        delta = row['delta_aic']
-        print(f"    {row['model']} vs {best_aic}: dAIC = {delta:.2f} ({interpret_delta(delta)})")
-
-    # ==============================
-    # PER-PARTICIPANT COMPARISON
+    # AIC/BIC COMPARISON (choice-only models only)
     # ==============================
     print("\n" + "-" * 80)
-    print("PER-PARTICIPANT COMPARISON")
+    print("INFORMATION CRITERIA COMPARISON (Choice-Only Models: M1, M2, M3, M5, M6a, M6b)")
     print("-" * 80)
 
-    for metric in ['aic', 'bic']:
-        wins = count_participant_wins(fits_dict, metric)
-        total = wins['total'].iloc[0]
-        print(f"\n{metric.upper()} (n={total} participants):")
-        for _, row in wins.iterrows():
-            print(f"  {row['model']} wins: {row['wins']} ({row['win_pct']:.1f}%)")
+    if len(choice_only_dict) < 2:
+        print("\n[SKIP] Fewer than 2 choice-only models available -- skipping AIC/BIC comparison.")
+        aic_comparison = bic_comparison = pd.DataFrame()
+        weights = {}
+        best_aic = best_bic = None
+    else:
+        aic_comparison = compare_models_mle(choice_only_dict, 'aic')
+        bic_comparison = compare_models_mle(choice_only_dict, 'bic')
 
-        # Save participant wins plot
-        plot_participant_wins(wins, metric, figures_dir)
+    if len(choice_only_dict) >= 2:
+        print("\nAIC Comparison:")
+        print(aic_comparison.to_string(index=False))
+
+        print("\nBIC Comparison:")
+        print(bic_comparison.to_string(index=False))
+
+        # Akaike weights
+        aic_values = {row['model']: row['aggregate_aic'] for _, row in aic_comparison.iterrows()}
+        weights = compute_akaike_weights_n(aic_values)
+
+        print("\nAkaike Weights:")
+        for model, weight in sorted(weights.items()):
+            print(f"  {model}: {weight:.4f} ({100*weight:.2f}%)")
+
+        # Interpretation
+        best_aic = aic_comparison.iloc[0]['model']
+        best_bic = bic_comparison.iloc[0]['model']
+
+        print(f"\n>>> Best model (AIC): {best_aic}")
+        print(f">>> Best model (BIC): {best_bic}")
+
+        for _, row in aic_comparison.iloc[1:].iterrows():
+            delta = row['delta_aic']
+            print(f"    {row['model']} vs {best_aic}: dAIC = {delta:.2f} ({interpret_delta(delta)})")
 
     # ==============================
-    # VISUALIZATIONS
+    # PER-PARTICIPANT COMPARISON (choice-only)
     # ==============================
-    print("\n" + "-" * 80)
-    print("CREATING VISUALIZATIONS")
-    print("-" * 80)
+    if len(choice_only_dict) >= 2:
+        print("\n" + "-" * 80)
+        print("PER-PARTICIPANT COMPARISON (Choice-Only)")
+        print("-" * 80)
 
-    plot_model_comparison(aic_comparison, bic_comparison, figures_dir)
-    plot_model_weights(weights, figures_dir)
+        for metric in ['aic', 'bic']:
+            wins = count_participant_wins(choice_only_dict, metric)
+            total = wins['total'].iloc[0]
+            print(f"\n{metric.upper()} (n={total} participants):")
+            for _, row in wins.iterrows():
+                print(f"  {row['model']} wins: {row['wins']} ({row['win_pct']:.1f}%)")
+
+            # Save participant wins plot
+            plot_participant_wins(wins, metric, figures_dir)
 
     # ==============================
-    # SAVE RESULTS
+    # VISUALIZATIONS (choice-only)
+    # ==============================
+    if len(choice_only_dict) >= 2:
+        print("\n" + "-" * 80)
+        print("CREATING VISUALIZATIONS")
+        print("-" * 80)
+
+        plot_model_comparison(aic_comparison, bic_comparison, figures_dir)
+        plot_model_weights(weights, figures_dir)
+
+    # ==============================
+    # SAVE RESULTS (choice-only)
     # ==============================
     print("\n" + "-" * 80)
     print("SAVING RESULTS")
     print("-" * 80)
 
-    # Combine results
-    results = aic_comparison.merge(
-        bic_comparison[['model', 'aggregate_bic', 'delta_bic']],
-        on='model'
-    )
-    results['akaike_weight'] = results['model'].map(weights)
+    if len(choice_only_dict) >= 2:
+        # Combine results
+        results = aic_comparison.merge(
+            bic_comparison[['model', 'aggregate_bic', 'delta_bic']],
+            on='model'
+        )
+        results['akaike_weight'] = results['model'].map(weights)
 
-    results_path = output_dir / 'comparison_results.csv'
-    results.to_csv(results_path, index=False)
-    print(f"[SAVED] {results_path}")
+        results_path = output_dir / 'comparison_results.csv'
+        results.to_csv(results_path, index=False)
+        print(f"[SAVED] {results_path}")
 
     # Save participant wins
-    aic_wins = count_participant_wins(fits_dict, 'aic')
-    bic_wins = count_participant_wins(fits_dict, 'bic')
-    wins_combined = aic_wins.merge(
-        bic_wins[['model', 'wins']].rename(columns={'wins': 'bic_wins'}),
-        on='model'
-    ).rename(columns={'wins': 'aic_wins'})
+    if len(choice_only_dict) >= 2:
+        aic_wins = count_participant_wins(choice_only_dict, 'aic')
+        bic_wins = count_participant_wins(choice_only_dict, 'bic')
+        wins_combined = aic_wins.merge(
+            bic_wins[['model', 'wins']].rename(columns={'wins': 'bic_wins'}),
+            on='model'
+        ).rename(columns={'wins': 'aic_wins'})
 
-    wins_path = output_dir / 'participant_wins.csv'
-    wins_combined.to_csv(wins_path, index=False)
-    print(f"[SAVED] {wins_path}")
+        wins_path = output_dir / 'participant_wins.csv'
+        wins_combined.to_csv(wins_path, index=False)
+        print(f"[SAVED] {wins_path}")
 
     # ==============================
-    # STRATIFIED BY TRAUMA GROUP
+    # STRATIFIED BY TRAUMA GROUP (choice-only)
     # ==============================
-    print("\n" + "-" * 80)
-    print("STRATIFIED COMPARISON (by trauma group)")
-    print("-" * 80)
+    if len(choice_only_dict) >= 2:
+        print("\n" + "-" * 80)
+        print("STRATIFIED COMPARISON (by trauma group)")
+        print("-" * 80)
 
-    stratified_comparison(fits_dict, output_dir, figures_dir, metric='aic')
+        stratified_comparison(choice_only_dict, output_dir, figures_dir, metric='aic')
+
+    # ==============================
+    # M4 SEPARATE TRACK (Joint Choice+RT)
+    # ==============================
+    if m4_fits is not None:
+        print("\n" + "=" * 60)
+        print("M4 (Joint Choice+RT) - SEPARATE TRACK")
+        print("=" * 60)
+        print("NOTE: M4 uses a joint choice+RT likelihood. Its AIC/BIC is NOT")
+        print("comparable to choice-only models (M1, M2, M3, M5, M6a, M6b).")
+        n_m4 = len(m4_fits)
+        n_converged_m4 = m4_fits['converged'].sum() if 'converged' in m4_fits.columns else n_m4
+        print(f"  M4 participants: {n_converged_m4}/{n_m4} converged")
+        if n_converged_m4 > 0:
+            m4_conv = m4_fits[m4_fits['converged'] == True] if 'converged' in m4_fits.columns else m4_fits
+            print(f"  M4 total AIC:    {m4_conv['aic'].sum():.2f}")
+            print(f"  M4 total BIC:    {m4_conv['bic'].sum():.2f}")
+            print(f"  M4 mean NLL:     {m4_conv['nll'].mean():.2f} +/- {m4_conv['nll'].sem():.2f}")
+            print("  Parameter summary (mean +/- SEM):")
+            for param in WMRL_M4_PARAMS:
+                if param in m4_conv.columns:
+                    print(f"    {param:12s}: {m4_conv[param].mean():.3f} +/- {m4_conv[param].sem():.3f}")
+        # Save M4 summary
+        m4_summary_path = output_dir / 'm4_separate_track_summary.csv'
+        m4_fits.to_csv(m4_summary_path, index=False)
+        print(f"  [SAVED] {m4_summary_path}")
+        print("=" * 60)
 
     # ==============================
     # SUMMARY
@@ -764,14 +833,21 @@ def main():
     print("\n" + "=" * 80)
     print("SUMMARY")
     print("=" * 80)
-    print(f"\nPreferred model (AIC): {best_aic}")
-    print(f"Preferred model (BIC): {best_bic}")
+    if best_aic is not None:
+        print(f"\nPreferred model (AIC): {best_aic}")
+        print(f"Preferred model (BIC): {best_bic}")
 
-    if best_aic == best_bic:
-        print(f"\n[OK] Both criteria agree: {best_aic} is the preferred model")
+        if best_aic == best_bic:
+            print(f"\n[OK] Both criteria agree: {best_aic} is the preferred model")
+        else:
+            print(f"\n[NOTE] Criteria disagree - AIC favors {best_aic}, BIC favors {best_bic}")
+            print("  (BIC applies stronger penalty for model complexity)")
     else:
-        print(f"\n[NOTE] Criteria disagree - AIC favors {best_aic}, BIC favors {best_bic}")
-        print("  (BIC applies stronger penalty for model complexity)")
+        print("\n[NOTE] No choice-only models compared.")
+
+    if m4_fits is not None:
+        print("\n[NOTE] M4 (joint choice+RT) was loaded but NOT included in choice-only AIC table.")
+        print(f"       See: {output_dir}/m4_separate_track_summary.csv")
 
     print(f"\nResults saved to: {output_dir}/")
     print(f"Figures saved to: {figures_dir}/")

@@ -172,6 +172,14 @@ def load_integrated_data(params_path: Path, model_type: str = 'qlearning',
             param_rename['kappa_share'] = 'kappa_share_mean'
         if 'epsilon' in params_df.columns:
             param_rename['epsilon'] = 'epsilon_mean'
+        if 'v_scale' in params_df.columns:
+            param_rename['v_scale'] = 'v_scale_mean'
+        if 'A' in params_df.columns:
+            param_rename['A'] = 'A_mean'
+        if 'delta' in params_df.columns:
+            param_rename['delta'] = 'delta_mean'
+        if 't0' in params_df.columns:
+            param_rename['t0'] = 't0_mean'
 
     params_df = params_df.rename(columns=param_rename)
     print(f"  Loaded {len(params_df)} participant fits")
@@ -678,8 +686,8 @@ def main():
         '--model',
         type=str,
         default='qlearning',
-        choices=['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b', 'all'],
-        help='Model type (qlearning, wmrl, wmrl_m3, wmrl_m5, wmrl_m6a, wmrl_m6b, or all)'
+        choices=['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b', 'wmrl_m4', 'all'],
+        help='Model type (qlearning, wmrl, wmrl_m3, wmrl_m5, wmrl_m6a, wmrl_m6b, wmrl_m4, or all)'
     )
     parser.add_argument(
         '--output-dir',
@@ -732,7 +740,7 @@ def main():
         print(f"[!] Color-by: {args.color_by}")
 
     # Determine models to run
-    models_to_run = ['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b'] if args.model == 'all' else [args.model]
+    models_to_run = ['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b', 'wmrl_m4'] if args.model == 'all' else [args.model]
 
     # Loop over models
     for model in models_to_run:
@@ -793,6 +801,11 @@ def main():
         elif model == 'wmrl_m6b':
             param_cols = ['alpha_pos_mean', 'alpha_neg_mean', 'phi_mean', 'rho_mean',
                           'wm_capacity_mean', 'kappa_total_mean', 'kappa_share_mean', 'epsilon_mean']
+        elif model == 'wmrl_m4':
+            # M4: LBA joint choice+RT model (no epsilon; has v_scale, A, delta, t0)
+            param_cols = ['alpha_pos_mean', 'alpha_neg_mean', 'phi_mean', 'rho_mean',
+                          'wm_capacity_mean', 'kappa_mean', 'v_scale_mean', 'A_mean',
+                          'delta_mean', 't0_mean']
         else:
             print(f"Unknown model: {model}")
             continue
