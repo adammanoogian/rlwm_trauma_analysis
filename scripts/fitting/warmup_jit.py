@@ -27,9 +27,11 @@ python scripts/fitting/warmup_jit.py --model all
 srun --cpus-per-task=2 --exact python scripts/fitting/warmup_jit.py --model $MODEL
 """
 
+from __future__ import annotations
+
+import os
 import sys
 import time
-import os
 
 # Add project root to path for imports
 sys.path.insert(0, '.')
@@ -46,7 +48,7 @@ def warmup_jit_compilation(model: str = 'all', verbose: bool = True):
     Parameters
     ----------
     model : str
-        Which model(s) to warmup: 'all', 'qlearning', 'wmrl', or 'wmrl_m3'
+        Which model(s) to warmup: 'all', or a specific model name
     verbose : bool
         Whether to print progress messages
     """
@@ -55,12 +57,15 @@ def warmup_jit_compilation(model: str = 'all', verbose: bool = True):
 
     # Import likelihood functions and constants
     from scripts.fitting.jax_likelihoods import (
-        q_learning_multiblock_likelihood,
-        wmrl_multiblock_likelihood,
-        wmrl_m3_multiblock_likelihood,
         MAX_BLOCKS,
         MAX_TRIALS_PER_BLOCK,
         NUM_ACTIONS,
+        q_learning_multiblock_likelihood,
+        wmrl_multiblock_likelihood,
+        wmrl_m3_multiblock_likelihood,
+        wmrl_m5_multiblock_likelihood,
+        wmrl_m6a_multiblock_likelihood,
+        wmrl_m6b_multiblock_likelihood,
     )
 
     if verbose:
@@ -87,7 +92,8 @@ def warmup_jit_compilation(model: str = 'all', verbose: bool = True):
     set_sizes_blocks = [jnp.full(n_trials, 3, dtype=jnp.int32) for _ in range(n_blocks)]
     masks_blocks = [jnp.ones(n_trials, dtype=jnp.float32) for _ in range(n_blocks)]
 
-    models_to_warmup = ['qlearning', 'wmrl', 'wmrl_m3'] if model == 'all' else [model]
+    ALL_CHOICE_MODELS = ['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b']
+    models_to_warmup = ALL_CHOICE_MODELS if model == 'all' else [model]
 
     for model_name in models_to_warmup:
         if verbose:
@@ -139,11 +145,98 @@ def warmup_jit_compilation(model: str = 'all', verbose: bool = True):
                 phi=0.8,
                 rho=0.5,
                 capacity=3.0,
-                kappa=0.1,  # perseveration parameter
+                kappa=0.1,
                 epsilon=0.1,
                 num_stimuli=num_stimuli,
                 num_actions=n_actions,
                 masks_blocks=masks_blocks,
+            )
+
+        elif model_name == 'wmrl_m5':
+            # WM-RL M5: M3 + phi_rl (RL forgetting)
+            _ = wmrl_m5_multiblock_likelihood(
+                stimuli_blocks=stimuli_blocks,
+                actions_blocks=actions_blocks,
+                rewards_blocks=rewards_blocks,
+                set_sizes_blocks=set_sizes_blocks,
+                alpha_pos=0.3,
+                alpha_neg=0.3,
+                phi=0.8,
+                rho=0.5,
+                capacity=3.0,
+                kappa=0.1,
+                phi_rl=0.05,
+                epsilon=0.1,
+                num_stimuli=num_stimuli,
+                num_actions=n_actions,
+                masks_blocks=masks_blocks,
+            )
+
+        elif model_name == 'wmrl_m6a':
+            # WM-RL M6a: per-stimulus perseveration (kappa_s)
+            _ = wmrl_m6a_multiblock_likelihood(
+                stimuli_blocks=stimuli_blocks,
+                actions_blocks=actions_blocks,
+                rewards_blocks=rewards_blocks,
+                set_sizes_blocks=set_sizes_blocks,
+                alpha_pos=0.3,
+                alpha_neg=0.3,
+                phi=0.8,
+                rho=0.5,
+                capacity=3.0,
+                kappa_s=0.1,
+                epsilon=0.1,
+                num_stimuli=num_stimuli,
+                num_actions=n_actions,
+                masks_blocks=masks_blocks,
+            )
+
+        elif model_name == 'wmrl_m6b':
+            # WM-RL M6b: dual perseveration (decoded kappa + kappa_s)
+            kappa_total = 0.3
+            kappa_share = 0.5
+            _ = wmrl_m6b_multiblock_likelihood(
+                stimuli_blocks=stimuli_blocks,
+                actions_blocks=actions_blocks,
+                rewards_blocks=rewards_blocks,
+                set_sizes_blocks=set_sizes_blocks,
+                alpha_pos=0.3,
+                alpha_neg=0.3,
+                phi=0.8,
+                rho=0.5,
+                capacity=3.0,
+                kappa=kappa_total * kappa_share,
+                kappa_s=kappa_total * (1 - kappa_share),
+                epsilon=0.1,
+                num_stimuli=num_stimuli,
+                num_actions=n_actions,
+                masks_blocks=masks_blocks,
+            )
+
+        elif model_name == 'wmrl_m4':
+            # M4 requires float64 + separate likelihood module
+            jax.config.update("jax_enable_x64", True)
+            from scripts.fitting.lba_likelihood import wmrl_m4_multiblock_likelihood
+            rts_blocks = [jnp.full(n_trials, 0.5, dtype=jnp.float64) for _ in range(n_blocks)]
+            _ = wmrl_m4_multiblock_likelihood(
+                stimuli_blocks=stimuli_blocks,
+                actions_blocks=actions_blocks,
+                rewards_blocks=rewards_blocks,
+                set_sizes_blocks=set_sizes_blocks,
+                rts_blocks=rts_blocks,
+                masks_blocks=masks_blocks,
+                alpha_pos=0.3,
+                alpha_neg=0.3,
+                phi=0.8,
+                rho=0.5,
+                capacity=3.0,
+                kappa=0.1,
+                v_scale=5.0,
+                A=0.2,
+                b=0.3,
+                t0=0.15,
+                num_stimuli=num_stimuli,
+                num_actions=n_actions,
             )
 
         elapsed = time.time() - start
@@ -178,8 +271,8 @@ Examples:
     parser.add_argument(
         '--model',
         default='all',
-        choices=['all', 'qlearning', 'wmrl', 'wmrl_m3'],
-        help='Model(s) to warmup (default: all)'
+        choices=['all', 'qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b', 'wmrl_m4'],
+        help='Model(s) to warmup (default: all choice-only models; M4 must be specified explicitly)'
     )
     parser.add_argument(
         '--quiet',

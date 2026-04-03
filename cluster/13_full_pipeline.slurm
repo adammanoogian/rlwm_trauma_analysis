@@ -145,7 +145,7 @@ echo "============================================================"
 echo "PHASE B: MLE Model Fitting (Step 12)"
 echo "============================================================"
 
-for model in qlearning wmrl wmrl_m3; do
+for model in qlearning wmrl wmrl_m3 wmrl_m5 wmrl_m6a wmrl_m6b wmrl_m4; do
     run_step "12 — Fit MLE: $model (GPU)" \
         python scripts/12_fit_mle.py \
             --model "$model" \

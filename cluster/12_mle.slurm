@@ -37,7 +37,7 @@
 # =============================================================================
 # Note: NJOBS=4 is the recommended default with JAX compilation caching.
 # Use NJOBS=1 if you experience OOM errors on first run (cache cold).
-MODELS="${MODEL:-qlearning wmrl wmrl_m3}"
+MODELS="${MODEL:-qlearning wmrl wmrl_m3 wmrl_m5 wmrl_m6a wmrl_m6b wmrl_m4}"
 NJOBS="${NJOBS:-4}"
 
 # =============================================================================

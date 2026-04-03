@@ -41,7 +41,7 @@
 # =============================================================================
 # Configuration (set via --export or use defaults)
 # =============================================================================
-MODELS="${MODEL:-qlearning wmrl wmrl_m3}"
+MODELS="${MODEL:-qlearning wmrl wmrl_m3 wmrl_m5 wmrl_m6a wmrl_m6b wmrl_m4}"
 LIMIT="${LIMIT:-}"
 
 # =============================================================================

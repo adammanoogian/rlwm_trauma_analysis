@@ -2,10 +2,11 @@
 # =============================================================================
 # Submit Separate GPU SLURM Jobs for Each MLE Model
 # =============================================================================
-# Submits qlearning, wmrl, and wmrl_m3 as independent GPU jobs for:
+# Submits all 7 models as independent GPU jobs for:
 #   - Better fault isolation (one model failing doesn't affect others)
 #   - Individual time limits per model
 #   - Parallel model execution on separate GPU nodes
+#   - M4 (RLWM-LBA) enables float64 automatically via fit_mle.py
 #
 # Usage:
 #   bash cluster/12_submit_all_gpu.sh
@@ -23,7 +24,7 @@ echo "Submitting GPU MLE Fitting Jobs"
 echo "============================================================"
 echo ""
 
-for model in qlearning wmrl wmrl_m3; do
+for model in qlearning wmrl wmrl_m3 wmrl_m5 wmrl_m6a wmrl_m6b wmrl_m4; do
     jobid=$(sbatch --export=ALL,MODEL="$model" --parsable cluster/12_mle_gpu.slurm 2>&1)
     if [[ $? -eq 0 && -n "$jobid" ]]; then
         echo "  $model: Job $jobid submitted (GPU)"
