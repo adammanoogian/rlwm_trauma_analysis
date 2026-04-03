@@ -12,12 +12,13 @@ Purpose:
     - Verify that fitting procedure can recover true parameters
     - Identify parameter identifiability issues
     - Report PASS/FAIL per Senta et al. (2025) criterion (r >= 0.80)
+    - Cross-model recovery: verify each model wins AIC against all others
 
 Usage:
-    # Single model (recommended)
+    # Parameter recovery (default mode) - single model
     python scripts/11_run_model_recovery.py --model wmrl_m3
 
-    # All models
+    # Parameter recovery - all models
     python scripts/11_run_model_recovery.py --model all
 
     # Quick test (fewer subjects/datasets)
@@ -26,15 +27,27 @@ Usage:
     # With GPU acceleration
     python scripts/11_run_model_recovery.py --model wmrl_m3 --use-gpu
 
+    # Cross-model recovery (generates from each model, checks AIC winner)
+    python scripts/11_run_model_recovery.py --mode cross-model --model all --n-subjects 10 --n-datasets 3
+
+    # Cross-model recovery for a single generating model
+    python scripts/11_run_model_recovery.py --mode cross-model --model wmrl_m5 --n-subjects 5 --n-datasets 1
+
 Outputs:
-    - output/recovery/{model}/recovery_results.csv
-    - output/recovery/{model}/recovery_metrics.csv
-    - figures/recovery/{model}/*.png
-    - Console: PASS/FAIL summary per parameter
+    Parameter mode:
+        - output/recovery/{model}/recovery_results.csv
+        - output/recovery/{model}/recovery_metrics.csv
+        - figures/recovery/{model}/*.png
+        - Console: PASS/FAIL summary per parameter
+
+    Cross-model mode:
+        - output/recovery/cross_model_confusion.csv
+        - Console: confusion matrix (rows=generator, cols=AIC winner)
 
 Interpretation:
     - PASS (r >= 0.80): Parameter recovery adequate per Senta et al.
     - FAIL (r < 0.80): Parameter identifiability issues, investigate
+    - Cross-model PASS: generating model wins plurality of datasets
 """
 
 from __future__ import annotations
@@ -48,9 +61,11 @@ project_root = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(project_root))
 
 from scripts.fitting.model_recovery import (
+    CHOICE_ONLY_MODELS,
     compute_recovery_metrics,
     plot_distribution_comparison,
     plot_recovery_scatter,
+    run_cross_model_recovery,
     run_parameter_recovery,
 )
 
@@ -130,6 +145,10 @@ def main():
     parser = argparse.ArgumentParser(
         description='Run parameter recovery analysis (Senta et al. methodology)'
     )
+    parser.add_argument('--mode', type=str, default='parameter',
+                        choices=['parameter', 'cross-model'],
+                        help='Recovery mode: "parameter" (default) recovers params for one model, '
+                             '"cross-model" generates from each model and checks AIC winner')
     parser.add_argument('--model', type=str, required=True,
                         choices=['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b', 'wmrl_m4', 'all'],
                         help='Model to test (or "all" for all models)')
@@ -149,43 +168,78 @@ def main():
                         help='Suppress progress output')
     args = parser.parse_args()
 
-    # Determine which models to run
-    if args.model == 'all':
-        models = ['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b', 'wmrl_m4']
-    else:
-        models = [args.model]
+    if args.mode == 'cross-model':
+        # ===== CROSS-MODEL RECOVERY MODE =====
+        # Determine generating models (choice-only only; M4 excluded)
+        if args.model == 'all':
+            generating_models = list(CHOICE_ONLY_MODELS)
+        elif args.model == 'wmrl_m4':
+            print("Error: M4 is excluded from cross-model recovery (joint likelihood "
+                  "incommensurable with choice-only AIC).")
+            sys.exit(1)
+        else:
+            generating_models = [args.model]
 
-    # Run recovery for each model
-    all_results = {}
-    for model in models:
-        passed = run_recovery_for_model(
-            model=model,
+        # Run cross-model recovery
+        result = run_cross_model_recovery(
+            generating_models=generating_models,
             n_subjects=args.n_subjects,
             n_datasets=args.n_datasets,
             seed=args.seed,
             use_gpu=args.use_gpu,
-            verbose=not args.quiet,
+            n_jobs=args.n_jobs,
             n_starts=args.n_starts,
-            n_jobs=args.n_jobs
+            verbose=not args.quiet
         )
-        all_results[model] = passed
 
-    # Print final summary if multiple models
-    if len(models) > 1:
-        print(f"\n{'='*60}")
-        print("FINAL SUMMARY")
-        print(f"{'='*60}")
-        for model, passed in all_results.items():
-            status = "PASS" if passed else "FAIL"
-            print(f"  {model}: {status}")
+        # Save confusion matrix
+        output_path = Path('output/recovery/cross_model_confusion.csv')
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        result['confusion_matrix'].to_csv(output_path)
+        print(f"\nConfusion matrix saved to: {output_path}")
 
-        all_pass = all(all_results.values())
-        print(f"\nOverall: {'ALL PASS' if all_pass else 'SOME FAILED'}")
-        print(f"{'='*60}\n")
+        # Exit code
+        sys.exit(0 if result['all_pass'] else 1)
 
-    # Exit with appropriate code
-    exit_code = 0 if all(all_results.values()) else 1
-    sys.exit(exit_code)
+    else:
+        # ===== PARAMETER RECOVERY MODE (default) =====
+        # Determine which models to run
+        if args.model == 'all':
+            models = ['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b', 'wmrl_m4']
+        else:
+            models = [args.model]
+
+        # Run recovery for each model
+        all_results = {}
+        for model in models:
+            passed = run_recovery_for_model(
+                model=model,
+                n_subjects=args.n_subjects,
+                n_datasets=args.n_datasets,
+                seed=args.seed,
+                use_gpu=args.use_gpu,
+                verbose=not args.quiet,
+                n_starts=args.n_starts,
+                n_jobs=args.n_jobs
+            )
+            all_results[model] = passed
+
+        # Print final summary if multiple models
+        if len(models) > 1:
+            print(f"\n{'='*60}")
+            print("FINAL SUMMARY")
+            print(f"{'='*60}")
+            for model, passed in all_results.items():
+                status = "PASS" if passed else "FAIL"
+                print(f"  {model}: {status}")
+
+            all_pass = all(all_results.values())
+            print(f"\nOverall: {'ALL PASS' if all_pass else 'SOME FAILED'}")
+            print(f"{'='*60}\n")
+
+        # Exit with appropriate code
+        exit_code = 0 if all(all_results.values()) else 1
+        sys.exit(exit_code)
 
 
 if __name__ == '__main__':

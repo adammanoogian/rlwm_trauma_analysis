@@ -1283,7 +1283,7 @@ def run_model_recovery_check(
             'python', 'scripts/12_fit_mle.py',
             '--model', model,
             '--data', str(synthetic_data_path),
-            '--output', str(mle_results_dir / f'{model}_individual_fits.csv'),
+            '--output', str(mle_results_dir),
             '--n-starts', str(n_starts)
         ]
 
