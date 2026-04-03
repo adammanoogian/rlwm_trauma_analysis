@@ -1207,8 +1207,10 @@ def run_model_recovery_check(
     synthetic_data_path: str,
     generative_model: str,
     output_dir: Path,
+    comparison_models: list[str] | None = None,
     use_gpu: bool = False,
     n_jobs: int = 1,
+    n_starts: int = 50,
     verbose: bool = True
 ) -> dict:
     """
@@ -1223,18 +1225,27 @@ def run_model_recovery_check(
     3. Compare via AIC/BIC
     4. Generative model should win (lowest AIC)
 
+    Note: M4 (RLWM-LBA) is excluded from the default comparison set because
+    its joint choice+RT likelihood is incommensurable with choice-only AIC.
+
     Parameters
     ----------
     synthetic_data_path : str
         Path to synthetic trial data CSV
     generative_model : str
-        Model that generated the synthetic data ('qlearning', 'wmrl', 'wmrl_m3')
+        Model that generated the synthetic data
     output_dir : Path
         Directory to save MLE results
+    comparison_models : list[str] or None
+        Models to fit and compare. Defaults to all 6 choice-only models:
+        ['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b'].
+        M4 excluded because joint likelihood AIC is incommensurable with choice-only.
     use_gpu : bool
         Use GPU acceleration (default: False)
     n_jobs : int
         Number of parallel jobs for CPU fitting (default: 1)
+    n_starts : int
+        Number of random starts for MLE optimization (default: 50)
     verbose : bool
         Show progress (default: True)
 
@@ -1250,7 +1261,16 @@ def run_model_recovery_check(
     """
     import subprocess
 
-    models = ['qlearning', 'wmrl', 'wmrl_m3']
+    # Default: all 6 choice-only models (M4 excluded — joint likelihood incommensurable)
+    CHOICE_ONLY_MODELS = ['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b']
+    if comparison_models is None:
+        models = CHOICE_ONLY_MODELS
+    else:
+        models = list(comparison_models)
+
+    # Ensure generative model is in the comparison set
+    if generative_model not in models:
+        models = [generative_model] + models
     mle_results_dir = output_dir / 'mle_results'
     mle_results_dir.mkdir(parents=True, exist_ok=True)
 
@@ -1263,7 +1283,8 @@ def run_model_recovery_check(
             'python', 'scripts/12_fit_mle.py',
             '--model', model,
             '--data', str(synthetic_data_path),
-            '--output', str(mle_results_dir / f'{model}_individual_fits.csv')
+            '--output', str(mle_results_dir / f'{model}_individual_fits.csv'),
+            '--n-starts', str(n_starts)
         ]
 
         if use_gpu:
@@ -1325,6 +1346,171 @@ def run_model_recovery_check(
         print("="*60)
 
     return result
+
+
+# Default choice-only models for cross-model recovery.
+# M4 (RLWM-LBA) excluded: joint choice+RT likelihood AIC is incommensurable
+# with choice-only models.
+CHOICE_ONLY_MODELS = ['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b']
+
+
+def run_cross_model_recovery(
+    generating_models: list[str] | None = None,
+    n_subjects: int = 50,
+    n_datasets: int = 10,
+    seed: int = 42,
+    use_gpu: bool = False,
+    n_jobs: int = 1,
+    n_starts: int = 50,
+    verbose: bool = True
+) -> dict:
+    """
+    Cross-model recovery: generate from each model, fit all choice-only models,
+    build confusion matrix (rows=generator, cols=winner).
+
+    For each generating model and each dataset:
+    1. Sample parameters and generate synthetic data
+    2. Fit all 6 choice-only models to that data
+    3. Determine AIC winner
+    4. Tally winner in confusion matrix
+
+    M4 (RLWM-LBA) is excluded from both generation and comparison because its
+    joint choice+RT likelihood is incommensurable with choice-only AIC.
+
+    Parameters
+    ----------
+    generating_models : list[str] or None
+        Models to generate data from. Defaults to CHOICE_ONLY_MODELS.
+    n_subjects : int
+        Number of synthetic subjects per dataset (default: 50)
+    n_datasets : int
+        Number of independent datasets per generating model (default: 10)
+    seed : int
+        Base random seed (default: 42)
+    use_gpu : bool
+        Use GPU for fitting (default: False)
+    n_jobs : int
+        Parallel jobs for CPU fitting (default: 1)
+    n_starts : int
+        Random starts for MLE optimization (default: 50)
+    verbose : bool
+        Show progress output (default: True)
+
+    Returns
+    -------
+    dict with:
+        - confusion_matrix: pd.DataFrame (rows=generator, cols=winner, values=win count)
+        - per_generator_results: list of dicts (one per generating model)
+        - all_pass: bool (True if every generator won plurality of its datasets)
+    """
+    import tempfile
+
+    if generating_models is None:
+        generating_models = list(CHOICE_ONLY_MODELS)
+
+    comparison_models = list(CHOICE_ONLY_MODELS)
+
+    # Initialize confusion matrix
+    confusion = pd.DataFrame(
+        0, index=generating_models, columns=comparison_models
+    )
+    confusion.index.name = 'generator'
+    confusion.columns.name = 'winner'
+
+    per_generator_results = []
+
+    for gen_model in generating_models:
+        if verbose:
+            print(f"\n{'='*70}")
+            print(f"CROSS-MODEL RECOVERY: Generating from {gen_model.upper()}")
+            print(f"{'='*70}")
+
+        gen_wins = 0
+        gen_total = 0
+        dataset_results = []
+
+        for ds_idx in range(n_datasets):
+            dataset_seed = seed + hash(gen_model) % 10000 + ds_idx * 10000
+            if verbose:
+                print(f"\n  Dataset {ds_idx + 1}/{n_datasets} (seed={dataset_seed})")
+
+            # 1. Sample parameters and generate synthetic data
+            params_list = sample_parameters(gen_model, n_subjects, dataset_seed)
+            synthetic_dfs = []
+            for subj_idx, params in enumerate(params_list):
+                subj_seed = dataset_seed + subj_idx
+                df = generate_synthetic_participant(params, gen_model, subj_seed)
+                synthetic_dfs.append(df)
+
+            synthetic_data = pd.concat(synthetic_dfs, ignore_index=True)
+
+            # 2. Save to temp directory
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                tmp_path = Path(tmp_dir)
+                data_path = tmp_path / f'{gen_model}_synthetic_data.csv'
+                synthetic_data.to_csv(data_path, index=False)
+
+                output_dir = tmp_path / 'recovery' / gen_model / f'dataset_{ds_idx}'
+
+                # 3. Fit all choice-only models and determine winner
+                result = run_model_recovery_check(
+                    synthetic_data_path=str(data_path),
+                    generative_model=gen_model,
+                    output_dir=output_dir,
+                    comparison_models=comparison_models,
+                    use_gpu=use_gpu,
+                    n_jobs=n_jobs,
+                    n_starts=n_starts,
+                    verbose=verbose
+                )
+
+                # 4. Tally in confusion matrix
+                winner = result['winning_model']
+                if winner in confusion.columns:
+                    confusion.loc[gen_model, winner] += 1
+                gen_total += 1
+                if result['generative_wins']:
+                    gen_wins += 1
+                dataset_results.append(result)
+
+        gen_pass = gen_wins > gen_total / 2  # Plurality: wins more than half
+        per_generator_results.append({
+            'model': gen_model,
+            'wins': gen_wins,
+            'total': gen_total,
+            'pass': gen_pass,
+            'dataset_results': dataset_results
+        })
+
+        if verbose:
+            status = "PASS" if gen_pass else "FAIL"
+            print(f"\n  {gen_model}: {gen_wins}/{gen_total} datasets won ({status})")
+
+    all_pass = all(r['pass'] for r in per_generator_results)
+
+    # Print confusion matrix
+    if verbose:
+        print(f"\n{'='*70}")
+        print("CROSS-MODEL CONFUSION MATRIX")
+        print("(rows = generating model, columns = AIC winner)")
+        print(f"{'='*70}")
+        print(confusion.to_string())
+        print(f"\n{'='*70}")
+        print("PER-GENERATOR SUMMARY")
+        print(f"{'='*70}")
+        for r in per_generator_results:
+            status = "PASS" if r['pass'] else "FAIL"
+            print(f"  {r['model']}: {r['wins']}/{r['total']} ({status})")
+        overall = "ALL PASS" if all_pass else "SOME FAILED"
+        print(f"\nOverall: {overall}")
+        print(f"{'='*70}")
+
+    return {
+        'confusion_matrix': confusion,
+        'per_generator_results': per_generator_results,
+        'all_pass': all_pass
+    }
+
 
 # =============================================================================
 # Testing
