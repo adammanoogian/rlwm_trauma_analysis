@@ -111,6 +111,8 @@ from scripts.fitting.mle_utils import (
     WMRL_BOUNDS,
     WMRL_M3_BOUNDS,
     WMRL_M3_PARAMS,
+    WMRL_M4_BOUNDS,
+    WMRL_M4_PARAMS,
     WMRL_M5_BOUNDS,
     WMRL_M5_PARAMS,
     WMRL_M6A_BOUNDS,
@@ -133,12 +135,14 @@ from scripts.fitting.mle_utils import (
     jax_bounded_to_unconstrained_qlearning,
     jax_bounded_to_unconstrained_wmrl,
     jax_bounded_to_unconstrained_wmrl_m3,
+    jax_bounded_to_unconstrained_wmrl_m4,
     jax_bounded_to_unconstrained_wmrl_m5,
     jax_bounded_to_unconstrained_wmrl_m6a,
     jax_bounded_to_unconstrained_wmrl_m6b,
     jax_unconstrained_to_params_qlearning,
     jax_unconstrained_to_params_wmrl,
     jax_unconstrained_to_params_wmrl_m3,
+    jax_unconstrained_to_params_wmrl_m4,
     jax_unconstrained_to_params_wmrl_m5,
     jax_unconstrained_to_params_wmrl_m6a,
     jax_unconstrained_to_params_wmrl_m6b,
@@ -222,6 +226,19 @@ def warmup_jax_compilation(model: str, verbose: bool = True):
             stimuli_blocks, actions_blocks, rewards_blocks, set_sizes_blocks,
             alpha_pos=0.3, alpha_neg=0.1, phi=0.1, rho=0.7, capacity=4.0,
             kappa=0.1, kappa_s=0.1, epsilon=0.05
+        )
+    elif model == 'wmrl_m4':
+        # Enable float64 and lazy-import M4 likelihood
+        jax.config.update("jax_enable_x64", True)
+        from scripts.fitting.lba_likelihood import (
+            wmrl_m4_multiblock_likelihood,
+        )
+        # b = A + delta decode (A=0.3, delta=0.5 → b=0.8)
+        rts_blocks = [jnp.full(n_trials, 0.5, dtype=jnp.float64) for _ in range(n_blocks)]
+        wmrl_m4_multiblock_likelihood(
+            stimuli_blocks, actions_blocks, rewards_blocks, set_sizes_blocks, rts_blocks,
+            alpha_pos=0.3, alpha_neg=0.1, phi=0.1, rho=0.7, capacity=4.0,
+            kappa=0.1, v_scale=3.0, A=0.3, b=0.8, t0=0.15,
         )
 
     if verbose:
@@ -547,6 +564,72 @@ def _make_jax_objective_wmrl_m6b(
     # JIT-compile for massive speedup (eliminates Python dispatch overhead)
     return jax.jit(objective)
 
+def _make_jax_objective_wmrl_m4(
+    stimuli_blocks: list[jnp.ndarray],
+    actions_blocks: list[jnp.ndarray],
+    rewards_blocks: list[jnp.ndarray],
+    set_sizes_blocks: list[jnp.ndarray],
+    rts_blocks: list[jnp.ndarray],
+    masks_blocks: list[jnp.ndarray] = None,
+):
+    """
+    Create a JAX-compatible objective function for WM-RL M4 (LBA joint choice+RT).
+
+    Returns a JIT-compiled pure function that takes unconstrained parameters
+    and returns NLL. 10 parameters: alpha_pos, alpha_neg, phi, rho, capacity,
+    kappa, v_scale, A, delta, t0.
+
+    B > A DECODE: b = A + delta applied here, NOT in the transform.
+    NO epsilon: drift rates v_i = v_scale * pi_hybrid feed directly into LBA.
+
+    Args:
+        stimuli_blocks, actions_blocks, rewards_blocks, set_sizes_blocks: per-block data
+        rts_blocks: per-block RT arrays in seconds (float64)
+        masks_blocks: per-block masks (1.0 real, 0.0 pad/RT-outlier filtered)
+    """
+    # Lazy import to avoid float64 side-effect when not using M4
+    from scripts.fitting.lba_likelihood import wmrl_m4_multiblock_likelihood_stacked
+
+    # Pre-stack blocks ONCE
+    stimuli_stacked   = jnp.stack(stimuli_blocks)
+    actions_stacked   = jnp.stack(actions_blocks)
+    rewards_stacked   = jnp.stack(rewards_blocks)
+    set_sizes_stacked = jnp.stack(set_sizes_blocks)
+    rts_stacked       = jnp.stack(rts_blocks)
+    if masks_blocks is not None:
+        masks_stacked = jnp.stack(masks_blocks)
+    else:
+        masks_stacked = jnp.ones((len(stimuli_blocks), stimuli_stacked.shape[1]),
+                                 dtype=jnp.float64)
+
+    def objective(x: jnp.ndarray) -> float:
+        alpha_pos, alpha_neg, phi, rho, capacity, kappa, v_scale, A, delta, t0 = \
+            jax_unconstrained_to_params_wmrl_m4(x)
+        # b > A decode: b = A + delta (enforced structurally because delta > 0)
+        b = A + delta
+        nll = wmrl_m4_multiblock_likelihood_stacked(
+            stimuli_stacked=stimuli_stacked,
+            actions_stacked=actions_stacked,
+            rewards_stacked=rewards_stacked,
+            set_sizes_stacked=set_sizes_stacked,
+            rts_stacked=rts_stacked,
+            masks_stacked=masks_stacked,
+            alpha_pos=alpha_pos,
+            alpha_neg=alpha_neg,
+            phi=phi,
+            rho=rho,
+            capacity=capacity,
+            kappa=kappa,
+            v_scale=v_scale,
+            A=A,
+            b=b,
+            t0=t0,
+        )
+        return nll  # Already NLL (positive = minimizable)
+
+    # JIT-compile for massive speedup
+    return jax.jit(objective)
+
 # =============================================================================
 # Bounded Objective Functions (for ScipyBoundedMinimize / L-BFGS-B)
 # =============================================================================
@@ -839,6 +922,73 @@ def _make_bounded_objective_wmrl_m6b(
 
     return objective
 
+def _make_bounded_objective_wmrl_m4(
+    stimuli_blocks: list[jnp.ndarray],
+    actions_blocks: list[jnp.ndarray],
+    rewards_blocks: list[jnp.ndarray],
+    set_sizes_blocks: list[jnp.ndarray],
+    rts_blocks: list[jnp.ndarray],
+    masks_blocks: list[jnp.ndarray] = None,
+):
+    """
+    Create bounded-space objective for WM-RL M4 (no parameter transforms).
+
+    Used with ScipyBoundedMinimize which handles bounds natively via L-BFGS-B.
+    10 parameters: alpha_pos, alpha_neg, phi, rho, capacity, kappa, v_scale, A, delta, t0.
+
+    B > A DECODE: b = params[7] + params[8] (A + delta) applied here.
+    NO epsilon.
+    """
+    # Lazy import to avoid float64 side-effect when not using M4
+    from scripts.fitting.lba_likelihood import wmrl_m4_multiblock_likelihood_stacked
+
+    stimuli_stacked   = jnp.stack(stimuli_blocks)
+    actions_stacked   = jnp.stack(actions_blocks)
+    rewards_stacked   = jnp.stack(rewards_blocks)
+    set_sizes_stacked = jnp.stack(set_sizes_blocks)
+    rts_stacked       = jnp.stack(rts_blocks)
+    if masks_blocks is not None:
+        masks_stacked = jnp.stack(masks_blocks)
+    else:
+        masks_stacked = jnp.ones((len(stimuli_blocks), stimuli_stacked.shape[1]),
+                                 dtype=jnp.float64)
+
+    @jax.jit
+    def objective(params: jnp.ndarray) -> float:
+        alpha_pos = params[0]
+        alpha_neg = params[1]
+        phi       = params[2]
+        rho       = params[3]
+        capacity  = params[4]
+        kappa     = params[5]
+        v_scale   = params[6]
+        A         = params[7]
+        delta     = params[8]
+        t0        = params[9]
+        # b > A decode: b = A + delta
+        b = A + delta
+        nll = wmrl_m4_multiblock_likelihood_stacked(
+            stimuli_stacked=stimuli_stacked,
+            actions_stacked=actions_stacked,
+            rewards_stacked=rewards_stacked,
+            set_sizes_stacked=set_sizes_stacked,
+            rts_stacked=rts_stacked,
+            masks_stacked=masks_stacked,
+            alpha_pos=alpha_pos,
+            alpha_neg=alpha_neg,
+            phi=phi,
+            rho=rho,
+            capacity=capacity,
+            kappa=kappa,
+            v_scale=v_scale,
+            A=A,
+            b=b,
+            t0=t0,
+        )
+        return nll  # Already NLL
+
+    return objective
+
 # =============================================================================
 # GPU Objective Functions (data-as-args for vmap compatibility)
 # =============================================================================
@@ -1025,6 +1175,48 @@ def _gpu_objective_wmrl_m6b(x, stimuli, actions, rewards, masks, set_sizes):
     )
     return -log_lik
 
+def _gpu_objective_wmrl_m4(x, stimuli, actions, rewards, masks, set_sizes, rts):
+    """
+    Unconstrained objective for WM-RL M4 (LBA joint choice+RT) with data as explicit args.
+
+    M4 has 7 data arguments (adds rts) compared to M1-M6b's 4-6.
+    M4 uses unconstrained→bounded transform + b = A + delta decode.
+    NO epsilon.
+
+    Args:
+        x: unconstrained parameter vector, shape (10,)
+        stimuli, actions, rewards, masks: shape (n_blocks, max_trials)
+        set_sizes: shape (n_blocks, max_trials)
+        rts: shape (n_blocks, max_trials), float64, seconds
+
+    Returns:
+        Scalar NLL (positive, for minimization)
+    """
+    from scripts.fitting.lba_likelihood import wmrl_m4_multiblock_likelihood_stacked
+    alpha_pos, alpha_neg, phi, rho, capacity, kappa, v_scale, A, delta, t0 = \
+        jax_unconstrained_to_params_wmrl_m4(x)
+    # b > A decode
+    b = A + delta
+    nll = wmrl_m4_multiblock_likelihood_stacked(
+        stimuli_stacked=stimuli,
+        actions_stacked=actions,
+        rewards_stacked=rewards,
+        set_sizes_stacked=set_sizes,
+        rts_stacked=rts,
+        masks_stacked=masks,
+        alpha_pos=alpha_pos,
+        alpha_neg=alpha_neg,
+        phi=phi,
+        rho=rho,
+        capacity=capacity,
+        kappa=kappa,
+        v_scale=v_scale,
+        A=A,
+        b=b,
+        t0=t0,
+    )
+    return nll  # Already NLL
+
 # =============================================================================
 # GPU-Vectorized Fitting (jaxopt.LBFGS + vmap over starts and participants)
 # =============================================================================
@@ -1086,6 +1278,7 @@ def fit_all_gpu(
     all_rewards = []
     all_masks = []
     all_set_sizes = []
+    all_rts = []
     trial_counts = []
 
     for pid in participants:
@@ -1095,8 +1288,11 @@ def fit_all_gpu(
         all_rewards.append(jnp.stack(pdata['rewards_blocks']))
         all_masks.append(jnp.stack(pdata['masks_blocks']))
 
-        if model in ('wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b'):
+        if model in ('wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b', 'wmrl_m4'):
             all_set_sizes.append(jnp.stack(pdata['set_sizes_blocks']))
+
+        if model == 'wmrl_m4':
+            all_rts.append(jnp.stack(pdata['rts_blocks']))
 
         trial_counts.append(int(sum(jnp.sum(m) for m in pdata['masks_blocks'])))
 
@@ -1105,7 +1301,8 @@ def fit_all_gpu(
     actions_batch = jnp.stack(all_actions)
     rewards_batch = jnp.stack(all_rewards)
     masks_batch = jnp.stack(all_masks)
-    set_sizes_batch = jnp.stack(all_set_sizes) if model in ('wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b') else None
+    set_sizes_batch = jnp.stack(all_set_sizes) if model in ('wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b', 'wmrl_m4') else None
+    rts_batch = jnp.stack(all_rts) if model == 'wmrl_m4' else None
 
     if verbose:
         print(f"  Stacked data shape: {stimuli_batch.shape} ({time.time() - t0:.1f}s)")
@@ -1128,6 +1325,8 @@ def fit_all_gpu(
         to_unc = jax_bounded_to_unconstrained_wmrl_m6a
     elif model == 'wmrl_m6b':
         to_unc = jax_bounded_to_unconstrained_wmrl_m6b
+    elif model == 'wmrl_m4':
+        to_unc = jax_bounded_to_unconstrained_wmrl_m4
     else:
         to_unc = jax_bounded_to_unconstrained_wmrl_m5
 
@@ -1153,6 +1352,8 @@ def fit_all_gpu(
         objective = _gpu_objective_wmrl_m6a
     elif model == 'wmrl_m6b':
         objective = _gpu_objective_wmrl_m6b
+    elif model == 'wmrl_m4':
+        objective = _gpu_objective_wmrl_m4
     else:
         objective = _gpu_objective_wmrl_m5
 
@@ -1176,8 +1377,17 @@ def fit_all_gpu(
         _run_all_starts = jax.vmap(_run_one, in_axes=(0, None, None, None, None))
         # vmap over participants: x0 fixed (None), data varies (axis 0)
         _run_all = jax.jit(jax.vmap(_run_all_starts, in_axes=(None, 0, 0, 0, 0)))
+    elif model == 'wmrl_m4':
+        # M4 has 7 data args (adds rts) -- SEPARATE branch required
+        def _run_one(x0, stimuli, actions, rewards, masks, set_sizes, rts):
+            params, state = solver.run(x0, stimuli, actions, rewards, masks, set_sizes, rts)
+            nll = objective(params, stimuli, actions, rewards, masks, set_sizes, rts)
+            return params, nll, state.error
+
+        _run_all_starts = jax.vmap(_run_one, in_axes=(0, None, None, None, None, None, None))
+        _run_all = jax.jit(jax.vmap(_run_all_starts, in_axes=(None, 0, 0, 0, 0, 0, 0)))
     else:
-        # wmrl, wmrl_m3, and wmrl_m5 share the same data signature (includes set_sizes)
+        # wmrl, wmrl_m3, wmrl_m5, wmrl_m6a, wmrl_m6b share the same 6-arg data signature
         def _run_one(x0, stimuli, actions, rewards, masks, set_sizes):
             params, state = solver.run(x0, stimuli, actions, rewards, masks, set_sizes)
             nll = objective(params, stimuli, actions, rewards, masks, set_sizes)
@@ -1198,6 +1408,11 @@ def fit_all_gpu(
     if model == 'qlearning':
         all_params, all_nlls, all_errors = _run_all(
             x0_unc, stimuli_batch, actions_batch, rewards_batch, masks_batch
+        )
+    elif model == 'wmrl_m4':
+        all_params, all_nlls, all_errors = _run_all(
+            x0_unc, stimuli_batch, actions_batch, rewards_batch, masks_batch,
+            set_sizes_batch, rts_batch
         )
     else:
         all_params, all_nlls, all_errors = _run_all(
@@ -1251,6 +1466,10 @@ def fit_all_gpu(
         bounded_tuple = jax.vmap(jax_unconstrained_to_params_wmrl_m6b)(best_params_unc)
         param_names = WMRL_M6B_PARAMS
         bounds_dict = WMRL_M6B_BOUNDS
+    elif model == 'wmrl_m4':
+        bounded_tuple = jax.vmap(jax_unconstrained_to_params_wmrl_m4)(best_params_unc)
+        param_names = WMRL_M4_PARAMS
+        bounds_dict = WMRL_M4_BOUNDS
     else:
         bounded_tuple = jax.vmap(jax_unconstrained_to_params_wmrl_m5)(best_params_unc)
         param_names = WMRL_M5_PARAMS
@@ -1354,6 +1573,13 @@ def fit_all_gpu(
                 objective_fn = _make_jax_objective_wmrl_m6b(
                     pdata['stimuli_blocks'], pdata['actions_blocks'],
                     pdata['rewards_blocks'], pdata['set_sizes_blocks'],
+                    masks_blocks=pdata.get('masks_blocks')
+                )
+            elif model == 'wmrl_m4':
+                objective_fn = _make_jax_objective_wmrl_m4(
+                    pdata['stimuli_blocks'], pdata['actions_blocks'],
+                    pdata['rewards_blocks'], pdata['set_sizes_blocks'],
+                    pdata['rts_blocks'],
                     masks_blocks=pdata.get('masks_blocks')
                 )
             else:
@@ -1478,6 +1704,7 @@ def fit_participant_mle(
     rewards_blocks: list[np.ndarray],
     set_sizes_blocks: list[np.ndarray] | None = None,
     masks_blocks: list[np.ndarray] | None = None,
+    rts_blocks: list[np.ndarray] | None = None,
     model: str = 'qlearning',
     n_starts: int = 50,
     seed: int | None = None,
@@ -1631,6 +1858,24 @@ def fit_participant_mle(
         n_params = 8
         param_names = WMRL_M6B_PARAMS
         bounds_dict = WMRL_M6B_BOUNDS
+    elif model == 'wmrl_m4':
+        # Enable float64 lazily (only when model == wmrl_m4)
+        jax.config.update("jax_enable_x64", True)
+        if set_sizes_blocks is None:
+            raise ValueError("set_sizes_blocks required for WM-RL M4 model")
+        if rts_blocks is None:
+            raise ValueError("rts_blocks required for WM-RL M4 model")
+        set_sizes_jax = [jnp.array(s, dtype=jnp.int32) for s in set_sizes_blocks]
+        rts_jax = [jnp.asarray(r, dtype=jnp.float64) for r in rts_blocks]
+        bounded_objective = _make_bounded_objective_wmrl_m4(
+            stimuli_jax, actions_jax, rewards_jax, set_sizes_jax, rts_jax, masks_blocks=masks_jax
+        )
+        objective = _make_jax_objective_wmrl_m4(
+            stimuli_jax, actions_jax, rewards_jax, set_sizes_jax, rts_jax, masks_blocks=masks_jax
+        )
+        n_params = 10
+        param_names = WMRL_M4_PARAMS
+        bounds_dict = WMRL_M4_BOUNDS
     else:
         raise ValueError(f"Unknown model: {model}")
     if show_setup_steps:
@@ -1897,6 +2142,11 @@ def prepare_participant_data(
         Dictionary with block-organized arrays. If pad_blocks=True, includes
         'masks_blocks' with 1.0 for real trials and 0.0 for padding.
     """
+    # Lazy import for M4 RT preprocessing (avoids float64 side-effect for other models)
+    if model == 'wmrl_m4':
+        jax.config.update("jax_enable_x64", True)
+        from scripts.fitting.lba_likelihood import preprocess_rt_block
+
     pdata = data[data['sona_id'] == participant_id].copy()
 
     stimuli_blocks = []
@@ -1904,6 +2154,7 @@ def prepare_participant_data(
     rewards_blocks = []
     set_sizes_blocks = []
     masks_blocks = []
+    rts_blocks = []  # M4 only
 
     for block_num in sorted(pdata['block'].unique()):
         block_data = pdata[pdata['block'] == block_num]
@@ -1913,7 +2164,7 @@ def prepare_participant_data(
         actions = jnp.array(block_data['key_press'].values, dtype=jnp.int32)
         rewards = jnp.array(block_data['reward'].values, dtype=jnp.float32)
 
-        if model in ('wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b') and 'set_size' in block_data.columns:
+        if model in ('wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b', 'wmrl_m4') and 'set_size' in block_data.columns:
             set_sizes = jnp.array(block_data['set_size'].values, dtype=jnp.int32)
         else:
             set_sizes = None
@@ -1933,7 +2184,26 @@ def prepare_participant_data(
             stimuli_blocks.append(stimuli_pad)
             actions_blocks.append(actions_pad)
             rewards_blocks.append(rewards_pad)
-            masks_blocks.append(mask)
+
+            # M4: extract and preprocess RT, combine mask with RT-outlier filter
+            if model == 'wmrl_m4':
+                rt_raw = jnp.array(block_data['rt'].values, dtype=jnp.float64)
+                rt_sec, valid_rt = preprocess_rt_block(rt_raw)
+                n_real = len(rt_sec)
+                # valid_rt has shape (n_real_trials,); mask has shape (max_trials,)
+                # Pad valid_rt to max_trials with False (padding trials are already masked)
+                valid_rt_padded = jnp.zeros(max_trials, dtype=jnp.float32)
+                valid_rt_padded = valid_rt_padded.at[:n_real].set(valid_rt.astype(jnp.float32))
+                # Combine padding mask with RT-outlier mask
+                # Trials that are padding OR RT-outliers contribute 0 to NLL
+                combined_mask = mask * valid_rt_padded
+                masks_blocks.append(combined_mask)
+                # Pad RT to max_trials with zeros (padding value; masked out)
+                rt_padded = jnp.zeros(max_trials, dtype=jnp.float64)
+                rt_padded = rt_padded.at[:n_real].set(rt_sec)
+                rts_blocks.append(rt_padded)
+            else:
+                masks_blocks.append(mask)
         else:
             # No padding (original behavior)
             stimuli_blocks.append(stimuli)
@@ -1941,6 +2211,10 @@ def prepare_participant_data(
             rewards_blocks.append(rewards)
             if set_sizes is not None:
                 set_sizes_blocks.append(set_sizes)
+            if model == 'wmrl_m4':
+                rt_raw = jnp.array(block_data['rt'].values, dtype=jnp.float64)
+                rt_sec, valid_rt = preprocess_rt_block(rt_raw)
+                rts_blocks.append(rt_sec)
 
     # Pad to fixed number of blocks for consistent JAX compilation
     # This eliminates recompilation when participants have different block counts
@@ -1950,8 +2224,13 @@ def prepare_participant_data(
             stimuli_blocks, actions_blocks, rewards_blocks,
             masks_blocks,
             max_blocks=MAX_BLOCKS,
-            set_sizes_blocks=set_sizes_blocks if model in ('wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b') else None
+            set_sizes_blocks=set_sizes_blocks if model in ('wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b', 'wmrl_m4') else None
         )
+        # M4: also pad rts_blocks to MAX_BLOCKS with zero-filled blocks
+        if model == 'wmrl_m4' and len(rts_blocks) < MAX_BLOCKS:
+            empty_rt_block = jnp.zeros(max_trials, dtype=jnp.float64)
+            while len(rts_blocks) < MAX_BLOCKS:
+                rts_blocks.append(empty_rt_block)
 
     result = {
         'stimuli_blocks': stimuli_blocks,
@@ -1962,8 +2241,11 @@ def prepare_participant_data(
     if pad_blocks:
         result['masks_blocks'] = masks_blocks
 
-    if model in ('wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b'):
+    if model in ('wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b', 'wmrl_m4'):
         result['set_sizes_blocks'] = set_sizes_blocks
+
+    if model == 'wmrl_m4':
+        result['rts_blocks'] = rts_blocks
 
     return result
 
@@ -2003,6 +2285,7 @@ def _fit_single_participant_worker(args: tuple) -> dict:
         rewards_blocks=data_dict['rewards_blocks'],
         set_sizes_blocks=data_dict.get('set_sizes_blocks'),
         masks_blocks=data_dict.get('masks_blocks'),  # Pass masks for padded blocks
+        rts_blocks=data_dict.get('rts_blocks'),      # M4 only; None for other models
         model=model,
         n_starts=n_starts,
         seed=seed,
@@ -2341,6 +2624,8 @@ def fit_all_participants(
         param_cols = WMRL_M6A_PARAMS
     elif model == 'wmrl_m6b':
         param_cols = WMRL_M6B_PARAMS
+    elif model == 'wmrl_m4':
+        param_cols = WMRL_M4_PARAMS
     else:
         param_cols = []
 
@@ -2484,8 +2769,8 @@ def main():
         description='MLE fitting for RLWM models (Senta et al. methodology)'
     )
     parser.add_argument('--model', type=str, required=True,
-                        choices=['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b'],
-                        help='Model to fit (qlearning=M1, wmrl=M2, wmrl_m3=M3, wmrl_m5=M5, wmrl_m6a=M6a, wmrl_m6b=M6b)')
+                        choices=['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b', 'wmrl_m4'],
+                        help='Model to fit (qlearning=M1, wmrl=M2, wmrl_m3=M3, wmrl_m4=M4, wmrl_m5=M5, wmrl_m6a=M6a, wmrl_m6b=M6b)')
     parser.add_argument('--data', type=str, required=True,
                         help='Path to trial data CSV')
     parser.add_argument('--output', type=str, default='output/mle/',
@@ -2510,6 +2795,11 @@ def main():
                         help='Compute Hessian diagnostics (adds 5-30s per participant)')
 
     args = parser.parse_args()
+
+    # M4: enable float64 early (before any JAX ops) to avoid contamination
+    if args.model == 'wmrl_m4':
+        jax.config.update("jax_enable_x64", True)
+        from scripts.fitting.lba_likelihood import preprocess_rt_block  # noqa: F401 (triggers float64)
 
     # Create output directory
     output_dir = Path(args.output)
@@ -2703,6 +2993,8 @@ def main():
         param_names = WMRL_M6A_PARAMS
     elif args.model == 'wmrl_m6b':
         param_names = WMRL_M6B_PARAMS
+    elif args.model == 'wmrl_m4':
+        param_names = WMRL_M4_PARAMS
     else:
         param_names = []
     for param in param_names:
