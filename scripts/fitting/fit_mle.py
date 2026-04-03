@@ -98,6 +98,8 @@ from scripts.fitting.jax_likelihoods import (
     wmrl_m5_multiblock_likelihood_stacked,  # Fast stacked version (M5)
     wmrl_m6a_multiblock_likelihood,
     wmrl_m6a_multiblock_likelihood_stacked,  # Fast stacked version (M6a)
+    wmrl_m6b_multiblock_likelihood,
+    wmrl_m6b_multiblock_likelihood_stacked,  # Fast stacked version (M6b)
     wmrl_multiblock_likelihood,
     wmrl_multiblock_likelihood_stacked,  # Fast stacked version
 )
@@ -113,6 +115,8 @@ from scripts.fitting.mle_utils import (
     WMRL_M5_PARAMS,
     WMRL_M6A_BOUNDS,
     WMRL_M6A_PARAMS,
+    WMRL_M6B_BOUNDS,
+    WMRL_M6B_PARAMS,
     WMRL_PARAMS,
     check_at_bounds,
     check_convergence,
@@ -131,11 +135,13 @@ from scripts.fitting.mle_utils import (
     jax_bounded_to_unconstrained_wmrl_m3,
     jax_bounded_to_unconstrained_wmrl_m5,
     jax_bounded_to_unconstrained_wmrl_m6a,
+    jax_bounded_to_unconstrained_wmrl_m6b,
     jax_unconstrained_to_params_qlearning,
     jax_unconstrained_to_params_wmrl,
     jax_unconstrained_to_params_wmrl_m3,
     jax_unconstrained_to_params_wmrl_m5,
     jax_unconstrained_to_params_wmrl_m6a,
+    jax_unconstrained_to_params_wmrl_m6b,
     params_to_unconstrained,
     sample_lhs_starts,
     summarize_all_parameters,
@@ -209,6 +215,13 @@ def warmup_jax_compilation(model: str, verbose: bool = True):
             stimuli_blocks, actions_blocks, rewards_blocks, set_sizes_blocks,
             alpha_pos=0.3, alpha_neg=0.1, phi=0.1, rho=0.7, capacity=4.0,
             kappa_s=0.1, epsilon=0.05
+        )
+    elif model == 'wmrl_m6b':
+        # kappa=0.1, kappa_s=0.1 are decoded values (kappa_total=0.2, kappa_share=0.5)
+        wmrl_m6b_multiblock_likelihood(
+            stimuli_blocks, actions_blocks, rewards_blocks, set_sizes_blocks,
+            alpha_pos=0.3, alpha_neg=0.1, phi=0.1, rho=0.7, capacity=4.0,
+            kappa=0.1, kappa_s=0.1, epsilon=0.05
         )
 
     if verbose:
@@ -474,6 +487,66 @@ def _make_jax_objective_wmrl_m6a(
     # JIT-compile for massive speedup (eliminates Python dispatch overhead)
     return jax.jit(objective)
 
+def _make_jax_objective_wmrl_m6b(
+    stimuli_blocks: list[jnp.ndarray],
+    actions_blocks: list[jnp.ndarray],
+    rewards_blocks: list[jnp.ndarray],
+    set_sizes_blocks: list[jnp.ndarray],
+    masks_blocks: list[jnp.ndarray] = None,
+):
+    """
+    Create a JAX-compatible objective function for WM-RL M6b (dual perseveration).
+
+    Returns a JIT-compiled pure function that takes unconstrained parameters
+    and returns NLL. 8 parameters: alpha_pos, alpha_neg, phi, rho, capacity,
+    kappa_total, kappa_share, epsilon.
+
+    STICK-BREAKING DECODE: kappa = kappa_total * kappa_share;
+    kappa_s = kappa_total * (1 - kappa_share). Applied here, NOT in the transform.
+
+    Args:
+        stimuli_blocks: list of stimulus arrays per block
+        actions_blocks: list of action arrays per block
+        rewards_blocks: list of reward arrays per block
+        set_sizes_blocks: list of set size arrays per block
+        masks_blocks: list of mask arrays per block (1.0 for real trials, 0.0 for padding).
+    """
+    # Pre-stack blocks ONCE - use stacked version to avoid list/restack overhead
+    stimuli_stacked = jnp.stack(stimuli_blocks)
+    actions_stacked = jnp.stack(actions_blocks)
+    rewards_stacked = jnp.stack(rewards_blocks)
+    set_sizes_stacked = jnp.stack(set_sizes_blocks)
+    if masks_blocks is not None:
+        masks_stacked = jnp.stack(masks_blocks)
+    else:
+        masks_stacked = jnp.ones((len(stimuli_blocks), stimuli_stacked.shape[1]))
+
+    def objective(x: jnp.ndarray) -> float:
+        alpha_pos, alpha_neg, phi, rho, capacity, kappa_total, kappa_share, epsilon = \
+            jax_unconstrained_to_params_wmrl_m6b(x)
+        # Stick-breaking decode: enforces kappa + kappa_s = kappa_total <= 1
+        kappa   = kappa_total * kappa_share
+        kappa_s = kappa_total * (1 - kappa_share)
+        log_lik = wmrl_m6b_multiblock_likelihood_stacked(
+            stimuli_stacked=stimuli_stacked,
+            actions_stacked=actions_stacked,
+            rewards_stacked=rewards_stacked,
+            set_sizes_stacked=set_sizes_stacked,
+            masks_stacked=masks_stacked,
+            alpha_pos=alpha_pos,
+            alpha_neg=alpha_neg,
+            phi=phi,
+            rho=rho,
+            capacity=capacity,
+            kappa=kappa,
+            kappa_s=kappa_s,
+            epsilon=epsilon,
+        )
+        return -log_lik
+
+    # JIT-compile for massive speedup (eliminates Python dispatch overhead)
+    return jax.jit(objective)
+
 # =============================================================================
 # Bounded Objective Functions (for ScipyBoundedMinimize / L-BFGS-B)
 # =============================================================================
@@ -709,6 +782,63 @@ def _make_bounded_objective_wmrl_m6a(
 
     return objective
 
+def _make_bounded_objective_wmrl_m6b(
+    stimuli_blocks: list[jnp.ndarray],
+    actions_blocks: list[jnp.ndarray],
+    rewards_blocks: list[jnp.ndarray],
+    set_sizes_blocks: list[jnp.ndarray],
+    masks_blocks: list[jnp.ndarray] = None,
+):
+    """
+    Create bounded-space objective for WM-RL M6b (no parameter transforms).
+
+    Used with ScipyBoundedMinimize which handles bounds natively via L-BFGS-B.
+    8 parameters: alpha_pos, alpha_neg, phi, rho, capacity, kappa_total, kappa_share, epsilon
+
+    STICK-BREAKING DECODE: kappa = params[5] * params[6];
+    kappa_s = params[5] * (1 - params[6]). Applied here, NOT in transforms.
+    """
+    stimuli_stacked = jnp.stack(stimuli_blocks)
+    actions_stacked = jnp.stack(actions_blocks)
+    rewards_stacked = jnp.stack(rewards_blocks)
+    set_sizes_stacked = jnp.stack(set_sizes_blocks)
+    if masks_blocks is not None:
+        masks_stacked = jnp.stack(masks_blocks)
+    else:
+        masks_stacked = jnp.ones((len(stimuli_blocks), stimuli_stacked.shape[1]))
+
+    @jax.jit
+    def objective(params: jnp.ndarray) -> float:
+        alpha_pos   = params[0]
+        alpha_neg   = params[1]
+        phi         = params[2]
+        rho         = params[3]
+        capacity    = params[4]
+        kappa_total = params[5]
+        kappa_share = params[6]
+        epsilon     = params[7]
+        # Stick-breaking decode: enforces kappa + kappa_s = kappa_total <= 1
+        kappa   = kappa_total * kappa_share
+        kappa_s = kappa_total * (1 - kappa_share)
+        log_lik = wmrl_m6b_multiblock_likelihood_stacked(
+            stimuli_stacked=stimuli_stacked,
+            actions_stacked=actions_stacked,
+            rewards_stacked=rewards_stacked,
+            set_sizes_stacked=set_sizes_stacked,
+            masks_stacked=masks_stacked,
+            alpha_pos=alpha_pos,
+            alpha_neg=alpha_neg,
+            phi=phi,
+            rho=rho,
+            capacity=capacity,
+            kappa=kappa,
+            kappa_s=kappa_s,
+            epsilon=epsilon,
+        )
+        return -log_lik
+
+    return objective
+
 # =============================================================================
 # GPU Objective Functions (data-as-args for vmap compatibility)
 # =============================================================================
@@ -858,6 +988,43 @@ def _gpu_objective_wmrl_m6a(x, stimuli, actions, rewards, masks, set_sizes):
     )
     return -log_lik
 
+def _gpu_objective_wmrl_m6b(x, stimuli, actions, rewards, masks, set_sizes):
+    """
+    Unconstrained objective for WM-RL M6b (dual perseveration) with data as explicit args.
+
+    Args:
+        x: unconstrained parameter vector, shape (8,) [kappa_total, kappa_share at index 5, 6]
+        stimuli, actions, rewards, masks: shape (n_blocks, max_trials)
+        set_sizes: shape (n_blocks, max_trials)
+
+    Returns:
+        Scalar negative log-likelihood
+
+    STICK-BREAKING DECODE: kappa = kappa_total * kappa_share;
+    kappa_s = kappa_total * (1 - kappa_share). Applied here, NOT in the transform.
+    """
+    alpha_pos, alpha_neg, phi, rho, capacity, kappa_total, kappa_share, epsilon = \
+        jax_unconstrained_to_params_wmrl_m6b(x)
+    # Stick-breaking decode: enforces kappa + kappa_s = kappa_total <= 1
+    kappa   = kappa_total * kappa_share
+    kappa_s = kappa_total * (1 - kappa_share)
+    log_lik = wmrl_m6b_multiblock_likelihood_stacked(
+        stimuli_stacked=stimuli,
+        actions_stacked=actions,
+        rewards_stacked=rewards,
+        set_sizes_stacked=set_sizes,
+        masks_stacked=masks,
+        alpha_pos=alpha_pos,
+        alpha_neg=alpha_neg,
+        phi=phi,
+        rho=rho,
+        capacity=capacity,
+        kappa=kappa,
+        kappa_s=kappa_s,
+        epsilon=epsilon,
+    )
+    return -log_lik
+
 # =============================================================================
 # GPU-Vectorized Fitting (jaxopt.LBFGS + vmap over starts and participants)
 # =============================================================================
@@ -928,7 +1095,7 @@ def fit_all_gpu(
         all_rewards.append(jnp.stack(pdata['rewards_blocks']))
         all_masks.append(jnp.stack(pdata['masks_blocks']))
 
-        if model in ('wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a'):
+        if model in ('wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b'):
             all_set_sizes.append(jnp.stack(pdata['set_sizes_blocks']))
 
         trial_counts.append(int(sum(jnp.sum(m) for m in pdata['masks_blocks'])))
@@ -938,7 +1105,7 @@ def fit_all_gpu(
     actions_batch = jnp.stack(all_actions)
     rewards_batch = jnp.stack(all_rewards)
     masks_batch = jnp.stack(all_masks)
-    set_sizes_batch = jnp.stack(all_set_sizes) if model in ('wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a') else None
+    set_sizes_batch = jnp.stack(all_set_sizes) if model in ('wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b') else None
 
     if verbose:
         print(f"  Stacked data shape: {stimuli_batch.shape} ({time.time() - t0:.1f}s)")
@@ -959,6 +1126,8 @@ def fit_all_gpu(
         to_unc = jax_bounded_to_unconstrained_wmrl_m3
     elif model == 'wmrl_m6a':
         to_unc = jax_bounded_to_unconstrained_wmrl_m6a
+    elif model == 'wmrl_m6b':
+        to_unc = jax_bounded_to_unconstrained_wmrl_m6b
     else:
         to_unc = jax_bounded_to_unconstrained_wmrl_m5
 
@@ -982,6 +1151,8 @@ def fit_all_gpu(
         objective = _gpu_objective_wmrl_m3
     elif model == 'wmrl_m6a':
         objective = _gpu_objective_wmrl_m6a
+    elif model == 'wmrl_m6b':
+        objective = _gpu_objective_wmrl_m6b
     else:
         objective = _gpu_objective_wmrl_m5
 
@@ -1076,6 +1247,10 @@ def fit_all_gpu(
         bounded_tuple = jax.vmap(jax_unconstrained_to_params_wmrl_m6a)(best_params_unc)
         param_names = WMRL_M6A_PARAMS
         bounds_dict = WMRL_M6A_BOUNDS
+    elif model == 'wmrl_m6b':
+        bounded_tuple = jax.vmap(jax_unconstrained_to_params_wmrl_m6b)(best_params_unc)
+        param_names = WMRL_M6B_PARAMS
+        bounds_dict = WMRL_M6B_BOUNDS
     else:
         bounded_tuple = jax.vmap(jax_unconstrained_to_params_wmrl_m5)(best_params_unc)
         param_names = WMRL_M5_PARAMS
@@ -1171,6 +1346,12 @@ def fit_all_gpu(
                 )
             elif model == 'wmrl_m6a':
                 objective_fn = _make_jax_objective_wmrl_m6a(
+                    pdata['stimuli_blocks'], pdata['actions_blocks'],
+                    pdata['rewards_blocks'], pdata['set_sizes_blocks'],
+                    masks_blocks=pdata.get('masks_blocks')
+                )
+            elif model == 'wmrl_m6b':
+                objective_fn = _make_jax_objective_wmrl_m6b(
                     pdata['stimuli_blocks'], pdata['actions_blocks'],
                     pdata['rewards_blocks'], pdata['set_sizes_blocks'],
                     masks_blocks=pdata.get('masks_blocks')
@@ -1437,6 +1618,19 @@ def fit_participant_mle(
         n_params = 7
         param_names = WMRL_M6A_PARAMS
         bounds_dict = WMRL_M6A_BOUNDS
+    elif model == 'wmrl_m6b':
+        if set_sizes_blocks is None:
+            raise ValueError("set_sizes_blocks required for WM-RL M6b model")
+        set_sizes_jax = [jnp.array(s, dtype=jnp.int32) for s in set_sizes_blocks]
+        bounded_objective = _make_bounded_objective_wmrl_m6b(
+            stimuli_jax, actions_jax, rewards_jax, set_sizes_jax, masks_blocks=masks_jax
+        )
+        objective = _make_jax_objective_wmrl_m6b(
+            stimuli_jax, actions_jax, rewards_jax, set_sizes_jax, masks_blocks=masks_jax
+        )
+        n_params = 8
+        param_names = WMRL_M6B_PARAMS
+        bounds_dict = WMRL_M6B_BOUNDS
     else:
         raise ValueError(f"Unknown model: {model}")
     if show_setup_steps:
@@ -1719,7 +1913,7 @@ def prepare_participant_data(
         actions = jnp.array(block_data['key_press'].values, dtype=jnp.int32)
         rewards = jnp.array(block_data['reward'].values, dtype=jnp.float32)
 
-        if model in ('wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a') and 'set_size' in block_data.columns:
+        if model in ('wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b') and 'set_size' in block_data.columns:
             set_sizes = jnp.array(block_data['set_size'].values, dtype=jnp.int32)
         else:
             set_sizes = None
@@ -1756,7 +1950,7 @@ def prepare_participant_data(
             stimuli_blocks, actions_blocks, rewards_blocks,
             masks_blocks,
             max_blocks=MAX_BLOCKS,
-            set_sizes_blocks=set_sizes_blocks if model in ('wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a') else None
+            set_sizes_blocks=set_sizes_blocks if model in ('wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b') else None
         )
 
     result = {
@@ -1768,7 +1962,7 @@ def prepare_participant_data(
     if pad_blocks:
         result['masks_blocks'] = masks_blocks
 
-    if model in ('wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a'):
+    if model in ('wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b'):
         result['set_sizes_blocks'] = set_sizes_blocks
 
     return result
@@ -2145,6 +2339,8 @@ def fit_all_participants(
         param_cols = WMRL_M5_PARAMS
     elif model == 'wmrl_m6a':
         param_cols = WMRL_M6A_PARAMS
+    elif model == 'wmrl_m6b':
+        param_cols = WMRL_M6B_PARAMS
     else:
         param_cols = []
 
@@ -2288,8 +2484,8 @@ def main():
         description='MLE fitting for RLWM models (Senta et al. methodology)'
     )
     parser.add_argument('--model', type=str, required=True,
-                        choices=['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a'],
-                        help='Model to fit (qlearning=M1, wmrl=M2, wmrl_m3=M3, wmrl_m5=M5, wmrl_m6a=M6a)')
+                        choices=['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b'],
+                        help='Model to fit (qlearning=M1, wmrl=M2, wmrl_m3=M3, wmrl_m5=M5, wmrl_m6a=M6a, wmrl_m6b=M6b)')
     parser.add_argument('--data', type=str, required=True,
                         help='Path to trial data CSV')
     parser.add_argument('--output', type=str, default='output/mle/',
@@ -2505,6 +2701,8 @@ def main():
         param_names = WMRL_M5_PARAMS
     elif args.model == 'wmrl_m6a':
         param_names = WMRL_M6A_PARAMS
+    elif args.model == 'wmrl_m6b':
+        param_names = WMRL_M6B_PARAMS
     else:
         param_names = []
     for param in param_names:
