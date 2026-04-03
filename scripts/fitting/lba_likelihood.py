@@ -363,6 +363,391 @@ def test_t0_validation():
     print("  t0 validation: correctly passed for t0 < min(RT) [PASS]")
 
 
+# =============================================================================
+# M4 BLOCK AND MULTIBLOCK LIKELIHOOD FUNCTIONS
+# =============================================================================
+# M4 reuses M3 learning dynamics (Q, WM, omega, kappa perseveration) but
+# replaces the softmax log-probability with LBA joint choice+RT density.
+# No epsilon parameter. Drift rates: v_i = v_scale * pi_hybrid.
+
+def wmrl_m4_block_likelihood(
+    stimuli: jnp.ndarray,
+    actions: jnp.ndarray,
+    rewards: jnp.ndarray,
+    set_sizes: jnp.ndarray,
+    rts: jnp.ndarray,
+    alpha_pos: float,
+    alpha_neg: float,
+    phi: float,
+    rho: float,
+    capacity: float,
+    kappa: float,
+    v_scale: float,
+    A: float,
+    b: float,
+    t0: float,
+    num_stimuli: int = 6,
+    num_actions: int = 3,
+    q_init: float = 0.5,
+    wm_init: float = 1.0 / 3.0,
+    mask: jnp.ndarray = None,
+) -> float:
+    """Compute NLL for WM-RL M4 (LBA decision) on a SINGLE BLOCK.
+
+    M4 extends M3 by replacing the softmax choice probability with a Linear
+    Ballistic Accumulator (LBA) that produces a joint choice+RT density.
+    Learning dynamics (Q, WM, omega, kappa perseveration) are IDENTICAL to M3.
+    No epsilon parameter -- start-point variability A models undirected exploration.
+
+    Parameters
+    ----------
+    stimuli : array, shape (n_trials,)
+        Stimulus sequence (int32).
+    actions : array, shape (n_trials,)
+        Action sequence (int32).
+    rewards : array, shape (n_trials,)
+        Reward sequence (float64).
+    set_sizes : array, shape (n_trials,)
+        Set size for adaptive weighting (int32).
+    rts : array, shape (n_trials,)
+        Reaction times in seconds (float64). Outliers already filtered by mask.
+    alpha_pos : float
+        RL learning rate for positive prediction error.
+    alpha_neg : float
+        RL learning rate for negative prediction error.
+    phi : float
+        WM decay rate (0-1).
+    rho : float
+        Base WM reliance (0-1).
+    capacity : float
+        WM capacity (for adaptive weighting).
+    kappa : float
+        Perseveration parameter (0-1).
+    v_scale : float
+        Drift rate scaling (positive); v_i = v_scale * pi_hybrid[i].
+    A : float
+        Maximum starting point (seconds, uniform on [0, A]).
+    b : float
+        Decision threshold (seconds). Caller ensures b > A via b = A + delta.
+    t0 : float
+        Non-decision time (seconds).
+    num_stimuli : int
+        Number of possible stimuli (default 6).
+    num_actions : int
+        Number of possible actions (default 3).
+    q_init : float
+        Initial Q-values (default 0.5).
+    wm_init : float
+        Initial WM values (default 1/nA = uniform).
+    mask : array, shape (n_trials,), optional
+        1.0 for real trials, 0.0 for padding/RT-outlier-filtered trials.
+
+    Returns
+    -------
+    float
+        Negative log-likelihood (NLL) for this block. Float64.
+    """
+    FIXED_BETA = 50.0
+
+    # Initialize carry: (Q, WM, WM_baseline, log_lik_accum, last_action)
+    Q_init_mat  = jnp.full((num_stimuli, num_actions), q_init,  dtype=jnp.float64)
+    WM_init_mat = jnp.full((num_stimuli, num_actions), wm_init, dtype=jnp.float64)
+    WM_0        = jnp.full((num_stimuli, num_actions), wm_init, dtype=jnp.float64)
+    init_carry  = (Q_init_mat, WM_init_mat, WM_0, jnp.float64(0.0), jnp.int32(-1))
+
+    if mask is None:
+        mask = jnp.ones(stimuli.shape[0], dtype=jnp.float64)
+
+    scan_inputs = (stimuli, actions, rewards, set_sizes, rts, mask)
+
+    def step_fn(carry, inputs):
+        Q_table, WM_table, WM_baseline, log_lik_accum, last_action = carry
+        stimulus, action, reward, set_size, rt, valid = inputs
+
+        # ------------------------------------------------------------------
+        # 1. DECAY WM toward baseline
+        # ------------------------------------------------------------------
+        WM_decayed = (1.0 - phi) * WM_table + phi * WM_baseline
+
+        # ------------------------------------------------------------------
+        # 2. COMPUTE HYBRID POLICY (identical to M3, no epsilon)
+        # ------------------------------------------------------------------
+        q_vals  = Q_table[stimulus].astype(jnp.float64)
+        wm_vals = WM_decayed[stimulus].astype(jnp.float64)
+
+        # Softmax (beta=50) for RL and WM paths
+        q_scaled  = FIXED_BETA * (q_vals  - jnp.max(q_vals))
+        wm_scaled = FIXED_BETA * (wm_vals - jnp.max(wm_vals))
+        rl_probs  = jnp.exp(q_scaled)  / jnp.sum(jnp.exp(q_scaled))
+        wm_probs  = jnp.exp(wm_scaled) / jnp.sum(jnp.exp(wm_scaled))
+
+        # Adaptive weighting: omega = rho * min(1, capacity/set_size)
+        omega = rho * jnp.minimum(1.0, capacity / set_size.astype(jnp.float64))
+        hybrid_probs = omega * wm_probs + (1.0 - omega) * rl_probs
+        hybrid_probs = hybrid_probs / jnp.sum(hybrid_probs)  # renormalize
+
+        # Perseveration kernel (M3 pattern, effective-weight gating)
+        has_prev    = last_action >= 0
+        Ck          = jnp.eye(num_actions, dtype=jnp.float64)[jnp.maximum(last_action, 0)]
+        eff_kappa   = jnp.where(has_prev, kappa, jnp.float64(0.0))
+        pi_hybrid   = (1.0 - eff_kappa) * hybrid_probs + eff_kappa * Ck
+
+        # ------------------------------------------------------------------
+        # 3. M4 DECISION: LBA drift rates from hybrid policy (no epsilon)
+        # ------------------------------------------------------------------
+        v_all = jnp.asarray(v_scale, dtype=jnp.float64) * pi_hybrid  # (num_actions,)
+
+        # Adjusted time: t* = RT - t0, clamped for numerical safety
+        t_star = jnp.maximum(rt - jnp.asarray(t0, dtype=jnp.float64), jnp.float64(1e-6))
+
+        # Joint LBA log-likelihood: log f_{chosen}(t*) + sum_{j != chosen} log S_j(t*)
+        log_prob = lba_joint_log_lik(t_star, action, b, A, v_all, FIXED_S)
+
+        # Mask: padding/RT-outlier trials contribute 0 to NLL
+        log_prob_masked = jnp.where(valid, log_prob, jnp.float64(0.0))
+
+        # ------------------------------------------------------------------
+        # 4. UPDATE WM: immediate overwrite (masked)
+        # ------------------------------------------------------------------
+        wm_current = WM_decayed[stimulus, action]
+        WM_updated = WM_decayed.at[stimulus, action].set(
+            jnp.where(valid, reward.astype(jnp.float64), wm_current)
+        )
+
+        # ------------------------------------------------------------------
+        # 5. UPDATE Q-TABLE: asymmetric delta rule (masked)
+        # ------------------------------------------------------------------
+        q_current = Q_table[stimulus, action]
+        delta     = reward.astype(jnp.float64) - q_current
+        alpha_lr  = jnp.where(delta > 0, alpha_pos, alpha_neg)
+        q_updated = q_current + alpha_lr * delta
+        Q_updated = Q_table.at[stimulus, action].set(
+            jnp.where(valid, q_updated, q_current)
+        )
+
+        # Accumulate log-likelihood
+        log_lik_new = log_lik_accum + log_prob_masked
+
+        # Update last_action only for valid trials
+        new_last_action = jnp.where(valid, action, last_action).astype(jnp.int32)
+
+        return (Q_updated, WM_updated, WM_baseline, log_lik_new, new_last_action), log_prob_masked
+
+    # Run scan over trials
+    (_, _, _, log_lik_total, _), _ = lax.scan(step_fn, init_carry, scan_inputs)
+
+    # Return NLL (negative log-likelihood)
+    return -log_lik_total
+
+
+def wmrl_m4_multiblock_likelihood(
+    stimuli_blocks: list,
+    actions_blocks: list,
+    rewards_blocks: list,
+    set_sizes_blocks: list,
+    rts_blocks: list,
+    alpha_pos: float,
+    alpha_neg: float,
+    phi: float,
+    rho: float,
+    capacity: float,
+    kappa: float,
+    v_scale: float,
+    A: float,
+    b: float,
+    t0: float,
+    num_stimuli: int = 6,
+    num_actions: int = 3,
+    q_init: float = 0.5,
+    wm_init: float = 1.0 / 3.0,
+    masks_blocks: list = None,
+) -> float:
+    """Compute NLL for M4 across multiple blocks.
+
+    Q-values, WM, and last_action reset at each block boundary (independent blocks).
+
+    Parameters
+    ----------
+    stimuli_blocks, actions_blocks, rewards_blocks, set_sizes_blocks : lists
+        Per-block data arrays.
+    rts_blocks : list
+        Per-block RT arrays in seconds (float64). Outliers filtered by mask.
+    A : float
+        Max starting point (seconds).
+    b : float
+        Decision threshold (seconds). Caller encodes b = A + delta.
+    (other params same as wmrl_m4_block_likelihood)
+
+    Returns
+    -------
+    float
+        Total NLL summed across blocks.
+    """
+    num_blocks = len(stimuli_blocks)
+
+    if masks_blocks is None:
+        masks_blocks = [None] * num_blocks
+
+    total_nll = 0.0
+    for stim, act, rew, ss, rt, mask in zip(
+        stimuli_blocks, actions_blocks, rewards_blocks,
+        set_sizes_blocks, rts_blocks, masks_blocks
+    ):
+        block_nll = wmrl_m4_block_likelihood(
+            stimuli=stim, actions=act, rewards=rew, set_sizes=ss, rts=rt,
+            alpha_pos=alpha_pos, alpha_neg=alpha_neg, phi=phi, rho=rho,
+            capacity=capacity, kappa=kappa, v_scale=v_scale, A=A, b=b, t0=t0,
+            num_stimuli=num_stimuli, num_actions=num_actions,
+            q_init=q_init, wm_init=wm_init, mask=mask,
+        )
+        total_nll = total_nll + block_nll
+
+    return total_nll
+
+
+def wmrl_m4_multiblock_likelihood_stacked(
+    stimuli_stacked: jnp.ndarray,
+    actions_stacked: jnp.ndarray,
+    rewards_stacked: jnp.ndarray,
+    set_sizes_stacked: jnp.ndarray,
+    rts_stacked: jnp.ndarray,
+    masks_stacked: jnp.ndarray,
+    alpha_pos: float,
+    alpha_neg: float,
+    phi: float,
+    rho: float,
+    capacity: float,
+    kappa: float,
+    v_scale: float,
+    A: float,
+    b: float,
+    t0: float,
+    num_stimuli: int = 6,
+    num_actions: int = 3,
+    q_init: float = 0.5,
+    wm_init: float = 1.0 / 3.0,
+) -> float:
+    """Stacked (fori_loop) version of M4 multiblock likelihood.
+
+    Takes pre-stacked arrays of shape (MAX_BLOCKS, MAX_TRIALS_PER_BLOCK).
+    Used by the GPU/JIT-compiled objective functions in fit_mle.py.
+
+    Parameters
+    ----------
+    stimuli_stacked : array, shape (n_blocks, max_trials)
+    actions_stacked : array, shape (n_blocks, max_trials)
+    rewards_stacked : array, shape (n_blocks, max_trials)
+    set_sizes_stacked : array, shape (n_blocks, max_trials)
+    rts_stacked : array, shape (n_blocks, max_trials) -- float64, seconds
+    masks_stacked : array, shape (n_blocks, max_trials) -- 1.0 real, 0.0 pad
+
+    Returns
+    -------
+    float
+        Total NLL (float64).
+    """
+    num_blocks = stimuli_stacked.shape[0]
+
+    def body_fn(block_idx, total_nll):
+        block_nll = wmrl_m4_block_likelihood(
+            stimuli=stimuli_stacked[block_idx],
+            actions=actions_stacked[block_idx],
+            rewards=rewards_stacked[block_idx],
+            set_sizes=set_sizes_stacked[block_idx],
+            rts=rts_stacked[block_idx],
+            alpha_pos=alpha_pos,
+            alpha_neg=alpha_neg,
+            phi=phi,
+            rho=rho,
+            capacity=capacity,
+            kappa=kappa,
+            v_scale=v_scale,
+            A=A,
+            b=b,
+            t0=t0,
+            num_stimuli=num_stimuli,
+            num_actions=num_actions,
+            q_init=q_init,
+            wm_init=wm_init,
+            mask=masks_stacked[block_idx],
+        )
+        return total_nll + block_nll
+
+    return lax.fori_loop(0, num_blocks, body_fn, jnp.float64(0.0))
+
+
+# =============================================================================
+# M4 INLINE SMOKE TESTS
+# =============================================================================
+
+def test_wmrl_m4_single_block():
+    """Smoke test: M4 NLL is finite and positive for typical params."""
+    import numpy as np
+
+    n_trials = 10
+    rng = np.random.default_rng(0)
+
+    # Synthetic data
+    stimuli  = jnp.array(rng.integers(0, 4, n_trials), dtype=jnp.int32)
+    actions  = jnp.array(rng.integers(0, 3, n_trials), dtype=jnp.int32)
+    rewards  = jnp.array(rng.binomial(1, 0.7, n_trials), dtype=jnp.float64)
+    set_sizes = jnp.full(n_trials, 4, dtype=jnp.int32)
+    rts      = jnp.array(rng.uniform(0.3, 0.8, n_trials), dtype=jnp.float64)
+
+    nll = wmrl_m4_block_likelihood(
+        stimuli=stimuli, actions=actions, rewards=rewards,
+        set_sizes=set_sizes, rts=rts,
+        alpha_pos=0.3, alpha_neg=0.1, phi=0.5, rho=0.8,
+        capacity=4.0, kappa=0.1,
+        v_scale=3.0, A=0.3, b=0.8, t0=0.1,
+    )
+    assert jnp.isfinite(nll), f"M4 single block NLL not finite: {nll}"
+    assert float(nll) > 0, f"M4 NLL should be positive (NLL=-log-lik): {nll}"
+    print(f"  test_wmrl_m4_single_block: NLL={float(nll):.4f} (finite, positive) [PASS]")
+
+
+def test_wmrl_m4_multiblock():
+    """Smoke test: M4 multiblock NLL is finite and positive."""
+    import numpy as np
+
+    n_trials = 12
+    n_blocks = 3
+    rng = np.random.default_rng(1)
+
+    stimuli_blocks  = []
+    actions_blocks  = []
+    rewards_blocks  = []
+    set_sizes_blocks = []
+    rts_blocks      = []
+
+    for _ in range(n_blocks):
+        stimuli_blocks.append(jnp.array(rng.integers(0, 4, n_trials), dtype=jnp.int32))
+        actions_blocks.append(jnp.array(rng.integers(0, 3, n_trials), dtype=jnp.int32))
+        rewards_blocks.append(jnp.array(rng.binomial(1, 0.7, n_trials), dtype=jnp.float64))
+        set_sizes_blocks.append(jnp.full(n_trials, 4, dtype=jnp.int32))
+        rts_blocks.append(jnp.array(rng.uniform(0.3, 0.8, n_trials), dtype=jnp.float64))
+
+    nll = wmrl_m4_multiblock_likelihood(
+        stimuli_blocks, actions_blocks, rewards_blocks, set_sizes_blocks, rts_blocks,
+        alpha_pos=0.3, alpha_neg=0.1, phi=0.5, rho=0.8,
+        capacity=4.0, kappa=0.1,
+        v_scale=3.0, A=0.3, b=0.8, t0=0.1,
+    )
+    assert jnp.isfinite(nll), f"M4 multiblock NLL not finite: {nll}"
+    assert float(nll) > 0, f"M4 NLL should be positive: {nll}"
+    print(f"  test_wmrl_m4_multiblock: NLL={float(nll):.4f} (finite, positive) [PASS]")
+
+
+def test_wmrl_m4_no_epsilon():
+    """Verify M4 likelihood has NO epsilon parameter in its signature."""
+    import inspect
+    sig = inspect.signature(wmrl_m4_block_likelihood)
+    assert 'epsilon' not in sig.parameters, (
+        f"M4 should NOT have epsilon parameter, but found it in signature: {list(sig.parameters.keys())}"
+    )
+    print(f"  test_wmrl_m4_no_epsilon: epsilon absent from signature {list(sig.parameters.keys())} [PASS]")
+
+
 if __name__ == '__main__':
     print("LBA Likelihood Tests (float64)")
     print("=" * 50)
@@ -374,5 +759,11 @@ if __name__ == '__main__':
     test_lba_negative_drift()
     test_rt_preprocessing()
     test_t0_validation()
+    print()
+    print("M4 Likelihood Tests")
+    print("-" * 50)
+    test_wmrl_m4_single_block()
+    test_wmrl_m4_multiblock()
+    test_wmrl_m4_no_epsilon()
     print("=" * 50)
     print("All LBA tests passed!")

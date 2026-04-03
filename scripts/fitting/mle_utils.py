@@ -90,6 +90,21 @@ WMRL_M6B_BOUNDS = {
     'epsilon':     (0.001, 0.999),
 }
 
+# WM-RL M4 parameter bounds (M3 learning + LBA decision; NO epsilon)
+# b = A + delta reparameterization enforced in objective functions (not here)
+WMRL_M4_BOUNDS = {
+    'alpha_pos':  (0.001, 0.999),
+    'alpha_neg':  (0.001, 0.999),
+    'phi':        (0.001, 0.999),
+    'rho':        (0.001, 0.999),
+    'capacity':   (1.0, 7.0),
+    'kappa':      (0.0, 1.0),
+    'v_scale':    (0.1, 20.0),   # Drift rate scaling (log-transform recommended)
+    'A':          (0.001, 2.0),  # Max start point (seconds)
+    'delta':      (0.001, 2.0),  # b - A gap; b = A + delta (decoded in objectives)
+    't0':         (0.05, 0.3),   # Non-decision time (seconds); conservative upper bound
+}
+
 # Parameter names in order (for array-dict conversion)
 QLEARNING_PARAMS = ['alpha_pos', 'alpha_neg', 'epsilon']
 WMRL_PARAMS = ['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'epsilon']
@@ -106,6 +121,11 @@ WMRL_M6A_PARAMS = ['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'kappa_s'
 # Signature (decoded): alpha_pos, alpha_neg, phi, rho, capacity, kappa_total, kappa_share, epsilon
 # Objective decodes: kappa = kappa_total * kappa_share; kappa_s = kappa_total * (1 - kappa_share)
 WMRL_M6B_PARAMS = ['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'kappa_total', 'kappa_share', 'epsilon']
+# CRITICAL: Order must match wmrl_m4_block_likelihood() signature
+# kappa at index 5; v_scale at index 6; A at index 7; delta at index 8; t0 at index 9
+# NO epsilon. b = A + delta decoded in objective functions.
+WMRL_M4_PARAMS = ['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'kappa',
+                   'v_scale', 'A', 'delta', 't0']
 
 # =============================================================================
 # Parameter Transformations
@@ -374,6 +394,52 @@ def jax_bounded_to_unconstrained_wmrl_m6b(x: jnp.ndarray) -> jnp.ndarray:
         jax_bounded_to_unbounded(x[7], *bounds['epsilon']),
     ])
 
+def jax_unconstrained_to_params_wmrl_m4(x: jnp.ndarray) -> tuple:
+    """
+    JAX-compatible parameter transformation for WM-RL M4.
+
+    Returns tuple (alpha_pos, alpha_neg, phi, rho, capacity, kappa, v_scale, A, delta, t0).
+    x[0..4] same as M3. x[5] = kappa. x[6] = v_scale. x[7] = A. x[8] = delta. x[9] = t0.
+    10 parameters total. NO epsilon.
+
+    CRITICAL: Returns A and delta (NOT decoded b). The decode b = A + delta happens
+    in objective functions only, not here.
+    """
+    bounds = WMRL_M4_BOUNDS
+    alpha_pos = jax_unbounded_to_bounded(x[0], *bounds['alpha_pos'])
+    alpha_neg = jax_unbounded_to_bounded(x[1], *bounds['alpha_neg'])
+    phi       = jax_unbounded_to_bounded(x[2], *bounds['phi'])
+    rho       = jax_unbounded_to_bounded(x[3], *bounds['rho'])
+    capacity  = jax_unbounded_to_bounded(x[4], *bounds['capacity'])
+    kappa     = jax_unbounded_to_bounded(x[5], *bounds['kappa'])
+    v_scale   = jax_unbounded_to_bounded(x[6], *bounds['v_scale'])
+    A         = jax_unbounded_to_bounded(x[7], *bounds['A'])
+    delta     = jax_unbounded_to_bounded(x[8], *bounds['delta'])
+    t0        = jax_unbounded_to_bounded(x[9], *bounds['t0'])
+    return alpha_pos, alpha_neg, phi, rho, capacity, kappa, v_scale, A, delta, t0
+
+def jax_bounded_to_unconstrained_wmrl_m4(x: jnp.ndarray) -> jnp.ndarray:
+    """
+    Transform bounded WM-RL M4 params to unconstrained space (JAX-compatible).
+
+    Inverse of jax_unconstrained_to_params_wmrl_m4.
+    Input: array of shape (10,) in bounded space [kappa at 5, v_scale at 6, A at 7, delta at 8, t0 at 9].
+    Output: array of shape (10,) in unconstrained space.
+    """
+    bounds = WMRL_M4_BOUNDS
+    return jnp.array([
+        jax_bounded_to_unbounded(x[0], *bounds['alpha_pos']),
+        jax_bounded_to_unbounded(x[1], *bounds['alpha_neg']),
+        jax_bounded_to_unbounded(x[2], *bounds['phi']),
+        jax_bounded_to_unbounded(x[3], *bounds['rho']),
+        jax_bounded_to_unbounded(x[4], *bounds['capacity']),
+        jax_bounded_to_unbounded(x[5], *bounds['kappa']),
+        jax_bounded_to_unbounded(x[6], *bounds['v_scale']),
+        jax_bounded_to_unbounded(x[7], *bounds['A']),
+        jax_bounded_to_unbounded(x[8], *bounds['delta']),
+        jax_bounded_to_unbounded(x[9], *bounds['t0']),
+    ])
+
 def params_to_unconstrained(params: dict[str, float], model: str) -> np.ndarray:
     """
     Transform bounded parameter dict to unconstrained numpy array.
@@ -403,6 +469,9 @@ def params_to_unconstrained(params: dict[str, float], model: str) -> np.ndarray:
     elif model == 'wmrl_m6b':
         bounds = WMRL_M6B_BOUNDS
         param_names = WMRL_M6B_PARAMS
+    elif model == 'wmrl_m4':
+        bounds = WMRL_M4_BOUNDS
+        param_names = WMRL_M4_PARAMS
     else:
         raise ValueError(f"Unknown model: {model}")
 
@@ -442,6 +511,9 @@ def unconstrained_to_params(x: np.ndarray, model: str) -> dict[str, float]:
     elif model == 'wmrl_m6b':
         bounds = WMRL_M6B_BOUNDS
         param_names = WMRL_M6B_PARAMS
+    elif model == 'wmrl_m4':
+        bounds = WMRL_M4_BOUNDS
+        param_names = WMRL_M4_PARAMS
     else:
         raise ValueError(f"Unknown model: {model}")
 
@@ -511,6 +583,19 @@ def get_default_params(model: str) -> dict[str, float]:
             'kappa_share': 0.5,  # Equal split: 0.1 global, 0.1 stim-specific
             'epsilon': 0.05
         }
+    elif model == 'wmrl_m4':
+        return {
+            'alpha_pos': 0.3,
+            'alpha_neg': 0.1,
+            'phi': 0.1,
+            'rho': 0.7,
+            'capacity': 4.0,
+            'kappa':   0.1,   # Moderate perseveration (no epsilon)
+            'v_scale': 3.0,   # Typical drift rate scale
+            'A':       0.3,   # Max start point (seconds)
+            'delta':   0.5,   # b - A gap; b = 0.3 + 0.5 = 0.8
+            't0':      0.15,  # Non-decision time (seconds)
+        }
     else:
         raise ValueError(f"Unknown model: {model}")
 
@@ -540,6 +625,8 @@ def sample_random_start(model: str, rng: np.random.Generator) -> np.ndarray:
         n_params = len(WMRL_M6A_PARAMS)
     elif model == 'wmrl_m6b':
         n_params = len(WMRL_M6B_PARAMS)
+    elif model == 'wmrl_m4':
+        n_params = len(WMRL_M4_PARAMS)
     else:
         raise ValueError(f"Unknown model: {model}")
 
@@ -580,6 +667,9 @@ def sample_lhs_starts(model: str, n_starts: int, seed: int = None) -> np.ndarray
     elif model == 'wmrl_m6b':
         bounds_dict = WMRL_M6B_BOUNDS
         param_names = WMRL_M6B_PARAMS
+    elif model == 'wmrl_m4':
+        bounds_dict = WMRL_M4_BOUNDS
+        param_names = WMRL_M4_PARAMS
     else:
         raise ValueError(f"Unknown model: {model}")
 
@@ -667,6 +757,8 @@ def get_n_params(model: str) -> int:
         return 7  # alpha_pos, alpha_neg, phi, rho, capacity, kappa_s, epsilon
     elif model == 'wmrl_m6b':
         return 8  # alpha_pos, alpha_neg, phi, rho, capacity, kappa_total, kappa_share, epsilon
+    elif model == 'wmrl_m4':
+        return 10  # alpha_pos, alpha_neg, phi, rho, capacity, kappa, v_scale, A, delta, t0
     else:
         raise ValueError(f"Unknown model: {model}")
 
@@ -735,6 +827,8 @@ def summarize_all_parameters(
         param_names = WMRL_M6A_PARAMS
     elif model == 'wmrl_m6b':
         param_names = WMRL_M6B_PARAMS
+    elif model == 'wmrl_m4':
+        param_names = WMRL_M4_PARAMS
     else:
         raise ValueError(f"Unknown model: {model}")
 
@@ -867,6 +961,8 @@ def check_at_bounds(
         bounds = WMRL_M6A_BOUNDS
     elif model == 'wmrl_m6b':
         bounds = WMRL_M6B_BOUNDS
+    elif model == 'wmrl_m4':
+        bounds = WMRL_M4_BOUNDS
     else:
         raise ValueError(f"Unknown model: {model}")
 
@@ -1040,6 +1136,8 @@ def compute_hessian_diagnostics(
             param_names = WMRL_M6A_PARAMS
         elif model == 'wmrl_m6b':
             param_names = WMRL_M6B_PARAMS
+        elif model == 'wmrl_m4':
+            param_names = WMRL_M4_PARAMS
         else:
             return {'success': False, 'error': f'Unknown model: {model}'}
 
@@ -1169,6 +1267,8 @@ def _transform_se_to_bounded(
         bounds = WMRL_M6A_BOUNDS
     elif model == 'wmrl_m6b':
         bounds = WMRL_M6B_BOUNDS
+    elif model == 'wmrl_m4':
+        bounds = WMRL_M4_BOUNDS
     else:
         return {}
 
