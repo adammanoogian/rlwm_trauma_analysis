@@ -317,47 +317,72 @@ def generate_synthetic_participant(
                 # Hybrid policy
                 hybrid_probs = omega * wm_probs + (1 - omega) * rl_probs
 
-                # Perseveration
-                if last_action is not None:
-                    if model == 'wmrl_m4':
-                        # M4: convex combination (must match M4 likelihood exactly)
+                # =============================================================
+                # EPSILON + PERSEVERATION
+                # Order and formula MUST match jax_likelihoods.py exactly.
+                # Non-M4: epsilon FIRST, then perseveration (convex combination)
+                # M4: no epsilon, perseveration feeds into LBA race
+                # =============================================================
+
+                if model != 'wmrl_m4':
+                    # Step 1: Apply epsilon noise FIRST (before perseveration)
+                    # Matches: apply_epsilon_noise(base_probs, epsilon, num_actions)
+                    noisy_probs = epsilon / NUM_ACTIONS + (1.0 - epsilon) * hybrid_probs
+                else:
+                    # M4: no epsilon parameter; hybrid goes directly to perseveration
+                    noisy_probs = hybrid_probs.copy()
+
+                # Step 2: Apply perseveration SECOND (convex combination)
+                if model in ('wmrl_m3', 'wmrl_m5'):
+                    # Global perseveration: (1-kappa)*P_noisy + kappa*Ck
+                    # Ref: jax_likelihoods.py line 1156
+                    if last_action is not None:
                         Ck = np.zeros(NUM_ACTIONS)
                         Ck[last_action] = 1.0
-                        hybrid_probs = (1.0 - kappa) * hybrid_probs + kappa * Ck
-                    elif model in ('wmrl_m3', 'wmrl_m5'):
-                        # M3/M5: additive renormalization (matches M3/M5 likelihood)
-                        hybrid_probs = hybrid_probs.copy()
-                        hybrid_probs[last_action] += kappa
-                        hybrid_probs = hybrid_probs / np.sum(hybrid_probs)
+                        noisy_probs = (1.0 - kappa) * noisy_probs + kappa * Ck
 
-                # M6a: per-stimulus perseveration (only if this stimulus was seen before in block)
-                elif model == 'wmrl_m6a' and last_actions.get(stimulus) is not None:
-                    hybrid_probs = hybrid_probs.copy()
-                    hybrid_probs[last_actions[stimulus]] += kappa_s
-                    hybrid_probs = hybrid_probs / np.sum(hybrid_probs)
+                elif model == 'wmrl_m4':
+                    # M4 global perseveration: (1-kappa)*hybrid + kappa*Ck
+                    # Ref: lba_likelihood.py (already correct in current code)
+                    if last_action is not None:
+                        Ck = np.zeros(NUM_ACTIONS)
+                        Ck[last_action] = 1.0
+                        noisy_probs = (1.0 - kappa) * noisy_probs + kappa * Ck
 
-                # M6b: DUAL perseveration (global kernel + per-stimulus kernel, independent)
+                elif model == 'wmrl_m6a':
+                    # Per-stimulus perseveration: (1-kappa_s)*P_noisy + kappa_s*Ck_stim
+                    # Ref: jax_likelihoods.py line 2135
+                    if last_actions.get(stimulus) is not None:
+                        Ck = np.zeros(NUM_ACTIONS)
+                        Ck[last_actions[stimulus]] = 1.0
+                        noisy_probs = (1.0 - kappa_s) * noisy_probs + kappa_s * Ck
+
                 elif model == 'wmrl_m6b':
-                    modified = False
-                    if last_action is not None and kappa > 0.0:
-                        hybrid_probs = hybrid_probs.copy()
-                        hybrid_probs[last_action] += kappa
-                        modified = True
-                    if last_actions.get(stimulus) is not None and kappa_s > 0.0:
-                        if not modified:
-                            hybrid_probs = hybrid_probs.copy()
-                        hybrid_probs[last_actions[stimulus]] += kappa_s
-                        modified = True
-                    if modified:
-                        hybrid_probs = hybrid_probs / np.sum(hybrid_probs)
+                    # Dual perseveration: three-way blend with effective-weight gating
+                    # Ref: jax_likelihoods.py lines 2461-2484
+                    eff_kappa = kappa if last_action is not None else 0.0
+                    eff_kappa_s = kappa_s if last_actions.get(stimulus) is not None else 0.0
+                    if eff_kappa > 0.0 or eff_kappa_s > 0.0:
+                        Ck_global = np.zeros(NUM_ACTIONS)
+                        Ck_stim = np.zeros(NUM_ACTIONS)
+                        if eff_kappa > 0.0:
+                            Ck_global[last_action] = 1.0
+                        if eff_kappa_s > 0.0:
+                            Ck_stim[last_actions[stimulus]] = 1.0
+                        noisy_probs = (
+                            (1.0 - eff_kappa - eff_kappa_s) * noisy_probs
+                            + eff_kappa * Ck_global
+                            + eff_kappa_s * Ck_stim
+                        )
 
-                action_probs = hybrid_probs
+                action_probs = noisy_probs
             else:
-                # Q-learning (softmax)
+                # Q-learning (softmax + epsilon noise)
                 q_vals = Q[stimulus, :]
                 q_scaled = FIXED_BETA * (q_vals - np.max(q_vals))
                 rl_probs = np.exp(q_scaled) / np.sum(np.exp(q_scaled))
-                action_probs = rl_probs
+                # Apply epsilon noise (matches jax_likelihoods.py qlearning_block_likelihood)
+                action_probs = epsilon / NUM_ACTIONS + (1.0 - epsilon) * rl_probs
 
             # Action selection
             if model == 'wmrl_m4':
@@ -374,11 +399,10 @@ def generate_synthetic_participant(
                 action = int(np.argmin(t_race))
                 rt_sim = float(t_race[action] + t0)
             else:
-                # Apply epsilon noise
-                noisy_probs = epsilon / NUM_ACTIONS + (1 - epsilon) * action_probs
-                # Sample action
+                # Epsilon already applied above (before perseveration)
+                # Sample action from final action_probs
                 key, subkey = jax.random.split(key)
-                action = int(jax.random.choice(subkey, NUM_ACTIONS, p=jnp.array(noisy_probs)))
+                action = int(jax.random.choice(subkey, NUM_ACTIONS, p=jnp.array(action_probs)))
                 rt_sim = None
 
             # Generate reward based on current mapping
