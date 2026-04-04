@@ -1,0 +1,99 @@
+============================================================
+RLWM GPU-Accelerated MLE Fitting - M3 SLURM Job
+============================================================
+Job ID: 54536809
+Node: m3g118
+Partition: gpu
+GPU(s): 0
+Project: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis
+Start time: Sun Apr  5 12:00:01 AM AEDT 2026
+============================================================
+Activated rlwm_gpu by name
+
+Verifying GPU access...
+JAX devices: [CudaDevice(id=0)]
+GPU(s) available: [CudaDevice(id=0)]
+
+JAX cache: /scratch//aman0087/.jax_cache_gpu
+
+Cleaning up stale checkpoints...
+  Deleted: output/mle/wmrl_checkpoint.csv
+
+
+============================================================
+Fitting model: wmrl (GPU-accelerated)
+Started: Sun Apr  5 12:00:11 AM AEDT 2026
+============================================================
+GPU detected: [CudaDevice(id=0)]
+
+============================================================
+MLE Fitting: WMRL
+============================================================
+Data: output/task_trials_long.csv
+Random starts: 50
+Seed: 42
+Output: output/mle/
+Include practice: False
+Parallel workers: 1
+GPU acceleration: enabled
+Hessian diagnostics: enabled (adds 5-30s per participant)
+============================================================
+
+Loading data...
+  Total participants in data: 157
+  Final sample: 157
+  Total trials: 112561
+
+[MEMORY] START: 545.9MB (psutil)
+
+============================================================
+MLE Fitting: WMRL
+============================================================
+Start time: 2026-04-05 00:00:16
+Participants: 157
+Random starts per participant: 50
+Parallel workers: 1
+============================================================
+
+Preparing participant data...
+  Prepared 10/157 participants...
+  Prepared 20/157 participants...
+  Prepared 30/157 participants...
+  Prepared 40/157 participants...
+  Prepared 50/157 participants...
+  Prepared 60/157 participants...
+  Prepared 70/157 participants...
+  Prepared 80/157 participants...
+  Prepared 90/157 participants...
+  Prepared 100/157 participants...
+  Prepared 110/157 participants...
+  Prepared 120/157 participants...
+  Prepared 130/157 participants...
+  Prepared 140/157 participants...
+  Prepared 150/157 participants...
+  Data preparation complete (13.7s)
+
+GPU detected (cuda:0). Using vectorized GPU fitting path.
+
+
+============================================================
+GPU-Vectorized MLE Fitting: WMRL
+============================================================
+Start time: 2026-04-05 00:00:30
+Participants: 157
+Random starts per participant: 50
+Method: jaxopt.LBFGS + jax.vmap (fully vectorized)
+============================================================
+
+Stage 1: Preparing and stacking participant data...
+Completed: Sun Apr  5 12:00:31 AM AEDT 2026
+
+============================================================
+All models complete!
+End time: Sun Apr  5 12:00:31 AM AEDT 2026
+============================================================
+
+Results saved to:
+  output/mle/*_individual_fits.csv
+  output/mle/*_group_summary.csv
+============================================================

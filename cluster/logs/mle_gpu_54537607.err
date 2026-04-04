@@ -1,0 +1,33 @@
+E0405 00:50:51.862262 1319217 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0405 00:50:51.862437 1319218 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0405 00:50:51.862448 1319219 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+mkdir: cannot create directory ‘/scratch//aman0087’: Permission denied
+E0405 00:50:54.331928 1319460 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0405 00:50:54.332089 1319461 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0405 00:50:54.332141 1319462 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+/scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/site-packages/jax/_src/compiler.py:783: UserWarning: Error reading persistent compilation cache entry for 'jit_convert_element_type': PermissionError: [Errno 13] Permission denied: '/scratch/aman0087'
+  warnings.warn(
+E0405 00:51:07.218113 1319466 dump.cc:117] Could not create directory: /scratch/aman0087/.jax_cache_gpu/xla_gpu_per_fusion_autotune_cache_dir. Error: NOT_FOUND: /scratch/aman0087/.jax_cache_gpu/xla_gpu_per_fusion_autotune_cache_dir not found
+E0405 00:51:07.218217 1319466 legacy_cache.cc:68] Failed to insert autotune cache: NOT_FOUND: /scratch/aman0087/.jax_cache_gpu/xla_gpu_per_fusion_autotune_cache_dir not found
+E0405 00:51:07.218250 1319239 autotuner.cc:197] Failed to autotune HLO: %input_reduce_fusion = f32[] fusion(%a.1), kind=kInput, calls=%fused_reduce, metadata={op_name="jit(_reduce_sum)/reduce_sum" stack_frame_id=5} with status: NOT_FOUND: /scratch/aman0087/.jax_cache_gpu/xla_gpu_per_fusion_autotune_cache_dir not found
+Traceback (most recent call last):
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/fit_mle.py", line 3069, in <module>
+    main()
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/fit_mle.py", line 2876, in main
+    fits_df, timing_info, timing_records = fit_all_participants(
+                                           ^^^^^^^^^^^^^^^^^^^^^
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/fit_mle.py", line 2379, in fit_all_participants
+    return fit_all_gpu(
+           ^^^^^^^^^^^^
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/fit_mle.py", line 1297, in fit_all_gpu
+    trial_counts.append(int(sum(jnp.sum(m) for m in pdata['masks_blocks'])))
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/fit_mle.py", line 1297, in <genexpr>
+    trial_counts.append(int(sum(jnp.sum(m) for m in pdata['masks_blocks'])))
+                                ^^^^^^^^^^
+  File "/scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/site-packages/jax/_src/numpy/reductions.py", line 303, in sum
+    return _reduce_sum(a, axis=_ensure_optional_axes(axis), dtype=dtype, out=out,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+jax.errors.JaxRuntimeError: NOT_FOUND: /scratch/aman0087/.jax_cache_gpu/xla_gpu_per_fusion_autotune_cache_dir not found
+--------------------
+For simplicity, JAX has removed its internal frames from the traceback of the following exception. Set JAX_TRACEBACK_FILTERING=off to include these.
