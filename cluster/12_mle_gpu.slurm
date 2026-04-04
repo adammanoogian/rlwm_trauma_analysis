@@ -201,8 +201,16 @@ for model in $MODELS; do
     fi
 
     eval $CMD
+    EXIT_CODE=$?
 
-    echo "Completed: $(date)"
+    if [[ $EXIT_CODE -ne 0 ]]; then
+        echo ""
+        echo "*** ERROR: Model $model FAILED with exit code $EXIT_CODE ***"
+        echo "*** Check stderr log: cluster/logs/mle_gpu_${SLURM_JOB_ID}.err ***"
+        echo ""
+    fi
+
+    echo "Completed: $(date) (exit code: $EXIT_CODE)"
 done
 
 echo ""

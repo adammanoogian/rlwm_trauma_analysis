@@ -2376,14 +2376,20 @@ def fit_all_participants(
         if gpu_devices:
             if verbose:
                 print(f"GPU detected ({gpu_devices[0]}). Using vectorized GPU fitting path.\n")
-            return fit_all_gpu(
-                data=data,
-                model=model,
-                n_starts=n_starts,
-                seed=seed,
-                verbose=verbose,
-                compute_diagnostics=compute_diagnostics,
-            )
+            try:
+                return fit_all_gpu(
+                    data=data,
+                    model=model,
+                    n_starts=n_starts,
+                    seed=seed,
+                    verbose=verbose,
+                    compute_diagnostics=compute_diagnostics,
+                )
+            except Exception as e:
+                print(f"\n*** GPU FITTING FAILED: {e} ***", flush=True)
+                import traceback
+                traceback.print_exc()
+                raise
 
         # Sequential CPU execution with per-participant progress and incremental saving
         results = []
