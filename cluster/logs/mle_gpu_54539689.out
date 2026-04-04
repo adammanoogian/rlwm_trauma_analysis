@@ -91,3 +91,91 @@ Stage 2: Generating unconstrained starting points...
   Starting points: (50, 3)
 Stage 3: Building vmapped optimizer...
 Stage 4: Running GPU-vectorized fitting (JIT compiling + executing)...
+[MEMORY] PRE-GPU-FIT: 2291.4MB (psutil)
+[MEMORY] POST-GPU-FIT: 2312.6MB (psutil)
+  GPU fitting complete: 7829.5s
+  Output shapes: params=(154, 50, 3), nlls=(154, 50)
+Stage 5: Selecting best results and transforming parameters...
+Stage 6: Building result dictionaries...
+Stage 7: Computing Hessian diagnostics (sequential)...
+    Hessian: 10/154 done
+    Hessian: 20/154 done
+    Hessian: 30/154 done
+    Hessian: 40/154 done
+    Hessian: 50/154 done
+    Hessian: 60/154 done
+    Hessian: 70/154 done
+    Hessian: 80/154 done
+    Hessian: 90/154 done
+    Hessian: 100/154 done
+    Hessian: 110/154 done
+    Hessian: 120/154 done
+    Hessian: 130/154 done
+    Hessian: 140/154 done
+    Hessian: 150/154 done
+  Hessian diagnostics complete: 136/154 successful (296.6s)
+
+============================================================
+GPU FITTING COMPLETE
+============================================================
+Total duration: 8133.8s (135.6min)
+  GPU optimization: 7829.5s
+Participants: 154 | Converged: 138 (90%)
+Peak memory: 2.26GB
+============================================================
+
+
+============================================================
+RESULTS
+============================================================
+
+Convergence: 138/154 (89.6%)
+
+Group Statistics (n=138):
+--------------------------------------------------
+  alpha_pos   : 0.167 +/- 0.025  (SD=0.290)
+  alpha_neg   : 0.107 +/- 0.021  (SD=0.247)
+  epsilon     : 0.191 +/- 0.011  (SD=0.124)
+
+Model Fit:
+--------------------------------------------------
+  NLL         : 489.09 +/- 10.94
+  AIC         : 984.19 +/- 21.87
+  BIC         : 997.94 +/- 21.88
+  PSEUDO-R²   : 0.381 +/- 0.155
+
+Hessian Diagnostics:
+--------------------------------------------------
+  Successfully computed: 136/154
+  Median condition number: 724422464.0
+  Warning: 95 participants with condition > 1000 (identifiability issues)
+
+Warning: Parameters hitting bounds:
+  alpha_neg: 95 participants
+  alpha_pos: 16 participants
+  epsilon: 5 participants
+
+============================================================
+Results saved to:
+  Individual fits:     output/mle/qlearning_individual_fits.csv
+  Group summary:       output/mle/qlearning_group_summary.csv
+  Timing log:          output/mle/qlearning_timing_log.csv
+  Performance summary: output/mle/qlearning_performance_summary.json
+============================================================
+
+============================================================
+STATUS: PARTIAL - 147/154 participants fit, 7 FAILED
+  Failed participants: [10043, 10066, 10075, 10106, 10107, 10141, 10162]
+============================================================
+
+Completed: Sun Apr  5 04:34:10 AM AEST 2026 (exit code: 0)
+
+============================================================
+All models complete!
+End time: Sun Apr  5 04:34:10 AM AEST 2026
+============================================================
+
+Results saved to:
+  output/mle/*_individual_fits.csv
+  output/mle/*_group_summary.csv
+============================================================
