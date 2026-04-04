@@ -1,0 +1,6 @@
+E0405 02:18:47.547217  220783 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0405 02:18:47.547628  220784 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0405 02:18:47.547124  220782 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0405 02:18:52.347990  220824 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0405 02:18:52.348121  220825 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0405 02:18:52.348172  220826 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
