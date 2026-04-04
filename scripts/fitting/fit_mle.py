@@ -1294,7 +1294,8 @@ def fit_all_gpu(
         if model == 'wmrl_m4':
             all_rts.append(jnp.stack(pdata['rts_blocks']))
 
-        trial_counts.append(int(sum(jnp.sum(m) for m in pdata['masks_blocks'])))
+        # Use numpy for trial counting (avoid triggering GPU compilation)
+        trial_counts.append(int(sum(float(np.asarray(m).sum()) for m in pdata['masks_blocks'])))
 
     # Stack into batched arrays: (n_participants, MAX_BLOCKS, MAX_TRIALS_PER_BLOCK)
     stimuli_batch = jnp.stack(all_stimuli)

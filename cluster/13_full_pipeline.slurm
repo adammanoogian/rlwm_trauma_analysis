@@ -65,8 +65,9 @@ echo "Start time:  $(date)"
 echo "============================================================"
 
 # Activate GPU conda environment
+_PROJECT="${PROJECT:-fc37}"
 conda activate rlwm_gpu 2>/dev/null || \
-conda activate /scratch/${PROJECT}/${USER}/conda/envs/rlwm_gpu 2>/dev/null || {
+conda activate /scratch/${_PROJECT}/${USER}/conda/envs/rlwm_gpu 2>/dev/null || {
     echo "ERROR: Failed to activate 'rlwm_gpu' conda environment"
     echo "Create it first with: bash cluster/00_setup_env_gpu.sh"
     exit 1

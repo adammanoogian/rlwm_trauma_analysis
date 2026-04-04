@@ -158,10 +158,14 @@ echo ""
 # Different M3 nodes have different CPU features (AVX-512, SHA, etc.), so a kernel
 # compiled on one node may crash with SIGILL on another. Using ${SLURMD_NODENAME}
 # ensures each node maintains its own compatible cache.
-export JAX_COMPILATION_CACHE_DIR="/scratch/${PROJECT}/${USER}/.jax_cache/${SLURMD_NODENAME:-$(hostname)}"
+_PROJECT="${PROJECT:-fc37}"
+export JAX_COMPILATION_CACHE_DIR="/scratch/${_PROJECT}/${USER}/.jax_cache/${SLURMD_NODENAME:-$(hostname)}"
 export JAX_PERSISTENT_CACHE_MIN_ENTRY_SIZE_BYTES=0
-mkdir -p "$JAX_COMPILATION_CACHE_DIR"
-echo "JAX cache: $JAX_COMPILATION_CACHE_DIR"
+mkdir -p "$JAX_COMPILATION_CACHE_DIR" || {
+    echo "WARNING: Could not create JAX cache dir, disabling cache"
+    unset JAX_COMPILATION_CACHE_DIR
+}
+echo "JAX cache: ${JAX_COMPILATION_CACHE_DIR:-disabled}"
 
 # =============================================================================
 # Run MLE Fitting

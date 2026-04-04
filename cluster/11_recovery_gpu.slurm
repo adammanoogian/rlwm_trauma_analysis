@@ -104,10 +104,14 @@ mkdir -p cluster/logs
 # =============================================================================
 # JAX Compilation Cache
 # =============================================================================
-export JAX_COMPILATION_CACHE_DIR="/scratch/${PROJECT}/${USER}/.jax_cache_gpu"
+_PROJECT="${PROJECT:-fc37}"
+export JAX_COMPILATION_CACHE_DIR="/scratch/${_PROJECT}/${USER}/.jax_cache_gpu"
 export JAX_PERSISTENT_CACHE_MIN_ENTRY_SIZE_BYTES=0
-mkdir -p "$JAX_COMPILATION_CACHE_DIR"
-echo "JAX cache: $JAX_COMPILATION_CACHE_DIR"
+mkdir -p "$JAX_COMPILATION_CACHE_DIR" || {
+    echo "WARNING: Could not create JAX cache dir, disabling cache"
+    unset JAX_COMPILATION_CACHE_DIR
+}
+echo "JAX cache: ${JAX_COMPILATION_CACHE_DIR:-disabled}"
 echo ""
 
 # =============================================================================

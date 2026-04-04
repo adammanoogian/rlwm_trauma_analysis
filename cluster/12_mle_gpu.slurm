@@ -107,10 +107,15 @@ mkdir -p cluster/logs
 # GPU compilation uses CUDA/PTX which is portable across GPU types, but caching
 # still reduces startup time on subsequent runs. Unlike CPU caching, GPU caching
 # doesn't have the CPU feature mismatch problem.
-export JAX_COMPILATION_CACHE_DIR="/scratch/${PROJECT}/${USER}/.jax_cache_gpu"
+# $PROJECT may be empty on some GPU nodes — fall back to fc37
+_PROJECT="${PROJECT:-fc37}"
+export JAX_COMPILATION_CACHE_DIR="/scratch/${_PROJECT}/${USER}/.jax_cache_gpu"
 export JAX_PERSISTENT_CACHE_MIN_ENTRY_SIZE_BYTES=0
-mkdir -p "$JAX_COMPILATION_CACHE_DIR"
-echo "JAX cache: $JAX_COMPILATION_CACHE_DIR"
+mkdir -p "$JAX_COMPILATION_CACHE_DIR" || {
+    echo "WARNING: Could not create JAX cache dir, disabling cache"
+    unset JAX_COMPILATION_CACHE_DIR
+}
+echo "JAX cache: ${JAX_COMPILATION_CACHE_DIR:-disabled}"
 echo ""
 
 # =============================================================================
