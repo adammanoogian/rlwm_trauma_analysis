@@ -228,3 +228,41 @@ echo "Results saved to:"
 echo "  output/mle/*_individual_fits.csv"
 echo "  output/mle/*_group_summary.csv"
 echo "============================================================"
+
+# =============================================================================
+# Job Resource Report
+# =============================================================================
+echo ""
+echo "============================================================"
+echo "JOB RESOURCE REPORT"
+echo "============================================================"
+echo "Job ID: ${SLURM_JOB_ID}"
+echo "Node: ${SLURMD_NODENAME}"
+echo ""
+
+# GPU stats via nvidia-smi (available on GPU nodes)
+if command -v nvidia-smi &>/dev/null; then
+    echo "GPU Info:"
+    nvidia-smi --query-gpu=name,memory.total,memory.used,memory.free,utilization.gpu,temperature.gpu \
+        --format=csv,noheader 2>/dev/null | while IFS=',' read -r name total used free util temp; do
+        echo "  Model:       $name"
+        echo "  VRAM Total:  $total"
+        echo "  VRAM Used:   $used"
+        echo "  VRAM Free:   $free"
+        echo "  Utilization: $util"
+        echo "  Temperature: $temp"
+    done
+    echo ""
+fi
+
+# SLURM accounting (may not be available until job completes)
+echo "SLURM Accounting:"
+sacct -j "$SLURM_JOB_ID" \
+    --format=JobID%20,Elapsed,MaxRSS,MaxVMSize,ReqMem,AllocCPUS,State%12 \
+    --noheader 2>/dev/null | head -5 || echo "  (not yet available)"
+echo ""
+
+# jobstats hint
+echo "For detailed stats after completion:"
+echo "  jobstats ${SLURM_JOB_ID}"
+echo "============================================================"
