@@ -14,10 +14,12 @@ Usage:
     python scripts/04_create_summary_csv.py
 """
 
+from __future__ import annotations
+
 import os
 import sys
+
 import pandas as pd
-import numpy as np
 
 # Add project root to path for config import
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
@@ -27,11 +29,7 @@ from config import EXCLUDED_PARTICIPANTS, DataParams
 # Add utils to path
 sys.path.append(os.path.join(os.path.dirname(__file__), 'utils'))
 
-from scoring_functions import (
-    score_less,
-    score_ies_r,
-    calculate_all_task_metrics
-)
+from scoring_functions import calculate_all_task_metrics, score_ies_r, score_less
 
 
 def main():
@@ -88,29 +86,25 @@ def main():
     insufficient_blocks = block_counts[block_counts < DataParams.MIN_BLOCKS].index.tolist()
     insufficient_trials = trial_counts[trial_counts < DataParams.MIN_TRIALS].index.tolist()
 
-    # Combine with existing exclusions
+    # Report auto-detected exclusions (computed dynamically in config.py)
     quality_exclusions = set(insufficient_blocks) | set(insufficient_trials)
-    new_exclusions = quality_exclusions - set(EXCLUDED_PARTICIPANTS)
+    print(f"Auto-excluded by trial count (<{DataParams.MIN_TRIALS}): {len(EXCLUDED_PARTICIPANTS)}")
+    for pid in sorted(EXCLUDED_PARTICIPANTS):
+        n_blocks = block_counts.get(pid, 0)
+        n_trials = trial_counts.get(pid, 0)
+        print(f"  {pid}: {n_trials} trials, {n_blocks} blocks")
 
-    if new_exclusions:
-        print(f"WARNING: {len(new_exclusions)} participants flagged for insufficient data:")
-        for pid in sorted(new_exclusions):
+    # Flag block-based exclusions not caught by trial-count threshold
+    block_only = quality_exclusions - set(EXCLUDED_PARTICIPANTS)
+    if block_only:
+        print(f"\nWARNING: {len(block_only)} participants have <{DataParams.MIN_BLOCKS} blocks "
+              f"but >{DataParams.MIN_TRIALS} trials (not auto-excluded):")
+        for pid in sorted(block_only):
             n_blocks = block_counts.get(pid, 0)
             n_trials = trial_counts.get(pid, 0)
             print(f"  {pid}: {n_trials} trials, {n_blocks} blocks")
-        print()
-        print("Consider adding these to EXCLUDED_PARTICIPANTS in config.py")
-        print()
-
-    # Report on existing exclusions found in data
-    existing_exclusions_in_data = set(EXCLUDED_PARTICIPANTS) & set(task_trials['sona_id'].unique())
-    if existing_exclusions_in_data:
-        print(f"Existing exclusions found in data: {len(existing_exclusions_in_data)}")
-        for pid in sorted(existing_exclusions_in_data):
-            n_trials = trial_counts.get(pid, 0)
-            n_blocks = block_counts.get(pid, 0)
-            print(f"  {pid}: {n_trials} trials, {n_blocks} blocks (already excluded)")
-        print()
+        print("  Add these to MANUAL_EXCLUSIONS in config.py if needed")
+    print()
 
     # Apply exclusions to task_trials for metrics calculation
     n_before = task_trials['sona_id'].nunique()
@@ -224,8 +218,8 @@ def main():
     ordered_cols = id_cols + demographic_cols + lec_cols + ies_cols + task_metric_cols
     summary = summary[ordered_cols]
 
-    print(f"Column organization:")
-    print(f"  - ID: 1 column")
+    print("Column organization:")
+    print("  - ID: 1 column")
     print(f"  - Demographics: {len(demographic_cols)} columns")
     print(f"  - LEC-5 summary: {len(lec_cols)} columns")
     print(f"  - IES-R summary: {len(ies_cols)} columns")

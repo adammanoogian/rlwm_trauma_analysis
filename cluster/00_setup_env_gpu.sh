@@ -99,7 +99,7 @@ if [[ "$MODE" == "update" ]]; then
 
     # Force reinstall JAX with CUDA support
     echo "Installing/upgrading JAX with CUDA 12 support..."
-    pip install --upgrade --force-reinstall "jax[cuda12]>=0.5.0" "jaxopt>=0.8.3"
+    pip install --upgrade --force-reinstall "jax[cuda12]>=0.5.0" "jaxopt>=0.8.0"
 
     echo ""
     echo "Update complete!"
@@ -113,7 +113,7 @@ elif [[ "$MODE" == "fresh" ]]; then
             MODE="update"
             conda activate rlwm_gpu
             conda remove cuda-nvcc cudatoolkit --force -y 2>/dev/null || true
-            pip install --upgrade --force-reinstall "jax[cuda12]>=0.5.0" "jaxopt>=0.8.3"
+            pip install --upgrade --force-reinstall "jax[cuda12]>=0.5.0" "jaxopt>=0.8.0"
         }
     fi
 
@@ -151,7 +151,7 @@ else
                     echo "Upgrading Python $PYTHON_VERSION -> 3.11..."
                     conda install python=3.11 -y
                 fi
-                pip install --upgrade --force-reinstall "jax[cuda12]>=0.5.0" "jaxopt>=0.8.3"
+                pip install --upgrade --force-reinstall "jax[cuda12]>=0.5.0" "jaxopt>=0.8.0"
                 ;;
             [Ff]*)
                 echo "Removing existing environment..."
@@ -159,7 +159,7 @@ else
                     echo "WARNING: Could not remove. Falling back to update..."
                     conda activate rlwm_gpu
                     conda remove cuda-nvcc cudatoolkit --force -y 2>/dev/null || true
-                    pip install --upgrade --force-reinstall "jax[cuda12]>=0.5.0" "jaxopt>=0.8.3"
+                    pip install --upgrade --force-reinstall "jax[cuda12]>=0.5.0" "jaxopt>=0.8.0"
                 }
                 if conda env list | grep -q "rlwm_gpu"; then
                     : # Already handled by fallback

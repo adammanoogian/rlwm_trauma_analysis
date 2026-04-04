@@ -5,7 +5,10 @@ This module contains all project paths, task parameters, model hyperparameters,
 and analysis settings to ensure consistency across all scripts.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
+
 import numpy as np
 
 # ============================================================================
@@ -23,29 +26,14 @@ DOCS_DIR = PROJECT_ROOT / 'docs'
 # PARTICIPANT EXCLUSIONS
 # ============================================================================
 
-# Participants to exclude from all analyses (MIN_TRIALS = 400)
-EXCLUDED_PARTICIPANTS = [
-    10001,  # Insufficient trials: 119 trials (below MIN_TRIALS=400)
-    10012,  # Insufficient trials: 87 trials (expected 807-1077)
-    10040,  # Insufficient trials: 12 trials, 0% accuracy
-    10045,  # Insufficient trials: 39 trials, 23% accuracy
-    10049,  # Insufficient trials: 18 trials, 28% accuracy
-    10053,  # Insufficient trials: 133 trials (below MIN_TRIALS=400)
-    10044,  # Duplicate of 10043 (same session, started 7 seconds later)
-    10073,  # Duplicate of 10072 (same session, started 6 seconds later)
-]
+# Hand-curated exclusions (duplicates, known bad data not caught by thresholds).
+# These are always excluded regardless of trial count.
+MANUAL_EXCLUSIONS: list[int] = []
 
-# Documentation of exclusions
-EXCLUSION_REASONS = {
-    10001: "Insufficient trials (119 trials, below MIN_TRIALS=400 threshold)",
-    10012: "Insufficient trials (87 trials, <10% of expected)",
-    10040: "Insufficient trials (12 trials, 0% accuracy - experiment abandoned)",
-    10045: "Insufficient trials (39 trials, 23% accuracy - incomplete experiment)",
-    10049: "Insufficient trials (18 trials, 28% accuracy - incomplete experiment)",
-    10053: "Insufficient trials (133 trials, below MIN_TRIALS=400 threshold)",
-    10044: "Duplicate participant (10043 started at 16:31:17, 10044 at 16:31:24 on 2025-11-24)",
-    10073: "Duplicate participant (10072 started at 20:03:58, 10073 at 20:04:04 on 2025-12-18)",
-}
+# Threshold for automatic exclusion (participants below this are excluded).
+# Must be defined here (not in DataParams) so get_excluded_participants() can
+# reference it before the class is defined.
+MIN_TRIALS_THRESHOLD = 400
 
 # Version management
 VERSION = 'v1'
@@ -232,8 +220,8 @@ class DataParams:
     FITTED_POSTERIORS = OUTPUT_VERSION_DIR / 'fitted_posteriors.nc'  # NetCDF format
     MODEL_COMPARISON = OUTPUT_VERSION_DIR / 'model_comparison.csv'
 
-    # Exclusion criteria
-    MIN_TRIALS = 400  # Minimum trials for inclusion (~50% of expected 807-1077)
+    # Exclusion criteria (references module-level constant)
+    MIN_TRIALS = MIN_TRIALS_THRESHOLD  # Minimum trials for inclusion (~50% of expected 807-1077)
     MIN_ACCURACY = 0.3  # Minimum accuracy for inclusion (below chance suggests invalid data)
 
     # Block filtering (for model fitting)
@@ -287,6 +275,47 @@ class AnalysisParams:
 
     # Set numpy random seed
     np.random.seed(RANDOM_SEED)
+
+# ============================================================================
+# DYNAMIC EXCLUSION COMPUTATION
+# ============================================================================
+
+def get_excluded_participants(data_path: Path | None = None) -> list[int]:
+    """
+    Compute participant exclusion list from data quality thresholds.
+
+    Automatically excludes participants with fewer than MIN_TRIALS_THRESHOLD
+    trials, combined with any MANUAL_EXCLUSIONS. Runs once on import so
+    exclusions stay current whenever new data is collected.
+
+    Parameters
+    ----------
+    data_path : Path, optional
+        Path to task_trials_long.csv. Defaults to OUTPUT_DIR / 'task_trials_long.csv'.
+
+    Returns
+    -------
+    list[int]
+        Sorted list of participant IDs to exclude.
+    """
+    if data_path is None:
+        data_path = OUTPUT_DIR / 'task_trials_long.csv'
+
+    if not data_path.exists():
+        return sorted(MANUAL_EXCLUSIONS)
+
+    import pandas as pd
+
+    df = pd.read_csv(data_path, usecols=['sona_id'])
+    trial_counts = df.groupby('sona_id').size()
+    auto_excluded = trial_counts[trial_counts < MIN_TRIALS_THRESHOLD].index.tolist()
+
+    return sorted(set(auto_excluded) | set(MANUAL_EXCLUSIONS))
+
+
+# Computed on import — automatically updates when data changes
+EXCLUDED_PARTICIPANTS = get_excluded_participants()
+
 
 # ============================================================================
 # UTILITY FUNCTIONS
@@ -359,12 +388,12 @@ def print_config_summary():
     print("=" * 80)
     print(f"\nProject Root: {PROJECT_ROOT}")
     print(f"Version: {VERSION}")
-    print(f"\nTask Parameters:")
+    print("\nTask Parameters:")
     print(f"  - Actions: {TaskParams.NUM_ACTIONS}")
     print(f"  - Set Sizes: {TaskParams.SET_SIZES}")
     print(f"  - Reversal Range: [{TaskParams.REVERSAL_MIN}, {TaskParams.REVERSAL_MAX}]")
     print(f"  - Reward: Correct={TaskParams.REWARD_CORRECT}, Incorrect={TaskParams.REWARD_INCORRECT}")
-    print(f"\nModel Defaults (Senta et al., 2025):")
+    print("\nModel Defaults (Senta et al., 2025):")
     print(f"  - Learning Rate (α_pos): {ModelParams.ALPHA_POS_DEFAULT}")
     print(f"  - Learning Rate (α_neg): {ModelParams.ALPHA_NEG_DEFAULT}")
     print(f"  - Inverse Temperature (β): {ModelParams.BETA_FIXED} (FIXED)")
@@ -373,7 +402,7 @@ def print_config_summary():
     print(f"  - WM Capacity (K): {ModelParams.WM_CAPACITY_DEFAULT}")
     print(f"  - WM Decay (φ): {ModelParams.PHI_DEFAULT}")
     print(f"  - WM Reliance (ρ): {ModelParams.RHO_DEFAULT}")
-    print(f"\nPyMC Sampling:")
+    print("\nPyMC Sampling:")
     print(f"  - Chains: {PyMCParams.NUM_CHAINS}")
     print(f"  - Samples: {PyMCParams.NUM_SAMPLES}")
     print(f"  - Tune: {PyMCParams.NUM_TUNE}")
