@@ -26,7 +26,7 @@
 \usepackage{setspace}
 \usepackage{xcolor}
 \usepackage{enumitem}
-\usepackage[margin=1in]{geometry}
+% geometry already loaded by arxiv.sty — do not reload
 
 % ── Citations ──────────────────────────────────────────────────────────────────
 $if(natbib)$
@@ -63,9 +63,13 @@ $endif$
 \setlength{\affilsep}{0em}
 
 % ── ORCID icon ────────────────────────────────────────────────────────────────
-% Upload orcid.pdf to project root, or comment out the \usebox lines below
+% Place orcid.pdf in manuscript/ for ORCID icons next to author names
 \newbox{\orcidbox}
-\sbox{\orcidbox}{\includegraphics[scale=0.06]{orcid.pdf}}
+\IfFileExists{orcid.pdf}{%
+  \sbox{\orcidbox}{\includegraphics[scale=0.06]{orcid.pdf}}%
+}{%
+  \sbox{\orcidbox}{}% no icon if file missing
+}
 
 % ── Title / authors (injected by Quarto) ─────────────────────────────────────
 \title{$title$}
