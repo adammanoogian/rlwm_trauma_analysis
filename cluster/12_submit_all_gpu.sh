@@ -25,9 +25,16 @@ echo "============================================================"
 echo ""
 
 for model in qlearning wmrl wmrl_m3 wmrl_m5 wmrl_m6a wmrl_m6b wmrl_m4; do
-    jobid=$(sbatch --export=ALL,MODEL="$model" --parsable cluster/12_mle_gpu.slurm 2>&1)
+    # M4 (LBA joint choice+RT) needs more walltime: float64 + CDF/PDF density is ~10x
+    # slower per trial than choice-only softmax models
+    EXTRA_ARGS=""
+    if [[ "$model" == "wmrl_m4" ]]; then
+        EXTRA_ARGS="--time=24:00:00"
+    fi
+
+    jobid=$(sbatch --export=ALL,MODEL="$model" $EXTRA_ARGS --parsable cluster/12_mle_gpu.slurm 2>&1)
     if [[ $? -eq 0 && -n "$jobid" ]]; then
-        echo "  $model: Job $jobid submitted (GPU)"
+        echo "  $model: Job $jobid submitted (GPU)${EXTRA_ARGS:+ [24h walltime]}"
     else
         echo "  $model: FAILED - $jobid"
     fi

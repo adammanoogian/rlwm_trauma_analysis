@@ -14,7 +14,7 @@
 #SBATCH --job-name=rlwm_ppc_gpu
 #SBATCH --output=cluster/logs/ppc_gpu_%j.out
 #SBATCH --error=cluster/logs/ppc_gpu_%j.err
-#SBATCH --time=08:00:00
+#SBATCH --time=12:00:00
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=32G
@@ -52,7 +52,20 @@ if [ "$SKIP_MODEL_RECOVERY" = "true" ]; then
 fi
 
 export PYTHONUNBUFFERED=1
+
+# Start background GPU monitoring (log every 5 min)
+if command -v nvidia-smi &>/dev/null; then
+    (while true; do
+        echo "[GPU $(date +%H:%M:%S)] $(nvidia-smi --query-gpu=utilization.gpu,memory.used,memory.total,temperature.gpu --format=csv,noheader,nounits 2>/dev/null | awk -F', ' '{printf "util=%s%% mem=%s/%sMB temp=%sC", $1, $2, $3, $4}')"
+        sleep 300
+    done) &
+    GPU_MONITOR_PID=$!
+fi
+
 $CMD
+
+# Stop GPU monitoring
+[[ -n "$GPU_MONITOR_PID" ]] && kill "$GPU_MONITOR_PID" 2>/dev/null && wait "$GPU_MONITOR_PID" 2>/dev/null
 
 echo "=========================================="
 echo "PPC complete!"

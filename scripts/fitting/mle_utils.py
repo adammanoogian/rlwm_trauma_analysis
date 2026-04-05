@@ -143,6 +143,9 @@ def bounded_to_unbounded(value: float, lower: float, upper: float) -> float:
     """Transform value from [lower, upper] to unbounded space."""
     # First normalize to (0, 1)
     p = (value - lower) / (upper - lower)
+    # Clamp to prevent logit(0) = -inf or logit(1) = +inf
+    # This handles optimizer solutions that land exactly on bounds
+    p = np.clip(p, 1e-8, 1 - 1e-8)
     # Then apply logit
     return logit(p)
 

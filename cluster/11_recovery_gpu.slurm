@@ -30,7 +30,7 @@
 #SBATCH --job-name=rlwm_recovery_gpu
 #SBATCH --output=cluster/logs/recovery_gpu_%j.out
 #SBATCH --error=cluster/logs/recovery_gpu_%j.err
-#SBATCH --time=04:00:00
+#SBATCH --time=12:00:00
 #SBATCH --mem=32G
 #SBATCH --gres=gpu:1
 #SBATCH --partition=gpu
@@ -114,6 +114,9 @@ mkdir -p "$JAX_COMPILATION_CACHE_DIR" || {
 echo "JAX cache: ${JAX_COMPILATION_CACHE_DIR:-disabled}"
 echo ""
 
+# Ensure real-time output for tail -f monitoring
+export PYTHONUNBUFFERED=1
+
 # =============================================================================
 # Run Parameter Recovery (GPU-accelerated)
 # =============================================================================
@@ -128,6 +131,15 @@ echo "Seed:          $SEED"
 echo "============================================================"
 echo ""
 
+# Start background GPU monitoring (log every 5 min)
+if command -v nvidia-smi &>/dev/null; then
+    (while true; do
+        echo "[GPU $(date +%H:%M:%S)] $(nvidia-smi --query-gpu=utilization.gpu,memory.used,memory.total,temperature.gpu --format=csv,noheader,nounits 2>/dev/null | awk -F', ' '{printf "util=%s%% mem=%s/%sMB temp=%sC", $1, $2, $3, $4}')"
+        sleep 300
+    done) &
+    GPU_MONITOR_PID=$!
+fi
+
 python scripts/fitting/model_recovery.py \
     --model $MODEL \
     --n-subjects $NSUBJ \
@@ -136,6 +148,9 @@ python scripts/fitting/model_recovery.py \
     --use-gpu
 
 EXITCODE=$?
+
+# Stop GPU monitoring
+[[ -n "$GPU_MONITOR_PID" ]] && kill "$GPU_MONITOR_PID" 2>/dev/null && wait "$GPU_MONITOR_PID" 2>/dev/null
 
 echo ""
 echo "============================================================"

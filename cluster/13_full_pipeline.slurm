@@ -8,7 +8,7 @@
 #
 # This script runs sequentially:
 #   Phase A (03-08): Data formatting + behavioral analysis  (~5 min)
-#   Phase B (12):    MLE fitting (3 models, GPU)             (~10 min)
+#   Phase B (12):    MLE fitting (7 models, GPU, 154 subj)   (~40-60 hours)
 #   Phase C (14-16): Model comparison + trauma analysis      (~5 min)
 #
 # Optional validation steps (09-11) are skipped by default.
@@ -32,7 +32,7 @@
 #SBATCH --job-name=rlwm_full
 #SBATCH --output=cluster/logs/full_pipeline_%j.out
 #SBATCH --error=cluster/logs/full_pipeline_%j.err
-#SBATCH --time=04:00:00
+#SBATCH --time=72:00:00
 #SBATCH --mem=32G
 #SBATCH --cpus-per-task=4
 #SBATCH --gres=gpu:1
@@ -146,17 +146,30 @@ echo "============================================================"
 echo "PHASE B: MLE Model Fitting (Step 12)"
 echo "============================================================"
 
+# Start background GPU monitoring for fitting phase
+if command -v nvidia-smi &>/dev/null; then
+    (while true; do
+        echo "[GPU $(date +%H:%M:%S)] $(nvidia-smi --query-gpu=utilization.gpu,memory.used,memory.total,temperature.gpu --format=csv,noheader,nounits 2>/dev/null | awk -F', ' '{printf "util=%s%% mem=%s/%sMB temp=%sC", $1, $2, $3, $4}')"
+        sleep 300
+    done) &
+    GPU_MONITOR_PID=$!
+fi
+
 for model in qlearning wmrl wmrl_m3 wmrl_m5 wmrl_m6a wmrl_m6b wmrl_m4; do
     run_step "12 — Fit MLE: $model (GPU)" \
         python scripts/12_fit_mle.py \
             --model "$model" \
             --data "$DATA_FILE" \
             --output output/mle/ \
-            --n-starts 20 \
+            --n-starts 50 \
             --seed 42 \
             --use-gpu \
             --compute-diagnostics
 done
+
+# Stop GPU monitoring after fitting phase
+[[ -n "$GPU_MONITOR_PID" ]] && kill "$GPU_MONITOR_PID" 2>/dev/null && wait "$GPU_MONITOR_PID" 2>/dev/null
+unset GPU_MONITOR_PID
 
 # =============================================================================
 # Phase C: Model Comparison + Results Analysis (Steps 14-16)

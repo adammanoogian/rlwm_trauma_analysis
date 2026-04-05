@@ -10,10 +10,10 @@
 #   sbatch --export=MODEL=wmrl_m3 cluster/12_mle_gpu.slurm             # Single model
 #   sbatch --export=MODEL=qlearning,LIMIT=3 cluster/12_mle_gpu.slurm   # Quick test (3 participants)
 #
-# Performance (approximate for 47 participants):
-#   - CPU sequential:  ~30 minutes per model
-#   - CPU parallel:    ~3 minutes per model (16 cores)
-#   - GPU:             ~2-5 minutes per model
+# Performance (approximate):
+#   47 participants:   ~2-5 minutes per model (GPU)
+#   154 participants:  ~5-6 hours per choice-only model (GPU, 50 starts)
+#   M4 (LBA, float64): ~12-24 hours for 154 participants (GPU, 50 starts)
 #
 # M3 GPU Options (request via --gres=gpu:TYPE:N):
 #   - V100:  16GB VRAM, good balance (m3g partition)
@@ -32,7 +32,7 @@
 #SBATCH --job-name=rlwm_mle_gpu
 #SBATCH --output=cluster/logs/mle_gpu_%j.out
 #SBATCH --error=cluster/logs/mle_gpu_%j.err
-#SBATCH --time=08:00:00
+#SBATCH --time=12:00:00
 #SBATCH --mem=64G
 #SBATCH --gres=gpu:1
 #SBATCH --partition=gpu
@@ -124,6 +124,9 @@ echo ""
 
 DATA_FILE="output/task_trials_long.csv"
 
+# Ensure real-time output for tail -f monitoring
+export PYTHONUNBUFFERED=1
+
 # Check data file exists
 if [[ ! -f "$DATA_FILE" ]]; then
     echo "ERROR: Data file not found: $DATA_FILE"
@@ -191,6 +194,15 @@ for model in $MODELS; do
     echo "Started: $(date)"
     echo "============================================================"
 
+    # Start background GPU monitoring (log every 5 min during fitting)
+    if command -v nvidia-smi &>/dev/null; then
+        (while true; do
+            echo "[GPU $(date +%H:%M:%S)] $(nvidia-smi --query-gpu=utilization.gpu,memory.used,memory.total,temperature.gpu --format=csv,noheader,nounits 2>/dev/null | awk -F', ' '{printf "util=%s%% mem=%s/%sMB temp=%sC", $1, $2, $3, $4}')"
+            sleep 300
+        done) &
+        GPU_MONITOR_PID=$!
+    fi
+
     # Build command with optional --limit
     CMD="python scripts/fitting/fit_mle.py \
         --model $model \
@@ -207,6 +219,10 @@ for model in $MODELS; do
 
     eval $CMD
     EXIT_CODE=$?
+
+    # Stop GPU monitoring
+    [[ -n "$GPU_MONITOR_PID" ]] && kill "$GPU_MONITOR_PID" 2>/dev/null && wait "$GPU_MONITOR_PID" 2>/dev/null
+    unset GPU_MONITOR_PID
 
     if [[ $EXIT_CODE -ne 0 ]]; then
         echo ""
