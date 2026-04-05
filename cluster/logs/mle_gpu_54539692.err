@@ -4,3 +4,14 @@ E0405 02:18:47.547124  220782 numa_hwloc.cc:121] Call to hwloc_set_cpubind() fai
 E0405 02:18:52.347990  220824 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
 E0405 02:18:52.348121  220825 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
 E0405 02:18:52.348172  220826 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+W0405 07:53:42.874035  220795 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0405 07:53:43.271532  220795 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0405 07:53:43.285299  220795 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/mle_utils.py:136: RuntimeWarning: divide by zero encountered in log
+  return np.log(p / (1 - p))
+/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/mle_utils.py:136: RuntimeWarning: invalid value encountered in log
+  return np.log(p / (1 - p))
+W0405 08:00:40.263288  220795 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0405 08:00:40.877109  220795 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0405 08:08:28.094196  220795 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0405 08:08:28.934545  220795 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.

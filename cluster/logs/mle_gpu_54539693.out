@@ -91,3 +91,99 @@ Stage 2: Generating unconstrained starting points...
   Starting points: (50, 7)
 Stage 3: Building vmapped optimizer...
 Stage 4: Running GPU-vectorized fitting (JIT compiling + executing)...
+[MEMORY] PRE-GPU-FIT: 2297.8MB (psutil)
+[MEMORY] POST-GPU-FIT: 2476.2MB (psutil)
+  GPU fitting complete: 17922.8s
+  Output shapes: params=(154, 50, 7), nlls=(154, 50)
+Stage 5: Selecting best results and transforming parameters...
+Stage 6: Building result dictionaries...
+Stage 7: Computing Hessian diagnostics (sequential)...
+    Hessian: 10/154 done
+    Hessian: 20/154 done
+    Hessian: 30/154 done
+    Hessian: 40/154 done
+    Hessian: 50/154 done
+    Hessian: 60/154 done
+    Hessian: 70/154 done
+    Hessian: 80/154 done
+    Hessian: 90/154 done
+    Hessian: 100/154 done
+    Hessian: 110/154 done
+    Hessian: 120/154 done
+    Hessian: 130/154 done
+    Hessian: 140/154 done
+    Hessian: 150/154 done
+  Hessian diagnostics complete: 70/154 successful (706.7s)
+
+============================================================
+GPU FITTING COMPLETE
+============================================================
+Total duration: 18638.1s (310.6min)
+  GPU optimization: 17922.8s
+Participants: 154 | Converged: 80 (52%)
+Peak memory: 2.42GB
+============================================================
+
+
+============================================================
+RESULTS
+============================================================
+
+Convergence: 80/154 (51.9%)
+
+Group Statistics (n=80):
+--------------------------------------------------
+  alpha_pos   : 0.034 +/- 0.013  (SD=0.114)
+  alpha_neg   : 0.041 +/- 0.020  (SD=0.177)
+  phi         : 0.254 +/- 0.023  (SD=0.203)
+  rho         : 0.837 +/- 0.024  (SD=0.219)
+  capacity    : 3.260 +/- 0.157  (SD=1.403)
+  kappa_s     : 0.116 +/- 0.010  (SD=0.087)
+  epsilon     : 0.072 +/- 0.013  (SD=0.120)
+
+Model Fit:
+--------------------------------------------------
+  NLL         : 477.91 +/- 14.76
+  AIC         : 969.83 +/- 29.53
+  BIC         : 1001.91 +/- 29.55
+  PSEUDO-R²   : 0.403 +/- 0.153
+
+Hessian Diagnostics:
+--------------------------------------------------
+  Successfully computed: 70/154
+  Median condition number: 174793474048.0
+  Warning: 74 participants with condition > 1000 (identifiability issues)
+
+Warning: Parameters hitting bounds:
+  alpha_pos: 62 participants
+  alpha_neg: 91 participants
+  epsilon: 41 participants
+  rho: 24 participants
+  phi: 12 participants
+  kappa_s: 8 participants
+  capacity: 1 participants
+
+============================================================
+Results saved to:
+  Individual fits:     output/mle/wmrl_m6a_individual_fits.csv
+  Group summary:       output/mle/wmrl_m6a_group_summary.csv
+  Timing log:          output/mle/wmrl_m6a_timing_log.csv
+  Performance summary: output/mle/wmrl_m6a_performance_summary.json
+============================================================
+
+============================================================
+STATUS: PARTIAL - 97/154 participants fit, 57 FAILED
+  Failed participants: [10002, 10003, 10004, 10006, 10017, 10028, 10029, 10031, 10039, 10048]...
+============================================================
+
+Completed: Sun Apr  5 09:45:47 AM AEST 2026 (exit code: 0)
+
+============================================================
+All models complete!
+End time: Sun Apr  5 09:45:47 AM AEST 2026
+============================================================
+
+Results saved to:
+  output/mle/*_individual_fits.csv
+  output/mle/*_group_summary.csv
+============================================================

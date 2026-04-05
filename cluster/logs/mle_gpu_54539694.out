@@ -1,12 +1,12 @@
 ============================================================
 RLWM GPU-Accelerated MLE Fitting - M3 SLURM Job
 ============================================================
-Job ID: 54539691
-Node: m3g111
+Job ID: 54539694
+Node: m3g118
 Partition: gpu
 GPU(s): 0
 Project: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis
-Start time: Sun Apr  5 02:18:37 AM AEST 2026
+Start time: Sun Apr  5 06:57:29 AM AEST 2026
 ============================================================
 Activated rlwm_gpu by name
 
@@ -20,13 +20,13 @@ Cleaning up stale checkpoints...
 
 
 ============================================================
-Fitting model: wmrl_m3 (GPU-accelerated)
-Started: Sun Apr  5 02:18:47 AM AEST 2026
+Fitting model: wmrl_m6b (GPU-accelerated)
+Started: Sun Apr  5 06:57:38 AM AEST 2026
 ============================================================
 GPU detected: [CudaDevice(id=0)]
 
 ============================================================
-MLE Fitting: WMRL_M3
+MLE Fitting: WMRL_M6B
 ============================================================
 Data: output/task_trials_long.csv
 Random starts: 50
@@ -44,12 +44,12 @@ Loading data...
   Final sample: 154
   Total trials: 111943
 
-[MEMORY] START: 551.2MB (psutil)
+[MEMORY] START: 551.1MB (psutil)
 
 ============================================================
-MLE Fitting: WMRL_M3
+MLE Fitting: WMRL_M6B
 ============================================================
-Start time: 2026-04-05 02:18:52
+Start time: 2026-04-05 06:57:43
 Participants: 154
 Random starts per participant: 50
 Parallel workers: 1
@@ -71,30 +71,30 @@ Preparing participant data...
   Prepared 130/154 participants...
   Prepared 140/154 participants...
   Prepared 150/154 participants...
-  Data preparation complete (12.0s)
+  Data preparation complete (12.7s)
 
 GPU detected (cuda:0). Using vectorized GPU fitting path.
 
 
 ============================================================
-GPU-Vectorized MLE Fitting: WMRL_M3
+GPU-Vectorized MLE Fitting: WMRL_M6B
 ============================================================
-Start time: 2026-04-05 02:19:04
+Start time: 2026-04-05 06:57:56
 Participants: 154
 Random starts per participant: 50
 Method: jaxopt.LBFGS + jax.vmap (fully vectorized)
 ============================================================
 
 Stage 1: Preparing and stacking participant data...
-  Stacked data shape: (154, 17, 100) (5.3s)
+  Stacked data shape: (154, 17, 100) (5.5s)
 Stage 2: Generating unconstrained starting points...
-  Starting points: (50, 7)
+  Starting points: (50, 8)
 Stage 3: Building vmapped optimizer...
 Stage 4: Running GPU-vectorized fitting (JIT compiling + executing)...
-[MEMORY] PRE-GPU-FIT: 2300.4MB (psutil)
-[MEMORY] POST-GPU-FIT: 2486.4MB (psutil)
-  GPU fitting complete: 17711.3s
-  Output shapes: params=(154, 50, 7), nlls=(154, 50)
+[MEMORY] PRE-GPU-FIT: 2299.8MB (psutil)
+[MEMORY] POST-GPU-FIT: 2514.5MB (psutil)
+  GPU fitting complete: 18836.8s
+  Output shapes: params=(154, 50, 8), nlls=(154, 50)
 Stage 5: Selecting best results and transforming parameters...
 Stage 6: Building result dictionaries...
 Stage 7: Computing Hessian diagnostics (sequential)...
@@ -102,26 +102,17 @@ Stage 7: Computing Hessian diagnostics (sequential)...
     Hessian: 20/154 done
     Hessian: 30/154 done
     Hessian: 40/154 done
-    Hessian: 50/154 done
-    Hessian: 60/154 done
-    Hessian: 70/154 done
-    Hessian: 80/154 done
-    Hessian: 90/154 done
-    Hessian: 100/154 done
-    Hessian: 110/154 done
-    Hessian: 120/154 done
-    Hessian: 130/154 done
 
 *** GPU FITTING FAILED: float division by zero ***
 
-*** ERROR: Model wmrl_m3 FAILED with exit code 1 ***
-*** Check stderr log: cluster/logs/mle_gpu_54539691.err ***
+*** ERROR: Model wmrl_m6b FAILED with exit code 1 ***
+*** Check stderr log: cluster/logs/mle_gpu_54539694.err ***
 
-Completed: Sun Apr  5 07:24:47 AM AEST 2026 (exit code: 1)
+Completed: Sun Apr  5 12:16:26 PM AEST 2026 (exit code: 1)
 
 ============================================================
 All models complete!
-End time: Sun Apr  5 07:24:47 AM AEST 2026
+End time: Sun Apr  5 12:16:26 PM AEST 2026
 ============================================================
 
 Results saved to:

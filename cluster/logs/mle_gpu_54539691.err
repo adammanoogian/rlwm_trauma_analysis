@@ -4,3 +4,48 @@ E0405 02:18:46.964593 3603572 numa_hwloc.cc:121] Call to hwloc_set_cpubind() fai
 E0405 02:18:52.211459 3603719 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
 E0405 02:18:52.211645 3603721 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
 E0405 02:18:52.211636 3603720 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+W0405 07:14:21.860800 3603584 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0405 07:14:22.233038 3603584 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/mle_utils.py:136: RuntimeWarning: invalid value encountered in log
+  return np.log(p / (1 - p))
+W0405 07:19:39.994277 3603584 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0405 07:19:40.576560 3603584 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+Traceback (most recent call last):
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/fit_mle.py", line 2381, in fit_all_participants
+    return fit_all_gpu(
+           ^^^^^^^^^^^^
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/fit_mle.py", line 1593, in fit_all_gpu
+    x_unconstrained = params_to_unconstrained(best_params, model)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/mle_utils.py", line 481, in params_to_unconstrained
+    x.append(bounded_to_unbounded(params[name], lower, upper))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/mle_utils.py", line 147, in bounded_to_unbounded
+    return logit(p)
+           ^^^^^^^^
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/mle_utils.py", line 136, in logit
+    return np.log(p / (1 - p))
+                  ~~^~~~~~~~~
+ZeroDivisionError: float division by zero
+Traceback (most recent call last):
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/fit_mle.py", line 3076, in <module>
+    main()
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/fit_mle.py", line 2883, in main
+    fits_df, timing_info, timing_records = fit_all_participants(
+                                           ^^^^^^^^^^^^^^^^^^^^^
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/fit_mle.py", line 2381, in fit_all_participants
+    return fit_all_gpu(
+           ^^^^^^^^^^^^
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/fit_mle.py", line 1593, in fit_all_gpu
+    x_unconstrained = params_to_unconstrained(best_params, model)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/mle_utils.py", line 481, in params_to_unconstrained
+    x.append(bounded_to_unbounded(params[name], lower, upper))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/mle_utils.py", line 147, in bounded_to_unbounded
+    return logit(p)
+           ^^^^^^^^
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/mle_utils.py", line 136, in logit
+    return np.log(p / (1 - p))
+                  ~~^~~~~~~~~
+ZeroDivisionError: float division by zero

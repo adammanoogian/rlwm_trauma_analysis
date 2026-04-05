@@ -1,10 +1,14 @@
-E0405 02:18:47.469748 1961614 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
-E0405 02:18:47.470143 1961615 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
-E0405 02:18:47.469602 1961613 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
-E0405 02:18:52.188237 1961858 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
-E0405 02:18:52.188436 1961859 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
-E0405 02:18:52.188476 1961860 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
-W0405 06:55:17.913430 1961626 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+E0405 06:57:37.910872 2764897 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0405 06:57:37.910994 2764898 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0405 06:57:37.911061 2764899 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0405 06:57:43.025581 2765345 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0405 06:57:43.025750 2765346 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0405 06:57:43.025793 2765347 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+W0405 12:11:59.559573 2764913 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0405 12:11:59.876743 2764913 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0405 12:11:59.892341 2764913 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0405 12:11:59.903297 2764913 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0405 12:11:59.909697 2764913 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
 /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/mle_utils.py:136: RuntimeWarning: invalid value encountered in log
   return np.log(p / (1 - p))
 Traceback (most recent call last):

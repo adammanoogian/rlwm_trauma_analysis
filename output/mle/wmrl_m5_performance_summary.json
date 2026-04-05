@@ -1,0 +1,21 @@
+{
+  "model": "wmrl_m5",
+  "n_participants": 154,
+  "n_starts": 50,
+  "total_time_s": 21007.66428089142,
+  "total_time_min": 350.12773801485696,
+  "avg_time_per_participant_s": 136.41340442137286,
+  "jit_compilation_time_s": null,
+  "steady_state_avg_s": null,
+  "n_jobs": 1,
+  "peak_memory_mb": 2496.87109375,
+  "initial_memory_mb": 2301.82421875,
+  "memory_increase_mb": 195.046875,
+  "timestamp": "2026-04-05T08:09:12.334743",
+  "seed": 42,
+  "data_file": "output/task_trials_long.csv",
+  "n_converged": 68,
+  "convergence_rate": 0.44155844155844154,
+  "hessian_success_count": 57,
+  "hessian_success_rate": 0.37012987012987014
+}
