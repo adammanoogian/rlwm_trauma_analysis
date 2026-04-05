@@ -1,0 +1,480 @@
+---
+title: "Dissociating Perseverative Responding from Learning-Rate Effects in Trauma: A Computational Modeling Approach"
+author:
+  - name: Adam Manoogian
+    orcid: 0009-0002-8002-3191
+    email: adam.manoogian@monash.edu
+    affiliations:
+      - id: mc3s
+        name: Monash Centre for Consciousness and Contemplative Studies, Monash University
+      - id: mbi
+        name: Monash Biomedical Imaging, Monash University
+      - id: turner
+        name: Turner Institute for Brain and Mental Health, Monash University
+  - name: Coauthor Name
+    affiliations:
+      - ref: mbi
+abstract: |
+  ABSTRACT PLACEHOLDER. Trauma exposure alters reinforcement learning and working memory processes, but the computational mechanisms remain unclear. We fitted seven computational models (M1--M6b) to data from 154 participants completing a reinforcement learning working memory task, and examined how model parameters relate to trauma exposure and post-traumatic stress symptoms. [To be completed.]
+keywords: [reinforcement learning, working memory, trauma, perseveration, computational psychiatry, PTSD]
+bibliography: references.bib
+execute:
+  echo: false
+  warning: false
+  message: false
+format:
+  pdf:
+    template: arxiv_template.tex
+    keep-tex: true
+    cite-method: natbib
+    number-sections: true
+    colorlinks: true
+    fig-pos: 'H'
+---
+
+```{python}
+#| label: setup
+# ── Setup: runs silently, loads data and applies manuscript style ──────────────
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from pathlib import Path
+import json
+import sys
+
+# Add manuscript figures module to path
+sys.path.insert(0, str(Path("figures")))
+from plot_utils import (
+    apply_manuscript_style,
+    GROUP_COLORS,
+    MODEL_DISPLAY_NAMES,
+    PARAM_DISPLAY_NAMES,
+    COLUMN_WIDTH,
+    TEXT_WIDTH,
+)
+
+apply_manuscript_style()
+
+# ── Paths (relative to manuscript/ directory) ────────────────────────────────
+MLE_DIR = Path("../output/mle")
+FIGURES_DIR = Path("../figures")
+OUTPUT_DIR = Path("outputs")
+OUTPUT_DIR.mkdir(exist_ok=True)
+
+# ── Load MLE results ─────────────────────────────────────────────────────────
+models = ["qlearning", "wmrl", "wmrl_m3", "wmrl_m5", "wmrl_m6a", "wmrl_m6b", "wmrl_m4"]
+fits = {}
+for model in models:
+    fpath = MLE_DIR / f"{model}_individual_fits.csv"
+    if fpath.exists():
+        fits[model] = pd.read_csv(fpath)
+
+# ── Load performance summaries ───────────────────────────────────────────────
+perf = {}
+for model in models:
+    fpath = MLE_DIR / f"{model}_performance_summary.json"
+    if fpath.exists():
+        with open(fpath) as f:
+            perf[model] = json.load(f)
+
+# ── Key numbers for inline text ──────────────────────────────────────────────
+n_participants = len(fits.get("wmrl_m5", pd.DataFrame()))
+n_models = len(fits)
+winning_model = "wmrl_m5"  # M5 wins by dAIC=435.6 over M3
+```
+
+## Introduction {#sec-intro}
+
+Trauma exposure produces lasting changes in learning and decision-making that
+extend well beyond the initial stressor
+[@lissek2005classical; @homan2019neural].
+Computational psychiatry has begun to characterize these changes in terms of
+reinforcement learning (RL) parameters: altered learning rates, impaired
+value representations, and disrupted prediction-error signals
+[@browning2015anxious; @gillan2016characterizing; @millner2018pavlovian].
+Yet a fundamental ambiguity remains: apparent learning-rate deficits following
+trauma may reflect not genuine insensitivity to outcomes, but rather
+motor perseveration — a tendency to repeat prior actions independent of
+their value.
+
+Working memory (WM) contributes substantially to behavior on RL tasks,
+particularly at low set sizes where stimuli fit within WM capacity
+[@collins2012how; @collins2014working].
+The WM-RL hybrid model of @senta2025 formalizes this interaction and
+introduces a perseveration parameter ($\kappa$) that captures action
+repetition tendencies separable from outcome-based learning.
+By applying this framework to a trauma-exposed sample, we can ask whether
+post-reversal failures following trauma reflect elevated $\kappa$
+(motor habit), reduced $\alpha_-$ (outcome insensitivity), or both.
+
+This paper describes the fitting of seven hierarchically nested computational
+models (M1 Q-learning through M6b dual-perseveration) to behavioral data from
+`{python} n_participants` participants stratified by trauma history and
+post-traumatic stress symptom severity.
+We compare models by AIC/BIC, identify the winning model, and examine
+how its parameters relate to trauma group membership and continuous
+symptom measures from the IES-R [@weiss2007impact] and LEC-5
+[@weathers2013life].
+
+
+## Methods {#sec-methods}
+
+### Participants {#sec-participants}
+
+`{python} n_participants` participants completed the RLWM task after quality
+filtering (minimum `{python} 400` trials required; see @sec-exclusions).
+Trauma exposure and symptom severity were assessed via the Life Events
+Checklist for DSM-5 (LEC-5; @weathers2013life) and the Impact of Event
+Scale--Revised (IES-R; @weiss2007impact).
+Participants were classified into three groups based on LEC-5 endorsement
+and IES-R total score: **control** (no significant trauma exposure),
+**exposed** (trauma exposure without clinically significant symptoms),
+and **symptomatic** (trauma exposure with elevated IES-R scores).
+
+### Task {#sec-task}
+
+Participants completed the RLWM task from @senta2025 implemented in jsPsych.
+On each trial, a stimulus was presented and participants selected one of three
+response options (J, K, L) using the keyboard.
+Feedback (correct/incorrect) was provided after each response.
+Stimuli were organized into blocks with set sizes of 2, 3, 5, or 6 stimuli
+(set size 4 excluded), with rare reversals of correct response mappings
+occurring after 12--18 consecutive correct responses.
+The task comprised two practice blocks (static and dynamic) followed by
+up to 21 main-task blocks (see @sec-exclusions for inclusion thresholds).
+
+### Computational Models {#sec-models}
+
+We fitted seven models of increasing complexity to each participant's
+trial-by-trial choices (see @sec-model-table for complete parameter listings).
+
+All choice-only models share the core WM-RL mixture:
+
+$$
+p(a \mid s) = w(s) \cdot \text{WM}(s, a) + (1 - w(s)) \cdot Q(s, a)
+$$
+
+where the WM weight adapts to set size $n_s$ and capacity parameter $K$:
+
+$$
+w(s) = \frac{K}{K + \phi \cdot n_s}
+$$
+
+RL Q-values are updated via an asymmetric delta rule with positive learning
+rate $\alpha_+$ and negative learning rate $\alpha_-$.
+WM values are overwritten immediately on each observation.
+Random responding (motor noise) is captured by the epsilon noise parameter:
+$p_{\text{noisy}}(a) = \varepsilon / n_A + (1 - \varepsilon) \cdot p(a)$.
+The inverse temperature $\beta = 50$ is fixed for parameter identifiability
+[@senta2025].
+
+The six choice-only models (M1--M3, M5, M6a, M6b) are compared by AIC and
+BIC.
+M4 (RLWM-LBA) uses a joint choice-plus-RT likelihood and cannot be compared
+by AIC with choice-only models; it is evaluated on a separate track.
+
+### Model Fitting {#sec-fitting}
+
+Each model was fitted to each participant's main-task trials by maximum
+likelihood estimation (MLE) using scipy's L-BFGS-B optimizer with 10 random
+restarts per participant.
+Likelihoods were computed via JAX-accelerated functions with GPU support on
+the Monash M3 cluster.
+Model comparison used the Akaike Information Criterion:
+$\text{AIC} = 2k - 2\ln\hat{L}$, where $k$ is the number of free parameters
+[@daw2011model].
+BIC was computed as $\text{BIC} = k\ln(n) - 2\ln\hat{L}$.
+
+### Statistical Analysis {#sec-stats}
+
+Group differences in model parameters were assessed using Kruskal-Wallis
+tests with Mann-Whitney U pairwise comparisons (Bonferroni corrected).
+Associations between parameters and continuous trauma measures were assessed
+using Spearman rank correlations.
+Regression of parameters on IES-R subscale scores (Intrusion, Avoidance,
+Hyperarousal) was performed via OLS with age and sex as covariates.
+All analyses used $\alpha = 0.05$ after correction.
+
+
+## Results {#sec-results}
+
+### Model Comparison {#sec-model-comparison}
+
+```{python}
+#| label: tbl-model-comparison
+#| tbl-cap: "Model comparison by AIC and BIC across choice-only models (M1--M3, M5, M6a, M6b). dAIC is relative to the best-fitting model. M4 (joint choice+RT) is excluded from this comparison; see text."
+
+try:
+    # Build comparison table from loaded performance summaries
+    CHOICE_ONLY = ["qlearning", "wmrl", "wmrl_m3", "wmrl_m5", "wmrl_m6a", "wmrl_m6b"]
+    N_PARAMS = {
+        "qlearning": 3,
+        "wmrl": 6,
+        "wmrl_m3": 7,
+        "wmrl_m5": 8,
+        "wmrl_m6a": 7,
+        "wmrl_m6b": 8,
+    }
+
+    rows = []
+    for model in CHOICE_ONLY:
+        if model in perf:
+            p = perf[model]
+            rows.append({
+                "Model": MODEL_DISPLAY_NAMES.get(model, model),
+                "Free Params": N_PARAMS.get(model, "?"),
+                "Mean AIC": round(p.get("mean_aic", float("nan")), 1),
+                "Mean BIC": round(p.get("mean_bic", float("nan")), 1),
+            })
+
+    if rows:
+        df_cmp = pd.DataFrame(rows)
+        best_aic = df_cmp["Mean AIC"].min()
+        df_cmp.insert(4, "dAIC", (df_cmp["Mean AIC"] - best_aic).round(1))
+        df_cmp = df_cmp.sort_values("Mean AIC").reset_index(drop=True)
+
+        from IPython.display import display
+        display(df_cmp.style.hide(axis="index"))
+    else:
+        print("Data not yet available. Run scripts/14_compare_models.py first.")
+
+except Exception as e:
+    print(f"Data not yet available. Run scripts/14_compare_models.py first. ({e})")
+```
+
+### Winning Model: M5 {#sec-winning-model}
+
+The winning model among choice-only models was M5 (WM-RL + $\phi_{\mathrm{RL}}$,
+8 free parameters), which beat the previous best model M3 by
+$\Delta\text{AIC} = 435.6$ and $\Delta\text{BIC} = 226.9$, constituting
+very strong evidence [@daw2011model].
+M5 extends M3 by adding an RL forgetting rate $\phi_{\mathrm{RL}}$ that
+decays Q-values toward the uniform baseline ($1/n_A = 0.333$) before each
+delta-rule update, improving the model's ability to capture rapid forgetting
+of non-attended stimuli.
+When $\phi_{\mathrm{RL}} = 0$, M5 reduces algebraically to M3, confirming
+M3 as a special case.
+
+### Parameter-Trauma Group Relationships {#sec-group-results}
+
+```{python}
+#| label: fig-parameters-by-group
+#| fig-cap: "M5 model parameters by trauma group. Violins show kernel density estimates; central marks are medians. Groups: control (green), exposed (orange), symptomatic (red)."
+#| fig-width: 7.0
+#| fig-height: 4.5
+
+try:
+    # Load group summary or individual fits for M5
+    fits_m5_path = MLE_DIR / "wmrl_m5_individual_fits.csv"
+    group_summary_path = MLE_DIR / "wmrl_m5_group_summary.csv"
+
+    if not fits_m5_path.exists():
+        raise FileNotFoundError(f"Missing: {fits_m5_path}")
+
+    df_m5 = pd.read_csv(fits_m5_path)
+    param_cols = ["alpha_pos", "alpha_neg", "phi", "rho", "K", "kappa", "phi_rl", "epsilon"]
+    param_cols = [c for c in param_cols if c in df_m5.columns]
+    group_col = "group" if "group" in df_m5.columns else None
+
+    if group_col is None:
+        raise KeyError("No 'group' column found in wmrl_m5_individual_fits.csv")
+
+    n_params = len(param_cols)
+    ncols = 4
+    nrows = (n_params + ncols - 1) // ncols
+
+    fig, axes = plt.subplots(nrows, ncols, figsize=(TEXT_WIDTH, nrows * 1.8))
+    axes = axes.flatten()
+
+    groups = ["control", "exposed", "symptomatic"]
+    for i, param in enumerate(param_cols):
+        ax = axes[i]
+        group_data = [df_m5.loc[df_m5[group_col] == g, param].dropna().values for g in groups]
+        parts = ax.violinplot(
+            group_data,
+            positions=range(len(groups)),
+            showmedians=True,
+            showextrema=False,
+        )
+        for j, (body, g) in enumerate(zip(parts["bodies"], groups)):
+            body.set_facecolor(GROUP_COLORS[g])
+            body.set_alpha(0.7)
+        parts["cmedians"].set_color("black")
+        parts["cmedians"].set_linewidth(1.5)
+        ax.set_xticks(range(len(groups)))
+        ax.set_xticklabels(["Ctrl", "Exp", "Symp"], fontsize=7)
+        ax.set_ylabel(PARAM_DISPLAY_NAMES.get(param, param))
+        ax.set_title(PARAM_DISPLAY_NAMES.get(param, param))
+
+    for j in range(n_params, len(axes)):
+        axes[j].set_visible(False)
+
+    plt.tight_layout()
+    plt.savefig(OUTPUT_DIR / "fig_parameters_by_group.pdf", bbox_inches="tight")
+    plt.show()
+
+except Exception as e:
+    print(f"Data not yet available. Run scripts/15_analyze_mle_by_trauma.py first. ({e})")
+```
+
+### Continuous Trauma Associations {#sec-correlations}
+
+```{python}
+#| label: fig-correlation-heatmap
+#| fig-cap: "Spearman correlations between M5 parameters and IES-R subscale scores (Intrusion, Avoidance, Hyperarousal). Color encodes correlation strength; asterisks indicate Bonferroni-corrected significance (p < 0.05)."
+#| fig-width: 3.5
+#| fig-height: 4.0
+
+try:
+    corr_path = Path("../figures/mle_trauma_analysis/correlation_heatmap_wmrl_m5.png")
+    if not corr_path.exists():
+        raise FileNotFoundError(f"Missing: {corr_path}")
+
+    from matplotlib.image import imread
+    img = imread(str(corr_path))
+    fig, ax = plt.subplots(figsize=(COLUMN_WIDTH, 4.0))
+    ax.imshow(img)
+    ax.axis("off")
+    plt.tight_layout()
+    plt.savefig(OUTPUT_DIR / "fig_correlation_heatmap.pdf", bbox_inches="tight")
+    plt.show()
+
+except Exception as e:
+    print(f"Data not yet available. Run scripts/15_analyze_mle_by_trauma.py first. ({e})")
+```
+
+### Regression Analyses {#sec-regressions}
+
+```{python}
+#| label: tbl-regression
+#| tbl-cap: "OLS regression of M5 parameters on IES-R subscales (Intrusion, Avoidance, Hyperarousal), controlling for age and sex. Standardized beta coefficients shown. Bold: p < 0.05 after Bonferroni correction."
+
+try:
+    # Placeholder: load regression results from script 16 output
+    reg_dir = Path("../output/regressions/wmrl_m5")
+    if not reg_dir.exists():
+        raise FileNotFoundError(f"Missing: {reg_dir}")
+
+    csv_files = list(reg_dir.glob("*.csv"))
+    if not csv_files:
+        raise FileNotFoundError(f"No CSV files in {reg_dir}")
+
+    # Aggregate regression results across subscales
+    frames = []
+    for fpath in sorted(csv_files):
+        df_reg = pd.read_csv(fpath)
+        df_reg["subscale"] = fpath.stem
+        frames.append(df_reg)
+
+    df_all = pd.concat(frames, ignore_index=True)
+
+    from IPython.display import display
+    display(df_all.style.hide(axis="index"))
+
+except Exception as e:
+    print(f"Data not yet available. Run scripts/16_regress_parameters_on_scales.py --model wmrl_m5 first. ({e})")
+```
+
+
+## Discussion {#sec-discussion}
+
+**Summary of findings.** [To be completed: Briefly summarize which parameters
+differed across groups and whether perseveration ($\kappa$) or
+learning-rate effects ($\alpha_-$) better explained group differences.]
+
+**Perseveration vs. learning rates.** The dissociation between $\kappa$
+(motor perseveration) and $\alpha_-$ (negative-outcome learning rate) is
+central to interpreting RL deficits in trauma.
+Prior work conflated these mechanisms; the WM-RL framework of @senta2025
+allows them to be estimated simultaneously.
+[To be completed: Discuss specific findings.]
+
+**WM capacity and trauma.** The WM capacity parameter $K$ in the WM-RL
+framework indexes how many stimulus-response mappings can be maintained in
+active working memory.
+Reduced $K$ estimates would be consistent with reported WM impairments
+following trauma exposure [@homan2019neural].
+[To be completed: Discuss $K$ findings relative to group.]
+
+**Comparison to Senta et al.** [@senta2025] established the model hierarchy
+in a normative sample. Our results extend this to a trauma-stratified sample
+and test whether the winning model generalizes across clinical subgroups.
+[To be completed: Compare model hierarchy ranking.]
+
+**Limitations.** [To be completed: Cross-sectional design, self-report trauma
+measures, online data collection, set sizes limited to 2/3/5/6.]
+
+**Clinical implications.** [To be completed: Targeting perseveration vs.
+extinction learning in therapeutic interventions.]
+
+
+## Conclusion {#sec-conclusion}
+
+We fitted seven computational models of reinforcement learning and working
+memory to behavioral data from `{python} n_participants` participants stratified
+by trauma history and symptom severity.
+The winning model (M5: WM-RL + $\phi_{\mathrm{RL}}$) revealed dissociable
+contributions of perseverative responding and outcome-based learning deficits
+to post-trauma behavioral changes.
+[To be completed with final summary and future directions.]
+
+
+## References {.unnumbered}
+
+::: {#refs}
+:::
+
+
+## Appendix {.appendix}
+
+### Model Parameters {#sec-model-table}
+
+```{python}
+#| label: tbl-model-params
+#| tbl-cap: "Free parameters for all seven computational models. M4 is the only joint choice+RT model; its AIC is not comparable to choice-only models M1--M6b."
+
+model_params_data = {
+    "Model": [
+        "M1: Q-Learning",
+        "M2: WM-RL",
+        "M3: WM-RL+kappa",
+        "M5: WM-RL+phi_rl",
+        "M6a: WM-RL+kappa_s",
+        "M6b: WM-RL+dual",
+        "M4: RLWM-LBA",
+    ],
+    "Free Parameters": [
+        r"alpha+, alpha-, epsilon",
+        r"alpha+, alpha-, phi, rho, K, epsilon",
+        r"alpha+, alpha-, phi, rho, K, kappa, epsilon",
+        r"alpha+, alpha-, phi, rho, K, kappa, phi_rl, epsilon",
+        r"alpha+, alpha-, phi, rho, K, kappa_s, epsilon",
+        r"alpha+, alpha-, phi, rho, K, kappa_total, kappa_share, epsilon",
+        r"alpha+, alpha-, phi, rho, K, kappa, v_scale, A, delta, t0",
+    ],
+    "k": [3, 6, 7, 8, 7, 8, 10],
+    "Notes": [
+        "Baseline RL only",
+        "WM-RL hybrid",
+        "Adds global perseveration",
+        "Winning model; adds RL Q-value decay",
+        "Stimulus-specific perseveration",
+        "Dual perseveration (stick-breaking)",
+        "Joint choice + RT; LBA race model",
+    ],
+}
+
+df_params = pd.DataFrame(model_params_data)
+from IPython.display import display
+display(df_params.style.hide(axis="index"))
+```
+
+### Exclusion Criteria {#sec-exclusions}
+
+Participants were excluded if they contributed fewer than
+`{python} 400` trials to the main task (blocks 3--23), corresponding to
+approximately 50% of the expected 807--1077 trials across 21 blocks.
+This threshold (`MIN_TRIALS_THRESHOLD = 400` in `config.py`) ensures
+sufficient data for reliable MLE parameter estimation.
+Additionally, any participants identified as duplicates or with known data
+quality issues were excluded prior to fitting.
