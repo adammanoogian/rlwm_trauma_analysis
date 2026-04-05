@@ -1,0 +1,122 @@
+% arxiv_template.tex
+% Custom LaTeX template for Quarto → arXiv-style PDF output.
+% This replaces Quarto's default Pandoc template.
+% Pandoc variables are injected via $variable$ syntax.
+
+\documentclass{article}
+
+% ── Core packages ──────────────────────────────────────────────────────────────
+\usepackage{arxiv}            % arXiv style — upload arxiv.sty to project root
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath, amssymb, amsfonts}
+\usepackage{bm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{nicefrac}
+\usepackage{microtype}
+\usepackage{setspace}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage[margin=1in]{geometry}
+
+% ── Citations ──────────────────────────────────────────────────────────────────
+$if(natbib)$
+\usepackage{natbib}
+\bibliographystyle{$if(biblio-style)$$biblio-style$$else$unsrtnat$endif$}
+$endif$
+$if(biblatex)$
+\usepackage[$if(biblio-style)$style=$biblio-style$,$endif$$for(biblatexoptions)$$biblatexoptions$$sep$,$endfor$]{biblatex}
+$for(bibliography)$
+\addbibresource{$bibliography$}
+$endfor$
+$endif$
+
+% ── Cross-referencing ──────────────────────────────────────────────────────────
+\usepackage{hyperref}
+\usepackage{cleveref}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  urlcolor=blue,
+  citecolor=blue,
+  pdftitle={$title$},
+  pdfauthor={$for(author)$$author.name$$sep$, $endfor$},
+}
+
+% ── Float spacing ─────────────────────────────────────────────────────────────
+\setlength{\intextsep}{8pt plus 2pt minus 2pt}
+\setlength{\floatsep}{8pt plus 2pt minus 2pt}
+\setlength{\textfloatsep}{10pt plus 2pt minus 2pt}
+
+% ── Author block ──────────────────────────────────────────────────────────────
+\usepackage{authblk}
+\renewcommand\Authfont{\bfseries}
+\setlength{\affilsep}{0em}
+
+% ── ORCID icon ────────────────────────────────────────────────────────────────
+% Upload orcid.pdf to project root, or comment out the \usebox lines below
+\newbox{\orcidbox}
+\sbox{\orcidbox}{\includegraphics[scale=0.06]{orcid.pdf}}
+
+% ── Title / authors (injected by Quarto) ─────────────────────────────────────
+\title{$title$}
+
+$for(author)$
+\author[$for(author.affiliations)$$it.id$$sep$,$endfor$]{%
+  $if(author.orcid)$\href{https://orcid.org/$author.orcid$}{\usebox{\orcidbox}\hspace{1mm}}$endif$%
+  $author.name$%
+  $if(author.email)$\thanks{\texttt{$author.email$}}$endif$%
+}
+$endfor$
+
+$for(by-author)$
+$for(by-author.affiliations)$
+\affil[$it.id$]{$it.name$}
+$endfor$
+$endfor$
+
+% ── Pandoc internals ──────────────────────────────────────────────────────────
+$-- Required for Pandoc's table/figure output
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+
+$if(highlighting-macros)$
+$highlighting-macros$
+$endif$
+
+% ── Document ──────────────────────────────────────────────────────────────────
+\begin{document}
+\maketitle
+
+$if(abstract)$
+\begin{abstract}
+$abstract$
+\end{abstract}
+$endif$
+
+$if(keywords)$
+\keywords{$for(keywords)$$keywords$$sep$ \and $endfor$}
+$endif$
+
+$body$
+
+$if(natbib)$
+$if(bibliography)$
+\bibliography{$for(bibliography)$$bibliography$$sep$,$endfor$}
+$endif$
+$endif$
+
+$if(biblatex)$
+\printbibliography$if(biblio-title)$[title=$biblio-title$]$endif$
+$endif$
+
+\end{document}

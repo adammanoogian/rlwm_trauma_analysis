@@ -1,0 +1,44 @@
+# _quarto.yml — Quarto project configuration for RLWM Trauma Analysis manuscript
+
+project:
+  type: default
+  output-dir: _output
+
+# ── Global execution settings ──────────────────────────────────────────────────
+execute:
+  echo: false       # never show code in output (override per-cell with echo: true)
+  warning: false
+  message: false
+  cache: true       # cache cell outputs — rerun only when code changes
+                    # delete _cache/ to force full rerun
+
+# ── Bibliography ───────────────────────────────────────────────────────────────
+bibliography: references.bib
+# csl: apa.csl      # natbib handles citation style in PDF; uncomment for HTML/Word
+
+# ── Format: PDF (primary output) ──────────────────────────────────────────────
+format:
+  pdf:
+    # Use custom LaTeX preamble — see arxiv_template.tex
+    template: arxiv_template.tex
+
+    keep-tex: true          # also emit .tex — needed for Overleaf roundtrip
+    cite-method: natbib     # natbib compatible with arxiv_template.tex
+    number-sections: true
+    colorlinks: true
+    fig-pos: 'H'            # force figures to stay in place (requires float pkg)
+    geometry:
+      - margin=1in
+
+  # ── Format: HTML (for sharing / review) ─────────────────────────────────────
+  html:
+    theme: cosmo
+    toc: true
+    toc-depth: 3
+    number-sections: true
+    embed-resources: true   # single self-contained .html file, easy to email
+
+  # ── Format: LaTeX only (for Overleaf upload) ─────────────────────────────────
+  # quarto render paper.qmd --to latex
+  latex:
+    keep-tex: true
