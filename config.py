@@ -161,6 +161,88 @@ class ModelParams:
     NUM_ACTIONS = 3  # Number of possible actions
 
 # ============================================================================
+# MODEL REGISTRY (single source of truth for all pipeline scripts)
+# ============================================================================
+# Use this for orchestration (model lists, file paths, display names).
+# Do NOT replace the per-model PARAMS/BOUNDS in mle_utils.py — those are
+# used inside the tight JAX optimization inner loop.
+
+MODEL_REGISTRY: dict[str, dict] = {
+    'qlearning': {
+        'display_name': 'M1: Q-Learning',
+        'short_name': 'M1',
+        'params': ['alpha_pos', 'alpha_neg', 'epsilon'],
+        'n_params': 3,
+        'is_choice_only': True,
+        'has_wm': False,
+        'csv_filename': 'qlearning_individual_fits.csv',
+    },
+    'wmrl': {
+        'display_name': 'M2: WM-RL',
+        'short_name': 'M2',
+        'params': ['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'epsilon'],
+        'n_params': 6,
+        'is_choice_only': True,
+        'has_wm': True,
+        'csv_filename': 'wmrl_individual_fits.csv',
+    },
+    'wmrl_m3': {
+        'display_name': 'M3: WM-RL+kappa',
+        'short_name': 'M3',
+        'params': ['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'kappa', 'epsilon'],
+        'n_params': 7,
+        'is_choice_only': True,
+        'has_wm': True,
+        'csv_filename': 'wmrl_m3_individual_fits.csv',
+    },
+    'wmrl_m5': {
+        'display_name': 'M5: WM-RL+phi_rl',
+        'short_name': 'M5',
+        'params': ['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'kappa', 'phi_rl', 'epsilon'],
+        'n_params': 8,
+        'is_choice_only': True,
+        'has_wm': True,
+        'csv_filename': 'wmrl_m5_individual_fits.csv',
+    },
+    'wmrl_m6a': {
+        'display_name': 'M6a: WM-RL+kappa_s',
+        'short_name': 'M6a',
+        'params': ['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'kappa_s', 'epsilon'],
+        'n_params': 7,
+        'is_choice_only': True,
+        'has_wm': True,
+        'csv_filename': 'wmrl_m6a_individual_fits.csv',
+    },
+    'wmrl_m6b': {
+        'display_name': 'M6b: WM-RL+dual',
+        'short_name': 'M6b',
+        'params': [
+            'alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity',
+            'kappa_total', 'kappa_share', 'epsilon',
+        ],
+        'n_params': 8,
+        'is_choice_only': True,
+        'has_wm': True,
+        'csv_filename': 'wmrl_m6b_individual_fits.csv',
+    },
+    'wmrl_m4': {
+        'display_name': 'M4: RLWM-LBA',
+        'short_name': 'M4',
+        'params': [
+            'alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'kappa',
+            'v_scale', 'A', 'delta', 't0',
+        ],
+        'n_params': 10,
+        'is_choice_only': False,  # Joint choice + RT; AIC not comparable to choice-only
+        'has_wm': True,
+        'csv_filename': 'wmrl_m4_individual_fits.csv',
+    },
+}
+
+ALL_MODELS: list[str] = list(MODEL_REGISTRY.keys())
+CHOICE_ONLY_MODELS: list[str] = [k for k, v in MODEL_REGISTRY.items() if v['is_choice_only']]
+
+# ============================================================================
 # PYMC SAMPLING PARAMETERS
 # ============================================================================
 
