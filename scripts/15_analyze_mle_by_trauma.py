@@ -131,7 +131,13 @@ PARAM_NAMES = {
 def load_data() -> tuple:
     """Load and merge MLE fits with survey/group data."""
     # Load survey data
-    surveys = pd.read_csv(OUTPUT_DIR / "participant_surveys.csv")
+    surveys = pd.read_csv(PROJECT_ROOT / "output" / "summary_participant_metrics.csv")
+    # Rename columns to match names expected throughout this script
+    surveys = surveys.rename(columns={
+        'less_total_events': 'lec_total',
+        'less_personal_events': 'lec_personal',
+    })
+    print(f"Loaded survey data: {len(surveys)} participants from summary_participant_metrics.csv")
     groups = pd.read_csv(PROJECT_ROOT / "output" / "trauma_groups" / "group_assignments.csv")
 
     # Convert sona_id to string for consistent merging (handles both numeric and anon IDs)
