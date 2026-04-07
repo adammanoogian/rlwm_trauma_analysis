@@ -9,8 +9,8 @@ execute:
   echo: false       # never show code in output (override per-cell with echo: true)
   warning: false
   message: false
-  cache: true       # cache cell outputs — rerun only when code changes
-                    # delete _cache/ to force full rerun
+  cache: false      # disabled — incompatible with inline Python expressions
+                    # re-enable after removing `{python} var` inlines
 
 # ── Bibliography ───────────────────────────────────────────────────────────────
 bibliography: references.bib
@@ -22,6 +22,7 @@ format:
     # Use custom LaTeX preamble — see arxiv_template.tex
     template: arxiv_template.tex
 
+    pdf-engine: pdflatex     # use pdflatex (MiKTeX), not lualatex
     keep-tex: true          # also emit .tex — needed for Overleaf roundtrip
     cite-method: natbib     # natbib compatible with arxiv_template.tex
     number-sections: true

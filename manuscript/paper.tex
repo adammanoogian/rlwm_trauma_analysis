@@ -1,0 +1,757 @@
+% arxiv_template.tex
+% Custom LaTeX template for Quarto → arXiv-style PDF output.
+% This replaces Quarto's default Pandoc template.
+% Pandoc variables are injected via  syntax.
+
+\documentclass{article}
+
+% ── Core packages ──────────────────────────────────────────────────────────────
+\usepackage{arxiv}            % arXiv style — upload arxiv.sty to project root
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+% Map Unicode Greek letters to LaTeX math equivalents (for pdflatex)
+\DeclareUnicodeCharacter{03B1}{\ensuremath{\alpha}}
+\DeclareUnicodeCharacter{03B2}{\ensuremath{\beta}}
+\DeclareUnicodeCharacter{03B3}{\ensuremath{\gamma}}
+\DeclareUnicodeCharacter{03B4}{\ensuremath{\delta}}
+\DeclareUnicodeCharacter{03B5}{\ensuremath{\varepsilon}}
+\DeclareUnicodeCharacter{03BA}{\ensuremath{\kappa}}
+\DeclareUnicodeCharacter{03C1}{\ensuremath{\rho}}
+\DeclareUnicodeCharacter{03C6}{\ensuremath{\phi}}
+\DeclareUnicodeCharacter{2212}{\ensuremath{-}}
+\DeclareUnicodeCharacter{2264}{\ensuremath{\leq}}
+\DeclareUnicodeCharacter{2265}{\ensuremath{\geq}}
+\usepackage{amsmath, amssymb, amsfonts}
+\usepackage{bm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{nicefrac}
+\usepackage{microtype}
+\usepackage{setspace}
+\usepackage{xcolor}
+\usepackage{enumitem}
+% geometry already loaded by arxiv.sty — do not reload
+
+% ── Citations ──────────────────────────────────────────────────────────────────
+\usepackage{natbib}
+\bibliographystyle{unsrtnat}
+
+% ── Cross-referencing ──────────────────────────────────────────────────────────
+\usepackage{hyperref}
+\usepackage{cleveref}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  urlcolor=blue,
+  citecolor=blue,
+  pdftitle={Dissociating Perseverative Responding from Learning-Rate
+Effects in Trauma: A Computational Modeling Approach},
+  pdfauthor={Adam Manoogian, Coauthor Name},
+}
+
+% ── Float spacing ─────────────────────────────────────────────────────────────
+\setlength{\intextsep}{8pt plus 2pt minus 2pt}
+\setlength{\floatsep}{8pt plus 2pt minus 2pt}
+\setlength{\textfloatsep}{10pt plus 2pt minus 2pt}
+
+% ── Author block ──────────────────────────────────────────────────────────────
+\usepackage{authblk}
+\renewcommand\Authfont{\bfseries}
+\setlength{\affilsep}{0em}
+
+% ── ORCID icon ────────────────────────────────────────────────────────────────
+% Place orcid.pdf in manuscript/ for ORCID icons next to author names
+\newbox{\orcidbox}
+\IfFileExists{orcid.pdf}{%
+  \sbox{\orcidbox}{\includegraphics[scale=0.06]{orcid.pdf}}%
+}{%
+  \sbox{\orcidbox}{}% no icon if file missing
+}
+
+% ── Title / authors (injected by Quarto) ─────────────────────────────────────
+\title{Dissociating Perseverative Responding from Learning-Rate Effects
+in Trauma: A Computational Modeling Approach}
+
+\author[mc3s,mbi,turner]{%
+  \href{https://orcid.org/0009-0002-8002-3191}{\usebox{\orcidbox}\hspace{1mm}}%
+  Adam Manoogian%
+  \thanks{\texttt{adam.manoogian@monash.edu}}%
+}
+\author[mbi]{%
+  %
+  Coauthor Name%
+  %
+}
+
+\affil[mc3s]{Monash Centre for Consciousness and Contemplative Studies,
+Monash University}
+\affil[mbi]{Monash Biomedical Imaging, Monash University}
+\affil[turner]{Turner Institute for Brain and Mental Health, Monash
+University}
+
+% ── Pandoc internals ──────────────────────────────────────────────────────────
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\providecommand{\pandocbounded}[1]{#1}  % Pandoc 3.x image wrapper
+
+
+% ── Document ──────────────────────────────────────────────────────────────────
+\begin{document}
+\maketitle
+
+\begin{abstract}
+ABSTRACT PLACEHOLDER. Trauma exposure alters reinforcement learning and
+working memory processes, but the computational mechanisms remain
+unclear. We fitted seven computational models (M1--M6b) to data from 154
+participants completing a reinforcement learning working memory task,
+and examined how model parameters relate to trauma exposure and
+post-traumatic stress symptoms. {[}To be completed.{]}
+\end{abstract}
+
+\keywords{reinforcement learning \and working
+memory \and trauma \and perseveration \and computational
+psychiatry \and PTSD}
+
+\section{Introduction}\label{sec-intro}
+
+Trauma exposure produces lasting changes in learning and decision-making
+that extend well beyond the initial stressor
+\citep{lissek2005classical, homan2019neural}. Computational psychiatry
+has begun to characterize these changes in terms of reinforcement
+learning (RL) parameters: altered learning rates, impaired value
+representations, and disrupted prediction-error signals
+\citep{browning2015anxious, gillan2016characterizing, millner2018pavlovian}.
+Yet a fundamental ambiguity remains: apparent learning-rate deficits
+following trauma may reflect not genuine insensitivity to outcomes, but
+rather motor perseveration --- a tendency to repeat prior actions
+independent of their value.
+
+Working memory (WM) contributes substantially to behavior on RL tasks,
+particularly at low set sizes where stimuli fit within WM capacity
+\citep{collins2012how, collins2014working}. The WM-RL hybrid model of
+\citet{senta2025} formalizes this interaction and introduces a
+perseveration parameter (\(\kappa\)) that captures action repetition
+tendencies separable from outcome-based learning. By applying this
+framework to a trauma-exposed sample, we can ask whether post-reversal
+failures following trauma reflect elevated \(\kappa\) (motor habit),
+reduced \(\alpha_-\) (outcome insensitivity), or both.
+
+This paper describes the fitting of seven hierarchically nested
+computational models (M1 Q-learning through M6b dual-perseveration) to
+behavioral data from 154 participants stratified by trauma history and
+post-traumatic stress symptom severity. We compare models by AIC/BIC,
+identify the winning model, and examine how its parameters relate to
+trauma group membership and continuous symptom measures from the IES-R
+\citep{weiss2007impact} and LEC-5 \citep{weathers2013life}.
+
+\section{Methods}\label{sec-methods}
+
+\subsection{Participants}\label{sec-participants}
+
+154 participants completed the RLWM task after quality filtering
+(minimum 400 trials required; see Section~\ref{sec-exclusions}). Trauma
+exposure and symptom severity were assessed via the Life Events
+Checklist for DSM-5 (LEC-5; \citet{weathers2013life}) and the Impact of
+Event Scale--Revised (IES-R; \citet{weiss2007impact}). Participants were
+classified into three groups based on LEC-5 endorsement and IES-R total
+score: \textbf{control} (no significant trauma exposure),
+\textbf{exposed} (trauma exposure without clinically significant
+symptoms), and \textbf{symptomatic} (trauma exposure with elevated IES-R
+scores).
+
+\subsection{Task}\label{sec-task}
+
+Participants completed the RLWM task from \citet{senta2025} implemented
+in jsPsych. On each trial, a stimulus was presented and participants
+selected one of three response options (J, K, L) using the keyboard.
+Feedback (correct/incorrect) was provided after each response. Stimuli
+were organized into blocks with set sizes of 2, 3, 5, or 6 stimuli (set
+size 4 excluded), with rare reversals of correct response mappings
+occurring after 12--18 consecutive correct responses. The task comprised
+two practice blocks (static and dynamic) followed by up to 21 main-task
+blocks (see Section~\ref{sec-exclusions} for inclusion thresholds).
+
+\subsection{Computational Models}\label{sec-models}
+
+We fitted seven models of increasing complexity to each participant's
+trial-by-trial choices (see Section~\ref{sec-model-table} for complete
+parameter listings).
+
+All choice-only models share the core WM-RL mixture:
+
+\[
+p(a \mid s) = w(s) \cdot \text{WM}(s, a) + (1 - w(s)) \cdot Q(s, a)
+\]
+
+where the WM weight adapts to set size \(n_s\) and capacity parameter
+\(K\):
+
+\[
+w(s) = \frac{K}{K + \phi \cdot n_s}
+\]
+
+RL Q-values are updated via an asymmetric delta rule with positive
+learning rate \(\alpha_+\) and negative learning rate \(\alpha_-\). WM
+values are overwritten immediately on each observation. Random
+responding (motor noise) is captured by the epsilon noise parameter:
+\(p_{\text{noisy}}(a) = \varepsilon / n_A + (1 - \varepsilon) \cdot p(a)\).
+The inverse temperature \(\beta = 50\) is fixed for parameter
+identifiability \citep{senta2025}.
+
+The six choice-only models (M1--M3, M5, M6a, M6b) are compared by AIC
+and BIC. M4 (RLWM-LBA) uses a joint choice-plus-RT likelihood and cannot
+be compared by AIC with choice-only models; it is evaluated on a
+separate track.
+
+\subsection{Model Fitting}\label{sec-fitting}
+
+Each model was fitted to each participant's main-task trials by maximum
+likelihood estimation (MLE) using scipy's L-BFGS-B optimizer with 10
+random restarts per participant. Likelihoods were computed via
+JAX-accelerated functions with GPU support on the Monash M3 cluster.
+Model comparison used the Akaike Information Criterion:
+\(\text{AIC} = 2k - 2\ln\hat{L}\), where \(k\) is the number of free
+parameters \citep{daw2011model}. BIC was computed as
+\(\text{BIC} = k\ln(n) - 2\ln\hat{L}\).
+
+\subsection{Statistical Analysis}\label{sec-stats}
+
+Group differences in model parameters were assessed using Kruskal-Wallis
+tests with Mann-Whitney U pairwise comparisons (Bonferroni corrected).
+Associations between parameters and continuous trauma measures were
+assessed using Spearman rank correlations. Regression of parameters on
+IES-R subscale scores (Intrusion, Avoidance, Hyperarousal) was performed
+via OLS with age and sex as covariates. All analyses used
+\(\alpha = 0.05\) after correction.
+
+\section{Results}\label{sec-results}
+
+\subsection{Model Comparison}\label{sec-model-comparison}
+
+\begin{longtable}[]{@{}lllll@{}}
+
+\caption{\label{tbl-model-comparison}Model comparison by AIC and BIC
+across choice-only models (M1--M3, M5, M6a, M6b). dAIC is relative to
+the best-fitting model. M4 (joint choice+RT) is excluded from this
+comparison; see text.}
+
+\tabularnewline
+
+\caption{}\label{T_5354b}\tabularnewline
+\toprule\noalign{}
+Model & Free Params & Mean AIC & Mean BIC & dAIC \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+Model & Free Params & Mean AIC & Mean BIC & dAIC \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+M1: Q-Learning & 3 & nan & nan & nan \\
+M2: WM-RL & 6 & nan & nan & nan \\
+M3: WM-RL+kappa & 7 & nan & nan & nan \\
+M5: WM-RL+phi\_rl & 8 & nan & nan & nan \\
+M6a: WM-RL+kappa\_s & 7 & nan & nan & nan \\
+M6b: WM-RL+dual & 8 & nan & nan & nan \\
+
+\end{longtable}
+
+\subsection{Winning Model: M5}\label{sec-winning-model}
+
+The winning model among choice-only models was M5 (WM-RL +
+\(\phi_{\mathrm{RL}}\), 8 free parameters), which beat the previous best
+model M3 by \(\Delta\text{AIC} = 435.6\) and
+\(\Delta\text{BIC} = 226.9\), constituting very strong evidence
+\citep{daw2011model}. M5 extends M3 by adding an RL forgetting rate
+\(\phi_{\mathrm{RL}}\) that decays Q-values toward the uniform baseline
+(\(1/n_A = 0.333\)) before each delta-rule update, improving the model's
+ability to capture rapid forgetting of non-attended stimuli. When
+\(\phi_{\mathrm{RL}} = 0\), M5 reduces algebraically to M3, confirming
+M3 as a special case.
+
+\subsection{Parameter-Trauma Group
+Relationships}\label{sec-group-results}
+
+\begin{figure}[H]
+
+\centering{
+
+\begin{verbatim}
+Data not yet available. Run scripts/15_analyze_mle_by_trauma.py first. ("No 'group' column found in wmrl_m5_individual_fits.csv")
+\end{verbatim}
+
+}
+
+\caption{\label{fig-parameters-by-group}}
+
+\end{figure}%
+
+\subsection{Continuous Trauma Associations}\label{sec-correlations}
+
+\begin{figure}[H]
+
+\centering{
+
+\pandocbounded{\includegraphics[keepaspectratio]{paper_files/figure-pdf/fig-correlation-heatmap-output-1.pdf}}
+
+}
+
+\caption{\label{fig-correlation-heatmap}Spearman correlations between M5
+parameters and IES-R subscale scores (Intrusion, Avoidance,
+Hyperarousal). Color encodes correlation strength; asterisks indicate
+Bonferroni-corrected significance (p \textless{} 0.05).}
+
+\end{figure}%
+
+\subsection{Regression Analyses}\label{sec-regressions}
+
+\begin{longtable}[]{@{}llllllllllllllllllll@{}}
+
+\caption{\label{tbl-regression}OLS regression of M5 parameters on IES-R
+subscales (Intrusion, Avoidance, Hyperarousal), controlling for age and
+sex. Standardized beta coefficients shown. Bold: p \textless{} 0.05
+after Bonferroni correction.}
+
+\tabularnewline
+
+\caption{}\label{T_becbd}\tabularnewline
+\toprule\noalign{}
+Parameter & Predictor & β & SE & 95\% CI & t & p & subscale & Section &
+N & R² & r & p\_fdr & sig\_fdr & shapiro\_w & shapiro\_p &
+residuals\_normal & bp\_stat & bp\_p & homoscedastic \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+Parameter & Predictor & β & SE & 95\% CI & t & p & subscale & Section &
+N & R² & r & p\_fdr & sig\_fdr & shapiro\_w & shapiro\_p &
+residuals\_normal & bp\_stat & bp\_p & homoscedastic \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+alpha\_pos\_mean & ies\_intrusion & 0.003000 & 0.011000 & {[}-0.018,
+0.025{]} & 0.300000 & 0.769000 & regression\_results\_multiple & nan &
+nan & nan & nan & nan & nan & nan & nan & nan & nan & nan & nan \\
+alpha\_pos\_mean & ies\_avoidance & -0.003000 & 0.008000 & {[}-0.019,
+0.014{]} & -0.310000 & 0.757000 & regression\_results\_multiple & nan &
+nan & nan & nan & nan & nan & nan & nan & nan & nan & nan & nan \\
+alpha\_pos\_mean & ies\_hyperarousal & 0.009000 & 0.013000 & {[}-0.017,
+0.035{]} & 0.690000 & 0.494000 & regression\_results\_multiple & nan &
+nan & nan & nan & nan & nan & nan & nan & nan & nan & nan & nan \\
+alpha\_neg\_mean & ies\_intrusion & -0.001000 & 0.002000 & {[}-0.005,
+0.003{]} & -0.540000 & 0.589000 & regression\_results\_multiple & nan &
+nan & nan & nan & nan & nan & nan & nan & nan & nan & nan & nan \\
+alpha\_neg\_mean & ies\_avoidance & 0.001000 & 0.002000 & {[}-0.002,
+0.005{]} & 0.850000 & 0.399000 & regression\_results\_multiple & nan &
+nan & nan & nan & nan & nan & nan & nan & nan & nan & nan & nan \\
+alpha\_neg\_mean & ies\_hyperarousal & 0.004000 & 0.003000 & {[}-0.002,
+0.009{]} & 1.410000 & 0.167000 & regression\_results\_multiple & nan &
+nan & nan & nan & nan & nan & nan & nan & nan & nan & nan & nan \\
+phi\_mean & ies\_intrusion & -0.020000 & 0.012000 & {[}-0.044, 0.004{]}
+& -1.720000 & 0.093000 & regression\_results\_multiple & nan & nan & nan
+& nan & nan & nan & nan & nan & nan & nan & nan & nan \\
+phi\_mean & ies\_avoidance & 0.017000 & 0.009000 & {[}-0.001, 0.035{]} &
+1.910000 & 0.063000 & regression\_results\_multiple & nan & nan & nan &
+nan & nan & nan & nan & nan & nan & nan & nan & nan \\
+phi\_mean & ies\_hyperarousal & 0.017000 & 0.015000 & {[}-0.012,
+0.046{]} & 1.160000 & 0.252000 & regression\_results\_multiple & nan &
+nan & nan & nan & nan & nan & nan & nan & nan & nan & nan & nan \\
+rho\_mean & ies\_intrusion & 0.017000 & 0.014000 & {[}-0.011, 0.045{]} &
+1.230000 & 0.227000 & regression\_results\_multiple & nan & nan & nan &
+nan & nan & nan & nan & nan & nan & nan & nan & nan \\
+rho\_mean & ies\_avoidance & -0.014000 & 0.011000 & {[}-0.035, 0.007{]}
+& -1.310000 & 0.197000 & regression\_results\_multiple & nan & nan & nan
+& nan & nan & nan & nan & nan & nan & nan & nan & nan \\
+rho\_mean & ies\_hyperarousal & -0.022000 & 0.017000 & {[}-0.056,
+0.013{]} & -1.280000 & 0.209000 & regression\_results\_multiple & nan &
+nan & nan & nan & nan & nan & nan & nan & nan & nan & nan & nan \\
+wm\_capacity\_mean & ies\_intrusion & -0.106000 & 0.070000 & {[}-0.248,
+0.035{]} & -1.520000 & 0.137000 & regression\_results\_multiple & nan &
+nan & nan & nan & nan & nan & nan & nan & nan & nan & nan & nan \\
+wm\_capacity\_mean & ies\_avoidance & -0.017000 & 0.053000 & {[}-0.124,
+0.091{]} & -0.320000 & 0.753000 & regression\_results\_multiple & nan &
+nan & nan & nan & nan & nan & nan & nan & nan & nan & nan & nan \\
+wm\_capacity\_mean & ies\_hyperarousal & 0.167000 & 0.086000 &
+{[}-0.006, 0.340{]} & 1.940000 & 0.059000 &
+regression\_results\_multiple & nan & nan & nan & nan & nan & nan & nan
+& nan & nan & nan & nan & nan \\
+kappa\_mean & ies\_intrusion & -0.003000 & 0.003000 & {[}-0.009,
+0.004{]} & -0.800000 & 0.426000 & regression\_results\_multiple & nan &
+nan & nan & nan & nan & nan & nan & nan & nan & nan & nan & nan \\
+kappa\_mean & ies\_avoidance & 0.001000 & 0.002000 & {[}-0.004, 0.006{]}
+& 0.510000 & 0.616000 & regression\_results\_multiple & nan & nan & nan
+& nan & nan & nan & nan & nan & nan & nan & nan & nan \\
+kappa\_mean & ies\_hyperarousal & -0.000000 & 0.004000 & {[}-0.008,
+0.008{]} & -0.000000 & 0.999000 & regression\_results\_multiple & nan &
+nan & nan & nan & nan & nan & nan & nan & nan & nan & nan & nan \\
+phi\_rl\_mean & ies\_intrusion & 0.000000 & 0.002000 & {[}-0.004,
+0.004{]} & 0.160000 & 0.871000 & regression\_results\_multiple & nan &
+nan & nan & nan & nan & nan & nan & nan & nan & nan & nan & nan \\
+phi\_rl\_mean & ies\_avoidance & -0.000000 & 0.002000 & {[}-0.003,
+0.003{]} & -0.010000 & 0.989000 & regression\_results\_multiple & nan &
+nan & nan & nan & nan & nan & nan & nan & nan & nan & nan & nan \\
+phi\_rl\_mean & ies\_hyperarousal & 0.001000 & 0.002000 & {[}-0.004,
+0.006{]} & 0.490000 & 0.629000 & regression\_results\_multiple & nan &
+nan & nan & nan & nan & nan & nan & nan & nan & nan & nan & nan \\
+epsilon\_mean & ies\_intrusion & -0.000000 & 0.001000 & {[}-0.003,
+0.002{]} & -0.240000 & 0.813000 & regression\_results\_multiple & nan &
+nan & nan & nan & nan & nan & nan & nan & nan & nan & nan & nan \\
+epsilon\_mean & ies\_avoidance & -0.001000 & 0.001000 & {[}-0.003,
+0.001{]} & -1.280000 & 0.209000 & regression\_results\_multiple & nan &
+nan & nan & nan & nan & nan & nan & nan & nan & nan & nan & nan \\
+epsilon\_mean & ies\_hyperarousal & 0.003000 & 0.002000 & {[}-0.000,
+0.007{]} & 1.960000 & 0.057000 & regression\_results\_multiple & nan &
+nan & nan & nan & nan & nan & nan & nan & nan & nan & nan & nan \\
+wm\_capacity\_mean & ies\_avoidance & -0.026000 & 0.038000 & {[}-0.102,
+0.049{]} & -0.700000 & 0.486 & regression\_results\_simple & K (WM
+Capacity) \textasciitilde{} IES-R Avoidance & 45.000000 & 0.011000 &
+-0.107000 & 0.826000 & False & 0.880000 & 0.000200 & False & 0.016000 &
+0.898100 & True \\
+wm\_capacity\_mean & ies\_hyperarousal & 0.035000 & 0.057000 &
+{[}-0.079, 0.149{]} & 0.620000 & 0.538 & regression\_results\_simple & K
+(WM Capacity) \textasciitilde{} IES-R Hyperarousal & 45.000000 &
+0.009000 & 0.094000 & 0.826000 & False & 0.883000 & 0.000300 & False &
+0.041000 & 0.840100 & True \\
+wm\_capacity\_mean & ies\_intrusion & -0.031000 & 0.039000 & {[}-0.110,
+0.048{]} & -0.780000 & 0.437 & regression\_results\_simple & K (WM
+Capacity) \textasciitilde{} IES-R Intrusion & 45.000000 & 0.014000 &
+-0.119000 & 0.826000 & False & 0.880000 & 0.000200 & False & 0.151000 &
+0.697700 & True \\
+wm\_capacity\_mean & ies\_total & -0.007000 & 0.016000 & {[}-0.040,
+0.025{]} & -0.440000 & 0.660 & regression\_results\_simple & K (WM
+Capacity) \textasciitilde{} IES-R Total Score & 45.000000 & 0.005000 &
+-0.067000 & 0.826000 & False & 0.879000 & 0.000200 & False & 0.005000 &
+0.944800 & True \\
+wm\_capacity\_mean & lec\_personal\_events & -0.043000 & 0.117000 &
+{[}-0.279, 0.193{]} & -0.370000 & 0.716 & regression\_results\_simple &
+K (WM Capacity) \textasciitilde{} LEC-5 Personal Events & 45.000000 &
+0.003000 & -0.056000 & 0.826000 & False & 0.871000 & 0.000100 & False &
+0.603000 & 0.437600 & True \\
+wm\_capacity\_mean & lec\_total\_events & -0.029000 & 0.082000 &
+{[}-0.195, 0.138{]} & -0.350000 & 0.730 & regression\_results\_simple &
+K (WM Capacity) \textasciitilde{} LEC-5 Total Events & 45.000000 &
+0.003000 & -0.053000 & 0.826000 & False & 0.876000 & 0.000200 & False &
+0.460000 & 0.497500 & True \\
+alpha\_pos\_mean & ies\_avoidance & 0.003000 & 0.006000 & {[}-0.008,
+0.014{]} & 0.560000 & 0.578 & regression\_results\_simple & alpha+
+(Positive Learning Rate) \textasciitilde{} IES-R Avoidance & 45.000000 &
+0.007000 & 0.085000 & 0.826000 & False & 0.509000 & 0.000000 & False &
+0.498000 & 0.480400 & True \\
+alpha\_pos\_mean & ies\_hyperarousal & 0.010000 & 0.008000 & {[}-0.006,
+0.027{]} & 1.250000 & 0.218 & regression\_results\_simple & alpha+
+(Positive Learning Rate) \textasciitilde{} IES-R Hyperarousal &
+45.000000 & 0.035000 & 0.187000 & 0.826000 & False & 0.598000 & 0.000000
+& False & 1.645000 & 0.199700 & True \\
+alpha\_pos\_mean & ies\_intrusion & 0.006000 & 0.006000 & {[}-0.006,
+0.018{]} & 1.050000 & 0.299 & regression\_results\_simple & alpha+
+(Positive Learning Rate) \textasciitilde{} IES-R Intrusion & 45.000000 &
+0.025000 & 0.158000 & 0.826000 & False & 0.565000 & 0.000000 & False &
+0.719000 & 0.396400 & True \\
+alpha\_pos\_mean & ies\_total & 0.002000 & 0.002000 & {[}-0.002,
+0.007{]} & 1.020000 & 0.311 & regression\_results\_simple & alpha+
+(Positive Learning Rate) \textasciitilde{} IES-R Total Score & 45.000000
+& 0.024000 & 0.154000 & 0.826000 & False & 0.564000 & 0.000000 & False &
+0.932000 & 0.334500 & True \\
+alpha\_pos\_mean & lec\_personal\_events & -0.005000 & 0.017000 &
+{[}-0.040, 0.030{]} & -0.310000 & 0.759 & regression\_results\_simple &
+alpha+ (Positive Learning Rate) \textasciitilde{} LEC-5 Personal Events
+& 45.000000 & 0.002000 & -0.047000 & 0.828000 & False & 0.481000 &
+0.000000 & False & 0.475000 & 0.490600 & True \\
+alpha\_pos\_mean & lec\_total\_events & -0.006000 & 0.012000 &
+{[}-0.030, 0.019{]} & -0.460000 & 0.645 & regression\_results\_simple &
+alpha+ (Positive Learning Rate) \textasciitilde{} LEC-5 Total Events &
+45.000000 & 0.005000 & -0.071000 & 0.826000 & False & 0.491000 &
+0.000000 & False & 0.719000 & 0.396500 & True \\
+alpha\_neg\_mean & ies\_avoidance & 0.002000 & 0.001000 & {[}-0.000,
+0.004{]} & 1.770000 & 0.084 & regression\_results\_simple & alpha-
+(Negative Learning Rate) \textasciitilde{} IES-R Avoidance & 45.000000 &
+0.068000 & 0.260000 & 0.823000 & False & 0.628000 & 0.000000 & False &
+4.560000 & 0.032700 & False \\
+alpha\_neg\_mean & ies\_hyperarousal & 0.004000 & 0.002000 & {[}0.000,
+0.007{]} & 2.160000 & 0.036* & regression\_results\_simple & alpha-
+(Negative Learning Rate) \textasciitilde{} IES-R Hyperarousal &
+45.000000 & 0.098000 & 0.313000 & 0.815000 & False & 0.687000 & 0.000000
+& False & 9.636000 & 0.001900 & False \\
+alpha\_neg\_mean & ies\_intrusion & 0.002000 & 0.001000 & {[}-0.001,
+0.004{]} & 1.540000 & 0.130 & regression\_results\_simple & alpha-
+(Negative Learning Rate) \textasciitilde{} IES-R Intrusion & 45.000000 &
+0.052000 & 0.229000 & 0.823000 & False & 0.605000 & 0.000000 & False &
+4.670000 & 0.030700 & False \\
+alpha\_neg\_mean & ies\_total & 0.001000 & 0.000000 & {[}-0.000,
+0.002{]} & 2.020000 & 0.050 & regression\_results\_simple & alpha-
+(Negative Learning Rate) \textasciitilde{} IES-R Total Score & 45.000000
+& 0.086000 & 0.294000 & 0.815000 & False & 0.667000 & 0.000000 & False &
+7.067000 & 0.007900 & False \\
+alpha\_neg\_mean & lec\_personal\_events & -0.003000 & 0.004000 &
+{[}-0.010, 0.004{]} & -0.870000 & 0.388 & regression\_results\_simple &
+alpha- (Negative Learning Rate) \textasciitilde{} LEC-5 Personal Events
+& 45.000000 & 0.017000 & -0.132000 & 0.826000 & False & 0.521000 &
+0.000000 & False & 0.994000 & 0.318900 & True \\
+alpha\_neg\_mean & lec\_total\_events & -0.000000 & 0.002000 &
+{[}-0.005, 0.005{]} & -0.030000 & 0.980 & regression\_results\_simple &
+alpha- (Negative Learning Rate) \textasciitilde{} LEC-5 Total Events &
+45.000000 & 0.000000 & -0.004000 & 0.980000 & False & 0.423000 &
+0.000000 & False & 0.986000 & 0.320800 & True \\
+epsilon\_mean & ies\_avoidance & -0.000000 & 0.001000 & {[}-0.002,
+0.001{]} & -0.390000 & 0.697 & regression\_results\_simple & epsilon
+(Random Responding) \textasciitilde{} IES-R Avoidance & 45.000000 &
+0.004000 & -0.060000 & 0.826000 & False & 0.917000 & 0.003400 & False &
+0.006000 & 0.938600 & True \\
+epsilon\_mean & ies\_hyperarousal & 0.002000 & 0.001000 & {[}-0.000,
+0.004{]} & 1.630000 & 0.111 & regression\_results\_simple & epsilon
+(Random Responding) \textasciitilde{} IES-R Hyperarousal & 45.000000 &
+0.058000 & 0.241000 & 0.823000 & False & 0.929000 & 0.008700 & False &
+0.043000 & 0.835300 & True \\
+epsilon\_mean & ies\_intrusion & 0.000000 & 0.001000 & {[}-0.001,
+0.002{]} & 0.540000 & 0.594 & regression\_results\_simple & epsilon
+(Random Responding) \textasciitilde{} IES-R Intrusion & 45.000000 &
+0.007000 & 0.082000 & 0.826000 & False & 0.911000 & 0.002100 & False &
+0.013000 & 0.908900 & True \\
+epsilon\_mean & ies\_total & 0.000000 & 0.000000 & {[}-0.000, 0.001{]} &
+0.500000 & 0.618 & regression\_results\_simple & epsilon (Random
+Responding) \textasciitilde{} IES-R Total Score & 45.000000 & 0.006000 &
+0.076000 & 0.826000 & False & 0.914000 & 0.002600 & False & 0.014000 &
+0.907300 & True \\
+epsilon\_mean & lec\_personal\_events & -0.001000 & 0.002000 &
+{[}-0.005, 0.004{]} & -0.400000 & 0.692 & regression\_results\_simple &
+epsilon (Random Responding) \textasciitilde{} LEC-5 Personal Events &
+45.000000 & 0.004000 & -0.061000 & 0.826000 & False & 0.920000 &
+0.004200 & False & 1.333000 & 0.248300 & True \\
+epsilon\_mean & lec\_total\_events & -0.003000 & 0.002000 & {[}-0.006,
+0.001{]} & -1.680000 & 0.101 & regression\_results\_simple & epsilon
+(Random Responding) \textasciitilde{} LEC-5 Total Events & 45.000000 &
+0.061000 & -0.248000 & 0.823000 & False & 0.942000 & 0.025000 & False &
+0.477000 & 0.489700 & True \\
+kappa\_mean & ies\_avoidance & -0.001000 & 0.002000 & {[}-0.004,
+0.003{]} & -0.330000 & 0.740 & regression\_results\_simple & kappa
+(Perseveration) \textasciitilde{} IES-R Avoidance & 45.000000 & 0.003000
+& -0.051000 & 0.826000 & False & 0.570000 & 0.000000 & False & 0.213000
+& 0.644300 & True \\
+kappa\_mean & ies\_hyperarousal & -0.002000 & 0.002000 & {[}-0.007,
+0.003{]} & -0.720000 & 0.478 & regression\_results\_simple & kappa
+(Perseveration) \textasciitilde{} IES-R Hyperarousal & 45.000000 &
+0.012000 & -0.108000 & 0.826000 & False & 0.594000 & 0.000000 & False &
+1.142000 & 0.285300 & True \\
+kappa\_mean & ies\_intrusion & -0.002000 & 0.002000 & {[}-0.005,
+0.002{]} & -0.970000 & 0.340 & regression\_results\_simple & kappa
+(Perseveration) \textasciitilde{} IES-R Intrusion & 45.000000 & 0.021000
+& -0.146000 & 0.826000 & False & 0.590000 & 0.000000 & False & 0.572000
+& 0.449500 & True \\
+kappa\_mean & ies\_total & -0.001000 & 0.001000 & {[}-0.002, 0.001{]} &
+-0.740000 & 0.463 & regression\_results\_simple & kappa (Perseveration)
+\textasciitilde{} IES-R Total Score & 45.000000 & 0.013000 & -0.112000 &
+0.826000 & False & 0.587000 & 0.000000 & False & 0.628000 & 0.428000 &
+True \\
+kappa\_mean & lec\_personal\_events & -0.002000 & 0.005000 & {[}-0.012,
+0.008{]} & -0.400000 & 0.688 & regression\_results\_simple & kappa
+(Perseveration) \textasciitilde{} LEC-5 Personal Events & 45.000000 &
+0.004000 & -0.062000 & 0.826000 & False & 0.571000 & 0.000000 & False &
+0.037000 & 0.848100 & True \\
+kappa\_mean & lec\_total\_events & 0.002000 & 0.004000 & {[}-0.005,
+0.009{]} & 0.500000 & 0.619 & regression\_results\_simple & kappa
+(Perseveration) \textasciitilde{} LEC-5 Total Events & 45.000000 &
+0.006000 & 0.076000 & 0.826000 & False & 0.582000 & 0.000000 & False &
+0.105000 & 0.745700 & True \\
+phi\_mean & ies\_avoidance & 0.010000 & 0.006000 & {[}-0.003, 0.022{]} &
+1.510000 & 0.137 & regression\_results\_simple & phi (WM Decay Rate)
+\textasciitilde{} IES-R Avoidance & 45.000000 & 0.051000 & 0.225000 &
+0.823000 & False & 0.881000 & 0.000300 & False & 0.494000 & 0.482200 &
+True \\
+phi\_mean & ies\_hyperarousal & 0.009000 & 0.010000 & {[}-0.010,
+0.029{]} & 0.970000 & 0.339 & regression\_results\_simple & phi (WM
+Decay Rate) \textasciitilde{} IES-R Hyperarousal & 45.000000 & 0.021000
+& 0.146000 & 0.826000 & False & 0.894000 & 0.000600 & False & 0.002000 &
+0.968300 & True \\
+phi\_mean & ies\_intrusion & 0.001000 & 0.007000 & {[}-0.012, 0.015{]} &
+0.210000 & 0.833 & regression\_results\_simple & phi (WM Decay Rate)
+\textasciitilde{} IES-R Intrusion & 45.000000 & 0.001000 & 0.032000 &
+0.888000 & False & 0.867000 & 0.000100 & False & 0.401000 & 0.526400 &
+True \\
+phi\_mean & ies\_total & 0.003000 & 0.003000 & {[}-0.003, 0.008{]} &
+1.000000 & 0.323 & regression\_results\_simple & phi (WM Decay Rate)
+\textasciitilde{} IES-R Total Score & 45.000000 & 0.023000 & 0.151000 &
+0.826000 & False & 0.885000 & 0.000300 & False & 0.175000 & 0.675900 &
+True \\
+phi\_mean & lec\_personal\_events & 0.039000 & 0.019000 & {[}-0.000,
+0.077{]} & 2.010000 & 0.051 & regression\_results\_simple & phi (WM
+Decay Rate) \textasciitilde{} LEC-5 Personal Events & 45.000000 &
+0.086000 & 0.293000 & 0.815000 & False & 0.940000 & 0.022000 & False &
+1.546000 & 0.213800 & True \\
+phi\_mean & lec\_total\_events & 0.010000 & 0.014000 & {[}-0.018,
+0.038{]} & 0.720000 & 0.475 & regression\_results\_simple & phi (WM
+Decay Rate) \textasciitilde{} LEC-5 Total Events & 45.000000 & 0.012000
+& 0.109000 & 0.826000 & False & 0.896000 & 0.000700 & False & 0.547000 &
+0.459700 & True \\
+phi\_rl\_mean & ies\_avoidance & 0.001000 & 0.001000 & {[}-0.001,
+0.003{]} & 0.640000 & 0.525 & regression\_results\_simple & phi\_rl (RL
+Forgetting Rate) \textasciitilde{} IES-R Avoidance & 45.000000 &
+0.009000 & 0.097000 & 0.826000 & False & 0.844000 & 0.000000 & False &
+0.000000 & 0.986900 & True \\
+phi\_rl\_mean & ies\_hyperarousal & 0.002000 & 0.002000 & {[}-0.002,
+0.005{]} & 0.990000 & 0.326 & regression\_results\_simple & phi\_rl (RL
+Forgetting Rate) \textasciitilde{} IES-R Hyperarousal & 45.000000 &
+0.022000 & 0.150000 & 0.826000 & False & 0.863000 & 0.000100 & False &
+0.210000 & 0.646700 & True \\
+phi\_rl\_mean & ies\_intrusion & 0.001000 & 0.001000 & {[}-0.001,
+0.003{]} & 0.880000 & 0.385 & regression\_results\_simple & phi\_rl (RL
+Forgetting Rate) \textasciitilde{} IES-R Intrusion & 45.000000 &
+0.018000 & 0.133000 & 0.826000 & False & 0.851000 & 0.000000 & False &
+0.034000 & 0.854600 & True \\
+phi\_rl\_mean & ies\_total & 0.000000 & 0.000000 & {[}-0.000, 0.001{]} &
+0.920000 & 0.364 & regression\_results\_simple & phi\_rl (RL Forgetting
+Rate) \textasciitilde{} IES-R Total Score & 45.000000 & 0.019000 &
+0.138000 & 0.826000 & False & 0.852000 & 0.000000 & False & 0.035000 &
+0.850600 & True \\
+phi\_rl\_mean & lec\_personal\_events & -0.000000 & 0.003000 &
+{[}-0.007, 0.006{]} & -0.080000 & 0.936 & regression\_results\_simple &
+phi\_rl (RL Forgetting Rate) \textasciitilde{} LEC-5 Personal Events &
+45.000000 & 0.000000 & -0.012000 & 0.956000 & False & 0.847000 &
+0.000000 & False & 0.498000 & 0.480200 & True \\
+phi\_rl\_mean & lec\_total\_events & -0.000000 & 0.002000 & {[}-0.005,
+0.004{]} & -0.170000 & 0.863 & regression\_results\_simple & phi\_rl (RL
+Forgetting Rate) \textasciitilde{} LEC-5 Total Events & 45.000000 &
+0.001000 & -0.026000 & 0.900000 & False & 0.848000 & 0.000000 & False &
+0.692000 & 0.405500 & True \\
+rho\_mean & ies\_avoidance & -0.010000 & 0.007000 & {[}-0.025, 0.004{]}
+& -1.420000 & 0.163 & regression\_results\_simple & rho (WM Weight)
+\textasciitilde{} IES-R Avoidance & 45.000000 & 0.045000 & -0.212000 &
+0.826000 & False & 0.931000 & 0.010100 & False & 0.902000 & 0.342300 &
+True \\
+rho\_mean & ies\_hyperarousal & -0.015000 & 0.011000 & {[}-0.037,
+0.007{]} & -1.360000 & 0.181 & regression\_results\_simple & rho (WM
+Weight) \textasciitilde{} IES-R Hyperarousal & 45.000000 & 0.041000 &
+-0.203000 & 0.826000 & False & 0.941000 & 0.022500 & False & 1.638000 &
+0.200600 & True \\
+rho\_mean & ies\_intrusion & -0.005000 & 0.008000 & {[}-0.020, 0.011{]}
+& -0.620000 & 0.536 & regression\_results\_simple & rho (WM Weight)
+\textasciitilde{} IES-R Intrusion & 45.000000 & 0.009000 & -0.095000 &
+0.826000 & False & 0.929000 & 0.008500 & False & 0.411000 & 0.521600 &
+True \\
+rho\_mean & ies\_total & -0.004000 & 0.003000 & {[}-0.010, 0.002{]} &
+-1.250000 & 0.219 & regression\_results\_simple & rho (WM Weight)
+\textasciitilde{} IES-R Total Score & 45.000000 & 0.035000 & -0.187000 &
+0.826000 & False & 0.938000 & 0.017900 & False & 0.923000 & 0.336700 &
+True \\
+rho\_mean & lec\_personal\_events & -0.024000 & 0.023000 & {[}-0.070,
+0.023{]} & -1.030000 & 0.309 & regression\_results\_simple & rho (WM
+Weight) \textasciitilde{} LEC-5 Personal Events & 45.000000 & 0.024000 &
+-0.155000 & 0.826000 & False & 0.937000 & 0.016200 & False & 0.108000 &
+0.742400 & True \\
+rho\_mean & lec\_total\_events & -0.014000 & 0.016000 & {[}-0.046,
+0.019{]} & -0.860000 & 0.396 & regression\_results\_simple & rho (WM
+Weight) \textasciitilde{} LEC-5 Total Events & 45.000000 & 0.017000 &
+-0.130000 & 0.826000 & False & 0.935000 & 0.014000 & False & 0.249000 &
+0.617800 & True \\
+
+\end{longtable}
+
+\section{Discussion}\label{sec-discussion}
+
+\textbf{Summary of findings.} {[}To be completed: Briefly summarize
+which parameters differed across groups and whether perseveration
+(\(\kappa\)) or learning-rate effects (\(\alpha_-\)) better explained
+group differences.{]}
+
+\textbf{Perseveration vs.~learning rates.} The dissociation between
+\(\kappa\) (motor perseveration) and \(\alpha_-\) (negative-outcome
+learning rate) is central to interpreting RL deficits in trauma. Prior
+work conflated these mechanisms; the WM-RL framework of
+\citet{senta2025} allows them to be estimated simultaneously. {[}To be
+completed: Discuss specific findings.{]}
+
+\textbf{WM capacity and trauma.} The WM capacity parameter \(K\) in the
+WM-RL framework indexes how many stimulus-response mappings can be
+maintained in active working memory. Reduced \(K\) estimates would be
+consistent with reported WM impairments following trauma exposure
+\citep{homan2019neural}. {[}To be completed: Discuss \(K\) findings
+relative to group.{]}
+
+\textbf{Comparison to Senta et al.} \citep{senta2025} established the
+model hierarchy in a normative sample. Our results extend this to a
+trauma-stratified sample and test whether the winning model generalizes
+across clinical subgroups. {[}To be completed: Compare model hierarchy
+ranking.{]}
+
+\textbf{Limitations.} {[}To be completed: Cross-sectional design,
+self-report trauma measures, online data collection, set sizes limited
+to 2/3/5/6.{]}
+
+\textbf{Clinical implications.} {[}To be completed: Targeting
+perseveration vs. extinction learning in therapeutic interventions.{]}
+
+\section{Conclusion}\label{sec-conclusion}
+
+We fitted seven computational models of reinforcement learning and
+working memory to behavioral data from 154 participants stratified by
+trauma history and symptom severity. The winning model (M5: WM-RL +
+\(\phi_{\mathrm{RL}}\)) revealed dissociable contributions of
+perseverative responding and outcome-based learning deficits to
+post-trauma behavioral changes. {[}To be completed with final summary
+and future directions.{]}
+
+\section*{References}\label{references}
+\addcontentsline{toc}{section}{References}
+
+\renewcommand{\bibsection}{}
+\bibliography{references.bib}
+
+\section{Appendix}\label{appendix}
+
+\subsection{Model Parameters}\label{sec-model-table}
+
+\begin{longtable}[]{@{}llll@{}}
+
+\caption{\label{tbl-model-params}Free parameters for all seven
+computational models. M4 is the only joint choice+RT model; its AIC is
+not comparable to choice-only models M1--M6b.}
+
+\tabularnewline
+
+\caption{}\label{T_48048}\tabularnewline
+\toprule\noalign{}
+Model & Free Parameters & k & Notes \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+Model & Free Parameters & k & Notes \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+M1: Q-Learning & alpha+, alpha-, epsilon & 3 & Baseline RL only \\
+M2: WM-RL & alpha+, alpha-, phi, rho, K, epsilon & 6 & WM-RL hybrid \\
+M3: WM-RL+kappa & alpha+, alpha-, phi, rho, K, kappa, epsilon & 7 & Adds
+global perseveration \\
+M5: WM-RL+phi\_rl & alpha+, alpha-, phi, rho, K, kappa, phi\_rl, epsilon
+& 8 & Winning model; adds RL Q-value decay \\
+M6a: WM-RL+kappa\_s & alpha+, alpha-, phi, rho, K, kappa\_s, epsilon & 7
+& Stimulus-specific perseveration \\
+M6b: WM-RL+dual & alpha+, alpha-, phi, rho, K, kappa\_total,
+kappa\_share, epsilon & 8 & Dual perseveration (stick-breaking) \\
+M4: RLWM-LBA & alpha+, alpha-, phi, rho, K, kappa, v\_scale, A, delta,
+t0 & 10 & Joint choice + RT; LBA race model \\
+
+\end{longtable}
+
+\subsection{Exclusion Criteria}\label{sec-exclusions}
+
+Participants were excluded if they contributed fewer than 400 trials to
+the main task (blocks 3--23), corresponding to approximately 50\% of the
+expected 807--1077 trials across 21 blocks. This threshold
+(\texttt{MIN\_TRIALS\_THRESHOLD\ =\ 400} in \texttt{config.py}) ensures
+sufficient data for reliable MLE parameter estimation. Additionally, any
+participants identified as duplicates or with known data quality issues
+were excluded prior to fitting.
+
+
+
+\end{document}

@@ -9,6 +9,18 @@
 \usepackage{arxiv}            % arXiv style — upload arxiv.sty to project root
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
+% Map Unicode Greek letters to LaTeX math equivalents (for pdflatex)
+\DeclareUnicodeCharacter{03B1}{\ensuremath{\alpha}}
+\DeclareUnicodeCharacter{03B2}{\ensuremath{\beta}}
+\DeclareUnicodeCharacter{03B3}{\ensuremath{\gamma}}
+\DeclareUnicodeCharacter{03B4}{\ensuremath{\delta}}
+\DeclareUnicodeCharacter{03B5}{\ensuremath{\varepsilon}}
+\DeclareUnicodeCharacter{03BA}{\ensuremath{\kappa}}
+\DeclareUnicodeCharacter{03C1}{\ensuremath{\rho}}
+\DeclareUnicodeCharacter{03C6}{\ensuremath{\phi}}
+\DeclareUnicodeCharacter{2212}{\ensuremath{-}}
+\DeclareUnicodeCharacter{2264}{\ensuremath{\leq}}
+\DeclareUnicodeCharacter{2265}{\ensuremath{\geq}}
 \usepackage{amsmath, amssymb, amsfonts}
 \usepackage{bm}
 \usepackage{graphicx}
@@ -49,7 +61,7 @@ $endif$
   urlcolor=blue,
   citecolor=blue,
   pdftitle={$title$},
-  pdfauthor={$for(author)$$author.name$$sep$, $endfor$},
+  pdfauthor={$for(by-author)$$by-author.name.literal$$sep$, $endfor$},
 }
 
 % ── Float spacing ─────────────────────────────────────────────────────────────
@@ -74,24 +86,23 @@ $endif$
 % ── Title / authors (injected by Quarto) ─────────────────────────────────────
 \title{$title$}
 
-$for(author)$
-\author[$for(author.affiliations)$$it.id$$sep$,$endfor$]{%
-  $if(author.orcid)$\href{https://orcid.org/$author.orcid$}{\usebox{\orcidbox}\hspace{1mm}}$endif$%
-  $author.name$%
-  $if(author.email)$\thanks{\texttt{$author.email$}}$endif$%
+$for(by-author)$
+\author[$for(by-author.affiliations)$$it.id$$sep$,$endfor$]{%
+  $if(by-author.orcid)$\href{https://orcid.org/$by-author.orcid$}{\usebox{\orcidbox}\hspace{1mm}}$endif$%
+  $by-author.name.literal$%
+  $if(by-author.email)$\thanks{\texttt{$by-author.email$}}$endif$%
 }
 $endfor$
 
-$for(by-author)$
-$for(by-author.affiliations)$
-\affil[$it.id$]{$it.name$}
-$endfor$
+$for(by-affiliation)$
+\affil[$by-affiliation.id$]{$by-affiliation.name$}
 $endfor$
 
 % ── Pandoc internals ──────────────────────────────────────────────────────────
 $-- Required for Pandoc's table/figure output
 \providecommand{\tightlist}{%
   \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\providecommand{\pandocbounded}[1]{#1}  % Pandoc 3.x image wrapper
 
 $if(highlighting-macros)$
 $highlighting-macros$
