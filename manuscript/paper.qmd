@@ -219,18 +219,68 @@ All analyses used $\alpha = 0.05$ after correction.
 
 ## Results {#sec-results}
 
+```{python}
+#| label: results-setup
+# ── Compute results variables for inline references ──────────────────────────
+
+# Load group comparison stats (Mann-Whitney U tests)
+group_stats_path = MLE_DIR / "group_comparison_stats.csv"
+if group_stats_path.exists():
+    df_group_stats = pd.read_csv(group_stats_path)
+    winner_display_name = {
+        "wmrl_m6b": "WM-RL+M6b", "wmrl_m5": "WM-RL+M5", "wmrl_m3": "WM-RL+K",
+        "wmrl_m6a": "WM-RL+M6a", "wmrl": "WM-RL", "qlearning": "Q-Learning",
+    }.get(winning_model, winning_model)
+    df_winner_stats = df_group_stats[df_group_stats["model"] == winner_display_name]
+else:
+    df_winner_stats = pd.DataFrame()
+
+# Load Spearman correlations
+corr_path_csv = MLE_DIR / "spearman_correlations.csv"
+if corr_path_csv.exists():
+    df_all_corr = pd.read_csv(corr_path_csv)
+    df_winner_corr = df_all_corr[df_all_corr["model"] == winner_display_name]
+else:
+    df_winner_corr = pd.DataFrame()
+
+# Merge fits with groups for N counts
+df_plot = df_winner.merge(
+    df_groups[["sona_id", group_col]],
+    left_on="participant_id", right_on="sona_id", how="inner",
+) if not df_winner.empty else pd.DataFrame()
+n_with_groups = len(df_plot)
+
+# Load regression results
+reg_dir = Path(f"../output/regressions/{winning_model}")
+df_reg_simple = pd.read_csv(reg_dir / "regression_results_simple.csv") if (reg_dir / "regression_results_simple.csv").exists() else pd.DataFrame()
+df_reg_multi = pd.read_csv(reg_dir / "regression_results_multiple.csv") if (reg_dir / "regression_results_multiple.csv").exists() else pd.DataFrame()
+n_regression = int(df_reg_simple["N"].iloc[0]) if not df_reg_simple.empty and "N" in df_reg_simple.columns else 0
+
+# Participant wins
+wins_path = COMPARISON_DIR / "participant_wins.csv"
+df_wins = pd.read_csv(wins_path) if wins_path.exists() else pd.DataFrame()
+n_matched = int(df_wins["total"].iloc[0]) if not df_wins.empty else 0
+
+# Second-best model name
+second_short = df_comparison.iloc[1]["model"] if len(df_comparison) > 1 else "?"
+second_key = SHORT_NAME_TO_KEY.get(second_short, second_short)
+second_display = MODEL_DISPLAY_NAMES.get(second_key, second_short)
+```
+
 ### Model Comparison {#sec-model-comparison}
+
+@tbl-model-comparison shows the aggregate AIC and BIC for all six choice-only
+models. `{python} winner_display` was the preferred model by both criteria,
+with an Akaike weight of 100%.
 
 ```{python}
 #| label: tbl-model-comparison
 #| tbl-cap: "Model comparison by AIC and BIC across choice-only models (M1--M3, M5, M6a, M6b). dAIC is relative to the best-fitting model. M4 (joint choice+RT) is excluded from this comparison; see text."
 
 try:
-    # Filter to choice-only models
     choice_only_short = [MODEL_REGISTRY[k]["short_name"] for k in CHOICE_ONLY_MODELS]
     df_cmp = df_comparison[df_comparison["model"].isin(choice_only_short)].copy()
 
-    # Map short names to display names and n_params
     short_to_display = {MODEL_REGISTRY[k]["short_name"]: MODEL_REGISTRY[k]["display_name"] for k in MODEL_REGISTRY}
     short_to_nparams = {MODEL_REGISTRY[k]["short_name"]: MODEL_REGISTRY[k]["n_params"] for k in MODEL_REGISTRY}
 
@@ -239,8 +289,9 @@ try:
     df_cmp["Aggregate AIC"] = df_cmp["aggregate_aic"].round(1)
     df_cmp["Aggregate BIC"] = df_cmp["aggregate_bic"].round(1)
     df_cmp["dAIC"] = df_cmp["delta_aic"].round(1)
+    df_cmp["Akaike Weight"] = df_cmp["akaike_weight"].apply(lambda w: f"{w:.4f}")
 
-    df_display = df_cmp[["Model", "k", "Aggregate AIC", "Aggregate BIC", "dAIC"]].reset_index(drop=True)
+    df_display = df_cmp[["Model", "k", "Aggregate AIC", "Aggregate BIC", "dAIC", "Akaike Weight"]].reset_index(drop=True)
 
     from IPython.display import display
     display(df_display.style.hide(axis="index"))
@@ -248,17 +299,55 @@ except Exception as e:
     print(f"Data not yet available. Run scripts/14_compare_models.py first. ({e})")
 ```
 
-### Winning Model: `{python} winner_display` {#sec-winning-model}
-
-The winning model among choice-only models was `{python} winner_display`
-(`{python} winner_n_params` free parameters), which beat the second-best model by
+The winning model `{python} winner_display` (`{python} winner_n_params` free
+parameters) beat the second-best model `{python} second_display` by
 $\Delta\text{AIC} = $ `{python} f"{daic_vs_second:.1f}"` and
 $\Delta\text{BIC} = $ `{python} f"{dbic_vs_second:.1f}"`, constituting
-very strong evidence [@daw2011model].
+very strong evidence per @daw2011model ($\Delta > 10$).
+In per-participant AIC comparisons across the `{python} n_matched`
+participants with valid fits for all six models, `{python} winner_display`
+and `{python} second_display` each won for
+`{python} int(df_wins.loc[df_wins["model"] == winner_short, "aic_wins"].iloc[0]) if not df_wins.empty else "?"` and
+`{python} int(df_wins.loc[df_wins["model"] == second_short, "aic_wins"].iloc[0]) if not df_wins.empty else "?"` participants,
+respectively.
+See @sec-model-table for the complete parameter listings.
 
-See @sec-model-table for the complete parameter listing of `{python} winner_display`.
+### Parameter Estimates {#sec-param-estimates}
+
+```{python}
+#| label: tbl-param-estimates
+#| tbl-cap: "Parameter estimates for the winning model. Values are mean (SD) across all participants with valid fits."
+
+try:
+    rows = []
+    for p in winner_params:
+        vals = df_winner[p].dropna()
+        rows.append({
+            "Parameter": PARAM_DISPLAY_NAMES.get(p, p),
+            "Mean": f"{vals.mean():.3f}",
+            "SD": f"{vals.std():.3f}",
+            "95% CI": f"[{vals.mean() - 1.96*vals.std()/np.sqrt(len(vals)):.3f}, {vals.mean() + 1.96*vals.std()/np.sqrt(len(vals)):.3f}]",
+            "N": len(vals),
+        })
+
+    df_est = pd.DataFrame(rows)
+    from IPython.display import display
+    display(df_est.style.hide(axis="index"))
+except Exception as e:
+    print(f"Error: {e}")
+```
 
 ### Parameter-Trauma Group Relationships {#sec-group-results}
+
+To examine whether model parameters differed between trauma groups, we
+compared parameter estimates between participants classified as
+`{python} GROUP_SHORT_LABELS.get(groups[0], groups[0])` and
+`{python} GROUP_SHORT_LABELS.get(groups[1], groups[1])` using
+Mann-Whitney U tests with Bonferroni correction
+(`{python} winner_n_params` comparisons,
+$\alpha_{\text{corrected}}$ = `{python} f"{0.05 / winner_n_params:.4f}"`).
+`{python} n_with_groups` participants with valid winning-model fits were
+matched to group assignments.
 
 ```{python}
 #| label: fig-parameters-by-group
@@ -267,21 +356,13 @@ See @sec-model-table for the complete parameter listing of `{python} winner_disp
 #| fig-height: 4.5
 
 try:
-    if df_winner.empty:
-        raise FileNotFoundError(f"Missing: {fits_winner_path}")
-
-    # Merge fits with group assignments
-    df_plot = df_winner.merge(
-        df_groups[["sona_id", group_col]],
-        left_on="participant_id",
-        right_on="sona_id",
-        how="inner",
-    )
+    if df_plot.empty:
+        raise FileNotFoundError("No data after merging fits with groups")
 
     param_cols = [p for p in winner_params if p in df_plot.columns]
-    n_params = len(param_cols)
+    n_pcols = len(param_cols)
     ncols = 4
-    nrows = (n_params + ncols - 1) // ncols
+    nrows = (n_pcols + ncols - 1) // ncols
 
     fig, axes = plt.subplots(nrows, ncols, figsize=(TEXT_WIDTH, nrows * 1.8))
     axes = axes.flatten()
@@ -305,7 +386,7 @@ try:
         ax.set_ylabel(PARAM_DISPLAY_NAMES.get(param, param))
         ax.set_title(PARAM_DISPLAY_NAMES.get(param, param))
 
-    for j in range(n_params, len(axes)):
+    for j in range(n_pcols, len(axes)):
         axes[j].set_visible(False)
 
     plt.tight_layout()
@@ -313,24 +394,65 @@ try:
     plt.show()
 
 except Exception as e:
-    print(f"Data not yet available. Run scripts/15_analyze_mle_by_trauma.py first. ({e})")
+    print(f"Data not yet available. ({e})")
 ```
+
+```{python}
+#| label: tbl-group-comparisons
+#| tbl-cap: "Mann-Whitney U group comparisons for winning model parameters. Effect size is rank-biserial correlation r."
+
+try:
+    if df_winner_stats.empty:
+        raise FileNotFoundError("Group comparison stats not available")
+
+    df_grp = df_winner_stats[["parameter", "n1", "n2", "U", "p_uncorrected", "p_bonferroni", "r_rank_biserial", "mean1", "mean2"]].copy()
+    df_grp.columns = ["Parameter", "n (No Impact)", "n (Ongoing)", "U", "p", "p (corrected)", "r", "M (No Impact)", "M (Ongoing)"]
+    df_grp["Parameter"] = df_grp["Parameter"].map(lambda p: PARAM_DISPLAY_NAMES.get(p, p))
+    df_grp["p"] = df_grp["p"].apply(lambda x: f"{x:.3f}")
+    df_grp["p (corrected)"] = df_grp["p (corrected)"].apply(lambda x: f"{x:.3f}")
+    df_grp["r"] = df_grp["r"].apply(lambda x: f"{x:.2f}")
+    df_grp["M (No Impact)"] = df_grp["M (No Impact)"].apply(lambda x: f"{x:.3f}")
+    df_grp["M (Ongoing)"] = df_grp["M (Ongoing)"].apply(lambda x: f"{x:.3f}")
+
+    from IPython.display import display
+    display(df_grp.style.hide(axis="index"))
+except Exception as e:
+    print(f"Group stats not available. ({e})")
+```
+
+No parameter showed a statistically significant group difference after
+Bonferroni correction (@tbl-group-comparisons; all corrected $p > .05$).
+The largest effect sizes were observed for $\phi$ (WM decay;
+$r = $ `{python} f"{float(df_winner_stats.loc[df_winner_stats['parameter']=='phi', 'r_rank_biserial'].iloc[0]):.2f}" if not df_winner_stats.empty and 'phi' in df_winner_stats['parameter'].values else "?"`,
+$p_{\text{uncorrected}} = $ `{python} f"{float(df_winner_stats.loc[df_winner_stats['parameter']=='phi', 'p_uncorrected'].iloc[0]):.3f}" if not df_winner_stats.empty and 'phi' in df_winner_stats['parameter'].values else "?"`)
+and $\rho$ (WM reliability;
+$r = $ `{python} f"{float(df_winner_stats.loc[df_winner_stats['parameter']=='rho', 'r_rank_biserial'].iloc[0]):.2f}" if not df_winner_stats.empty and 'rho' in df_winner_stats['parameter'].values else "?"`,
+$p_{\text{uncorrected}} = $ `{python} f"{float(df_winner_stats.loc[df_winner_stats['parameter']=='rho', 'p_uncorrected'].iloc[0]):.3f}" if not df_winner_stats.empty and 'rho' in df_winner_stats['parameter'].values else "?"`)
+(@fig-parameters-by-group).
+Critically, neither the perseveration parameters ($\kappa_{\text{total}}$,
+$\kappa_{\text{share}}$) nor the learning rates ($\alpha_+$, $\alpha_-$)
+differed significantly between groups.
 
 ### Continuous Trauma Associations {#sec-correlations}
 
+Spearman rank correlations between winning-model parameters and continuous
+trauma measures (IES-R subscales, LEC-5 total and personal events) are shown
+in @fig-correlation-heatmap. After family-wise error correction, no
+correlations reached significance.
+
 ```{python}
 #| label: fig-correlation-heatmap
-#| fig-cap: "Spearman correlations between winning model parameters and IES-R subscale scores (Intrusion, Avoidance, Hyperarousal). Color encodes correlation strength; asterisks indicate Bonferroni-corrected significance (p < 0.05)."
+#| fig-cap: "Spearman correlations between winning model parameters and IES-R/LEC-5 scales. Asterisks indicate Bonferroni-corrected significance."
 #| fig-width: 3.5
 #| fig-height: 4.0
 
 try:
-    corr_path = Path(f"../figures/mle_trauma_analysis/correlation_heatmap_{winning_model}.png")
-    if not corr_path.exists():
-        raise FileNotFoundError(f"Missing: {corr_path}")
+    corr_fig = Path(f"../figures/mle_trauma_analysis/correlation_heatmap_{winning_model}.png")
+    if not corr_fig.exists():
+        raise FileNotFoundError(f"Missing: {corr_fig}")
 
     from matplotlib.image import imread
-    img = imread(str(corr_path))
+    img = imread(str(corr_fig))
     fig, ax = plt.subplots(figsize=(COLUMN_WIDTH, 4.0))
     ax.imshow(img)
     ax.axis("off")
@@ -339,40 +461,78 @@ try:
     plt.show()
 
 except Exception as e:
-    print(f"Data not yet available. Run scripts/15_analyze_mle_by_trauma.py first. ({e})")
+    print(f"Correlation heatmap not available. ({e})")
 ```
+
+```{python}
+#| label: tbl-correlations
+#| tbl-cap: "Spearman correlations between winning model parameters and trauma measures with uncorrected p < .15. FWE-corrected p-values shown. No correlations survived correction."
+
+try:
+    if df_winner_corr.empty:
+        raise FileNotFoundError("Correlations not available")
+
+    # Show trend-level results (uncorrected p < 0.15) for transparency
+    df_trends = df_winner_corr[df_winner_corr["p_uncorrected"] < 0.15].copy()
+    if df_trends.empty:
+        print("No correlations reached trend level (p < .15 uncorrected).")
+    else:
+        df_show = df_trends[["parameter", "predictor", "n", "rho", "p_uncorrected", "p_fwe"]].copy()
+        df_show.columns = ["Parameter", "Predictor", "N", "rho", "p (uncorr.)", "p (FWE)"]
+        df_show["Parameter"] = df_show["Parameter"].map(lambda p: PARAM_DISPLAY_NAMES.get(p, p))
+        df_show["rho"] = df_show["rho"].apply(lambda x: f"{x:.3f}")
+        df_show["p (uncorr.)"] = df_show["p (uncorr.)"].apply(lambda x: f"{x:.4f}")
+        df_show["p (FWE)"] = df_show["p (FWE)"].apply(lambda x: f"{x:.3f}")
+        df_show = df_show.sort_values("p (uncorr.)").reset_index(drop=True)
+
+        from IPython.display import display
+        display(df_show.style.hide(axis="index"))
+except Exception as e:
+    print(f"Correlations not available. ({e})")
+```
+
+At the uncorrected level, the strongest association was between WM reliability
+$\rho$ and IES-R Hyperarousal ($r_s = $ `{python} f"{float(df_winner_corr.loc[(df_winner_corr['parameter']=='rho') & (df_winner_corr['predictor']=='ies_hyperarousal'), 'rho'].iloc[0]):.3f}" if not df_winner_corr.empty and len(df_winner_corr[(df_winner_corr['parameter']=='rho') & (df_winner_corr['predictor']=='ies_hyperarousal')]) > 0 else "?"`,
+$p_{\text{uncorrected}} = $ `{python} f"{float(df_winner_corr.loc[(df_winner_corr['parameter']=='rho') & (df_winner_corr['predictor']=='ies_hyperarousal'), 'p_uncorrected'].iloc[0]):.4f}" if not df_winner_corr.empty and len(df_winner_corr[(df_winner_corr['parameter']=='rho') & (df_winner_corr['predictor']=='ies_hyperarousal')]) > 0 else "?"`,
+$p_{\text{FWE}} = $ `{python} f"{float(df_winner_corr.loc[(df_winner_corr['parameter']=='rho') & (df_winner_corr['predictor']=='ies_hyperarousal'), 'p_fwe'].iloc[0]):.3f}" if not df_winner_corr.empty and len(df_winner_corr[(df_winner_corr['parameter']=='rho') & (df_winner_corr['predictor']=='ies_hyperarousal')]) > 0 else "?"`,
+$N = $ `{python} int(df_winner_corr.loc[(df_winner_corr['parameter']=='rho') & (df_winner_corr['predictor']=='ies_hyperarousal'), 'n'].iloc[0]) if not df_winner_corr.empty and len(df_winner_corr[(df_winner_corr['parameter']=='rho') & (df_winner_corr['predictor']=='ies_hyperarousal')]) > 0 else "?"`),
+suggesting that higher hyperarousal symptoms may be associated with reduced
+reliance on WM representations. This finding did not survive correction
+for multiple comparisons.
 
 ### Regression Analyses {#sec-regressions}
 
+OLS regressions examined whether IES-R subscales (Intrusion, Avoidance,
+Hyperarousal) jointly predicted each model parameter
+($N = $ `{python} n_regression`).
+
 ```{python}
 #| label: tbl-regression
-#| tbl-cap: "OLS regression of winning model parameters on IES-R subscales (Intrusion, Avoidance, Hyperarousal), controlling for age and sex. Standardized beta coefficients shown. Bold: p < 0.05 after Bonferroni correction."
+#| tbl-cap: "Multiple OLS regression of winning model parameters on IES-R subscales (Intrusion, Avoidance, Hyperarousal). Beta = unstandardized coefficient."
 
 try:
-    # Placeholder: load regression results from script 16 output
-    reg_dir = Path(f"../output/regressions/{winning_model}")
-    if not reg_dir.exists():
-        raise FileNotFoundError(f"Missing: {reg_dir}")
+    if df_reg_multi.empty:
+        raise FileNotFoundError("Regression results not available")
 
-    csv_files = list(reg_dir.glob("*.csv"))
-    if not csv_files:
-        raise FileNotFoundError(f"No CSV files in {reg_dir}")
-
-    # Aggregate regression results across subscales
-    frames = []
-    for fpath in sorted(csv_files):
-        df_reg = pd.read_csv(fpath)
-        df_reg["subscale"] = fpath.stem
-        frames.append(df_reg)
-
-    df_all = pd.concat(frames, ignore_index=True)
+    df_show = df_reg_multi.copy()
+    df_show["Parameter"] = df_show["Parameter"].map(lambda p: PARAM_DISPLAY_NAMES.get(p.replace("_mean", ""), p))
+    df_show["Predictor"] = df_show["Predictor"].str.replace("ies_", "IES-R ").str.title()
+    df_show = df_show[["Parameter", "Predictor", "β", "SE", "95% CI", "t", "p"]]
+    df_show["p"] = df_show["p"].apply(lambda x: f"{x:.3f}")
+    df_show["β"] = df_show["β"].apply(lambda x: f"{x:.4f}")
+    df_show["t"] = df_show["t"].apply(lambda x: f"{x:.2f}")
 
     from IPython.display import display
-    display(df_all.style.hide(axis="index"))
-
+    display(df_show.style.hide(axis="index"))
 except Exception as e:
-    print(f"Data not yet available. Run scripts/16_regress_parameters_on_scales.py --model {winning_model} first. ({e})")
+    print(f"Regression results not available. ({e})")
 ```
+
+No IES-R subscale significantly predicted any model parameter in the
+multivariate regression (@tbl-regression; all $p > .05$).
+Univariate regressions of individual parameters on LEC-5 total events and
+IES-R total score similarly yielded no significant associations after FDR
+correction (all $q > .05$).
 
 
 ## Discussion {#sec-discussion}
