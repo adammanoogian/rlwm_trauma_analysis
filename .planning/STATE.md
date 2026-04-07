@@ -107,18 +107,29 @@ Last activity: 2026-04-05 — Logit clamp fix, wave pipeline orchestrator, Quart
 
 ### Blockers/Concerns
 
-- Phase 8 (M5): Full parameter recovery (r >= 0.80 gate) not yet run — N=10 quick test passed (code functional). Run on cluster before Phase 10: `python scripts/11_run_model_recovery.py --model wmrl_m5 --n-subjects 50 --n-datasets 10 --n-jobs 8`
-- Phase 9 (M6a): Full parameter recovery not yet run — quick test (N=2) verified functional. Run on cluster before Phase 10 (M6b): `python scripts/11_run_model_recovery.py --model wmrl_m6a --n-subjects 50 --n-datasets 10 --n-jobs 8`
-- Phase 11 (M4): Full parameter recovery (r >= 0.80 gate) not yet run — quick test (N=2) verified functional. Run on cluster: `python scripts/11_run_model_recovery.py --model wmrl_m4 --n-subjects 50 --n-datasets 10 --n-jobs 8`
+- Phase 8 (M5): Stimulus sampling bug FIXED (quick-002). Re-run recovery: `python scripts/fitting/model_recovery.py --model wmrl_m5 --n-subjects 50 --n-datasets 3 --n-starts 20 --use-gpu` or `sbatch --export=MODEL=wmrl_m5 cluster/11_recovery_gpu.slurm`
+- Phase 9 (M6a): Full parameter recovery not yet run — quick test (N=2) verified functional. Run on cluster: `sbatch --export=MODEL=wmrl_m6a cluster/11_recovery_gpu.slurm`
+- Phase 9 (M6b): Full parameter recovery not yet run — quick test (N=2) verified functional. Run on cluster: `sbatch --export=MODEL=wmrl_m6b cluster/11_recovery_gpu.slurm`
+- Phase 11 (M4): Full parameter recovery not yet run — quick test (N=2) verified functional. M4 needs ~48h: `sbatch --time=48:00:00 --export=MODEL=wmrl_m4,NSUBJ=30 cluster/11_recovery_gpu.slurm`
 
 ### Quick Tasks Completed
 
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 001 | Setup Quarto scientific manuscript for RLWM trauma analysis | 2026-04-05 | 18637da | [001-setup-quarto-manuscript](./quick/001-setup-quarto-manuscript/) |
+| 002 | Pipeline fixes, convergence assessment, recovery config, MODEL_REGISTRY | 2026-04-07 | 3095b92 | [002-pipeline-fixes-convergence-recovery-config](./quick/002-pipeline-fixes-convergence-recovery-config/) |
+
+### Key Decisions Added (quick-002)
+
+| Decision | Rationale |
+|----------|-----------|
+| MODEL_REGISTRY in config.py is single source of truth for pipeline scripts | Prevents model list drift; mle_utils.py PARAMS/BOUNDS untouched (JAX inner loop) |
+| Stimulus sampled from range(set_size) per block in synthetic generation | Root cause of M5 recovery failure (r=0.03-0.57); Q/WM tables now (6,3) matching likelihood |
+| Recovery defaults: n_starts=20, n_datasets=3 (was 50, 10) | Adequate for r-metric; saves 60-70% runtime |
+| Wave 3 analysis uses afterok by default (not afterany) | Ensures all 7 models present before comparison; --analysis-after-any flag for partial results |
 
 ## Session Continuity
 
-Last session: 2026-04-05
-Stopped at: Fixed logit clamp bug, added wave-based pipeline orchestrator, set up Quarto manuscript scaffold.
+Last session: 2026-04-07
+Stopped at: Completed quick task 002 — pipeline fixes, M5 recovery bug fix, MODEL_REGISTRY.
 Resume file: None
