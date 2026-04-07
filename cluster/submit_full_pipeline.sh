@@ -67,6 +67,9 @@ echo ""
 # =============================================================================
 # Wave 1: MLE Fitting (parallel GPU jobs)
 # =============================================================================
+# Strip Windows CRLF line endings (sbatch rejects #!/bin/bash\r)
+sed -i 's/\r$//' cluster/*.slurm cluster/*.sh 2>/dev/null || true
+
 echo "WAVE 1: MLE Fitting"
 echo "------------------------------------------------------------"
 

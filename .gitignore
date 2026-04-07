@@ -52,6 +52,9 @@ nul
 # Quarto manuscript build artifacts
 manuscript/_output/
 manuscript/_cache/
+manuscript/.jupyter_cache/
+manuscript/outputs/
+manuscript/paper_files/
 manuscript/*.aux
 manuscript/*.log
 manuscript/*.out
@@ -59,3 +62,27 @@ manuscript/*.toc
 manuscript/*.synctex.gz
 manuscript/*.bbl
 manuscript/*.blg
+
+# Cluster logs (ephemeral SLURM output)
+cluster/logs/
+
+# MLE checkpoints (intermediate fitting state, regenerable)
+output/mle/*_checkpoint.csv
+
+# Temporary parameter sweep outputs
+output/_tmp_param_sweep*/
+
+# Legacy outputs at repo root (moved to output/mle/)
+output/wmrl_m3_*.csv
+output/wmrl_m3_*.json
+output/wmrl_m5_*.csv
+output/wmrl_m5_*.json
+
+# Old milestone outputs (archived)
+output/v1/
+
+# Quarto build cache
+manuscript/.jupyter_cache/
+
+# Backup files
+*.bak
