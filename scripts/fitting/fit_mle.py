@@ -1441,7 +1441,11 @@ def fit_all_gpu(
         print("Stage 5: Selecting best results and transforming parameters...", flush=True)
 
     # Find best start per participant (lowest NLL)
-    best_idx = jnp.argmin(all_nlls, axis=1)  # (n_participants,)
+    # Replace NaN with inf so argmin selects the best finite NLL.
+    # jnp.argmin propagates NaN (picks NaN as "minimum"), which discards
+    # participants where even 1 of 50 starts returned NaN.
+    safe_nlls = jnp.where(jnp.isnan(all_nlls), jnp.inf, all_nlls)
+    best_idx = jnp.argmin(safe_nlls, axis=1)  # (n_participants,)
     best_params_unc = all_params[jnp.arange(n_participants), best_idx]
     best_nlls = all_nlls[jnp.arange(n_participants), best_idx]
     best_errors = all_errors[jnp.arange(n_participants), best_idx]
