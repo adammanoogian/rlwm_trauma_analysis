@@ -209,12 +209,14 @@ BIC was computed as $\text{BIC} = k\ln(n) - 2\ln\hat{L}$.
 ### Statistical Analysis {#sec-stats}
 
 Group differences in model parameters were assessed using Kruskal-Wallis
-tests with Mann-Whitney U pairwise comparisons (Bonferroni corrected).
+tests with Mann-Whitney U pairwise comparisons (uncorrected $\alpha = 0.05$;
+Bonferroni-corrected p-values reported as sensitivity analyses).
 Associations between parameters and continuous trauma measures were assessed
-using Spearman rank correlations.
+using Spearman rank correlations (uncorrected; family-wise error [FWE]
+corrected p-values reported for sensitivity).
 Regression of parameters on IES-R subscale scores (Intrusion, Avoidance,
-Hyperarousal) was performed via OLS with age and sex as covariates.
-All analyses used $\alpha = 0.05$ after correction.
+Hyperarousal) was performed via OLS with age and sex as covariates
+(uncorrected; FDR-corrected q-values reported for sensitivity).
 
 
 ## Results {#sec-results}
@@ -343,9 +345,8 @@ To examine whether model parameters differed between trauma groups, we
 compared parameter estimates between participants classified as
 `{python} GROUP_SHORT_LABELS.get(groups[0], groups[0])` and
 `{python} GROUP_SHORT_LABELS.get(groups[1], groups[1])` using
-Mann-Whitney U tests with Bonferroni correction
-(`{python} winner_n_params` comparisons,
-$\alpha_{\text{corrected}}$ = `{python} f"{0.05 / winner_n_params:.4f}"`).
+Mann-Whitney U tests (uncorrected $\alpha = 0.05$; Bonferroni-corrected
+p-values for `{python} winner_n_params` comparisons reported as sensitivity).
 `{python} n_with_groups` participants with valid winning-model fits were
 matched to group assignments.
 
@@ -420,8 +421,10 @@ except Exception as e:
     print(f"Group stats not available. ({e})")
 ```
 
-No parameter showed a statistically significant group difference after
-Bonferroni correction (@tbl-group-comparisons; all corrected $p > .05$).
+At the uncorrected level ($\alpha = .05$), no parameter showed a
+statistically significant group difference (@tbl-group-comparisons).
+These results remained non-significant after Bonferroni correction
+for `{python} winner_n_params` comparisons (all corrected $p > .05$).
 The largest effect sizes were observed for $\phi$ (WM decay;
 $r = $ `{python} f"{float(df_winner_stats.loc[df_winner_stats['parameter']=='phi', 'r_rank_biserial'].iloc[0]):.2f}" if not df_winner_stats.empty and 'phi' in df_winner_stats['parameter'].values else "?"`,
 $p_{\text{uncorrected}} = $ `{python} f"{float(df_winner_stats.loc[df_winner_stats['parameter']=='phi', 'p_uncorrected'].iloc[0]):.3f}" if not df_winner_stats.empty and 'phi' in df_winner_stats['parameter'].values else "?"`)
@@ -437,8 +440,10 @@ differed significantly between groups.
 
 Spearman rank correlations between winning-model parameters and continuous
 trauma measures (IES-R subscales, LEC-5 total and personal events) are shown
-in @fig-correlation-heatmap. After family-wise error correction, no
-correlations reached significance.
+in @fig-correlation-heatmap. Correlations are reported at uncorrected
+thresholds ($\alpha = .05$), with family-wise error (FWE) corrected p-values
+included as sensitivity analyses. No correlations reached the uncorrected
+significance threshold.
 
 ```{python}
 #| label: fig-correlation-heatmap
@@ -497,8 +502,8 @@ $p_{\text{uncorrected}} = $ `{python} f"{float(df_winner_corr.loc[(df_winner_cor
 $p_{\text{FWE}} = $ `{python} f"{float(df_winner_corr.loc[(df_winner_corr['parameter']=='rho') & (df_winner_corr['predictor']=='ies_hyperarousal'), 'p_fwe'].iloc[0]):.3f}" if not df_winner_corr.empty and len(df_winner_corr[(df_winner_corr['parameter']=='rho') & (df_winner_corr['predictor']=='ies_hyperarousal')]) > 0 else "?"`,
 $N = $ `{python} int(df_winner_corr.loc[(df_winner_corr['parameter']=='rho') & (df_winner_corr['predictor']=='ies_hyperarousal'), 'n'].iloc[0]) if not df_winner_corr.empty and len(df_winner_corr[(df_winner_corr['parameter']=='rho') & (df_winner_corr['predictor']=='ies_hyperarousal')]) > 0 else "?"`),
 suggesting that higher hyperarousal symptoms may be associated with reduced
-reliance on WM representations. This finding did not survive correction
-for multiple comparisons.
+reliance on WM representations. This association did not survive FWE correction
+($p_{\text{FWE}} = $ `{python} f"{float(df_winner_corr.loc[(df_winner_corr['parameter']=='rho') & (df_winner_corr['predictor']=='ies_hyperarousal'), 'p_fwe'].iloc[0]):.3f}" if not df_winner_corr.empty and len(df_winner_corr[(df_winner_corr['parameter']=='rho') & (df_winner_corr['predictor']=='ies_hyperarousal')]) > 0 else "?"`).
 
 ### Regression Analyses {#sec-regressions}
 
@@ -528,11 +533,12 @@ except Exception as e:
     print(f"Regression results not available. ({e})")
 ```
 
-No IES-R subscale significantly predicted any model parameter in the
-multivariate regression (@tbl-regression; all $p > .05$).
+At the uncorrected level ($\alpha = .05$), no IES-R subscale significantly
+predicted any model parameter in the multivariate regression
+(@tbl-regression; all $p > .05$).
 Univariate regressions of individual parameters on LEC-5 total events and
-IES-R total score similarly yielded no significant associations after FDR
-correction (all $q > .05$).
+IES-R total score similarly yielded no significant associations (all
+$p > .05$; FDR-corrected q-values confirmed, all $q > .05$).
 
 
 ## Discussion {#sec-discussion}
