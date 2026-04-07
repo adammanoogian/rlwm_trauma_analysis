@@ -1,0 +1,403 @@
+============================================================
+RLWM GPU-Accelerated MLE Fitting - M3 SLURM Job
+============================================================
+Job ID: 54555938
+Node: m3g117
+Partition: gpu
+GPU(s): 0
+Project: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis
+Start time: Mon Apr  6 04:17:14 AM AEST 2026
+============================================================
+Activated rlwm_gpu by name
+
+Verifying GPU access...
+JAX devices: [CudaDevice(id=0)]
+GPU(s) available: [CudaDevice(id=0)]
+
+JAX cache: /scratch/fc37/aman0087/.jax_cache_gpu
+
+Cleaning up stale checkpoints...
+
+
+============================================================
+Fitting model: wmrl_m4 (GPU-accelerated)
+Started: Mon Apr  6 04:17:23 AM AEST 2026
+============================================================
+[GPU 04:17:23] util=8% mem=0/46068MB temp=34C
+GPU detected: [CudaDevice(id=0)]
+
+============================================================
+MLE Fitting: WMRL_M4
+============================================================
+Data: output/task_trials_long.csv
+Random starts: 50
+Seed: 42
+Output: output/mle/
+Include practice: False
+Parallel workers: 1
+GPU acceleration: enabled
+Hessian diagnostics: enabled (adds 5-30s per participant)
+============================================================
+
+Loading data...
+  Total participants in data: 157
+  Excluded participants: 3 (insufficient data/duplicates)
+  Final sample: 154
+  Total trials: 111943
+
+[MEMORY] START: 551.0MB (psutil)
+
+============================================================
+MLE Fitting: WMRL_M4
+============================================================
+Start time: 2026-04-06 04:17:40
+Participants: 154
+Random starts per participant: 50
+Parallel workers: 1
+============================================================
+
+Preparing participant data...
+  Prepared 10/154 participants...
+  Prepared 20/154 participants...
+  Prepared 30/154 participants...
+  Prepared 40/154 participants...
+  Prepared 50/154 participants...
+  Prepared 60/154 participants...
+  Prepared 70/154 participants...
+  Prepared 80/154 participants...
+  Prepared 90/154 participants...
+  Prepared 100/154 participants...
+  Prepared 110/154 participants...
+  Prepared 120/154 participants...
+  Prepared 130/154 participants...
+  Prepared 140/154 participants...
+  Prepared 150/154 participants...
+  Data preparation complete (32.8s)
+
+GPU detected (cuda:0). Using vectorized GPU fitting path.
+
+
+============================================================
+GPU-Vectorized MLE Fitting: WMRL_M4
+============================================================
+Start time: 2026-04-06 04:18:13
+Participants: 154
+Random starts per participant: 50
+Method: jaxopt.LBFGS + jax.vmap (fully vectorized)
+============================================================
+
+Stage 1: Preparing and stacking participant data...
+  Stacked data shape: (154, 17, 100) (9.0s)
+Stage 2: Generating unconstrained starting points...
+  Starting points: (50, 10)
+Stage 3: Building vmapped optimizer...
+Stage 4: Running GPU-vectorized fitting (JIT compiling + executing)...
+[MEMORY] PRE-GPU-FIT: 3175.0MB (psutil)
+[GPU 04:22:23] util=100% mem=34581/46068MB temp=49C
+[GPU 04:27:23] util=100% mem=34581/46068MB temp=51C
+[GPU 04:32:23] util=100% mem=34581/46068MB temp=51C
+[GPU 04:37:23] util=100% mem=34581/46068MB temp=51C
+[GPU 04:42:23] util=100% mem=34581/46068MB temp=51C
+[GPU 04:47:23] util=100% mem=34581/46068MB temp=51C
+[GPU 04:52:24] util=100% mem=34581/46068MB temp=51C
+[GPU 04:57:24] util=100% mem=34581/46068MB temp=51C
+[GPU 05:02:24] util=100% mem=34581/46068MB temp=51C
+[GPU 05:07:24] util=100% mem=34581/46068MB temp=51C
+[GPU 05:12:24] util=100% mem=34581/46068MB temp=51C
+[GPU 05:17:24] util=100% mem=34581/46068MB temp=51C
+[GPU 05:22:24] util=100% mem=34581/46068MB temp=51C
+[GPU 05:27:24] util=100% mem=34581/46068MB temp=51C
+[GPU 05:32:24] util=100% mem=34581/46068MB temp=51C
+[GPU 05:37:24] util=100% mem=34581/46068MB temp=51C
+[GPU 05:42:24] util=100% mem=34581/46068MB temp=51C
+[GPU 05:47:24] util=100% mem=34581/46068MB temp=51C
+[GPU 05:52:24] util=100% mem=34581/46068MB temp=51C
+[GPU 05:57:24] util=100% mem=34581/46068MB temp=51C
+[GPU 06:02:24] util=100% mem=34581/46068MB temp=51C
+[GPU 06:07:24] util=100% mem=34581/46068MB temp=51C
+[GPU 06:12:25] util=100% mem=34581/46068MB temp=51C
+[GPU 06:17:25] util=100% mem=34581/46068MB temp=51C
+[GPU 06:22:25] util=100% mem=34581/46068MB temp=51C
+[GPU 06:27:25] util=100% mem=34581/46068MB temp=50C
+[GPU 06:32:25] util=100% mem=34581/46068MB temp=51C
+[GPU 06:37:25] util=100% mem=34581/46068MB temp=51C
+[GPU 06:42:25] util=100% mem=34581/46068MB temp=51C
+[GPU 06:47:25] util=100% mem=34581/46068MB temp=50C
+[GPU 06:52:25] util=100% mem=34581/46068MB temp=50C
+[GPU 06:57:25] util=100% mem=34581/46068MB temp=50C
+[GPU 07:02:25] util=100% mem=34581/46068MB temp=50C
+[GPU 07:07:25] util=100% mem=34581/46068MB temp=50C
+[GPU 07:12:25] util=100% mem=34581/46068MB temp=51C
+[GPU 07:17:25] util=100% mem=34581/46068MB temp=51C
+[GPU 07:22:25] util=100% mem=34581/46068MB temp=51C
+[GPU 07:27:25] util=100% mem=34581/46068MB temp=51C
+[GPU 07:32:25] util=100% mem=34581/46068MB temp=50C
+[GPU 07:37:25] util=100% mem=34581/46068MB temp=51C
+[GPU 07:42:25] util=100% mem=34581/46068MB temp=51C
+[GPU 07:47:25] util=100% mem=34581/46068MB temp=51C
+[GPU 07:52:25] util=100% mem=34581/46068MB temp=51C
+[GPU 07:57:25] util=100% mem=34581/46068MB temp=50C
+[GPU 08:02:25] util=100% mem=34581/46068MB temp=51C
+[GPU 08:07:25] util=100% mem=34581/46068MB temp=51C
+[GPU 08:12:25] util=100% mem=34581/46068MB temp=51C
+[GPU 08:17:25] util=100% mem=34581/46068MB temp=50C
+[GPU 08:22:25] util=100% mem=34581/46068MB temp=51C
+[GPU 08:27:25] util=100% mem=34581/46068MB temp=51C
+[GPU 08:32:25] util=100% mem=34581/46068MB temp=50C
+[GPU 08:37:25] util=100% mem=34581/46068MB temp=50C
+[GPU 08:42:25] util=100% mem=34581/46068MB temp=51C
+[GPU 08:47:26] util=100% mem=34581/46068MB temp=51C
+[GPU 08:52:26] util=100% mem=34581/46068MB temp=50C
+[GPU 08:57:26] util=100% mem=34581/46068MB temp=50C
+[GPU 09:02:26] util=100% mem=34581/46068MB temp=51C
+[GPU 09:07:26] util=100% mem=34581/46068MB temp=51C
+[GPU 09:12:26] util=100% mem=34581/46068MB temp=50C
+[GPU 09:17:26] util=100% mem=34581/46068MB temp=50C
+[GPU 09:22:26] util=100% mem=34581/46068MB temp=50C
+[GPU 09:27:26] util=100% mem=34581/46068MB temp=50C
+[GPU 09:32:26] util=100% mem=34581/46068MB temp=50C
+[GPU 09:37:26] util=100% mem=34581/46068MB temp=66C
+[GPU 09:42:26] util=100% mem=34581/46068MB temp=71C
+[GPU 09:47:26] util=100% mem=34581/46068MB temp=71C
+[GPU 09:52:26] util=100% mem=34581/46068MB temp=70C
+[GPU 09:57:26] util=100% mem=34581/46068MB temp=70C
+[GPU 10:02:26] util=100% mem=34581/46068MB temp=70C
+[GPU 10:07:26] util=100% mem=34581/46068MB temp=70C
+[GPU 10:12:26] util=100% mem=34581/46068MB temp=70C
+[GPU 10:17:26] util=100% mem=34581/46068MB temp=71C
+[GPU 10:22:26] util=100% mem=34581/46068MB temp=71C
+[GPU 10:27:26] util=100% mem=34581/46068MB temp=70C
+[GPU 10:32:26] util=100% mem=34581/46068MB temp=70C
+[GPU 10:37:26] util=100% mem=34581/46068MB temp=70C
+[GPU 10:42:26] util=100% mem=34581/46068MB temp=70C
+[GPU 10:47:26] util=100% mem=34581/46068MB temp=71C
+[GPU 10:52:26] util=100% mem=34581/46068MB temp=71C
+[GPU 10:57:26] util=100% mem=34581/46068MB temp=70C
+[GPU 11:02:26] util=100% mem=34581/46068MB temp=70C
+[GPU 11:07:26] util=100% mem=34581/46068MB temp=70C
+[GPU 11:12:26] util=100% mem=34581/46068MB temp=70C
+[GPU 11:17:26] util=100% mem=34581/46068MB temp=70C
+[GPU 11:22:27] util=100% mem=34581/46068MB temp=71C
+[GPU 11:27:27] util=100% mem=34581/46068MB temp=71C
+[GPU 11:32:27] util=100% mem=34581/46068MB temp=68C
+[GPU 11:37:27] util=100% mem=34581/46068MB temp=60C
+[GPU 11:42:27] util=100% mem=34581/46068MB temp=57C
+[GPU 11:47:27] util=100% mem=34581/46068MB temp=57C
+[GPU 11:52:27] util=100% mem=34581/46068MB temp=59C
+[GPU 11:57:27] util=100% mem=34581/46068MB temp=58C
+[GPU 12:02:27] util=100% mem=34581/46068MB temp=57C
+[GPU 12:07:27] util=100% mem=34581/46068MB temp=57C
+[GPU 12:12:27] util=100% mem=34581/46068MB temp=59C
+[GPU 12:17:27] util=100% mem=34581/46068MB temp=58C
+[GPU 12:22:27] util=100% mem=34581/46068MB temp=57C
+[GPU 12:27:27] util=100% mem=34581/46068MB temp=56C
+[GPU 12:32:27] util=100% mem=34581/46068MB temp=59C
+[GPU 12:37:27] util=100% mem=34581/46068MB temp=57C
+[GPU 12:42:27] util=100% mem=34581/46068MB temp=57C
+[GPU 12:47:27] util=100% mem=34581/46068MB temp=57C
+[GPU 12:52:27] util=100% mem=34581/46068MB temp=59C
+[GPU 12:57:27] util=100% mem=34581/46068MB temp=57C
+[GPU 13:02:27] util=100% mem=34581/46068MB temp=57C
+[GPU 13:07:27] util=100% mem=34581/46068MB temp=58C
+[GPU 13:12:27] util=100% mem=34581/46068MB temp=58C
+[GPU 13:17:27] util=100% mem=34581/46068MB temp=57C
+[GPU 13:22:27] util=100% mem=34581/46068MB temp=57C
+[GPU 13:27:27] util=100% mem=34581/46068MB temp=62C
+[GPU 13:32:28] util=100% mem=34581/46068MB temp=58C
+[GPU 13:37:28] util=100% mem=34581/46068MB temp=57C
+[GPU 13:42:28] util=100% mem=34581/46068MB temp=57C
+[GPU 13:47:28] util=100% mem=34581/46068MB temp=62C
+[GPU 13:52:28] util=100% mem=34581/46068MB temp=58C
+[GPU 13:57:28] util=100% mem=34581/46068MB temp=57C
+[GPU 14:02:28] util=100% mem=34581/46068MB temp=57C
+[GPU 14:07:28] util=100% mem=34581/46068MB temp=61C
+[GPU 14:12:28] util=100% mem=34581/46068MB temp=58C
+[GPU 14:17:28] util=100% mem=34581/46068MB temp=57C
+[GPU 14:22:28] util=100% mem=34581/46068MB temp=70C
+[GPU 14:27:28] util=100% mem=34581/46068MB temp=71C
+[GPU 14:32:28] util=100% mem=34581/46068MB temp=71C
+[GPU 14:37:28] util=100% mem=34581/46068MB temp=71C
+[GPU 14:42:28] util=100% mem=34581/46068MB temp=71C
+[GPU 14:47:28] util=100% mem=34581/46068MB temp=71C
+[GPU 14:52:28] util=100% mem=34581/46068MB temp=70C
+[GPU 14:57:28] util=100% mem=34581/46068MB temp=70C
+[GPU 15:02:28] util=100% mem=34581/46068MB temp=71C
+[GPU 15:07:28] util=100% mem=34581/46068MB temp=71C
+[GPU 15:12:28] util=100% mem=34581/46068MB temp=71C
+[GPU 15:17:28] util=100% mem=34581/46068MB temp=71C
+[GPU 15:22:28] util=100% mem=34581/46068MB temp=71C
+[GPU 15:27:28] util=100% mem=34581/46068MB temp=71C
+[GPU 15:32:28] util=100% mem=34581/46068MB temp=71C
+[GPU 15:37:28] util=100% mem=34581/46068MB temp=71C
+[GPU 15:42:28] util=100% mem=34581/46068MB temp=71C
+[GPU 15:47:28] util=100% mem=34581/46068MB temp=71C
+[GPU 15:52:28] util=100% mem=34581/46068MB temp=71C
+[GPU 15:57:28] util=100% mem=34581/46068MB temp=70C
+[GPU 16:02:28] util=100% mem=34581/46068MB temp=70C
+[GPU 16:07:28] util=100% mem=34581/46068MB temp=71C
+[GPU 16:12:28] util=100% mem=34581/46068MB temp=71C
+[GPU 16:17:28] util=100% mem=34581/46068MB temp=71C
+[GPU 16:22:28] util=100% mem=34581/46068MB temp=71C
+[GPU 16:27:28] util=100% mem=34581/46068MB temp=70C
+[GPU 16:32:28] util=100% mem=34581/46068MB temp=70C
+[GPU 16:37:29] util=100% mem=34581/46068MB temp=70C
+[GPU 16:42:29] util=100% mem=34581/46068MB temp=71C
+[GPU 16:47:29] util=100% mem=34581/46068MB temp=71C
+[GPU 16:52:29] util=100% mem=34581/46068MB temp=70C
+[GPU 16:57:29] util=100% mem=34581/46068MB temp=70C
+[GPU 17:02:29] util=100% mem=34581/46068MB temp=69C
+[GPU 17:07:29] util=100% mem=34581/46068MB temp=70C
+[GPU 17:12:29] util=100% mem=34581/46068MB temp=71C
+[GPU 17:17:29] util=100% mem=34581/46068MB temp=71C
+[GPU 17:22:29] util=100% mem=34581/46068MB temp=71C
+[GPU 17:27:29] util=100% mem=34581/46068MB temp=70C
+[GPU 17:32:29] util=100% mem=34581/46068MB temp=70C
+[GPU 17:37:29] util=100% mem=34581/46068MB temp=69C
+[GPU 17:42:29] util=100% mem=34581/46068MB temp=70C
+[GPU 17:47:29] util=100% mem=34581/46068MB temp=70C
+[GPU 17:52:29] util=100% mem=34581/46068MB temp=70C
+[GPU 17:57:29] util=100% mem=34581/46068MB temp=70C
+[GPU 18:02:29] util=100% mem=34581/46068MB temp=70C
+[GPU 18:07:29] util=100% mem=34581/46068MB temp=70C
+[GPU 18:12:29] util=100% mem=34581/46068MB temp=70C
+[GPU 18:17:29] util=100% mem=34581/46068MB temp=70C
+[GPU 18:22:29] util=100% mem=34581/46068MB temp=70C
+[GPU 18:27:29] util=100% mem=34581/46068MB temp=70C
+[GPU 18:32:29] util=100% mem=34581/46068MB temp=70C
+[GPU 18:37:29] util=100% mem=34581/46068MB temp=70C
+[GPU 18:42:29] util=100% mem=34581/46068MB temp=70C
+[GPU 18:47:29] util=100% mem=34581/46068MB temp=70C
+[GPU 18:52:29] util=100% mem=34581/46068MB temp=70C
+[GPU 18:57:29] util=100% mem=34581/46068MB temp=70C
+[GPU 19:02:29] util=100% mem=34581/46068MB temp=70C
+[GPU 19:07:29] util=100% mem=34581/46068MB temp=70C
+[GPU 19:12:29] util=100% mem=34581/46068MB temp=70C
+[GPU 19:17:29] util=100% mem=34581/46068MB temp=70C
+[GPU 19:22:29] util=100% mem=34581/46068MB temp=70C
+[GPU 19:27:29] util=100% mem=34581/46068MB temp=70C
+[GPU 19:32:29] util=100% mem=34581/46068MB temp=70C
+[GPU 19:37:29] util=100% mem=34581/46068MB temp=70C
+[MEMORY] POST-GPU-FIT: 3492.8MB (psutil)
+  GPU fitting complete: 55155.3s
+  Output shapes: params=(154, 50, 10), nlls=(154, 50)
+Stage 5: Selecting best results and transforming parameters...
+Stage 6: Building result dictionaries...
+Stage 7: Computing Hessian diagnostics (sequential)...
+    Hessian: 10/154 done
+    Hessian: 20/154 done
+    Hessian: 30/154 done
+[GPU 19:42:30] util=0% mem=34583/46068MB temp=52C
+    Hessian: 40/154 done
+    Hessian: 50/154 done
+    Hessian: 60/154 done
+[GPU 19:47:30] util=0% mem=34583/46068MB temp=49C
+    Hessian: 70/154 done
+    Hessian: 80/154 done
+    Hessian: 90/154 done
+[GPU 19:52:30] util=0% mem=34583/46068MB temp=49C
+    Hessian: 100/154 done
+    Hessian: 110/154 done
+    Hessian: 120/154 done
+    Hessian: 130/154 done
+[GPU 19:57:30] util=0% mem=34583/46068MB temp=49C
+    Hessian: 140/154 done
+    Hessian: 150/154 done
+  Hessian diagnostics complete: 0/154 successful (1389.5s)
+
+============================================================
+GPU FITTING COMPLETE
+============================================================
+Total duration: 56557.6s (942.6min)
+  GPU optimization: 55155.3s
+Participants: 154 | Converged: 130 (84%)
+Peak memory: 3.41GB
+============================================================
+
+
+============================================================
+RESULTS
+============================================================
+
+Convergence: 130/154 (84.4%)
+
+Group Statistics (n=130):
+--------------------------------------------------
+  alpha_pos   : 0.050 +/- 0.017  (SD=0.189)
+  alpha_neg   : 0.018 +/- 0.010  (SD=0.111)
+  phi         : 0.316 +/- 0.020  (SD=0.223)
+  rho         : 0.728 +/- 0.023  (SD=0.267)
+  capacity    : 3.227 +/- 0.195  (SD=2.226)
+  kappa       : 0.069 +/- 0.008  (SD=0.093)
+  v_scale     : 0.482 +/- 0.008  (SD=0.087)
+  A           : 0.197 +/- 0.006  (SD=0.065)
+  delta       : 0.071 +/- 0.003  (SD=0.040)
+  t0          : 0.069 +/- 0.003  (SD=0.038)
+
+Model Fit:
+--------------------------------------------------
+  NLL         : 399.87 +/- 17.65
+  AIC         : 819.74 +/- 35.29
+  BIC         : 864.60 +/- 35.35
+  PSEUDO-R²   : 0.483 +/- 0.270
+
+Hessian Diagnostics:
+--------------------------------------------------
+  Successfully computed: 0/154
+
+Warning: Parameters hitting bounds:
+  alpha_pos: 128 participants
+  alpha_neg: 146 participants
+  phi: 14 participants
+  kappa: 37 participants
+  t0: 116 participants
+  capacity: 27 participants
+  rho: 69 participants
+  delta: 18 participants
+  A: 1 participants
+
+============================================================
+Results saved to:
+  Individual fits:     output/mle/wmrl_m4_individual_fits.csv
+  Group summary:       output/mle/wmrl_m4_group_summary.csv
+  Timing log:          output/mle/wmrl_m4_timing_log.csv
+  Performance summary: output/mle/wmrl_m4_performance_summary.json
+============================================================
+
+============================================================
+STATUS: COMPLETE - 154 participants fit (130 converged, 24 did not converge)
+============================================================
+
+Completed: Mon Apr  6 08:00:57 PM AEST 2026 (exit code: 0)
+
+============================================================
+All models complete!
+End time: Mon Apr  6 08:00:57 PM AEST 2026
+============================================================
+
+Results saved to:
+  output/mle/*_individual_fits.csv
+  output/mle/*_group_summary.csv
+============================================================
+
+============================================================
+JOB RESOURCE REPORT
+============================================================
+Job ID: 54555938
+Node: m3g117
+
+GPU Info:
+  Model:       NVIDIA L40S
+  VRAM Total:   46068 MiB
+  VRAM Used:    0 MiB
+  VRAM Free:    45468 MiB
+  Utilization:  0 %
+  Temperature:  49
+
+SLURM Accounting:
+            54555938   15:43:45                              64G          4      RUNNING 
+      54555938.batch   15:43:45                                           4      RUNNING 
+     54555938.extern   15:43:45                                           4      RUNNING 
+
+For detailed stats after completion:
+  jobstats 54555938
+============================================================

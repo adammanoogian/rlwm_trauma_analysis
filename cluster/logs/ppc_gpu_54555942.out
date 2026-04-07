@@ -1,0 +1,17 @@
+==========================================
+Posterior Predictive Check (GPU)
+==========================================
+Job ID: 54555942
+Model: wmrl
+Skip model recovery: false
+Start time: Mon Apr  6 09:27:56 AM AEST 2026
+==========================================
+[GPU 09:27:56] util=0% mem=0/46068MB temp=31C
+Warning: Fitted params not found at output/mle_results/wmrl_individual_fits.csv
+  Run `python scripts/12_fit_mle.py --model wmrl` first
+==========================================
+PPC complete!
+Results: output/ppc/wmrl/
+Figures: figures/ppc/wmrl/
+End time: Mon Apr  6 09:28:37 AM AEST 2026
+==========================================

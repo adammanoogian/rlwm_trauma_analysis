@@ -1,0 +1,17 @@
+==========================================
+Posterior Predictive Check (GPU)
+==========================================
+Job ID: 54555940
+Model: qlearning
+Skip model recovery: false
+Start time: Mon Apr  6 06:34:28 AM AEST 2026
+==========================================
+[GPU 06:34:28] util=0% mem=0/46068MB temp=33C
+Warning: Fitted params not found at output/mle_results/qlearning_individual_fits.csv
+  Run `python scripts/12_fit_mle.py --model qlearning` first
+==========================================
+PPC complete!
+Results: output/ppc/qlearning/
+Figures: figures/ppc/qlearning/
+End time: Mon Apr  6 06:35:09 AM AEST 2026
+==========================================

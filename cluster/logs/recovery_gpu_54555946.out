@@ -1,0 +1,185 @@
+============================================================
+RLWM Parameter Recovery (GPU) - M3 SLURM Job
+============================================================
+Job ID: 54555946
+Node: m3g114
+Partition: gpu
+GPU(s): 0
+Project: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis
+Start time: Mon Apr  6 06:37:22 PM AEST 2026
+============================================================
+Activated rlwm_gpu by name
+
+Verifying GPU access...
+JAX devices: [CudaDevice(id=0)]
+GPU(s) available: [CudaDevice(id=0)]
+
+JAX cache: /scratch/fc37/aman0087/.jax_cache_gpu
+
+============================================================
+Parameter Recovery Settings
+============================================================
+Model:         wmrl_m6a
+N subjects:    50
+N datasets:    10
+Seed:          42
+============================================================
+
+[GPU 18:37:32] util=0% mem=0/46068MB temp=33C
+================================================================================
+PARAMETER RECOVERY ANALYSIS
+================================================================================
+Model:        wmrl_m6a
+N subjects:   50
+N datasets:   10
+Seed:         42
+Output dir:   output/recovery/wmrl_m6a
+Figures dir:  figures/recovery/wmrl_m6a
+GPU:          1 device(s) available
+================================================================================
+
+Running parameter recovery pipeline...
+[GPU 18:42:32] util=100% mem=34549/46068MB temp=50C
+[GPU 18:47:32] util=100% mem=34549/46068MB temp=53C
+[GPU 18:52:32] util=99% mem=34549/46068MB temp=54C
+[GPU 18:57:32] util=99% mem=34549/46068MB temp=53C
+[GPU 19:02:32] util=99% mem=34549/46068MB temp=53C
+[GPU 19:07:32] util=99% mem=34549/46068MB temp=52C
+[GPU 19:12:32] util=99% mem=34549/46068MB temp=53C
+[GPU 19:17:32] util=100% mem=34549/46068MB temp=54C
+[GPU 19:22:32] util=99% mem=34549/46068MB temp=54C
+[GPU 19:27:32] util=99% mem=34551/46068MB temp=53C
+[GPU 19:32:32] util=100% mem=34551/46068MB temp=53C
+[GPU 19:37:32] util=100% mem=34551/46068MB temp=54C
+[GPU 19:42:32] util=98% mem=34551/46068MB temp=54C
+[GPU 19:47:32] util=99% mem=34551/46068MB temp=55C
+[GPU 19:52:32] util=100% mem=34551/46068MB temp=54C
+[GPU 19:57:32] util=99% mem=34551/46068MB temp=45C
+[GPU 20:02:32] util=99% mem=34551/46068MB temp=46C
+[GPU 20:07:32] util=99% mem=34551/46068MB temp=43C
+[GPU 20:12:32] util=100% mem=34551/46068MB temp=44C
+[GPU 20:17:33] util=99% mem=34551/46068MB temp=43C
+[GPU 20:22:33] util=99% mem=34551/46068MB temp=52C
+[GPU 20:27:33] util=99% mem=34551/46068MB temp=55C
+[GPU 20:32:33] util=100% mem=34551/46068MB temp=54C
+[GPU 20:37:33] util=99% mem=34551/46068MB temp=54C
+[GPU 20:42:33] util=99% mem=34551/46068MB temp=44C
+[GPU 20:47:33] util=99% mem=34551/46068MB temp=45C
+[GPU 20:52:33] util=100% mem=34551/46068MB temp=53C
+[GPU 20:57:33] util=100% mem=34551/46068MB temp=52C
+[GPU 21:02:33] util=99% mem=34551/46068MB temp=54C
+[GPU 21:07:33] util=99% mem=34551/46068MB temp=53C
+[GPU 21:12:33] util=99% mem=34551/46068MB temp=53C
+[GPU 21:17:33] util=99% mem=34551/46068MB temp=53C
+[GPU 21:22:33] util=99% mem=34551/46068MB temp=53C
+[GPU 21:27:33] util=99% mem=34551/46068MB temp=53C
+[GPU 21:32:33] util=99% mem=34551/46068MB temp=53C
+[GPU 21:37:33] util=96% mem=34551/46068MB temp=53C
+[GPU 21:42:33] util=99% mem=34551/46068MB temp=53C
+[GPU 21:47:33] util=99% mem=34551/46068MB temp=53C
+[GPU 21:52:33] util=99% mem=34551/46068MB temp=53C
+[GPU 21:57:33] util=99% mem=34551/46068MB temp=53C
+[GPU 22:02:33] util=99% mem=34551/46068MB temp=53C
+[GPU 22:07:33] util=100% mem=34551/46068MB temp=53C
+[GPU 22:12:33] util=99% mem=34551/46068MB temp=53C
+[GPU 22:17:33] util=100% mem=34551/46068MB temp=53C
+[GPU 22:22:33] util=100% mem=34551/46068MB temp=53C
+[GPU 22:27:34] util=99% mem=34551/46068MB temp=53C
+[GPU 22:32:34] util=96% mem=34551/46068MB temp=53C
+[GPU 22:37:34] util=99% mem=34551/46068MB temp=53C
+[GPU 22:42:34] util=99% mem=34551/46068MB temp=53C
+[GPU 22:47:34] util=100% mem=34551/46068MB temp=53C
+[GPU 22:52:34] util=99% mem=34551/46068MB temp=53C
+[GPU 22:57:34] util=99% mem=34551/46068MB temp=53C
+[GPU 23:02:34] util=100% mem=34551/46068MB temp=53C
+[GPU 23:07:34] util=99% mem=34551/46068MB temp=53C
+[GPU 23:12:34] util=99% mem=34551/46068MB temp=53C
+[GPU 23:17:34] util=99% mem=34551/46068MB temp=53C
+[GPU 23:22:34] util=100% mem=34551/46068MB temp=53C
+[GPU 23:27:34] util=99% mem=34551/46068MB temp=53C
+[GPU 23:32:34] util=99% mem=34551/46068MB temp=53C
+[GPU 23:37:34] util=99% mem=34551/46068MB temp=53C
+[GPU 23:42:34] util=99% mem=34551/46068MB temp=53C
+[GPU 23:47:34] util=100% mem=34551/46068MB temp=53C
+[GPU 23:52:34] util=99% mem=34551/46068MB temp=53C
+[GPU 23:57:34] util=99% mem=34551/46068MB temp=53C
+[GPU 00:02:34] util=99% mem=34551/46068MB temp=53C
+[GPU 00:07:34] util=99% mem=34551/46068MB temp=53C
+[GPU 00:12:34] util=100% mem=34551/46068MB temp=53C
+[GPU 00:17:34] util=100% mem=34551/46068MB temp=53C
+[GPU 00:22:34] util=99% mem=34551/46068MB temp=53C
+[GPU 00:27:34] util=99% mem=34551/46068MB temp=53C
+[GPU 00:32:34] util=99% mem=34551/46068MB temp=53C
+[GPU 00:37:34] util=100% mem=34551/46068MB temp=53C
+[GPU 00:42:34] util=98% mem=34551/46068MB temp=53C
+[GPU 00:47:34] util=99% mem=34551/46068MB temp=53C
+[GPU 00:52:34] util=100% mem=34551/46068MB temp=53C
+[GPU 00:57:34] util=100% mem=34551/46068MB temp=53C
+[GPU 01:02:35] util=99% mem=34551/46068MB temp=53C
+[GPU 01:07:35] util=99% mem=34551/46068MB temp=53C
+[GPU 01:12:35] util=99% mem=34551/46068MB temp=53C
+[GPU 01:17:35] util=99% mem=34551/46068MB temp=53C
+[GPU 01:22:35] util=100% mem=34551/46068MB temp=53C
+[GPU 01:27:35] util=100% mem=34551/46068MB temp=53C
+[GPU 01:32:35] util=99% mem=34551/46068MB temp=53C
+[GPU 01:37:35] util=100% mem=34551/46068MB temp=53C
+[GPU 01:42:35] util=99% mem=34551/46068MB temp=53C
+[GPU 01:47:35] util=99% mem=34551/46068MB temp=53C
+[GPU 01:52:35] util=99% mem=34551/46068MB temp=53C
+[GPU 01:57:35] util=100% mem=34551/46068MB temp=53C
+[GPU 02:02:35] util=100% mem=34551/46068MB temp=53C
+[GPU 02:07:35] util=99% mem=34551/46068MB temp=53C
+[GPU 02:12:35] util=99% mem=34551/46068MB temp=53C
+[GPU 02:17:35] util=99% mem=34551/46068MB temp=53C
+[GPU 02:22:35] util=100% mem=34551/46068MB temp=53C
+[GPU 02:27:35] util=99% mem=34551/46068MB temp=53C
+[GPU 02:32:35] util=99% mem=34551/46068MB temp=53C
+[GPU 02:37:35] util=100% mem=34551/46068MB temp=53C
+[GPU 02:42:35] util=100% mem=34551/46068MB temp=53C
+[GPU 02:47:35] util=99% mem=34551/46068MB temp=53C
+[GPU 02:52:35] util=100% mem=34551/46068MB temp=53C
+[GPU 02:57:35] util=100% mem=34551/46068MB temp=53C
+[GPU 03:02:36] util=99% mem=34551/46068MB temp=53C
+[GPU 03:07:36] util=99% mem=34551/46068MB temp=53C
+[GPU 03:12:36] util=99% mem=34551/46068MB temp=53C
+[GPU 03:17:36] util=100% mem=34551/46068MB temp=53C
+[GPU 03:22:36] util=99% mem=34551/46068MB temp=53C
+[GPU 03:27:36] util=100% mem=34551/46068MB temp=47C
+[GPU 03:32:36] util=100% mem=34551/46068MB temp=42C
+[GPU 03:37:36] util=98% mem=34551/46068MB temp=42C
+[GPU 03:42:36] util=99% mem=34551/46068MB temp=43C
+[GPU 03:47:36] util=99% mem=34551/46068MB temp=42C
+[GPU 03:52:36] util=99% mem=34551/46068MB temp=54C
+[GPU 03:57:36] util=99% mem=34551/46068MB temp=54C
+[GPU 04:02:36] util=99% mem=34551/46068MB temp=47C
+[GPU 04:07:36] util=100% mem=34551/46068MB temp=42C
+[GPU 04:12:36] util=99% mem=34551/46068MB temp=42C
+[GPU 04:17:36] util=99% mem=34551/46068MB temp=43C
+[GPU 04:22:36] util=99% mem=34551/46068MB temp=43C
+[GPU 04:27:36] util=96% mem=34551/46068MB temp=42C
+[GPU 04:32:36] util=99% mem=34551/46068MB temp=42C
+[GPU 04:37:36] util=99% mem=34551/46068MB temp=42C
+[GPU 04:42:36] util=100% mem=34551/46068MB temp=42C
+[GPU 04:47:36] util=99% mem=34551/46068MB temp=42C
+[GPU 04:52:36] util=99% mem=34551/46068MB temp=42C
+[GPU 04:57:36] util=99% mem=34551/46068MB temp=42C
+[GPU 05:02:36] util=99% mem=34551/46068MB temp=42C
+[GPU 05:07:36] util=99% mem=34551/46068MB temp=43C
+[GPU 05:12:36] util=99% mem=34551/46068MB temp=42C
+[GPU 05:17:36] util=100% mem=34551/46068MB temp=42C
+[GPU 05:22:37] util=99% mem=34551/46068MB temp=42C
+[GPU 05:27:37] util=100% mem=34551/46068MB temp=42C
+[GPU 05:32:37] util=99% mem=34551/46068MB temp=43C
+[GPU 05:37:37] util=99% mem=34551/46068MB temp=42C
+[GPU 05:42:37] util=99% mem=34551/46068MB temp=42C
+[GPU 05:47:37] util=100% mem=34551/46068MB temp=43C
+[GPU 05:52:37] util=99% mem=34551/46068MB temp=42C
+[GPU 05:57:37] util=99% mem=34551/46068MB temp=42C
+[GPU 06:02:37] util=99% mem=34551/46068MB temp=42C
+[GPU 06:07:37] util=100% mem=34551/46068MB temp=42C
+[GPU 06:12:37] util=100% mem=34551/46068MB temp=42C
+[GPU 06:17:37] util=99% mem=34551/46068MB temp=42C
+[GPU 06:22:37] util=99% mem=34551/46068MB temp=42C
+[GPU 06:27:37] util=99% mem=34551/46068MB temp=42C
+[GPU 06:32:37] util=99% mem=34551/46068MB temp=44C
+[GPU 06:37:37] util=100% mem=34551/46068MB temp=42C
