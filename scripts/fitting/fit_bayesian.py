@@ -22,6 +22,8 @@ python scripts/fitting/fit_bayesian.py --model qlearning --data data.csv --save-
 Author: Generated for RLWM trauma analysis project
 """
 
+from __future__ import annotations
+
 import argparse
 import sys
 from pathlib import Path
@@ -46,7 +48,7 @@ from scripts.fitting.numpyro_models import (
     samples_to_arviz
 )
 
-from config import OUTPUT_VERSION_DIR, EXCLUDED_PARTICIPANTS
+from config import OUTPUT_VERSION_DIR, EXCLUDED_PARTICIPANTS, ALL_MODELS
 
 
 def load_and_prepare_data(
@@ -143,6 +145,13 @@ def fit_model(
     Returns:
         Tuple of (mcmc, participant_data)
     """
+    BAYESIAN_IMPLEMENTED = {'qlearning', 'wmrl'}
+    if model not in BAYESIAN_IMPLEMENTED:
+        raise NotImplementedError(
+            f"Bayesian fitting for '{model}' is not yet implemented. "
+            f"Implemented models: {sorted(BAYESIAN_IMPLEMENTED)}. "
+            f"Use scripts/12_fit_mle.py for MLE fitting of this model."
+        )
     model_name = "Q-LEARNING" if model == 'qlearning' else "WM-RL"
     model_fn = qlearning_hierarchical_model if model == 'qlearning' else wmrl_hierarchical_model
 
@@ -289,8 +298,8 @@ def main():
         description='Fit Bayesian hierarchical models using JAX/NumPyro'
     )
     parser.add_argument('--model', type=str, required=True,
-                        choices=['qlearning', 'wmrl'],
-                        help='Model to fit')
+                        choices=ALL_MODELS,
+                        help='Model to fit (only qlearning and wmrl have full Bayesian implementations)')
     parser.add_argument('--data', type=str, required=True,
                         help='Path to trial data CSV')
     parser.add_argument('--min-block', type=int, default=None,

@@ -8,8 +8,13 @@ Bayesian hierarchical model fitting using NumPyro NUTS.
 This is a pipeline script that wraps the fitting library module.
 
 Models Available:
-    - qlearning: Q-learning (M1)
-    - wmrl: WM-RL (M2)
+    - qlearning: Q-learning (M1) [full Bayesian]
+    - wmrl: WM-RL (M2) [full Bayesian]
+    - wmrl_m3: WM-RL+kappa (M3) [MLE only -- Bayesian not yet implemented]
+    - wmrl_m5: WM-RL+phi_rl (M5) [MLE only]
+    - wmrl_m6a: WM-RL+kappa_s (M6a) [MLE only]
+    - wmrl_m6b: WM-RL+dual (M6b) [MLE only]
+    - wmrl_m4: RLWM-LBA (M4) [MLE only]
 
 Key Features:
     - Full posterior distributions (not just point estimates)
