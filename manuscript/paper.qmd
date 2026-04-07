@@ -39,48 +39,69 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from pathlib import Path
-import json
 import sys
 
-# Add manuscript figures module to path
+# Add manuscript/figures and project root to path
 sys.path.insert(0, str(Path("figures")))
+sys.path.insert(0, str(Path("..")))
 from plot_utils import (
     apply_manuscript_style,
     GROUP_COLORS,
+    GROUP_SHORT_LABELS,
+    SHORT_NAME_TO_KEY,
     MODEL_DISPLAY_NAMES,
     PARAM_DISPLAY_NAMES,
     COLUMN_WIDTH,
     TEXT_WIDTH,
 )
+from config import MODEL_REGISTRY, CHOICE_ONLY_MODELS, MIN_TRIALS_THRESHOLD
 
 apply_manuscript_style()
 
 # ── Paths (relative to manuscript/ directory) ────────────────────────────────
 MLE_DIR = Path("../output/mle")
+COMPARISON_DIR = Path("../output/model_comparison")
+GROUPS_DIR = Path("../output/trauma_groups")
 FIGURES_DIR = Path("../figures")
 OUTPUT_DIR = Path("outputs")
 OUTPUT_DIR.mkdir(exist_ok=True)
 
-# ── Load MLE results ─────────────────────────────────────────────────────────
-models = ["qlearning", "wmrl", "wmrl_m3", "wmrl_m5", "wmrl_m6a", "wmrl_m6b", "wmrl_m4"]
+# ── Determine winning model from comparison_results.csv ──────────────────────
+df_comparison = pd.read_csv(COMPARISON_DIR / "comparison_results.csv")
+# Winner is first row (lowest aggregate_aic). Column "model" has short names (M6b, M5...)
+winner_short = df_comparison.iloc[0]["model"]
+winning_model = SHORT_NAME_TO_KEY[winner_short]
+winner_display = MODEL_DISPLAY_NAMES[winning_model]
+winner_n_params = MODEL_REGISTRY[winning_model]["n_params"]
+winner_params = MODEL_REGISTRY[winning_model]["params"]
+
+# dAIC/dBIC vs second-best (second row's delta_aic equals the gap since winner's delta=0)
+daic_vs_second = df_comparison.iloc[1]["delta_aic"]
+dbic_vs_second = df_comparison.iloc[1]["delta_bic"]
+
+# ── Load group assignments ────────────────────────────────────────────────────
+df_groups = pd.read_csv(GROUPS_DIR / "group_assignments.csv")
+group_col = "hypothesis_group"
+groups = sorted(df_groups[group_col].unique())
+group_counts = df_groups[group_col].value_counts().to_dict()
+
+# ── Load individual fits for winning model ────────────────────────────────────
+fits_winner_path = MLE_DIR / MODEL_REGISTRY[winning_model]["csv_filename"]
+df_winner = pd.read_csv(fits_winner_path) if fits_winner_path.exists() else pd.DataFrame()
+n_participants = len(df_winner)
+
+# ── Load all model fits (for model comparison cell) ───────────────────────────
 fits = {}
-for model in models:
-    fpath = MLE_DIR / f"{model}_individual_fits.csv"
+for model_key in MODEL_REGISTRY:
+    fpath = MLE_DIR / MODEL_REGISTRY[model_key]["csv_filename"]
     if fpath.exists():
-        fits[model] = pd.read_csv(fpath)
-
-# ── Load performance summaries ───────────────────────────────────────────────
-perf = {}
-for model in models:
-    fpath = MLE_DIR / f"{model}_performance_summary.json"
-    if fpath.exists():
-        with open(fpath) as f:
-            perf[model] = json.load(f)
-
-# ── Key numbers for inline text ──────────────────────────────────────────────
-n_participants = len(fits.get("wmrl_m5", pd.DataFrame()))
+        fits[model_key] = pd.read_csv(fpath)
 n_models = len(fits)
-winning_model = "wmrl_m5"  # M5 wins by dAIC=435.6 over M3
+
+# ── Fitting parameters ────────────────────────────────────────────────────────
+n_starts = 50
+optimizer_name = "L-BFGS-B"
+min_trials = MIN_TRIALS_THRESHOLD  # from config.py
 ```
 
 ## Introduction {#sec-intro}
@@ -122,14 +143,14 @@ symptom measures from the IES-R [@weiss2007impact] and LEC-5
 ### Participants {#sec-participants}
 
 `{python} n_participants` participants completed the RLWM task after quality
-filtering (minimum `{python} 400` trials required; see @sec-exclusions).
+filtering (minimum `{python} min_trials` trials required; see @sec-exclusions).
 Trauma exposure and symptom severity were assessed via the Life Events
 Checklist for DSM-5 (LEC-5; @weathers2013life) and the Impact of Event
 Scale--Revised (IES-R; @weiss2007impact).
-Participants were classified into three groups based on LEC-5 endorsement
-and IES-R total score: **control** (no significant trauma exposure),
-**exposed** (trauma exposure without clinically significant symptoms),
-and **symptomatic** (trauma exposure with elevated IES-R scores).
+Participants were classified into two groups based on LEC-5 endorsement
+and IES-R total score:
+**`{python} groups[0]`** (n = `{python} group_counts[groups[0]]`)
+and **`{python} groups[1]`** (n = `{python} group_counts[groups[1]]`).
 
 ### Task {#sec-task}
 
@@ -176,8 +197,8 @@ by AIC with choice-only models; it is evaluated on a separate track.
 ### Model Fitting {#sec-fitting}
 
 Each model was fitted to each participant's main-task trials by maximum
-likelihood estimation (MLE) using scipy's L-BFGS-B optimizer with 10 random
-restarts per participant.
+likelihood estimation (MLE) using scipy's L-BFGS-B optimizer with
+`{python} n_starts` random restarts per participant.
 Likelihoods were computed via JAX-accelerated functions with GPU support on
 the Monash M3 cluster.
 Model comparison used the Akaike Information Criterion:
@@ -205,80 +226,59 @@ All analyses used $\alpha = 0.05$ after correction.
 #| tbl-cap: "Model comparison by AIC and BIC across choice-only models (M1--M3, M5, M6a, M6b). dAIC is relative to the best-fitting model. M4 (joint choice+RT) is excluded from this comparison; see text."
 
 try:
-    # Build comparison table from loaded performance summaries
-    CHOICE_ONLY = ["qlearning", "wmrl", "wmrl_m3", "wmrl_m5", "wmrl_m6a", "wmrl_m6b"]
-    N_PARAMS = {
-        "qlearning": 3,
-        "wmrl": 6,
-        "wmrl_m3": 7,
-        "wmrl_m5": 8,
-        "wmrl_m6a": 7,
-        "wmrl_m6b": 8,
-    }
+    # Filter to choice-only models
+    choice_only_short = [MODEL_REGISTRY[k]["short_name"] for k in CHOICE_ONLY_MODELS]
+    df_cmp = df_comparison[df_comparison["model"].isin(choice_only_short)].copy()
 
-    rows = []
-    for model in CHOICE_ONLY:
-        if model in perf:
-            p = perf[model]
-            rows.append({
-                "Model": MODEL_DISPLAY_NAMES.get(model, model),
-                "Free Params": N_PARAMS.get(model, "?"),
-                "Mean AIC": round(p.get("mean_aic", float("nan")), 1),
-                "Mean BIC": round(p.get("mean_bic", float("nan")), 1),
-            })
+    # Map short names to display names and n_params
+    short_to_display = {MODEL_REGISTRY[k]["short_name"]: MODEL_REGISTRY[k]["display_name"] for k in MODEL_REGISTRY}
+    short_to_nparams = {MODEL_REGISTRY[k]["short_name"]: MODEL_REGISTRY[k]["n_params"] for k in MODEL_REGISTRY}
 
-    if rows:
-        df_cmp = pd.DataFrame(rows)
-        best_aic = df_cmp["Mean AIC"].min()
-        df_cmp.insert(4, "dAIC", (df_cmp["Mean AIC"] - best_aic).round(1))
-        df_cmp = df_cmp.sort_values("Mean AIC").reset_index(drop=True)
+    df_cmp["Model"] = df_cmp["model"].map(short_to_display)
+    df_cmp["k"] = df_cmp["model"].map(short_to_nparams)
+    df_cmp["Aggregate AIC"] = df_cmp["aggregate_aic"].round(1)
+    df_cmp["Aggregate BIC"] = df_cmp["aggregate_bic"].round(1)
+    df_cmp["dAIC"] = df_cmp["delta_aic"].round(1)
 
-        from IPython.display import display
-        display(df_cmp.style.hide(axis="index"))
-    else:
-        print("Data not yet available. Run scripts/14_compare_models.py first.")
+    df_display = df_cmp[["Model", "k", "Aggregate AIC", "Aggregate BIC", "dAIC"]].reset_index(drop=True)
 
+    from IPython.display import display
+    display(df_display.style.hide(axis="index"))
 except Exception as e:
     print(f"Data not yet available. Run scripts/14_compare_models.py first. ({e})")
 ```
 
-### Winning Model: M5 {#sec-winning-model}
+### Winning Model: `{python} winner_display` {#sec-winning-model}
 
-The winning model among choice-only models was M5 (WM-RL + $\phi_{\mathrm{RL}}$,
-8 free parameters), which beat the previous best model M3 by
-$\Delta\text{AIC} = 435.6$ and $\Delta\text{BIC} = 226.9$, constituting
+The winning model among choice-only models was `{python} winner_display`
+(`{python} winner_n_params` free parameters), which beat the second-best model by
+$\Delta\text{AIC} = $ `{python} f"{daic_vs_second:.1f}"` and
+$\Delta\text{BIC} = $ `{python} f"{dbic_vs_second:.1f}"`, constituting
 very strong evidence [@daw2011model].
-M5 extends M3 by adding an RL forgetting rate $\phi_{\mathrm{RL}}$ that
-decays Q-values toward the uniform baseline ($1/n_A = 0.333$) before each
-delta-rule update, improving the model's ability to capture rapid forgetting
-of non-attended stimuli.
-When $\phi_{\mathrm{RL}} = 0$, M5 reduces algebraically to M3, confirming
-M3 as a special case.
+
+See @sec-model-table for the complete parameter listing of `{python} winner_display`.
 
 ### Parameter-Trauma Group Relationships {#sec-group-results}
 
 ```{python}
 #| label: fig-parameters-by-group
-#| fig-cap: "M5 model parameters by trauma group. Violins show kernel density estimates; central marks are medians. Groups: control (green), exposed (orange), symptomatic (red)."
+#| fig-cap: "Model parameters by trauma group. Violins show kernel density estimates; central marks are medians."
 #| fig-width: 7.0
 #| fig-height: 4.5
 
 try:
-    # Load group summary or individual fits for M5
-    fits_m5_path = MLE_DIR / "wmrl_m5_individual_fits.csv"
-    group_summary_path = MLE_DIR / "wmrl_m5_group_summary.csv"
+    if df_winner.empty:
+        raise FileNotFoundError(f"Missing: {fits_winner_path}")
 
-    if not fits_m5_path.exists():
-        raise FileNotFoundError(f"Missing: {fits_m5_path}")
+    # Merge fits with group assignments
+    df_plot = df_winner.merge(
+        df_groups[["sona_id", group_col]],
+        left_on="participant_id",
+        right_on="sona_id",
+        how="inner",
+    )
 
-    df_m5 = pd.read_csv(fits_m5_path)
-    param_cols = ["alpha_pos", "alpha_neg", "phi", "rho", "K", "kappa", "phi_rl", "epsilon"]
-    param_cols = [c for c in param_cols if c in df_m5.columns]
-    group_col = "group" if "group" in df_m5.columns else None
-
-    if group_col is None:
-        raise KeyError("No 'group' column found in wmrl_m5_individual_fits.csv")
-
+    param_cols = [p for p in winner_params if p in df_plot.columns]
     n_params = len(param_cols)
     ncols = 4
     nrows = (n_params + ncols - 1) // ncols
@@ -286,10 +286,9 @@ try:
     fig, axes = plt.subplots(nrows, ncols, figsize=(TEXT_WIDTH, nrows * 1.8))
     axes = axes.flatten()
 
-    groups = ["control", "exposed", "symptomatic"]
     for i, param in enumerate(param_cols):
         ax = axes[i]
-        group_data = [df_m5.loc[df_m5[group_col] == g, param].dropna().values for g in groups]
+        group_data = [df_plot.loc[df_plot[group_col] == g, param].dropna().values for g in groups]
         parts = ax.violinplot(
             group_data,
             positions=range(len(groups)),
@@ -302,7 +301,7 @@ try:
         parts["cmedians"].set_color("black")
         parts["cmedians"].set_linewidth(1.5)
         ax.set_xticks(range(len(groups)))
-        ax.set_xticklabels(["Ctrl", "Exp", "Symp"], fontsize=7)
+        ax.set_xticklabels([GROUP_SHORT_LABELS.get(g, g) for g in groups], fontsize=7)
         ax.set_ylabel(PARAM_DISPLAY_NAMES.get(param, param))
         ax.set_title(PARAM_DISPLAY_NAMES.get(param, param))
 
@@ -321,12 +320,12 @@ except Exception as e:
 
 ```{python}
 #| label: fig-correlation-heatmap
-#| fig-cap: "Spearman correlations between M5 parameters and IES-R subscale scores (Intrusion, Avoidance, Hyperarousal). Color encodes correlation strength; asterisks indicate Bonferroni-corrected significance (p < 0.05)."
+#| fig-cap: "Spearman correlations between winning model parameters and IES-R subscale scores (Intrusion, Avoidance, Hyperarousal). Color encodes correlation strength; asterisks indicate Bonferroni-corrected significance (p < 0.05)."
 #| fig-width: 3.5
 #| fig-height: 4.0
 
 try:
-    corr_path = Path("../figures/mle_trauma_analysis/correlation_heatmap_wmrl_m5.png")
+    corr_path = Path(f"../figures/mle_trauma_analysis/correlation_heatmap_{winning_model}.png")
     if not corr_path.exists():
         raise FileNotFoundError(f"Missing: {corr_path}")
 
@@ -347,11 +346,11 @@ except Exception as e:
 
 ```{python}
 #| label: tbl-regression
-#| tbl-cap: "OLS regression of M5 parameters on IES-R subscales (Intrusion, Avoidance, Hyperarousal), controlling for age and sex. Standardized beta coefficients shown. Bold: p < 0.05 after Bonferroni correction."
+#| tbl-cap: "OLS regression of winning model parameters on IES-R subscales (Intrusion, Avoidance, Hyperarousal), controlling for age and sex. Standardized beta coefficients shown. Bold: p < 0.05 after Bonferroni correction."
 
 try:
     # Placeholder: load regression results from script 16 output
-    reg_dir = Path("../output/regressions/wmrl_m5")
+    reg_dir = Path(f"../output/regressions/{winning_model}")
     if not reg_dir.exists():
         raise FileNotFoundError(f"Missing: {reg_dir}")
 
@@ -372,7 +371,7 @@ try:
     display(df_all.style.hide(axis="index"))
 
 except Exception as e:
-    print(f"Data not yet available. Run scripts/16_regress_parameters_on_scales.py --model wmrl_m5 first. ({e})")
+    print(f"Data not yet available. Run scripts/16_regress_parameters_on_scales.py --model {winning_model} first. ({e})")
 ```
 
 
@@ -413,7 +412,7 @@ extinction learning in therapeutic interventions.]
 We fitted seven computational models of reinforcement learning and working
 memory to behavioral data from `{python} n_participants` participants stratified
 by trauma history and symptom severity.
-The winning model (M5: WM-RL + $\phi_{\mathrm{RL}}$) revealed dissociable
+The winning model (`{python} winner_display`) revealed dissociable
 contributions of perseverative responding and outcome-based learning deficits
 to post-trauma behavioral changes.
 [To be completed with final summary and future directions.]
@@ -433,46 +432,30 @@ to post-trauma behavioral changes.
 #| label: tbl-model-params
 #| tbl-cap: "Free parameters for all seven computational models. M4 is the only joint choice+RT model; its AIC is not comparable to choice-only models M1--M6b."
 
-model_params_data = {
-    "Model": [
-        "M1: Q-Learning",
-        "M2: WM-RL",
-        "M3: WM-RL+kappa",
-        "M5: WM-RL+phi_rl",
-        "M6a: WM-RL+kappa_s",
-        "M6b: WM-RL+dual",
-        "M4: RLWM-LBA",
-    ],
-    "Free Parameters": [
-        r"alpha+, alpha-, epsilon",
-        r"alpha+, alpha-, phi, rho, K, epsilon",
-        r"alpha+, alpha-, phi, rho, K, kappa, epsilon",
-        r"alpha+, alpha-, phi, rho, K, kappa, phi_rl, epsilon",
-        r"alpha+, alpha-, phi, rho, K, kappa_s, epsilon",
-        r"alpha+, alpha-, phi, rho, K, kappa_total, kappa_share, epsilon",
-        r"alpha+, alpha-, phi, rho, K, kappa, v_scale, A, delta, t0",
-    ],
-    "k": [3, 6, 7, 8, 7, 8, 10],
-    "Notes": [
-        "Baseline RL only",
-        "WM-RL hybrid",
-        "Adds global perseveration",
-        "Winning model; adds RL Q-value decay",
-        "Stimulus-specific perseveration",
-        "Dual perseveration (stick-breaking)",
-        "Joint choice + RT; LBA race model",
-    ],
-}
+try:
+    rows = []
+    # Order: M1, M2, M3, M5, M6a, M6b, M4 (choice-only first, then M4)
+    model_order = ["qlearning", "wmrl", "wmrl_m3", "wmrl_m5", "wmrl_m6a", "wmrl_m6b", "wmrl_m4"]
+    for key in model_order:
+        info = MODEL_REGISTRY[key]
+        rows.append({
+            "Model": info["display_name"],
+            "Free Parameters": ", ".join(PARAM_DISPLAY_NAMES.get(p, p) for p in info["params"]),
+            "k": info["n_params"],
+            "Type": "Choice+RT" if not info["is_choice_only"] else "Choice only",
+        })
 
-df_params = pd.DataFrame(model_params_data)
-from IPython.display import display
-display(df_params.style.hide(axis="index"))
+    df_params = pd.DataFrame(rows)
+    from IPython.display import display
+    display(df_params.style.hide(axis="index"))
+except Exception as e:
+    print(f"Error building model table: {e}")
 ```
 
 ### Exclusion Criteria {#sec-exclusions}
 
 Participants were excluded if they contributed fewer than
-`{python} 400` trials to the main task (blocks 3--23), corresponding to
+`{python} min_trials` trials to the main task (blocks 3--23), corresponding to
 approximately 50% of the expected 807--1077 trials across 21 blocks.
 This threshold (`MIN_TRIALS_THRESHOLD = 400` in `config.py`) ensures
 sufficient data for reliable MLE parameter estimation.
