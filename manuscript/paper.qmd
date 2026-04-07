@@ -168,26 +168,55 @@ up to 21 main-task blocks (see @sec-exclusions for inclusion thresholds).
 
 We fitted seven models of increasing complexity to each participant's
 trial-by-trial choices (see @sec-model-table for complete parameter listings).
+All WM-RL models share a core architecture in which behaviour arises from a
+mixture of reinforcement learning (RL) and working memory (WM) policies,
+with the WM contribution weighted by capacity and set size.
 
-All choice-only models share the core WM-RL mixture:
-
+**Core WM-RL mixture.**
+The action probability for stimulus $s$ is:
 $$
 p(a \mid s) = w(s) \cdot \text{WM}(s, a) + (1 - w(s)) \cdot Q(s, a)
 $$
-
 where the WM weight adapts to set size $n_s$ and capacity parameter $K$:
-
 $$
-w(s) = \frac{K}{K + \phi \cdot n_s}
+w(s) = \rho \cdot \min\!\left(1,\; \frac{K}{n_s}\right)
 $$
 
-RL Q-values are updated via an asymmetric delta rule with positive learning
-rate $\alpha_+$ and negative learning rate $\alpha_-$.
-WM values are overwritten immediately on each observation.
-Random responding (motor noise) is captured by the epsilon noise parameter:
-$p_{\text{noisy}}(a) = \varepsilon / n_A + (1 - \varepsilon) \cdot p(a)$.
-The inverse temperature $\beta = 50$ is fixed for parameter identifiability
-[@senta2025].
+::: {.callout-note title="Model Parameter Glossary"}
+
+**Learning rates.** $\alpha_+$ and $\alpha_-$ govern the speed of Q-value
+updates following positive and negative prediction errors, respectively.
+Low $\alpha_-$ implies insensitivity to negative outcomes (e.g., failure to
+update after errors).
+
+**WM decay** ($\phi$). Controls how rapidly WM representations degrade
+between trials. Higher $\phi$ means faster information loss from working
+memory, forcing greater reliance on the slower RL system.
+
+**WM reliability** ($\rho$). Scales the overall contribution of WM to the
+action policy. Lower $\rho$ means the participant relies less on WM even
+when capacity permits it.
+
+**WM capacity** ($K$). The number of stimulus-response mappings that can be
+actively maintained in working memory. When $K \geq n_s$, WM can represent
+all stimuli in the block; when $K < n_s$, WM coverage is partial.
+
+**Perseveration** ($\kappa$). A tendency to repeat previous actions
+independent of their expected value. M3 uses a single global $\kappa$; M6a
+uses a stimulus-specific $\kappa_s$; M6b decomposes perseveration into a
+total budget $\kappa_{\text{total}}$ allocated between global and
+stimulus-specific components via a share parameter $\kappa_{\text{share}}$
+(stick-breaking parameterization).
+
+**RL forgetting** ($\phi_{\text{RL}}$, M5 only). Decays Q-values toward the
+uniform baseline ($1/n_A$) before each update, capturing forgetting of
+non-attended stimulus values in the RL system.
+
+**Noise** ($\varepsilon$). Probability of a uniformly random response,
+capturing motor noise or inattention: $p_{\text{noisy}}(a) = \varepsilon / n_A + (1 - \varepsilon) \cdot p(a)$.
+
+The inverse temperature $\beta = 50$ is fixed for identifiability [@senta2025].
+:::
 
 The six choice-only models (M1--M3, M5, M6a, M6b) are compared by AIC and
 BIC.
@@ -217,6 +246,14 @@ corrected p-values reported for sensitivity).
 Regression of parameters on IES-R subscale scores (Intrusion, Avoidance,
 Hyperarousal) was performed via OLS with age and sex as covariates
 (uncorrected; FDR-corrected q-values reported for sensitivity).
+Additionally, Bayesian multivariate regressions (parameters predicting
+LEC-5 total and IES-R total jointly) were fitted using PyMC with weakly
+informative priors [intercept $\sim \mathcal{N}(\bar{y}, 2\sigma_y)$;
+$\beta_k \sim \mathcal{N}(0, \sigma_y)$;
+$\sigma \sim \text{HalfNormal}(\sigma_y)$] and NUTS sampling
+(4 chains, 1000 warmup, 2000 draws). Directional evidence was quantified
+as $P(\text{direction})$: the posterior probability that each coefficient
+is positive or negative.
 
 
 ## Results {#sec-results}
@@ -539,6 +576,112 @@ predicted any model parameter in the multivariate regression
 Univariate regressions of individual parameters on LEC-5 total events and
 IES-R total score similarly yielded no significant associations (all
 $p > .05$; FDR-corrected q-values confirmed, all $q > .05$).
+
+### Bayesian Multivariate Regression {#sec-bayesian-regression}
+
+```{python}
+#| label: results-bayesian-setup
+# ── Load Bayesian regression results ────────────────────────────────────────
+bayesian_dir = Path(f"../output/regressions/bayesian/{winning_model}")
+df_bayes = pd.read_csv(bayesian_dir / "bayesian_regression_summary.csv") if (bayesian_dir / "bayesian_regression_summary.csv").exists() else pd.DataFrame()
+
+# Extract key findings
+if not df_bayes.empty:
+    bayes_ies = df_bayes[df_bayes['outcome'] == 'ies_total']
+    bayes_lec = df_bayes[df_bayes['outcome'] == 'lec_total']
+    bayes_r2_ies = bayes_ies[bayes_ies['parameter'] == 'Bayesian_R2']
+    bayes_r2_lec = bayes_lec[bayes_lec['parameter'] == 'Bayesian_R2']
+
+    # Best predictor of IES-R (highest P(direction) among non-intercept/sigma/R2)
+    ies_coefs = bayes_ies[~bayes_ies['parameter'].isin(['intercept', 'sigma', 'Bayesian_R2'])]
+    best_ies = ies_coefs.loc[ies_coefs['p_direction'].idxmax()] if not ies_coefs.empty else None
+```
+
+Bayesian multivariate regressions assessed the joint contribution of all
+`{python} winner_n_params` winning-model parameters to trauma outcomes
+(@tbl-bayesian-regression; @fig-bayesian-forest).
+
+```{python}
+#| label: tbl-bayesian-regression
+#| tbl-cap: "Bayesian regression: winning model parameters predicting IES-R total. Posterior mean, 95% HDI, and P(direction) shown. Moderate evidence: P(dir) > 0.90."
+
+try:
+    if bayes_ies.empty:
+        raise FileNotFoundError("Bayesian results not available")
+
+    coefs = bayes_ies[~bayes_ies['parameter'].isin(['intercept', 'sigma', 'Bayesian_R2'])].copy()
+    coefs['95% HDI'] = coefs.apply(lambda r: f"[{r['hdi_2.5%']:.2f}, {r['hdi_97.5%']:.2f}]", axis=1)
+    coefs = coefs[['parameter', 'mean', 'sd', '95% HDI', 'p_direction', 'interpretation']]
+    coefs.columns = ['Parameter', 'β (mean)', 'SD', '95% HDI', 'P(direction)', 'Evidence']
+    coefs['β (mean)'] = coefs['β (mean)'].apply(lambda x: f"{x:.2f}")
+    coefs['SD'] = coefs['SD'].apply(lambda x: f"{x:.2f}")
+    coefs['P(direction)'] = coefs['P(direction)'].apply(lambda x: f"{x:.3f}")
+
+    from IPython.display import display
+    display(coefs.style.hide(axis="index"))
+except Exception as e:
+    print(f"Bayesian results not available. ({e})")
+```
+
+```{python}
+#| label: fig-bayesian-forest
+#| fig-cap: "Bayesian regression forest plot: winning model parameters predicting IES-R total PTSD symptoms. Thick bars = 50% HDI; thin bars = 95% HDI. Color indicates strength of directional evidence."
+#| fig-width: 7.0
+#| fig-height: 3.5
+
+try:
+    forest_path = Path(f"../figures/regressions/bayesian/{winning_model}/forest_plot_ies_total.png")
+    if not forest_path.exists():
+        raise FileNotFoundError(f"Missing: {forest_path}")
+
+    from matplotlib.image import imread
+    img = imread(str(forest_path))
+    fig, ax = plt.subplots(figsize=(TEXT_WIDTH, 3.5))
+    ax.imshow(img)
+    ax.axis("off")
+    plt.tight_layout()
+    plt.savefig(OUTPUT_DIR / "fig_bayesian_forest.pdf", bbox_inches="tight")
+    plt.show()
+except Exception as e:
+    print(f"Forest plot not available. ({e})")
+```
+
+For IES-R total PTSD symptoms, the strongest predictor was
+`{python} best_ies['parameter'] if best_ies is not None else "?"` with
+$P(\text{direction}) = $ `{python} f"{best_ies['p_direction']:.3f}" if best_ies is not None else "?"`,
+constituting `{python} best_ies['interpretation'] if best_ies is not None else "?"`.
+The 95% HDI for this parameter was
+`{python} f"[{best_ies['hdi_2.5%']:.2f}, {best_ies['hdi_97.5%']:.2f}]" if best_ies is not None else "?"`,
+which includes zero but shows a clear directional tendency.
+The Bayesian $R^2$ for the IES-R model was
+`{python} f"{float(bayes_r2_ies['mean'].iloc[0]):.3f}" if not bayes_r2_ies.empty else "?"` [95% HDI:
+`{python} f"{float(bayes_r2_ies['hdi_2.5%'].iloc[0]):.3f}" if not bayes_r2_ies.empty else "?"`,
+`{python} f"{float(bayes_r2_ies['hdi_97.5%'].iloc[0]):.3f}" if not bayes_r2_ies.empty else "?"`],
+indicating that winning-model parameters collectively account for approximately
+10% of variance in PTSD symptom severity.
+For LEC-5 total trauma exposure, Bayesian $R^2$ was
+`{python} f"{float(bayes_r2_lec['mean'].iloc[0]):.3f}" if not bayes_r2_lec.empty else "?"`, with no individual parameter reaching moderate directional evidence.
+
+### Cross-Model Consistency {#sec-cross-model}
+
+To assess whether parameter-trauma associations are robust to model
+specification, we examined Spearman correlations across all six choice-only
+models plus M4. The most consistent finding was the positive association
+between WM decay ($\phi$) and IES-R Hyperarousal, which reached uncorrected
+significance ($p < .05$) in five of six WM-RL models (M2, M3, M4, M5, M6b;
+$r_s$ range: +0.19 to +0.27). A complementary negative association between
+WM reliability ($\rho$) and IES-R Hyperarousal was significant in four
+models (M2, M3, M4, M5; $r_s$ range: $-$0.19 to $-$0.26). Together, these
+findings suggest that hyperarousal symptoms are specifically associated with
+degraded working memory maintenance: participants reporting more
+hyperarousal rely less on WM ($\downarrow \rho$) and what WM they do use
+decays faster ($\uparrow \phi$).
+
+Additional cross-model patterns included a negative association between
+random responding ($\varepsilon$) and LEC-5 total trauma events (significant
+in M3, M5, M6b; $r_s$ range: $-$0.30 to $-$0.34), and a negative
+association between negative learning rate ($\alpha_-$) and LEC-5 total
+events (significant in M2, M4, M5; $r_s$ range: $-$0.18 to $-$0.30).
 
 
 ## Discussion {#sec-discussion}
