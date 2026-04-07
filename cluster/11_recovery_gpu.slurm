@@ -39,9 +39,14 @@
 # =============================================================================
 # Configuration (set via --export or use defaults)
 # =============================================================================
+# Recovery budget: 50 subjects x 3 datasets x 20 starts
+#   Q-learning:   ~80s/subj x 50 x 3 =  3.3 hours  (well within 12h)
+#   WM-RL M3/M5: ~200s/subj x 50 x 3 =  8.3 hours  (fits in 12h)
+#   M4 (LBA):   ~1000s/subj x 50 x 3 = 41.7 hours  (needs --time=48:00:00 or reduce NSUBJ=30)
 MODEL="${MODEL:-wmrl_m3}"
 NSUBJ="${NSUBJ:-50}"
-NDATASETS="${NDATASETS:-10}"
+NDATASETS="${NDATASETS:-3}"
+NSTARTS="${NSTARTS:-20}"
 SEED="${SEED:-42}"
 
 # =============================================================================
@@ -127,6 +132,7 @@ echo "============================================================"
 echo "Model:         $MODEL"
 echo "N subjects:    $NSUBJ"
 echo "N datasets:    $NDATASETS"
+echo "N starts:      $NSTARTS"
 echo "Seed:          $SEED"
 echo "============================================================"
 echo ""
@@ -144,6 +150,7 @@ python scripts/fitting/model_recovery.py \
     --model $MODEL \
     --n-subjects $NSUBJ \
     --n-datasets $NDATASETS \
+    --n-starts $NSTARTS \
     --seed $SEED \
     --use-gpu
 

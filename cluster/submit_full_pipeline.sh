@@ -10,12 +10,15 @@
 #   Wave 3: Model comparison + trauma analysis (1 CPU job, depends on all fits)
 #
 # Usage:
-#   bash cluster/submit_full_pipeline.sh               # Full pipeline
-#   bash cluster/submit_full_pipeline.sh --skip-wave2   # Fitting + analysis only
+#   bash cluster/submit_full_pipeline.sh                     # Full pipeline
+#   bash cluster/submit_full_pipeline.sh --skip-wave2         # Fitting + analysis only
+#   bash cluster/submit_full_pipeline.sh --no-push             # Skip auto git push
 #   bash cluster/submit_full_pipeline.sh --models "wmrl_m5 wmrl_m6a"  # Subset
+#   bash cluster/submit_full_pipeline.sh --analysis-after-any  # Analyse even if some fits fail
 #
 # All jobs are fault-isolated: if M4 fails, M5 recovery still runs.
-# Wave 3 depends on ALL wave 1 jobs via afterany (runs even if some fail).
+# Wave 3 defaults to afterok (waits for ALL fits to succeed).
+# Use --analysis-after-any to run analysis even if some models fail.
 #
 # =============================================================================
 
@@ -26,17 +29,28 @@ cd "$(dirname "$0")/.."
 # Parse arguments
 # =============================================================================
 SKIP_WAVE2=false
+SKIP_PUSH=false
+# Model list — keep in sync with config.py MODEL_REGISTRY
+# Choice-only: qlearning wmrl wmrl_m3 wmrl_m5 wmrl_m6a wmrl_m6b
+# Joint RT:    wmrl_m4
 MODELS="qlearning wmrl wmrl_m3 wmrl_m5 wmrl_m6a wmrl_m6b wmrl_m4"
-# Models that support PPC (09_run_ppc.py --model choices)
-PPC_MODELS="qlearning wmrl wmrl_m3"
-# Models to run recovery for (all supported)
+# PPC runs for all fitted models (09_run_ppc.py now supports all 7)
+PPC_MODELS="$MODELS"
+# Recovery parameters (see cluster/11_recovery_gpu.slurm for timing budget)
 RECOVERY_MODELS="$MODELS"
+RECOVERY_NSUBJ=50
+RECOVERY_NDATASETS=3
+RECOVERY_NSTARTS=20
+# Analysis dependency type: afterok = wait for ALL fits; afterany = run even if some fail
+ANALYSIS_DEP_TYPE="afterok"
 
 for arg in "$@"; do
     case "$arg" in
         --skip-wave2) SKIP_WAVE2=true ;;
+        --no-push) SKIP_PUSH=true ;;
         --models=*) MODELS="${arg#*=}" ;;
         --models) shift; MODELS="$1" ;;
+        --analysis-after-any) ANALYSIS_DEP_TYPE="afterany" ;;
     esac
 done
 
@@ -45,6 +59,7 @@ echo "RLWM Full Pipeline — Wave-Based Orchestrator"
 echo "============================================================"
 echo "Models:      $MODELS"
 echo "Skip wave 2: $SKIP_WAVE2"
+echo "Auto-push:   $(if [[ "$SKIP_PUSH" == "true" ]]; then echo 'disabled'; else echo 'enabled'; fi)"
 echo "Submitted:   $(date)"
 echo "============================================================"
 echo ""
@@ -99,7 +114,7 @@ if [[ "$SKIP_WAVE2" != "true" ]]; then
         # Recovery: depends on fit completing (uses same fitting code path)
         rec_jobid=$(sbatch \
             --dependency=afterok:${fit_jobid} \
-            --export=ALL,MODEL="$model" \
+            --export=ALL,MODEL="$model",NSUBJ=$RECOVERY_NSUBJ,NDATASETS=$RECOVERY_NDATASETS,NSTARTS=$RECOVERY_NSTARTS \
             --job-name="rec_${model}" \
             --parsable cluster/11_recovery_gpu.slurm 2>&1)
 
@@ -138,10 +153,10 @@ fi
 echo "WAVE 3: Model Comparison + Trauma Analysis"
 echo "------------------------------------------------------------"
 
-# Use afterany so analysis runs even if some models fail — it will use
-# whatever fits are available
+# Use afterok (default) so analysis only runs after ALL fits succeed.
+# Use --analysis-after-any flag for old behaviour (runs even if some models fail).
 analysis_jobid=$(sbatch \
-    --dependency=afterany:${FIT_DEPENDENCY} \
+    --dependency=${ANALYSIS_DEP_TYPE}:${FIT_DEPENDENCY} \
     --job-name="analysis" \
     --parsable cluster/14_analysis.slurm 2>&1)
 
@@ -149,6 +164,34 @@ if [[ $? -eq 0 && -n "$analysis_jobid" ]]; then
     echo "  analysis: Job $analysis_jobid (after all fits)"
 else
     echo "  analysis: FAILED - $analysis_jobid"
+fi
+
+# =============================================================================
+# Wave 4: Auto-Push Results to Git (depends on analysis completing)
+# =============================================================================
+push_jobid=""
+if [[ "$SKIP_PUSH" != "true" ]]; then
+    echo "WAVE 4: Auto-Push Results to Git"
+    echo "------------------------------------------------------------"
+
+    # Depend on analysis job — by the time it finishes, all results exist
+    PUSH_DEPENDENCY="${analysis_jobid:-$FIT_DEPENDENCY}"
+
+    push_jobid=$(sbatch \
+        --dependency=afterany:${PUSH_DEPENDENCY} \
+        --export=ALL,PARENT_JOBS="${ALL_FIT_IDS[*]// /,}" \
+        --job-name="push_results" \
+        --parsable cluster/99_push_results.slurm 2>&1)
+
+    if [[ $? -eq 0 && -n "$push_jobid" ]]; then
+        echo "  push_results: Job $push_jobid (after analysis $PUSH_DEPENDENCY)"
+    else
+        echo "  push_results: FAILED - $push_jobid"
+    fi
+    echo ""
+else
+    echo "WAVE 4: Skipped (--no-push)"
+    echo ""
 fi
 
 echo ""
@@ -162,6 +205,9 @@ if [[ "$SKIP_WAVE2" != "true" && ${#WAVE2_IDS[@]} -gt 0 ]]; then
 echo "  Wave 2 (rec+ppc):  ${WAVE2_IDS[*]}"
 fi
 echo "  Wave 3 (analysis): ${analysis_jobid:-failed}"
+if [[ "$SKIP_PUSH" != "true" ]]; then
+echo "  Wave 4 (git push): ${push_jobid:-failed}"
+fi
 echo ""
 echo "Monitor all jobs:"
 echo "  squeue -u \$USER -o '%.10i %.12j %.8T %.10M %.6D %R'"
@@ -173,7 +219,8 @@ for model in $MODELS; do
     [[ -n "$jid" ]] && echo "  tail -f cluster/logs/mle_gpu_${jid}.out   # fit_${model}"
 done
 [[ -n "${analysis_jobid:-}" ]] && echo "  tail -f cluster/logs/analysis_${analysis_jobid}.out   # analysis"
+[[ -n "${push_jobid:-}" ]] && echo "  tail -f cluster/logs/push_results_${push_jobid}.out  # git push"
 echo ""
 echo "Cancel entire pipeline:"
-echo "  scancel ${ALL_FIT_IDS[*]} ${WAVE2_IDS[*]:-} ${analysis_jobid:-}"
+echo "  scancel ${ALL_FIT_IDS[*]} ${WAVE2_IDS[*]:-} ${analysis_jobid:-} ${push_jobid:-}"
 echo "============================================================"

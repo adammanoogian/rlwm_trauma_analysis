@@ -644,7 +644,7 @@ def run_parameter_recovery(
     seed: int,
     use_gpu: bool = False,
     verbose: bool = True,
-    n_starts: int = 50,
+    n_starts: int = 20,
     n_jobs: int = 1
 ) -> pd.DataFrame:
     """
@@ -659,7 +659,7 @@ def run_parameter_recovery(
     Parameters
     ----------
     model : str
-        Model name ('qlearning', 'wmrl', 'wmrl_m3')
+        Model name ('qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b', 'wmrl_m4')
     n_subjects : int
         Number of synthetic participants per dataset
     n_datasets : int
@@ -670,6 +670,11 @@ def run_parameter_recovery(
         Whether to use GPU for fitting (default: False)
     verbose : bool
         Whether to show progress bars (default: True)
+    n_starts : int
+        Number of random restarts per participant. Default 20 is adequate for
+        recovery validation; 50 is overkill and triples runtime for WM-RL models.
+    n_jobs : int
+        Number of parallel jobs for CPU fitting (default: 1)
 
     Returns
     -------
@@ -1068,8 +1073,10 @@ Examples:
                         help='Model to test recovery')
     parser.add_argument('--n-subjects', type=int, default=50,
                         help='Number of synthetic subjects per dataset (default: 50)')
-    parser.add_argument('--n-datasets', type=int, default=10,
-                        help='Number of independent datasets (default: 10)')
+    parser.add_argument('--n-datasets', type=int, default=3,
+                        help='Number of independent datasets (default: 3)')
+    parser.add_argument('--n-starts', type=int, default=20,
+                        help='Random restarts per subject during fitting (default: 20)')
     parser.add_argument('--seed', type=int, default=42,
                         help='Random seed for reproducibility (default: 42)')
     parser.add_argument('--use-gpu', action='store_true',
@@ -1141,7 +1148,8 @@ Examples:
             n_datasets=args.n_datasets,
             seed=args.seed,
             use_gpu=args.use_gpu,
-            verbose=not args.quiet
+            verbose=not args.quiet,
+            n_starts=args.n_starts,
         )
 
         # Compute metrics
