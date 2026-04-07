@@ -118,6 +118,7 @@ Last activity: 2026-04-05 — Logit clamp fix, wave pipeline orchestrator, Quart
 | 001 | Setup Quarto scientific manuscript for RLWM trauma analysis | 2026-04-05 | 18637da | [001-setup-quarto-manuscript](./quick/001-setup-quarto-manuscript/) |
 | 002 | Pipeline fixes, convergence assessment, recovery config, MODEL_REGISTRY | 2026-04-07 | 3095b92 | [002-pipeline-fixes-convergence-recovery-config](./quick/002-pipeline-fixes-convergence-recovery-config/) |
 | 003 | Softcode manuscript: winning model, group names, n_starts from data files | 2026-04-07 | d7ea897 | [003-quarto-softcoded-winning-model](./quick/003-quarto-softcoded-winning-model/) |
+| 004 | Pipeline sync: survey data fix (scripts 15/16), uncorrected p-values in manuscript, Bayesian MODEL_REGISTRY | 2026-04-07 | 4df1340 | [004-pipeline-sync-uncorrected-peb-config](./quick/004-pipeline-sync-uncorrected-peb-config/) |
 
 ### Key Decisions Added (quick-002)
 
@@ -131,5 +132,5 @@ Last activity: 2026-04-05 — Logit clamp fix, wave pipeline orchestrator, Quart
 ## Session Continuity
 
 Last session: 2026-04-07
-Stopped at: Completed quick task 003 — softcoded manuscript with data-driven winning model, group names, model table.
+Stopped at: Completed quick task 004 — survey data fix (scripts 15/16), uncorrected p-values in manuscript, Bayesian MODEL_REGISTRY support.
 Resume file: None
