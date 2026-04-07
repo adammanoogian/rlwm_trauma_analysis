@@ -1660,6 +1660,14 @@ def fit_all_gpu(
     cols = [c for c in cols if c in df.columns]
     df = df[cols]
 
+    # Save all NLLs per participant (for multi-start diagnostics)
+    all_nlls_df = pd.DataFrame(
+        np.array(all_nlls),
+        columns=[f'start_{j}' for j in range(all_nlls.shape[1])],
+    )
+    all_nlls_df.insert(0, 'participant_id', participants)
+    df.attrs['all_nlls'] = all_nlls_df
+
     # Build timing info
     timing_info = {
         'total_time': total_time,
@@ -2947,6 +2955,11 @@ def main():
 
     fits_df.to_csv(fits_path, index=False)
     summary_df.to_csv(summary_path, index=False)
+
+    # Save all NLLs from multi-start optimization (for diagnostics)
+    if hasattr(fits_df, 'attrs') and 'all_nlls' in fits_df.attrs:
+        all_nlls_path = output_dir / f'{args.model}_all_start_nlls.csv'
+        fits_df.attrs['all_nlls'].to_csv(all_nlls_path, index=False)
 
     # Save timing log (per-participant timing details)
     if timing_records:
