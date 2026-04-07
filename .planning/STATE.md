@@ -100,10 +100,9 @@ Last activity: 2026-04-05 — Logit clamp fix, wave pipeline orchestrator, Quart
 
 ### Pending Todos
 
-- Run M6a parameter recovery on cluster: `python scripts/11_run_model_recovery.py --model wmrl_m6a --n-subjects 50 --n-datasets 10 --n-jobs 8` (r >= 0.80 gate)
-- Run M6b parameter recovery on cluster: `python scripts/11_run_model_recovery.py --model wmrl_m6b --n-subjects 50 --n-datasets 10 --n-jobs 8` (r >= 0.80 gate)
-- Run full cross-model recovery on cluster: `python scripts/11_run_model_recovery.py --mode cross-model --model all --n-subjects 50 --n-datasets 10 --n-jobs 8`
-- Phase 11-04: final plan (documentation, cluster job scripts for M4 recovery validation)
+- **Re-fit all 7 models on cluster** (3 bugs fixed: argmin NaN, stimulus sampling, reward mapping). See `.planning/todos/pending/2026-04-07-refit-all-models-on-cluster.md`
+- Run parameter recovery for all models after re-fit (50 subj / 3 datasets / 20 starts)
+- Run full cross-model recovery: `python scripts/11_run_model_recovery.py --mode cross-model --model all --n-subjects 50 --n-datasets 3 --n-starts 20 --n-jobs 8`
 
 ### Blockers/Concerns
 
