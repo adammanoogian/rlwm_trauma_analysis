@@ -184,19 +184,15 @@ def load_integrated_data(params_path: Path, model_type: str = 'qlearning',
     params_df = params_df.rename(columns=param_rename)
     print(f"  Loaded {len(params_df)} participant fits")
 
-    # Load trauma scales from participant_surveys.csv (uses same IDs as MLE fits)
-    surveys_path = Path('output/mle/participant_surveys.csv')
-    if surveys_path.exists():
-        participant_data = pd.read_csv(surveys_path)
-        # Rename columns to match expected names
-        rename_map = {
-            'lec_total': 'lec_total_events',
-            'lec_personal': 'lec_personal_events'
-        }
-        participant_data = participant_data.rename(columns=rename_map)
-    else:
-        # Fallback to summary_participant_metrics_all.csv
-        participant_data = pd.read_csv('output/summary_participant_metrics_all.csv')
+    # Load trauma scales from summary_participant_metrics.csv (169 rows, complete dataset)
+    participant_data = pd.read_csv(Path('output/summary_participant_metrics.csv'))
+    # Rename columns to match expected names used throughout this script
+    rename_map = {
+        'less_total_events': 'lec_total_events',
+        'less_personal_events': 'lec_personal_events',
+    }
+    participant_data = participant_data.rename(columns=rename_map)
+    print(f"  Loaded survey data: {len(participant_data)} participants from summary_participant_metrics.csv")
     participant_data['sona_id'] = participant_data['sona_id'].astype(str)
 
     # Load trauma group assignments for --color-by hypothesis_group support
