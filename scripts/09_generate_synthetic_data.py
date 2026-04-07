@@ -23,7 +23,7 @@ Usage:
     python scripts/09_generate_synthetic_data.py --model qlearning
 
     # Generate data from WM-RL with fitted parameters
-    python scripts/09_generate_synthetic_data.py --model wmrl --params-file output/mle_results/wmrl_params.csv
+    python scripts/09_generate_synthetic_data.py --model wmrl --params-file output/mle/wmrl_params.csv
 
     # Generate for specific set sizes
     python scripts/09_generate_synthetic_data.py --model qlearning --set-sizes 3 5

@@ -39,7 +39,7 @@ Statistical Approach:
     - Diagnostic plots for regression assumptions
 
 Inputs:
-    - output/mle_results/<model>_individual_fits.csv
+    - output/mle/<model>_individual_fits.csv
     - output/summary_participant_metrics.csv
 
 Outputs:

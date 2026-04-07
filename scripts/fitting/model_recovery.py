@@ -285,7 +285,7 @@ def generate_synthetic_participant(
         # Reversal tracking
         consecutive_correct = 0
         reversal_threshold = rng.integers(MIN_CORRECT_FOR_REVERSAL, MAX_CORRECT_FOR_REVERSAL + 1)
-        reward_mapping = rng.permutation(set_size)  # One correct action per stimulus
+        reward_mapping = rng.integers(0, NUM_ACTIONS, size=set_size)  # Random action per stimulus
 
         # Last action for perseveration
         # M3/M5: global scalar only; M6a: per-stimulus dict only; M6b: BOTH global + per-stimulus
@@ -463,8 +463,8 @@ def generate_synthetic_participant(
 
             # Check for reversal
             if consecutive_correct >= reversal_threshold:
-                # Trigger reversal: re-permute correct actions for set_size stimuli
-                reward_mapping = rng.permutation(set_size)
+                # Trigger reversal: new random correct actions from {0,1,2}
+                reward_mapping = rng.integers(0, NUM_ACTIONS, size=set_size)
                 consecutive_correct = 0
                 reversal_threshold = rng.integers(MIN_CORRECT_FOR_REVERSAL, MAX_CORRECT_FOR_REVERSAL + 1)
 
@@ -978,7 +978,7 @@ def plot_distribution_comparison(
 
     # Try to load real fitted parameters
     if real_params_path is None:
-        real_params_path = f'output/mle_results/{model}_individual_fits.csv'
+        real_params_path = f'output/mle/{model}_individual_fits.csv'
 
     try:
         df_real = pd.read_csv(real_params_path)
@@ -1097,7 +1097,7 @@ Examples:
 
     # Auto-detect fitted params path if PPC mode and not specified
     if args.mode == 'ppc' and args.fitted_params is None:
-        args.fitted_params = f'output/mle_results/{args.model}_individual_fits.csv'
+        args.fitted_params = f'output/mle/{args.model}_individual_fits.csv'
 
     # Create output directories
     if args.mode == 'recovery':

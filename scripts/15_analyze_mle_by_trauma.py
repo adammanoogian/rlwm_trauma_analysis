@@ -30,7 +30,7 @@ Trauma Measures:
     - IES-R Subscales: Intrusion, Avoidance, Hyperarousal
 
 Inputs:
-    - output/mle_results/<model>_individual_fits.csv
+    - output/mle/<model>_individual_fits.csv
     - output/summary_participant_metrics.csv (trauma scores)
     - output/trauma_groups/group_assignments.csv (group labels)
 
@@ -52,7 +52,7 @@ Usage:
 
     # Specify custom paths
     python scripts/15_analyze_mle_by_trauma.py --model wmrl \
-        --mle-file output/mle_results/wmrl_individual_fits.csv \
+        --mle-file output/mle/wmrl_individual_fits.csv \
         --trauma-file output/summary_participant_metrics.csv
 
 Next Steps:

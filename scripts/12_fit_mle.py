@@ -23,8 +23,8 @@ Inputs:
     - output/task_trials_long.csv (behavioral data)
 
 Outputs:
-    - output/mle_results/<model>_mle_results.csv (fitted parameters)
-    - output/mle_results/<model>_model_fit.json (fit metadata)
+    - output/mle/<model>_mle_results.csv (fitted parameters)
+    - output/mle/<model>_model_fit.json (fit metadata)
 
 Usage:
     # Fit Q-learning model

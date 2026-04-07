@@ -31,7 +31,7 @@ Interpretation (Burnham & Anderson, 2002):
     - Δ > 10: Very strong evidence
 
 Inputs:
-    - output/mle_results/*_individual_fits.csv (MLE results)
+    - output/mle/*_individual_fits.csv (MLE results)
     - output/bayesian_fits/*.nc (Bayesian posteriors, optional)
 
 Outputs:
@@ -47,14 +47,14 @@ Usage:
 
     # Specify model files explicitly
     python scripts/14_compare_models.py \
-        --m1 output/mle_results/qlearning_individual_fits.csv \
-        --m2 output/mle_results/wmrl_individual_fits.csv
+        --m1 output/mle/qlearning_individual_fits.csv \
+        --m2 output/mle/wmrl_individual_fits.csv
 
     # 3-way comparison (M1 vs M2 vs M3)
     python scripts/14_compare_models.py \
-        --m1 output/mle_results/qlearning_individual_fits.csv \
-        --m2 output/mle_results/wmrl_individual_fits.csv \
-        --m3 output/mle_results/wmrl_m3_individual_fits.csv
+        --m1 output/mle/qlearning_individual_fits.csv \
+        --m2 output/mle/wmrl_individual_fits.csv \
+        --m3 output/mle/wmrl_m3_individual_fits.csv
 
     # Include Bayesian criteria (WAIC/LOO)
     python scripts/14_compare_models.py --use-waic --bayesian-dir output/bayesian_fits
@@ -656,7 +656,7 @@ def main():
 
     if len(choice_only_dict) < 2 and m4_fits is None:
         print("\nERROR: At least 2 models required for comparison.")
-        print("Provide paths via --m1/--m2/--m3 or ensure MLE results exist in output/mle_results/")
+        print("Provide paths via --m1/--m2/--m3 or ensure MLE results exist in output/mle/")
         return
 
     if len(choice_only_dict) < 2 and m4_fits is not None:
