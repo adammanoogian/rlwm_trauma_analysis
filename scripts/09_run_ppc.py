@@ -49,6 +49,7 @@ from pathlib import Path
 project_root = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(project_root))
 
+from config import ALL_MODELS
 from scripts.fitting.model_recovery import (
     run_posterior_predictive_check,
     run_model_recovery_check,
@@ -125,9 +126,9 @@ def main():
         description='Run posterior predictive checks (Senta et al. / Wilson & Collins methodology)'
     )
     parser.add_argument('--model', type=str, required=True,
-                        choices=['qlearning', 'wmrl', 'wmrl_m3', 'all'],
-                        help='Model to validate (or "all" for all models)')
-    parser.add_argument('--fitted-params-dir', type=str, default='output/mle_results',
+                        choices=ALL_MODELS + ['all'],
+                        help='Model to validate (or "all" for all 7 models)')
+    parser.add_argument('--fitted-params-dir', type=str, default='output/mle',
                         help='Directory containing fitted params CSVs')
     parser.add_argument('--real-data', type=str, default='output/task_trials_long.csv',
                         help='Path to real trial data')
@@ -147,7 +148,7 @@ def main():
 
     # Determine models to run
     if args.model == 'all':
-        models = ['qlearning', 'wmrl', 'wmrl_m3']
+        models = ALL_MODELS
     else:
         models = [args.model]
 
