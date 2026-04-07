@@ -11,8 +11,8 @@ See: .planning/PROJECT.md (updated 2026-04-03)
 
 Phase: Not started (next milestone not yet defined)
 Plan: Not started
-Status: v3.0 milestone complete and archived. Ready to plan next milestone.
-Last activity: 2026-04-05 — Logit clamp fix, wave pipeline orchestrator, Quarto manuscript setup
+Status: v3.0 milestone complete and archived. Manuscript in progress. Cluster re-fit pending.
+Last activity: 2026-04-07 — Full pipeline audit, 4 quick tasks (002-004), Bayesian regression, manuscript Results written
 
 ## Performance Metrics
 
