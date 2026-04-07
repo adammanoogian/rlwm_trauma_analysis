@@ -112,7 +112,8 @@ from simulations.parameter_sweep import ParameterSweep
 
 sweep = ParameterSweep(model_type='qlearning')
 results_df = sweep.sweep_qlearning_parameters(
-    alpha_range=[0.1, 0.3, 0.5],
+    alpha_pos_range=[0.1, 0.3, 0.5],
+    alpha_neg_range=[0.05, 0.1],
     beta_range=[1, 3, 5],
     set_sizes=[2, 3, 5, 6],
     num_trials=100,
@@ -120,7 +121,8 @@ results_df = sweep.sweep_qlearning_parameters(
 )
 
 # Visualize
-sweep.plot_accuracy_heatmap(results_df, set_size=3)
+from simulations.parameter_sweep import visualize_qlearning_sweep
+visualize_qlearning_sweep(results_df, sweep.output_dir)
 ```
 
 ### `generate_data.py`

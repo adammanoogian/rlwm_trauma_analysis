@@ -25,22 +25,28 @@ Usage:
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Optional, Sequence, Literal
 import itertools
 from tqdm import tqdm
-import matplotlib.pyplot as plt
-import seaborn as sns
 import sys
 
 # Add project root to path
-project_root = Path(__file__).parent.parent.parent
+project_root = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(project_root))
+# Ensure `src/` is importable (so `import rlwm` works without installation).
+src_root = project_root / "src"
+if src_root.exists():
+    sys.path.insert(0, str(src_root))
 
 from environments.rlwm_env import create_rlwm_env
 from models.q_learning import QLearningAgent
 from models.wm_rl_hybrid import WMRLHybridAgent
 from scripts.simulations.unified_simulator import simulate_agent_fixed
-from config import OUTPUT_VERSION_DIR
+try:
+    # Prefer the versioned output root if present in this project.
+    from config import OUTPUT_VERSION_DIR  # type: ignore
+except Exception:  # pragma: no cover
+    OUTPUT_VERSION_DIR = None
 
 
 class ParameterSweep:
@@ -66,11 +72,22 @@ class ParameterSweep:
         """
         self.model_type = model_type
         if output_dir is None:
-            output_dir = project_root / 'output' / 'parameter_sweeps'
+            if OUTPUT_VERSION_DIR is not None:
+                output_dir = Path(OUTPUT_VERSION_DIR) / 'parameter_sweeps'
+            else:
+                output_dir = project_root / 'output' / 'parameter_sweeps'
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.seed = seed
-        self.results = []
+        # Keep an internal accumulator for convenience, but sweep methods return fresh DataFrames.
+        self.results: List[Dict[str, float]] = []
+
+    def _agent_class(self):
+        if self.model_type == 'qlearning':
+            return QLearningAgent
+        if self.model_type == 'wmrl':
+            return WMRLHybridAgent
+        raise ValueError(f"Unknown model type: {self.model_type}")
 
     def run_single_condition(
         self,
@@ -109,13 +126,7 @@ class ParameterSweep:
                 seed=self.seed + rep
             )
 
-            # Select agent class based on model type
-            if self.model_type == 'qlearning':
-                agent_class = QLearningAgent
-            elif self.model_type == 'wmrl':
-                agent_class = WMRLHybridAgent
-            else:
-                raise ValueError(f"Unknown model type: {self.model_type}")
+            agent_class = self._agent_class()
 
             # Run simulation using unified simulator
             result = simulate_agent_fixed(
@@ -180,6 +191,8 @@ class ParameterSweep:
         print(f"  Set sizes: {set_sizes}")
         print(f"  Total conditions: {len(alpha_pos_range) * len(alpha_neg_range) * len(beta_range) * len(set_sizes)}")
 
+        results: List[Dict[str, float]] = []
+
         # Grid search
         conditions = list(itertools.product(alpha_pos_range, alpha_neg_range, beta_range, set_sizes))
 
@@ -210,10 +223,11 @@ class ParameterSweep:
                 'set_size': set_size,
                 **metrics
             }
-            self.results.append(result)
+            results.append(result)
 
         # Save results
-        df = pd.DataFrame(self.results)
+        df = pd.DataFrame(results)
+        self.results = results
         output_file = self.output_dir / f'qlearning_sweep_seed{self.seed}.csv'
         df.to_csv(output_file, index=False)
         print(f"\nSaved results to: {output_file}")
@@ -273,6 +287,8 @@ class ParameterSweep:
                            len(rho_range) * len(set_sizes))
         print(f"  Total conditions: {total_conditions}")
 
+        results: List[Dict[str, float]] = []
+
         # Grid search (all combinations)
         conditions = list(itertools.product(
             alpha_pos_range, alpha_neg_range, beta_range, beta_wm_range,
@@ -314,10 +330,11 @@ class ParameterSweep:
                 'set_size': set_size,
                 **metrics
             }
-            self.results.append(result)
+            results.append(result)
 
         # Save
-        df = pd.DataFrame(self.results)
+        df = pd.DataFrame(results)
+        self.results = results
         output_file = self.output_dir / f'wmrl_sweep_seed{self.seed}.csv'
         df.to_csv(output_file, index=False)
         print(f"\nSaved results to: {output_file}")
@@ -325,7 +342,19 @@ class ParameterSweep:
         return df
 
 
-def visualize_qlearning_sweep(sweep_results: pd.DataFrame, output_dir: Path):
+def _require_columns(df: pd.DataFrame, cols: Sequence[str], *, context: str) -> None:
+    missing = [c for c in cols if c not in df.columns]
+    if missing:
+        raise ValueError(f"Missing columns for {context}: {missing}. Available: {list(df.columns)}")
+
+
+def visualize_qlearning_sweep(
+    sweep_results: pd.DataFrame,
+    output_dir: Path,
+    *,
+    metric: Literal['accuracy', 'total_reward'] = 'accuracy',
+    collapse_over: Sequence[str] = ('alpha_neg',),
+):
     """
     Create visualizations of Q-learning parameter sweep.
 
@@ -336,56 +365,78 @@ def visualize_qlearning_sweep(sweep_results: pd.DataFrame, output_dir: Path):
     output_dir : Path
         Output directory for figures
     """
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+
+    _require_columns(
+        sweep_results,
+        cols=['alpha_pos', 'alpha_neg', 'beta', 'set_size', metric],
+        context='qlearning sweep visualization',
+    )
+
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    df = sweep_results.copy()
+    # For plotting, it’s often helpful to reduce dimensionality (e.g., average over alpha_neg).
+    group_cols = ['alpha_pos', 'beta', 'set_size']
+    for c in collapse_over:
+        if c in group_cols:
+            raise ValueError(f"`collapse_over` cannot include required grouping column: {c}")
+    collapse_cols = [c for c in collapse_over if c in df.columns]
+    if collapse_cols:
+        df = df.groupby(group_cols, as_index=False)[metric].mean()
+
     fig, axes = plt.subplots(2, 2, figsize=(14, 11))
 
-    # 1. Alpha effect on accuracy (by set size)
+    # 1. Alpha+ effect on metric (by set size), averaging over beta
     ax = axes[0, 0]
-    for set_size in sorted(sweep_results['set_size'].unique()):
-        subset = sweep_results[sweep_results['set_size'] == set_size]
-        grouped = subset.groupby('alpha')['accuracy'].mean()
-        ax.plot(grouped.index, grouped.values, marker='o', linewidth=2,
-                label=f'Set size {set_size}')
-    ax.set_xlabel('Learning Rate (α)', fontsize=12)
-    ax.set_ylabel('Accuracy', fontsize=12)
-    ax.set_title('Effect of Learning Rate on Performance', fontsize=14, fontweight='bold')
+    for set_size in sorted(df['set_size'].unique()):
+        subset = df[df['set_size'] == set_size]
+        grouped = subset.groupby('alpha_pos')[metric].mean()
+        ax.plot(grouped.index, grouped.values, marker='o', linewidth=2, label=f'Set size {set_size}')
+    ax.set_xlabel('Positive learning rate (α+)', fontsize=12)
+    ax.set_ylabel(metric.replace('_', ' ').title(), fontsize=12)
+    ax.set_title(f'Effect of α+ on {metric.replace("_", " ")}', fontsize=14, fontweight='bold')
     ax.legend(fontsize=10)
     ax.grid(alpha=0.3)
-    ax.axhline(1/3, color='red', linestyle='--', alpha=0.5, label='Chance')
+    if metric == 'accuracy':
+        ax.axhline(1/3, color='red', linestyle='--', alpha=0.5, label='Chance')
 
-    # 2. Beta effect on accuracy
+    # 2. Beta effect on metric (by set size), averaging over alpha_pos
     ax = axes[0, 1]
-    for set_size in sorted(sweep_results['set_size'].unique()):
-        subset = sweep_results[sweep_results['set_size'] == set_size]
-        grouped = subset.groupby('beta')['accuracy'].mean()
-        ax.plot(grouped.index, grouped.values, marker='o', linewidth=2,
-                label=f'Set size {set_size}')
+    for set_size in sorted(df['set_size'].unique()):
+        subset = df[df['set_size'] == set_size]
+        grouped = subset.groupby('beta')[metric].mean()
+        ax.plot(grouped.index, grouped.values, marker='o', linewidth=2, label=f'Set size {set_size}')
     ax.set_xlabel('Inverse Temperature (β)', fontsize=12)
-    ax.set_ylabel('Accuracy', fontsize=12)
-    ax.set_title('Effect of Exploration/Exploitation on Performance', fontsize=14, fontweight='bold')
+    ax.set_ylabel(metric.replace('_', ' ').title(), fontsize=12)
+    ax.set_title(f'Effect of β on {metric.replace("_", " ")}', fontsize=14, fontweight='bold')
     ax.legend(fontsize=10)
     ax.grid(alpha=0.3)
 
-    # 3. Heatmap: alpha × beta (averaged across set sizes)
+    # 3. Heatmap: alpha_pos × beta (averaged across set sizes)
     ax = axes[1, 0]
-    pivot = sweep_results.groupby(['alpha', 'beta'])['accuracy'].mean().reset_index()
-    pivot_table = pivot.pivot(index='alpha', columns='beta', values='accuracy')
-    sns.heatmap(pivot_table, annot=True, fmt='.2f', cmap='viridis', ax=ax, cbar_kws={'label': 'Accuracy'})
-    ax.set_title('Accuracy Heatmap: α × β\n(averaged across set sizes)', fontsize=14, fontweight='bold')
+    pivot = df.groupby(['alpha_pos', 'beta'])[metric].mean().reset_index()
+    pivot_table = pivot.pivot(index='alpha_pos', columns='beta', values=metric)
+    sns.heatmap(pivot_table, annot=True, fmt='.2f', cmap='viridis', ax=ax,
+                cbar_kws={'label': metric.replace('_', ' ').title()})
+    ax.set_title(f'{metric.replace("_", " ").title()} heatmap: α+ × β\n(averaged across set sizes)',
+                 fontsize=14, fontweight='bold')
     ax.set_xlabel('Inverse Temperature (β)', fontsize=12)
-    ax.set_ylabel('Learning Rate (α)', fontsize=12)
+    ax.set_ylabel('Positive learning rate (α+)', fontsize=12)
 
-    # 4. Set size effect (by alpha)
+    # 4. Set size effect (by alpha_pos)
     ax = axes[1, 1]
-    alphas_to_plot = [0.1, 0.3, 0.5, 0.9]
-    for alpha in alphas_to_plot:
-        subset = sweep_results[sweep_results['alpha'] == alpha]
+    alphas_to_plot = sorted(df['alpha_pos'].unique())[:4]
+    for alpha_pos in alphas_to_plot:
+        subset = df[df['alpha_pos'] == alpha_pos]
         if len(subset) > 0:
-            grouped = subset.groupby('set_size')['accuracy'].mean()
-            ax.plot(grouped.index, grouped.values, marker='o', linewidth=2,
-                    label=f'α={alpha}')
+            grouped = subset.groupby('set_size')[metric].mean()
+            ax.plot(grouped.index, grouped.values, marker='o', linewidth=2, label=f'α+={alpha_pos}')
     ax.set_xlabel('Set Size', fontsize=12)
-    ax.set_ylabel('Accuracy', fontsize=12)
-    ax.set_title('Set Size Effect by Learning Rate', fontsize=14, fontweight='bold')
+    ax.set_ylabel(metric.replace('_', ' ').title(), fontsize=12)
+    ax.set_title(f'Set size effect by α+ (collapsed)', fontsize=14, fontweight='bold')
     ax.legend(fontsize=10)
     ax.grid(alpha=0.3)
 
@@ -396,7 +447,13 @@ def visualize_qlearning_sweep(sweep_results: pd.DataFrame, output_dir: Path):
     plt.close()
 
 
-def visualize_wmrl_sweep(sweep_results: pd.DataFrame, output_dir: Path):
+def visualize_wmrl_sweep(
+    sweep_results: pd.DataFrame,
+    output_dir: Path,
+    *,
+    metric: Literal['accuracy', 'total_reward'] = 'accuracy',
+    collapse_over: Sequence[str] = ('alpha_pos', 'alpha_neg', 'beta', 'beta_wm', 'phi'),
+):
     """
     Create visualizations of WM-RL parameter sweep.
 
@@ -407,55 +464,71 @@ def visualize_wmrl_sweep(sweep_results: pd.DataFrame, output_dir: Path):
     output_dir : Path
         Output directory for figures
     """
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+
+    _require_columns(
+        sweep_results,
+        cols=['capacity', 'rho', 'set_size', metric],
+        context='wmrl sweep visualization',
+    )
+
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    df = sweep_results.copy()
+    group_cols = ['capacity', 'rho', 'set_size']
+    collapse_cols = [c for c in collapse_over if c in df.columns and c not in group_cols]
+    if collapse_cols:
+        df = df.groupby(group_cols, as_index=False)[metric].mean()
+
     fig, axes = plt.subplots(2, 2, figsize=(14, 11))
 
     # 1. Capacity effect by set size
     ax = axes[0, 0]
-    for set_size in sorted(sweep_results['set_size'].unique()):
-        subset = sweep_results[sweep_results['set_size'] == set_size]
-        grouped = subset.groupby('capacity')['accuracy'].mean()
-        ax.plot(grouped.index, grouped.values, marker='o', linewidth=2,
-                label=f'Set size {set_size}')
+    for set_size in sorted(df['set_size'].unique()):
+        subset = df[df['set_size'] == set_size]
+        grouped = subset.groupby('capacity')[metric].mean()
+        ax.plot(grouped.index, grouped.values, marker='o', linewidth=2, label=f'Set size {set_size}')
     ax.set_xlabel('WM Capacity', fontsize=12)
-    ax.set_ylabel('Accuracy', fontsize=12)
-    ax.set_title('WM Capacity Effect on Performance', fontsize=14, fontweight='bold')
+    ax.set_ylabel(metric.replace('_', ' ').title(), fontsize=12)
+    ax.set_title(f'Capacity effect on {metric.replace("_", " ")}', fontsize=14, fontweight='bold')
     ax.legend(fontsize=10)
     ax.grid(alpha=0.3)
 
-    # 2. WM weight effect
+    # 2. Rho (WM reliance) effect
     ax = axes[0, 1]
-    for set_size in sorted(sweep_results['set_size'].unique()):
-        subset = sweep_results[sweep_results['set_size'] == set_size]
-        grouped = subset.groupby('w_wm')['accuracy'].mean()
-        ax.plot(grouped.index, grouped.values, marker='o', linewidth=2,
-                label=f'Set size {set_size}')
-    ax.set_xlabel('WM Weight (w_wm)', fontsize=12)
-    ax.set_ylabel('Accuracy', fontsize=12)
-    ax.set_title('WM vs RL Weighting Effect', fontsize=14, fontweight='bold')
+    for set_size in sorted(df['set_size'].unique()):
+        subset = df[df['set_size'] == set_size]
+        grouped = subset.groupby('rho')[metric].mean()
+        ax.plot(grouped.index, grouped.values, marker='o', linewidth=2, label=f'Set size {set_size}')
+    ax.set_xlabel('WM reliance (ρ)', fontsize=12)
+    ax.set_ylabel(metric.replace('_', ' ').title(), fontsize=12)
+    ax.set_title(f'ρ effect on {metric.replace("_", " ")}', fontsize=14, fontweight='bold')
     ax.legend(fontsize=10)
     ax.grid(alpha=0.3)
 
-    # 3. Heatmap: capacity × w_wm (averaged)
+    # 3. Heatmap: capacity × rho (averaged)
     ax = axes[1, 0]
-    pivot = sweep_results.groupby(['capacity', 'w_wm'])['accuracy'].mean().reset_index()
-    pivot_table = pivot.pivot(index='capacity', columns='w_wm', values='accuracy')
-    sns.heatmap(pivot_table, annot=True, fmt='.2f', cmap='viridis', ax=ax, cbar_kws={'label': 'Accuracy'})
-    ax.set_title('Accuracy: Capacity × WM Weight\n(averaged)', fontsize=14, fontweight='bold')
-    ax.set_xlabel('WM Weight', fontsize=12)
+    pivot = df.groupby(['capacity', 'rho'])[metric].mean().reset_index()
+    pivot_table = pivot.pivot(index='capacity', columns='rho', values=metric)
+    sns.heatmap(pivot_table, annot=True, fmt='.2f', cmap='viridis', ax=ax,
+                cbar_kws={'label': metric.replace('_', ' ').title()})
+    ax.set_title(f'{metric.replace("_", " ").title()}: capacity × ρ\n(averaged)', fontsize=14, fontweight='bold')
+    ax.set_xlabel('WM reliance (ρ)', fontsize=12)
     ax.set_ylabel('WM Capacity', fontsize=12)
 
     # 4. Set size effect by capacity
     ax = axes[1, 1]
-    capacities_to_plot = [2, 4, 6]
+    capacities_to_plot = sorted(df['capacity'].unique())[:3]
     for capacity in capacities_to_plot:
-        subset = sweep_results[sweep_results['capacity'] == capacity]
+        subset = df[df['capacity'] == capacity]
         if len(subset) > 0:
-            grouped = subset.groupby('set_size')['accuracy'].mean()
-            ax.plot(grouped.index, grouped.values, marker='o', linewidth=2,
-                    label=f'Capacity={capacity}')
+            grouped = subset.groupby('set_size')[metric].mean()
+            ax.plot(grouped.index, grouped.values, marker='o', linewidth=2, label=f'Capacity={capacity}')
     ax.set_xlabel('Set Size', fontsize=12)
-    ax.set_ylabel('Accuracy', fontsize=12)
-    ax.set_title('Set Size Effect by WM Capacity', fontsize=14, fontweight='bold')
+    ax.set_ylabel(metric.replace('_', ' ').title(), fontsize=12)
+    ax.set_title('Set size effect by capacity (collapsed)', fontsize=14, fontweight='bold')
     ax.legend(fontsize=10)
     ax.grid(alpha=0.3)
 
@@ -466,8 +539,15 @@ def visualize_wmrl_sweep(sweep_results: pd.DataFrame, output_dir: Path):
     plt.close()
 
 
-def main():
-    """Run parameter sweep from command line."""
+def main(argv: Optional[Sequence[str]] = None):
+    """Run parameter sweep from command line.
+
+    Parameters
+    ----------
+    argv : sequence of str, optional
+        Arguments to parse (defaults to `sys.argv[1:]`). Passing an explicit list
+        is useful in notebooks where IPython injects extra flags.
+    """
     import argparse
 
     parser = argparse.ArgumentParser(
@@ -484,9 +564,9 @@ def main():
     parser.add_argument('--seed', type=int, default=42,
                         help='Random seed')
     parser.add_argument('--output-dir', type=str, default=None,
-                        help='Output directory (default: output/v1/parameter_sweeps)')
+                        help='Output directory (default: OUTPUT_VERSION_DIR/parameter_sweeps if available)')
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     # Create sweep object
     sweep = ParameterSweep(
@@ -529,4 +609,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # In notebooks, `__name__ == "__main__"` but IPython injects arguments (e.g. `-f ...json`),
+    # which breaks argparse. Avoid auto-running the CLI in that context.
+    if "ipykernel" not in sys.modules:
+        main()

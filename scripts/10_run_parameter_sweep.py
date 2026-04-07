@@ -48,6 +48,10 @@ from pathlib import Path
 # Add project root to path
 project_root = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(project_root))
+# Ensure `src/` is importable (so `import rlwm` works without installation).
+src_root = project_root / "src"
+if src_root.exists():
+    sys.path.insert(0, str(src_root))
 
 # Import the main function from the library module
 from scripts.simulations.parameter_sweep import main
