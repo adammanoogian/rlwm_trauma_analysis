@@ -45,18 +45,46 @@ MANUSCRIPT_STYLE: dict[str, object] = {
 }
 """Matplotlib rcParams dict for publication-quality manuscript figures."""
 
-# ── Trauma group colors (mirrors PlotConfig.GROUP_COLORS exactly) ─────────────
+# ── Trauma group colors (keyed by actual group names from group_assignments.csv) ──
 
 GROUP_COLORS: dict[str, str] = {
-    "control": "#06A77D",       # Green
-    "exposed": "#F18F01",       # Orange
-    "symptomatic": "#D62246",   # Red
+    "Trauma Exposure - No Ongoing Impact": "#06A77D",  # Green
+    "Trauma Exposure - Ongoing Impact": "#D62246",     # Red
 }
 """
 Trauma group color palette.
 
-Keys match the ``group`` column in MLE individual fits CSVs:
-``control``, ``exposed``, ``symptomatic``.
+Keys match the ``hypothesis_group`` column in group_assignments.csv.
+Two groups: no ongoing impact (green) and ongoing impact (red).
+"""
+
+GROUP_SHORT_LABELS: dict[str, str] = {
+    "Trauma Exposure - No Ongoing Impact": "No Impact",
+    "Trauma Exposure - Ongoing Impact": "Ongoing Impact",
+}
+"""
+Short axis tick labels for trauma groups.
+
+Maps full group names (from ``hypothesis_group`` column) to compact labels
+suitable for matplotlib axis tick marks.
+"""
+
+# ── Model short-name to internal key reverse lookup ──────────────────────────
+
+SHORT_NAME_TO_KEY: dict[str, str] = {
+    "M1": "qlearning",
+    "M2": "wmrl",
+    "M3": "wmrl_m3",
+    "M4": "wmrl_m4",
+    "M5": "wmrl_m5",
+    "M6a": "wmrl_m6a",
+    "M6b": "wmrl_m6b",
+}
+"""
+Reverse lookup from comparison_results.csv short name to internal model key.
+
+The ``model`` column in comparison_results.csv uses short names (M6b, M5, ...);
+this dict maps back to the internal keys used in MODEL_REGISTRY and CSV filenames.
 """
 
 # ── Model display names ───────────────────────────────────────────────────────
@@ -85,6 +113,7 @@ PARAM_DISPLAY_NAMES: dict[str, str] = {
     "phi": r"$\phi$",
     "rho": r"$\rho$",
     "K": r"$K$",
+    "capacity": r"$K$",
     "kappa": r"$\kappa$",
     "kappa_s": r"$\kappa_s$",
     "kappa_total": r"$\kappa_{\mathrm{total}}$",
