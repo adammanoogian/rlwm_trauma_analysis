@@ -58,7 +58,7 @@ from scripts.utils.plotting_utils import plot_behavioral_comparison
 
 NUM_BLOCKS = 21  # Blocks 3-23 in real data
 BLOCK_OFFSET = 3  # First block is numbered 3
-NUM_STIMULI = 3  # Maximum 3 stimuli per block
+MAX_STIMULI = 6  # Q/WM table dimension: must match likelihood default (num_stimuli=6)
 NUM_ACTIONS = 3  # Always 3 actions
 SET_SIZES = [2, 3, 5, 6]  # Cycle through these
 FIXED_BETA = 50.0  # Fixed inverse temperature (matching fit_mle.py)
@@ -196,15 +196,20 @@ def generate_synthetic_participant(
     """
     Generate synthetic trial-level data matching task_trials_long.csv structure.
 
-    Uses JAX for speed. Implements Q-learning and WM-RL agent simulation
+    Uses numpy for simulation. Implements Q-learning and WM-RL agent simulation
     with epsilon noise, asymmetric learning rates, and reversal logic.
+
+    Each block presents stimuli drawn uniformly from {0, ..., set_size-1},
+    matching the real task structure. Q and WM tables have shape (6, 3)
+    to match the likelihood default (num_stimuli=6), ensuring fitted indices
+    are identical to what prepare_participant_data passes to the likelihood.
 
     Parameters
     ----------
     params : dict[str, float]
         True parameter values for simulation
     model : str
-        Model name ('qlearning', 'wmrl', 'wmrl_m3')
+        Model name ('qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b', 'wmrl_m4')
     seed : int
         Random seed for reproducibility
 
@@ -265,11 +270,14 @@ def generate_synthetic_participant(
         set_size = SET_SIZES[block_idx % len(SET_SIZES)]
         n_trials_block = rng.integers(MIN_TRIALS_PER_BLOCK, MAX_TRIALS_PER_BLOCK + 1)
 
-        # Initialize Q-table and WM matrix at start of block
-        Q = np.ones((NUM_STIMULI, NUM_ACTIONS)) * 0.5
+        # Initialize Q-table and WM matrix at start of block.
+        # Shape is (MAX_STIMULI, NUM_ACTIONS) = (6, 3), matching the likelihood
+        # default (num_stimuli=6). Only indices 0..set_size-1 are ever written,
+        # but the full 6-row table is required so fitted indices are identical.
+        Q = np.ones((MAX_STIMULI, NUM_ACTIONS)) * 0.5
 
         if model in ['wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b', 'wmrl_m4']:
-            WM = np.ones((NUM_STIMULI, NUM_ACTIONS)) * (1.0 / NUM_ACTIONS)  # Baseline = 0.333
+            WM = np.ones((MAX_STIMULI, NUM_ACTIONS)) * (1.0 / NUM_ACTIONS)  # Baseline = 0.333
             wm_baseline = 1.0 / NUM_ACTIONS
         else:
             WM = wm_baseline = None
@@ -277,7 +285,7 @@ def generate_synthetic_participant(
         # Reversal tracking
         consecutive_correct = 0
         reversal_threshold = rng.integers(MIN_CORRECT_FOR_REVERSAL, MAX_CORRECT_FOR_REVERSAL + 1)
-        reward_mapping = rng.permutation(NUM_ACTIONS)  # Initial stimulus-action mapping
+        reward_mapping = rng.permutation(set_size)  # One correct action per stimulus
 
         # Last action for perseveration
         # M3/M5: global scalar only; M6a: per-stimulus dict only; M6b: BOTH global + per-stimulus
@@ -286,9 +294,10 @@ def generate_synthetic_participant(
             last_actions = {}  # dict: stimulus -> last action (None = never seen in this block)
 
         for trial_in_block in range(1, n_trials_block + 1):
-            # Sample stimulus (uniform random)
-            key, subkey = jax.random.split(key)
-            stimulus = int(jax.random.randint(subkey, (), 0, NUM_STIMULI))
+            # Sample stimulus uniformly from the set_size stimuli present in
+            # this block. This matches the real task structure where set_size
+            # determines how many unique stimuli (0..set_size-1) appear.
+            stimulus = rng.integers(0, set_size)
 
             # Compute action probabilities
             if model in ['wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b', 'wmrl_m4']:
@@ -454,8 +463,8 @@ def generate_synthetic_participant(
 
             # Check for reversal
             if consecutive_correct >= reversal_threshold:
-                # Trigger reversal: shuffle reward mapping
-                reward_mapping = rng.permutation(NUM_ACTIONS)
+                # Trigger reversal: re-permute correct actions for set_size stimuli
+                reward_mapping = rng.permutation(set_size)
                 consecutive_correct = 0
                 reversal_threshold = rng.integers(MIN_CORRECT_FOR_REVERSAL, MAX_CORRECT_FOR_REVERSAL + 1)
 
