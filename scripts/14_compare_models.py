@@ -96,11 +96,14 @@ def load_fits(filepath: str) -> pd.DataFrame:
     return pd.read_csv(filepath)
 
 def compute_aggregate_ic(fits_df: pd.DataFrame, metric: str = 'aic') -> float:
-    """Compute aggregate information criterion across participants."""
-    converged = fits_df[fits_df['converged'] == True] if 'converged' in fits_df.columns else fits_df
-    if len(converged) == 0:
-        converged = fits_df
-    return converged[metric].sum()
+    """Compute aggregate information criterion across ALL participants.
+
+    Uses best-of-N-starts NLL for every participant, regardless of optimizer
+    convergence status. The converged flag indicates gradient convergence, but
+    every participant has a valid best NLL from multi-start optimization.
+    """
+    valid = fits_df[fits_df[metric].notna()]
+    return valid[metric].sum()
 
 def compute_akaike_weights_n(aic_values: dict[str, float]) -> dict[str, float]:
     """Compute Akaike weights for N models."""
@@ -155,14 +158,12 @@ def count_participant_wins(
         else:
             merged = pd.merge(merged, model_df, on='participant_id', how='inner')
 
-    # Filter to converged fits if available
-    converged_cols = [col for col in merged.columns if col.startswith('converged_')]
-    if converged_cols:
-        all_converged = merged[converged_cols].all(axis=1)
-        merged = merged[all_converged]
+    # Use all participants with valid IC for all models (inner join already
+    # ensures shared participants). Drop rows where any model has NaN IC.
+    ic_cols = [col for col in merged.columns if col.startswith(f'{metric}_')]
+    merged = merged.dropna(subset=ic_cols)
 
     # Find winner for each participant
-    ic_cols = [col for col in merged.columns if col.startswith(f'{metric}_')]
     merged['winner'] = merged[ic_cols].idxmin(axis=1).str.replace(f'{metric}_', '')
 
     # Count wins
@@ -320,6 +321,7 @@ def get_per_participant_winners(
             merged = pd.merge(merged, model_df, on='participant_id', how='inner')
 
     ic_cols = [col for col in merged.columns if col.startswith(f'{metric}_')]
+    merged = merged.dropna(subset=ic_cols)
     merged['winner'] = merged[ic_cols].idxmin(axis=1).str.replace(f'{metric}_', '')
     return merged
 
@@ -380,8 +382,8 @@ def stratified_comparison(
 
     # ---- Fisher's exact test (2x2: focus on M2 vs M3) ----
     # Build 2x2 table for models that actually have wins
-    unique_models = sorted(merged['winner'].unique())
-    unique_groups = sorted(merged['group'].unique())
+    unique_models = sorted(merged['winner'].dropna().unique())
+    unique_groups = sorted(merged['group'].dropna().unique())
 
     if len(unique_models) >= 2 and len(unique_groups) == 2:
         # For 2x2 Fisher's: use the two most common models
