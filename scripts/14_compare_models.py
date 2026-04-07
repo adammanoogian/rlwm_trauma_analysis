@@ -82,16 +82,10 @@ from scipy import stats as scipy_stats
 project_root = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(project_root))
 
-from config import EXCLUDED_PARTICIPANTS, FIGURES_DIR
+from config import EXCLUDED_PARTICIPANTS, FIGURES_DIR, MODEL_REGISTRY
 
-# M4 parameter names (for per-param summary in separate track)
-try:
-    import sys as _sys
-    _sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-    from scripts.fitting.mle_utils import WMRL_M4_PARAMS
-except ImportError:
-    WMRL_M4_PARAMS = ['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'kappa',
-                      'v_scale', 'A', 'delta', 't0']
+# M4 parameter names derived from central registry (for per-param summary in separate track)
+WMRL_M4_PARAMS: list[str] = MODEL_REGISTRY['wmrl_m4']['params']
 
 # ============================================================================
 # MLE COMPARISON FUNCTIONS
@@ -540,36 +534,28 @@ def plot_stratified_wins(
 # ============================================================================
 
 def find_mle_files(mle_dir: Path) -> dict[str, Path]:
-    """Auto-detect MLE result files.
+    """Auto-detect MLE result files using MODEL_REGISTRY.
 
     Searches mle_dir first, then falls back to output/ root
     (some models may have been fit with --output output instead of --output output/mle/).
+    Returns a dict keyed by short_name (e.g. 'M1', 'M5', 'M6b').
     """
     files = {}
-
-    # Look for standard naming patterns
-    patterns = {
-        'M1': ['qlearning_individual_fits.csv', 'qlearning_mle_results.csv'],
-        'M2': ['wmrl_individual_fits.csv', 'wmrl_mle_results.csv'],
-        'M3': ['wmrl_m3_individual_fits.csv', 'wmrl_m3_mle_results.csv'],
-        'M4': ['wmrl_m4_individual_fits.csv', 'wmrl_m4_mle_results.csv'],
-        'M5': ['wmrl_m5_individual_fits.csv', 'wmrl_m5_mle_results.csv'],
-        'M6a': ['wmrl_m6a_individual_fits.csv', 'wmrl_m6a_mle_results.csv'],
-        'M6b': ['wmrl_m6b_individual_fits.csv', 'wmrl_m6b_mle_results.csv'],
-    }
-
-    # Also search output/ root as fallback
     fallback_dir = Path('output')
     search_dirs = [mle_dir, fallback_dir] if mle_dir != fallback_dir else [mle_dir]
 
-    for model, filenames in patterns.items():
+    for _model_key, info in MODEL_REGISTRY.items():
+        short_name = info['short_name']
+        csv_name = info['csv_filename']
+        # Also check legacy naming convention (*_mle_results.csv)
+        legacy_name = csv_name.replace('_individual_fits', '_mle_results')
         for search_dir in search_dirs:
-            for filename in filenames:
+            for filename in [csv_name, legacy_name]:
                 filepath = search_dir / filename
                 if filepath.exists():
-                    files[model] = filepath
+                    files[short_name] = filepath
                     break
-            if model in files:
+            if short_name in files:
                 break
 
     return files
