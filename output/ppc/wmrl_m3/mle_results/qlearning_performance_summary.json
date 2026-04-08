@@ -1,0 +1,19 @@
+{
+  "model": "qlearning",
+  "n_participants": 154,
+  "n_starts": 50,
+  "total_time_s": 11897.04973769188,
+  "total_time_min": 198.28416229486464,
+  "avg_time_per_participant_s": 77.25356972527194,
+  "jit_compilation_time_s": null,
+  "steady_state_avg_s": null,
+  "n_jobs": 1,
+  "peak_memory_mb": 1690.328125,
+  "initial_memory_mb": 1670.15625,
+  "memory_increase_mb": 20.171875,
+  "timestamp": "2026-04-09T00:29:17.235536",
+  "seed": 42,
+  "data_file": "output/ppc/wmrl_m3/synthetic_trials.csv",
+  "n_converged": 110,
+  "convergence_rate": 0.7142857142857143
+}
