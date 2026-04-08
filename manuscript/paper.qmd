@@ -58,6 +58,38 @@ from config import MODEL_REGISTRY, CHOICE_ONLY_MODELS, MIN_TRIALS_THRESHOLD
 
 apply_manuscript_style()
 
+from IPython.display import Markdown
+
+def md_table(df: pd.DataFrame) -> None:
+    """Display a DataFrame as Markdown so LaTeX math symbols render in Quarto PDF."""
+    cols = list(df.columns)
+    header = "| " + " | ".join(str(c) for c in cols) + " |"
+    sep = "|" + "|".join("---" for _ in cols) + "|"
+    rows = []
+    for _, row in df.iterrows():
+        rows.append("| " + " | ".join(str(row[c]) for c in cols) + " |")
+    display(Markdown("\n".join([header, sep] + rows)))
+
+# ASCII parameter names for PDF tables (pdflatex cannot handle Unicode subscripts)
+PARAM_TABLE_NAMES: dict[str, str] = {
+    "alpha_pos": "alpha+",
+    "alpha_neg": "alpha-",
+    "phi": "phi",
+    "rho": "rho",
+    "K": "K",
+    "capacity": "K",
+    "kappa": "kappa",
+    "kappa_s": "kappa_s",
+    "kappa_total": "kappa_total",
+    "kappa_share": "kappa_share",
+    "phi_rl": "phi_RL",
+    "epsilon": "epsilon",
+    "v_scale": "v_scale",
+    "A": "A",
+    "delta": "delta",
+    "t0": "t0",
+}
+
 # ── Paths (relative to manuscript/ directory) ────────────────────────────────
 MLE_DIR = Path("../output/mle")
 COMPARISON_DIR = Path("../output/model_comparison")
@@ -172,15 +204,43 @@ All WM-RL models share a core architecture in which behaviour arises from a
 mixture of reinforcement learning (RL) and working memory (WM) policies,
 with the WM contribution weighted by capacity and set size.
 
-**Core WM-RL mixture.**
-The action probability for stimulus $s$ is:
+**Core WM-RL architecture.**
+On each trial, WM decays globally toward a uniform baseline, then
+overwrites the observed stimulus--action--reward association:
 $$
-p(a \mid s) = w(s) \cdot \text{WM}(s, a) + (1 - w(s)) \cdot Q(s, a)
+\text{WM}(s,a) \leftarrow (1 - \phi)\,\text{WM}(s,a) + \phi / n_A
+\qquad\text{(decay)},\qquad
+\text{WM}(s,a) \leftarrow r
+\qquad\text{(update)}
 $$
-where the WM weight adapts to set size $n_s$ and capacity parameter $K$:
+RL values are updated via an asymmetric delta rule:
 $$
-w(s) = \rho \cdot \min\!\left(1,\; \frac{K}{n_s}\right)
+Q(s,a) \leftarrow Q(s,a) + \alpha\,\delta, \qquad
+\delta = r - Q(s,a), \qquad
+\alpha = \begin{cases}\alpha_{+} & \delta > 0 \\ \alpha_{-} & \delta \leq 0\end{cases}
 $$
+Both systems produce softmax choice probabilities ($\beta = 50$, fixed),
+combined via an adaptive weight:
+$$
+\omega = \rho \cdot \min\!\left(1,\; K / n_s\right),\qquad
+p_{\text{hybrid}}(a \mid s) = \omega\,p_{\text{WM}} + (1-\omega)\,p_{\text{RL}}
+$$
+
+**Epsilon noise and dual perseveration (M6b).**
+The winning model adds uniform noise and two perseveration kernels
+(global and stimulus-specific) via a stick-breaking parameterization:
+$$
+\kappa = \kappa_{\text{total}} \cdot \kappa_{\text{share}}, \qquad
+\kappa_s = \kappa_{\text{total}} \cdot (1 - \kappa_{\text{share}})
+$$
+The final choice probability is:
+$$
+p(a \mid s) = (1 - \kappa - \kappa_s)\left[\frac{\varepsilon}{n_A} + (1-\varepsilon)\,p_{\text{hybrid}}\right]
++ \kappa\,\mathbf{1}[a = a_{\text{last}}]
++ \kappa_s\,\mathbf{1}[a = a_{\text{last}}^{(s)}]
+$$
+where $a_{\text{last}}$ is the globally previous action and
+$a_{\text{last}}^{(s)}$ is the previous action for stimulus $s$.
 
 ::: {.callout-note title="Model Parameter Glossary"}
 
@@ -501,7 +561,6 @@ try:
 
     df_display = df_cmp[["Model", "k", "Aggregate AIC", "Aggregate BIC", "dAIC", "Akaike Weight"]].reset_index(drop=True)
 
-    from IPython.display import display
     display(df_display.style.hide(axis="index"))
 except Exception as e:
     print(f"Data not yet available. Run scripts/14_compare_models.py first. ({e})")
@@ -530,17 +589,16 @@ try:
     rows = []
     for p in winner_params:
         vals = df_winner[p].dropna()
+        ci_lo = vals.mean() - 1.96 * vals.std() / np.sqrt(len(vals))
+        ci_hi = vals.mean() + 1.96 * vals.std() / np.sqrt(len(vals))
         rows.append({
-            "Parameter": PARAM_DISPLAY_NAMES.get(p, p),
+            "Parameter": PARAM_TABLE_NAMES.get(p, p),
             "Mean": f"{vals.mean():.3f}",
             "SD": f"{vals.std():.3f}",
-            "95% CI": f"[{vals.mean() - 1.96*vals.std()/np.sqrt(len(vals)):.3f}, {vals.mean() + 1.96*vals.std()/np.sqrt(len(vals)):.3f}]",
+            "95% CI": f"[{ci_lo:.3f}, {ci_hi:.3f}]",
             "N": len(vals),
         })
-
-    df_est = pd.DataFrame(rows)
-    from IPython.display import display
-    display(df_est.style.hide(axis="index"))
+    display(pd.DataFrame(rows).style.hide(axis="index"))
 except Exception as e:
     print(f"Error: {e}")
 ```
@@ -614,14 +672,13 @@ try:
 
     df_grp = df_winner_stats[["parameter", "n1", "n2", "U", "p_uncorrected", "p_bonferroni", "r_rank_biserial", "mean1", "mean2"]].copy()
     df_grp.columns = ["Parameter", "n (No Impact)", "n (Ongoing)", "U", "p", "p (corrected)", "r", "M (No Impact)", "M (Ongoing)"]
-    df_grp["Parameter"] = df_grp["Parameter"].map(lambda p: PARAM_DISPLAY_NAMES.get(p, p))
+    df_grp["Parameter"] = df_grp["Parameter"].map(lambda p: PARAM_TABLE_NAMES.get(p, p))
     df_grp["p"] = df_grp["p"].apply(lambda x: f"{x:.3f}")
     df_grp["p (corrected)"] = df_grp["p (corrected)"].apply(lambda x: f"{x:.3f}")
     df_grp["r"] = df_grp["r"].apply(lambda x: f"{x:.2f}")
     df_grp["M (No Impact)"] = df_grp["M (No Impact)"].apply(lambda x: f"{x:.3f}")
     df_grp["M (Ongoing)"] = df_grp["M (Ongoing)"].apply(lambda x: f"{x:.3f}")
 
-    from IPython.display import display
     display(df_grp.style.hide(axis="index"))
 except Exception as e:
     print(f"Group stats not available. ({e})")
@@ -690,13 +747,12 @@ try:
     else:
         df_show = df_trends[["parameter", "predictor", "n", "rho", "p_uncorrected", "p_fwe"]].copy()
         df_show.columns = ["Parameter", "Predictor", "N", "rho", "p (uncorr.)", "p (FWE)"]
-        df_show["Parameter"] = df_show["Parameter"].map(lambda p: PARAM_DISPLAY_NAMES.get(p, p))
+        df_show["Parameter"] = df_show["Parameter"].map(lambda p: PARAM_TABLE_NAMES.get(p, p))
         df_show["rho"] = df_show["rho"].apply(lambda x: f"{x:.3f}")
         df_show["p (uncorr.)"] = df_show["p (uncorr.)"].apply(lambda x: f"{x:.4f}")
         df_show["p (FWE)"] = df_show["p (FWE)"].apply(lambda x: f"{x:.3f}")
         df_show = df_show.sort_values("p (uncorr.)").reset_index(drop=True)
 
-        from IPython.display import display
         display(df_show.style.hide(axis="index"))
 except Exception as e:
     print(f"Correlations not available. ({e})")
@@ -726,14 +782,13 @@ try:
         raise FileNotFoundError("Regression results not available")
 
     df_show = df_reg_multi.copy()
-    df_show["Parameter"] = df_show["Parameter"].map(lambda p: PARAM_DISPLAY_NAMES.get(p.replace("_mean", ""), p))
+    df_show["Parameter"] = df_show["Parameter"].map(lambda p: PARAM_TABLE_NAMES.get(p.replace("_mean", ""), p))
     df_show["Predictor"] = df_show["Predictor"].str.replace("ies_", "IES-R ").str.title()
-    df_show = df_show[["Parameter", "Predictor", "β", "SE", "95% CI", "t", "p"]]
+    df_show = df_show[["Parameter", "Predictor", "\u03b2", "SE", "95% CI", "t", "p"]]
     df_show["p"] = df_show["p"].apply(lambda x: f"{x:.3f}")
-    df_show["β"] = df_show["β"].apply(lambda x: f"{x:.4f}")
+    df_show["\u03b2"] = df_show["\u03b2"].apply(lambda x: f"{x:.4f}")
     df_show["t"] = df_show["t"].apply(lambda x: f"{x:.2f}")
 
-    from IPython.display import display
     display(df_show.style.hide(axis="index"))
 except Exception as e:
     print(f"Regression results not available. ({e})")
@@ -786,7 +841,6 @@ try:
     coefs['SD'] = coefs['SD'].apply(lambda x: f"{x:.2f}")
     coefs['P(direction)'] = coefs['P(direction)'].apply(lambda x: f"{x:.3f}")
 
-    from IPython.display import display
     display(coefs.style.hide(axis="index"))
 except Exception as e:
     print(f"Bayesian results not available. ({e})")
@@ -918,13 +972,12 @@ try:
         info = MODEL_REGISTRY[key]
         rows.append({
             "Model": info["display_name"],
-            "Free Parameters": ", ".join(PARAM_DISPLAY_NAMES.get(p, p) for p in info["params"]),
+            "Free Parameters": ", ".join(PARAM_TABLE_NAMES.get(p, p) for p in info["params"]),
             "k": info["n_params"],
             "Type": "Choice+RT" if not info["is_choice_only"] else "Choice only",
         })
 
     df_params = pd.DataFrame(rows)
-    from IPython.display import display
     display(df_params.style.hide(axis="index"))
 except Exception as e:
     print(f"Error building model table: {e}")
