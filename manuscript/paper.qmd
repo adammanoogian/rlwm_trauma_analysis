@@ -126,7 +126,7 @@ introduces a perseveration parameter ($\kappa$) that captures action
 repetition tendencies separable from outcome-based learning.
 By applying this framework to a trauma-exposed sample, we can ask whether
 post-reversal failures following trauma reflect elevated $\kappa$
-(motor habit), reduced $\alpha_-$ (outcome insensitivity), or both.
+(motor habit), reduced $\alpha_{-}$ (outcome insensitivity), or both.
 
 This paper describes the fitting of seven hierarchically nested computational
 models (M1 Q-learning through M6b dual-perseveration) to behavioral data from
@@ -184,9 +184,9 @@ $$
 
 ::: {.callout-note title="Model Parameter Glossary"}
 
-**Learning rates.** $\alpha_+$ and $\alpha_-$ govern the speed of Q-value
+**Learning rates.** $\alpha_{+}$ and $\alpha_{-}$ govern the speed of Q-value
 updates following positive and negative prediction errors, respectively.
-Low $\alpha_-$ implies insensitivity to negative outcomes (e.g., failure to
+Low $\alpha_{-}$ implies insensitivity to negative outcomes (e.g., failure to
 update after errors).
 
 **WM decay** ($\phi$). Controls how rapidly WM representations degrade
@@ -222,6 +222,175 @@ The six choice-only models (M1--M3, M5, M6a, M6b) are compared by AIC and
 BIC.
 M4 (RLWM-LBA) uses a joint choice-plus-RT likelihood and cannot be compared
 by AIC with choice-only models; it is evaluated on a separate track.
+
+```{python}
+#| label: fig-model-architecture
+#| fig-cap: "Model parameter overview. Each column shows the free parameters for one model. Models are ordered by complexity within the choice-only family (M1--M6b); M4 (joint choice+RT, dashed separator) includes additional LBA accumulator parameters."
+#| fig-width: 7.0
+#| fig-height: 4.5
+
+try:
+    import matplotlib.patches as mpatches
+
+    # Build parameter-model matrix programmatically from MODEL_REGISTRY
+    model_order = ["qlearning", "wmrl", "wmrl_m3", "wmrl_m5", "wmrl_m6a", "wmrl_m6b", "wmrl_m4"]
+    model_labels = [MODEL_REGISTRY[k]["short_name"] for k in model_order]
+
+    # Canonical parameter order, grouped by category
+    param_order = [
+        "alpha_pos", "alpha_neg",           # Learning rates
+        "phi", "rho", "capacity",           # WM
+        "kappa", "kappa_s",                 # Perseveration (single)
+        "kappa_total", "kappa_share",       # Perseveration (dual)
+        "phi_rl",                           # RL forgetting
+        "epsilon",                          # Noise
+        "v_scale", "A", "delta", "t0",     # LBA (M4 only)
+    ]
+
+    # LBA display names not in PARAM_DISPLAY_NAMES -- add them locally
+    local_display = {**PARAM_DISPLAY_NAMES, "v_scale": r"$v_{\mathrm{scale}}$",
+                     "A": r"$A$", "delta": r"$\delta$", "t0": r"$t_0$"}
+
+    # Build binary matrix
+    matrix = np.zeros((len(param_order), len(model_order)))
+    for j, mkey in enumerate(model_order):
+        for p in MODEL_REGISTRY[mkey]["params"]:
+            if p in param_order:
+                matrix[param_order.index(p), j] = 1
+
+    # Category groupings (row indices)
+    categories = [
+        ("Learning rates", 0, 2),
+        ("Working memory", 2, 5),
+        ("Perseveration", 5, 9),
+        ("RL forgetting", 9, 10),
+        ("Noise", 10, 11),
+        ("LBA (M4)", 11, 15),
+    ]
+    cat_colors = ["#E8F4FD", "#FFF3E0", "#F3E5F5", "#E8F5E9", "#FFFDE7", "#FCE4EC"]
+
+    fig, ax = plt.subplots(figsize=(TEXT_WIDTH, 4.5))
+
+    # Draw category background bands
+    for (cat_name, r_start, r_end), color in zip(categories, cat_colors):
+        ax.axhspan(r_start - 0.5, r_end - 0.5, color=color, alpha=0.35, zorder=0)
+        ax.text(-1.05, (r_start + r_end) / 2 - 0.5, cat_name,
+                ha="right", va="center", fontsize=7, fontstyle="italic", color="#555555")
+
+    # Draw filled cells
+    for i in range(len(param_order)):
+        for j in range(len(model_order)):
+            if matrix[i, j] == 1:
+                ax.add_patch(mpatches.FancyBboxPatch(
+                    (j - 0.38, i - 0.38), 0.76, 0.76,
+                    boxstyle="round,pad=0.05", facecolor="#4A90D9", alpha=0.85,
+                    edgecolor="white", linewidth=0.5, zorder=2))
+                ax.text(j, i, r"$\checkmark$", ha="center", va="center",
+                        fontsize=9, color="white", zorder=3)
+
+    # M4 separator (dashed vertical line before M4 column, index 6)
+    ax.axvline(x=5.5, color="#666666", linestyle="--", linewidth=1.0, zorder=1)
+
+    # Grid lines
+    for i in range(len(param_order) + 1):
+        ax.axhline(y=i - 0.5, color="#CCCCCC", linewidth=0.3, zorder=1)
+    for j in range(len(model_order) + 1):
+        ax.axvline(x=j - 0.5, color="#CCCCCC", linewidth=0.3, zorder=1)
+
+    ax.set_xlim(-0.5, len(model_order) - 0.5)
+    ax.set_ylim(len(param_order) - 0.5, -0.5)
+    ax.set_xticks(range(len(model_order)))
+    ax.set_xticklabels(model_labels, fontweight="bold")
+    ax.xaxis.set_ticks_position("top")
+    ax.xaxis.set_label_position("top")
+    ax.set_yticks(range(len(param_order)))
+    ax.set_yticklabels([local_display.get(p, p) for p in param_order])
+    ax.tick_params(axis="both", length=0)
+
+    # Category horizontal separators
+    for _, _, r_end in categories[:-1]:
+        ax.axhline(y=r_end - 0.5, color="#999999", linewidth=0.8, zorder=1)
+
+    plt.tight_layout()
+    plt.savefig(OUTPUT_DIR / "fig_model_overview.pdf", bbox_inches="tight")
+    plt.show()
+
+except Exception as e:
+    print(f"Model overview chart not available. ({e})")
+```
+
+```{python}
+#| label: fig-param-distributions
+#| fig-cap: "Distribution of key parameter estimates across choice-only models. Violins show the full distribution across 154 participants. Shared parameters are plotted for each model that includes them."
+#| fig-width: 7.0
+#| fig-height: 4.5
+
+try:
+    # Parameters of interest (shared WM params + alpha_neg)
+    target_params = ["alpha_neg", "phi", "rho", "capacity"]
+    target_labels = [PARAM_DISPLAY_NAMES.get(p, p) for p in target_params]
+
+    # Choice-only model order for x-axis
+    co_order = ["qlearning", "wmrl", "wmrl_m3", "wmrl_m5", "wmrl_m6a", "wmrl_m6b"]
+    co_labels = [MODEL_REGISTRY[k]["short_name"] for k in co_order]
+
+    fig, axes = plt.subplots(2, 2, figsize=(TEXT_WIDTH, 4.5))
+    axes = axes.flatten()
+
+    # Color palette for models
+    model_colors = plt.cm.tab10(np.linspace(0, 0.6, len(co_order)))
+
+    for idx, (param, label) in enumerate(zip(target_params, target_labels)):
+        ax = axes[idx]
+        positions = []
+        data_list = []
+        colors = []
+        tick_labels = []
+        pos = 0
+        for j, mkey in enumerate(co_order):
+            if mkey not in fits:
+                continue
+            df_m = fits[mkey]
+            if param not in df_m.columns:
+                continue
+            vals = df_m[param].dropna().values
+            if len(vals) == 0:
+                continue
+            data_list.append(vals)
+            positions.append(pos)
+            colors.append(model_colors[j])
+            tick_labels.append(co_labels[j])
+            pos += 1
+
+        if len(data_list) == 0:
+            ax.text(0.5, 0.5, "No data", ha="center", va="center", transform=ax.transAxes)
+            ax.set_title(label)
+            continue
+
+        parts = ax.violinplot(data_list, positions=positions, showmedians=True, showextrema=False)
+        for i, body in enumerate(parts["bodies"]):
+            body.set_facecolor(colors[i])
+            body.set_alpha(0.7)
+        parts["cmedians"].set_color("black")
+        parts["cmedians"].set_linewidth(1.2)
+
+        # Reference lines for bounded params
+        if param in ("phi", "rho"):
+            ax.axhline(y=0.0, color="#CCCCCC", linestyle=":", linewidth=0.5)
+            ax.axhline(y=1.0, color="#CCCCCC", linestyle=":", linewidth=0.5)
+
+        ax.set_xticks(range(len(tick_labels)))
+        ax.set_xticklabels(tick_labels, fontsize=7, rotation=30, ha="right")
+        ax.set_title(label)
+        ax.set_ylabel("Value")
+
+    plt.tight_layout()
+    plt.savefig(OUTPUT_DIR / "fig_param_distributions.pdf", bbox_inches="tight")
+    plt.show()
+
+except Exception as e:
+    print(f"Parameter distributions not available. ({e})")
+```
 
 ### Model Fitting {#sec-fitting}
 
@@ -340,8 +509,8 @@ except Exception as e:
 
 The winning model `{python} winner_display` (`{python} winner_n_params` free
 parameters) beat the second-best model `{python} second_display` by
-$\Delta\text{AIC} = $ `{python} f"{daic_vs_second:.1f}"` and
-$\Delta\text{BIC} = $ `{python} f"{dbic_vs_second:.1f}"`, constituting
+dAIC = `{python} f"{daic_vs_second:.1f}"` and
+dBIC = `{python} f"{dbic_vs_second:.1f}"`, constituting
 very strong evidence per @daw2011model ($\Delta > 10$).
 In per-participant AIC comparisons across the `{python} n_matched`
 participants with valid fits for all six models, `{python} winner_display`
@@ -470,7 +639,7 @@ $r = $ `{python} f"{float(df_winner_stats.loc[df_winner_stats['parameter']=='rho
 $p_{\text{uncorrected}} = $ `{python} f"{float(df_winner_stats.loc[df_winner_stats['parameter']=='rho', 'p_uncorrected'].iloc[0]):.3f}" if not df_winner_stats.empty and 'rho' in df_winner_stats['parameter'].values else "?"`)
 (@fig-parameters-by-group).
 Critically, neither the perseveration parameters ($\kappa_{\text{total}}$,
-$\kappa_{\text{share}}$) nor the learning rates ($\alpha_+$, $\alpha_-$)
+$\kappa_{\text{share}}$) nor the learning rates ($\alpha_{+}$, $\alpha_{-}$)
 differed significantly between groups.
 
 ### Continuous Trauma Associations {#sec-correlations}
@@ -671,27 +840,27 @@ between WM decay ($\phi$) and IES-R Hyperarousal, which reached uncorrected
 significance ($p < .05$) in five of six WM-RL models (M2, M3, M4, M5, M6b;
 $r_s$ range: +0.19 to +0.27). A complementary negative association between
 WM reliability ($\rho$) and IES-R Hyperarousal was significant in four
-models (M2, M3, M4, M5; $r_s$ range: $-$0.19 to $-$0.26). Together, these
+models (M2, M3, M4, M5; $r_s$ range: --0.19 to --0.26). Together, these
 findings suggest that hyperarousal symptoms are specifically associated with
 degraded working memory maintenance: participants reporting more
-hyperarousal rely less on WM ($\downarrow \rho$) and what WM they do use
-decays faster ($\uparrow \phi$).
+hyperarousal rely less on WM (lower $\rho$) and what WM they do use
+decays faster (higher $\phi$).
 
 Additional cross-model patterns included a negative association between
 random responding ($\varepsilon$) and LEC-5 total trauma events (significant
-in M3, M5, M6b; $r_s$ range: $-$0.30 to $-$0.34), and a negative
-association between negative learning rate ($\alpha_-$) and LEC-5 total
-events (significant in M2, M4, M5; $r_s$ range: $-$0.18 to $-$0.30).
+in M3, M5, M6b; $r_s$ range: --0.30 to --0.34), and a negative
+association between negative learning rate ($\alpha_{-}$) and LEC-5 total
+events (significant in M2, M4, M5; $r_s$ range: --0.18 to --0.30).
 
 
 ## Discussion {#sec-discussion}
 
 **Summary of findings.** [To be completed: Briefly summarize which parameters
 differed across groups and whether perseveration ($\kappa$) or
-learning-rate effects ($\alpha_-$) better explained group differences.]
+learning-rate effects ($\alpha_{-}$) better explained group differences.]
 
 **Perseveration vs. learning rates.** The dissociation between $\kappa$
-(motor perseveration) and $\alpha_-$ (negative-outcome learning rate) is
+(motor perseveration) and $\alpha_{-}$ (negative-outcome learning rate) is
 central to interpreting RL deficits in trauma.
 Prior work conflated these mechanisms; the WM-RL framework of @senta2025
 allows them to be estimated simultaneously.
