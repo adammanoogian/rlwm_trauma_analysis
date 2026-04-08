@@ -87,6 +87,13 @@ def load_participant_data():
 
     df = pd.read_csv(data_path)
 
+    # Normalize column names (LESS → LEC naming convention used downstream)
+    rename_map = {
+        'less_total_events': 'lec_total_events',
+        'less_personal_events': 'lec_personal_events',
+    }
+    df = df.rename(columns={k: v for k, v in rename_map.items() if k in df.columns})
+
     # Check required columns
     required_cols = ['sona_id', 'lec_total_events', 'ies_total',
                      'accuracy_overall', 'mean_rt_overall']

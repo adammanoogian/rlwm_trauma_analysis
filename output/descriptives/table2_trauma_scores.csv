@@ -1,7 +1,6 @@
-Variable,Trauma - No Ongoing Impact,Trauma - Ongoing Impact
-IES-R Avoidance,4.79 ± 4.48,15.21 ± 5.44
-IES-R Hyperarousal,1.86 ± 2.40,9.42 ± 5.01
-IES-R Intrusion,4.34 ± 3.43,13.89 ± 4.34
-IES-R Total,11.00 ± 8.29,38.53 ± 11.01
-LESS Personal Events,4.38 ± 2.04,5.11 ± 2.49
-LESS Total Events,10.62 ± 2.82,10.68 ± 3.79
+Variable,No Trauma,Trauma - No Ongoing Impact,Trauma - Ongoing Impact
+IES-R Avoidance,16.00 ± nan,5.07 ± 4.18,17.19 ± 5.96
+IES-R Hyperarousal,22.00 ± nan,1.74 ± 2.42,11.94 ± 5.47
+IES-R Intrusion,16.00 ± nan,3.93 ± 3.05,14.44 ± 5.44
+IES-R Total,54.00 ± nan,10.74 ± 7.58,43.57 ± 14.00
+LEC-5 Total Events,0.00 ± nan,9.62 ± 3.46,10.07 ± 3.49

@@ -2,10 +2,14 @@
 TRAUMA GROUP VALIDATION REPORT
 ================================================================================
 
-HYPOTHESIS-DRIVEN GROUPS (Median Split)
+HYPOTHESIS-DRIVEN GROUPS
 --------------------------------------------------------------------------------
 
-Outcome: Overall Accuracy
-  Test: Kruskal-Wallis H
-  Statistic: 2.491
-  p-value: 0.2878
+No results available
+
+================================================================================
+INTERPRETATION NOTES
+--------------------------------------------------------------------------------
+
+With small N, statistical power is limited. Non-significant results
+do not rule out true group differences.

@@ -273,6 +273,14 @@ def generate_descriptive_tables(output_dir):
         return
 
     summary_df = pd.read_csv(summary_path)
+    # Normalize column names (LESS → LEC naming convention used downstream)
+    rename_map = {
+        'less_total_events': 'lec_total_events',
+        'less_personal_events': 'lec_personal_events',
+    }
+    summary_df = summary_df.rename(
+        columns={k: v for k, v in rename_map.items() if k in summary_df.columns}
+    )
     trials_df = pd.read_csv(trials_path) if trials_path.exists() else None
 
     print(f"\nLoaded {len(summary_df)} participants")
@@ -457,6 +465,14 @@ def run_statistical_analyses(output_dir):
         return
 
     summary_df = pd.read_csv(summary_path)
+    # Normalize column names (LESS → LEC naming convention used downstream)
+    rename_map = {
+        'less_total_events': 'lec_total_events',
+        'less_personal_events': 'lec_personal_events',
+    }
+    summary_df = summary_df.rename(
+        columns={k: v for k, v in rename_map.items() if k in summary_df.columns}
+    )
     trials_df = pd.read_csv(trials_path) if trials_path.exists() else None
 
     output_path = Path(output_dir)

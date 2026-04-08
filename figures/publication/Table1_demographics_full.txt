@@ -1,6 +1,0 @@
-Table 1: Participant Demographics
-================================================================================
-
-     Trauma Group  N Age (years)             Gender                        Education
-No Ongoing Impact 27  34.0 ± nan Female: 1 (100.0%) Post Graduate degree: 1 (100.0%)
-   Ongoing Impact 21         N/A                N/A                              N/A

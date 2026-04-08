@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-04-03)
 Phase: Not started (next milestone not yet defined)
 Plan: Not started
 Status: v3.0 milestone complete and archived. Manuscript in progress. Cluster re-fit pending.
-Last activity: 2026-04-07 — Full pipeline audit, 4 quick tasks (002-004), Bayesian regression, manuscript Results written
+Last activity: 2026-04-08 — Quick task 005: pipeline regeneration (N=154) + manuscript figures
 
 ## Performance Metrics
 
@@ -119,6 +119,7 @@ Last activity: 2026-04-07 — Full pipeline audit, 4 quick tasks (002-004), Baye
 | 002 | Pipeline fixes, convergence assessment, recovery config, MODEL_REGISTRY | 2026-04-07 | 3095b92 | [002-pipeline-fixes-convergence-recovery-config](./quick/002-pipeline-fixes-convergence-recovery-config/) |
 | 003 | Softcode manuscript: winning model, group names, n_starts from data files | 2026-04-07 | d7ea897 | [003-quarto-softcoded-winning-model](./quick/003-quarto-softcoded-winning-model/) |
 | 004 | Pipeline sync: survey data fix (scripts 15/16), uncorrected p-values in manuscript, Bayesian MODEL_REGISTRY | 2026-04-07 | 4df1340 | [004-pipeline-sync-uncorrected-peb-config](./quick/004-pipeline-sync-uncorrected-peb-config/) |
+| 005 | Re-run pipeline (N=154), model overview + distribution figures in manuscript | 2026-04-08 | 6b045a4 | [005-rerun-pipeline-analyses-update-quarto-manuscript](./quick/005-rerun-pipeline-analyses-update-quarto-manuscript/) |
 
 ### Key Decisions Added (quick-002)
 
@@ -131,6 +132,6 @@ Last activity: 2026-04-07 — Full pipeline audit, 4 quick tasks (002-004), Baye
 
 ## Session Continuity
 
-Last session: 2026-04-07
-Stopped at: Completed quick task 004 — survey data fix (scripts 15/16), uncorrected p-values in manuscript, Bayesian MODEL_REGISTRY support.
+Last session: 2026-04-08
+Stopped at: Completed quick task 005 — pipeline regeneration (N=154), model overview + param distribution figures in manuscript.
 Resume file: None
