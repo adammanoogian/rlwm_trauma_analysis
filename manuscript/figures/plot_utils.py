@@ -48,8 +48,8 @@ MANUSCRIPT_STYLE: dict[str, object] = {
 # ── Trauma group colors (keyed by actual group names from group_assignments.csv) ──
 
 GROUP_COLORS: dict[str, str] = {
-    "Trauma Exposure - No Ongoing Impact": "#06A77D",  # Green
-    "Trauma Exposure - Ongoing Impact": "#D62246",     # Red
+    "Trauma - No Ongoing Impact": "#06A77D",  # Green
+    "Trauma - Ongoing Impact": "#D62246",     # Red
 }
 """
 Trauma group color palette.
@@ -59,8 +59,8 @@ Two groups: no ongoing impact (green) and ongoing impact (red).
 """
 
 GROUP_SHORT_LABELS: dict[str, str] = {
-    "Trauma Exposure - No Ongoing Impact": "No Impact",
-    "Trauma Exposure - Ongoing Impact": "Ongoing Impact",
+    "Trauma - No Ongoing Impact": "No Impact",
+    "Trauma - Ongoing Impact": "Ongoing Impact",
 }
 """
 Short axis tick labels for trauma groups.

@@ -114,6 +114,10 @@ dbic_vs_second = df_comparison.iloc[1]["delta_bic"]
 # ── Load group assignments ────────────────────────────────────────────────────
 df_groups = pd.read_csv(GROUPS_DIR / "group_assignments.csv")
 group_col = "hypothesis_group"
+# Keep only the two trauma-exposure groups that have GROUP_COLORS defined;
+# "No Trauma" participants are excluded from between-group comparisons.
+_valid_groups = set(GROUP_COLORS.keys())
+df_groups = df_groups[df_groups[group_col].isin(_valid_groups)].copy()
 groups = sorted(df_groups[group_col].unique())
 group_counts = df_groups[group_col].value_counts().to_dict()
 
@@ -554,9 +558,9 @@ try:
 
     df_cmp["Model"] = df_cmp["model"].map(short_to_display)
     df_cmp["k"] = df_cmp["model"].map(short_to_nparams)
-    df_cmp["Aggregate AIC"] = df_cmp["aggregate_aic"].round(1)
-    df_cmp["Aggregate BIC"] = df_cmp["aggregate_bic"].round(1)
-    df_cmp["dAIC"] = df_cmp["delta_aic"].round(1)
+    df_cmp["Aggregate AIC"] = df_cmp["aggregate_aic"].apply(lambda x: f"{x:,.0f}")
+    df_cmp["Aggregate BIC"] = df_cmp["aggregate_bic"].apply(lambda x: f"{x:,.0f}")
+    df_cmp["dAIC"] = df_cmp["delta_aic"].apply(lambda x: f"{x:.1f}")
     df_cmp["Akaike Weight"] = df_cmp["akaike_weight"].apply(lambda w: f"{w:.4f}")
 
     df_display = df_cmp[["Model", "k", "Aggregate AIC", "Aggregate BIC", "dAIC", "Akaike Weight"]].reset_index(drop=True)
@@ -673,6 +677,7 @@ try:
     df_grp = df_winner_stats[["parameter", "n1", "n2", "U", "p_uncorrected", "p_bonferroni", "r_rank_biserial", "mean1", "mean2"]].copy()
     df_grp.columns = ["Parameter", "n (No Impact)", "n (Ongoing)", "U", "p", "p (corrected)", "r", "M (No Impact)", "M (Ongoing)"]
     df_grp["Parameter"] = df_grp["Parameter"].map(lambda p: PARAM_TABLE_NAMES.get(p, p))
+    df_grp["U"] = df_grp["U"].apply(lambda x: f"{x:.0f}")
     df_grp["p"] = df_grp["p"].apply(lambda x: f"{x:.3f}")
     df_grp["p (corrected)"] = df_grp["p (corrected)"].apply(lambda x: f"{x:.3f}")
     df_grp["r"] = df_grp["r"].apply(lambda x: f"{x:.2f}")

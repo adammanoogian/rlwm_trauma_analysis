@@ -166,8 +166,8 @@ exposure and symptom severity were assessed via the Life Events
 Checklist for DSM-5 (LEC-5; \citet{weathers2013life}) and the Impact of
 Event Scale--Revised (IES-R; \citet{weiss2007impact}). Participants were
 classified into two groups based on LEC-5 endorsement and IES-R total
-score: \textbf{Trauma Exposure - No Ongoing Impact} (n = 29) and
-\textbf{Trauma Exposure - Ongoing Impact} (n = 24).
+score: \textbf{Trauma - No Ongoing Impact} (n = 58) and \textbf{Trauma -
+Ongoing Impact} (n = 101).
 
 \subsection{Task}\label{sec-task}
 
@@ -190,13 +190,34 @@ behaviour arises from a mixture of reinforcement learning (RL) and
 working memory (WM) policies, with the WM contribution weighted by
 capacity and set size.
 
-\textbf{Core WM-RL mixture.} The action probability for stimulus \(s\)
-is: \[
-p(a \mid s) = w(s) \cdot \text{WM}(s, a) + (1 - w(s)) \cdot Q(s, a)
-\] where the WM weight adapts to set size \(n_s\) and capacity parameter
-\(K\): \[
-w(s) = \rho \cdot \min\!\left(1,\; \frac{K}{n_s}\right)
+\textbf{Core WM-RL architecture.} On each trial, WM decays globally
+toward a uniform baseline, then overwrites the observed
+stimulus--action--reward association: \[
+\text{WM}(s,a) \leftarrow (1 - \phi)\,\text{WM}(s,a) + \phi / n_A
+\qquad\text{(decay)},\qquad
+\text{WM}(s,a) \leftarrow r
+\qquad\text{(update)}
+\] RL values are updated via an asymmetric delta rule: \[
+Q(s,a) \leftarrow Q(s,a) + \alpha\,\delta, \qquad
+\delta = r - Q(s,a), \qquad
+\alpha = \begin{cases}\alpha_{+} & \delta > 0 \\ \alpha_{-} & \delta \leq 0\end{cases}
+\] Both systems produce softmax choice probabilities (\(\beta = 50\),
+fixed), combined via an adaptive weight: \[
+\omega = \rho \cdot \min\!\left(1,\; K / n_s\right),\qquad
+p_{\text{hybrid}}(a \mid s) = \omega\,p_{\text{WM}} + (1-\omega)\,p_{\text{RL}}
 \]
+
+\textbf{Epsilon noise and dual perseveration (M6b).} The winning model
+adds uniform noise and two perseveration kernels (global and
+stimulus-specific) via a stick-breaking parameterization: \[
+\kappa = \kappa_{\text{total}} \cdot \kappa_{\text{share}}, \qquad
+\kappa_s = \kappa_{\text{total}} \cdot (1 - \kappa_{\text{share}})
+\] The final choice probability is: \[
+p(a \mid s) = (1 - \kappa - \kappa_s)\left[\frac{\varepsilon}{n_A} + (1-\varepsilon)\,p_{\text{hybrid}}\right]
++ \kappa\,\mathbf{1}[a = a_{\text{last}}]
++ \kappa_s\,\mathbf{1}[a = a_{\text{last}}^{(s)}]
+\] where \(a_{\text{last}}\) is the globally previous action and
+\(a_{\text{last}}^{(s)}\) is the previous action for stimulus \(s\).
 
 \begin{tcolorbox}[enhanced jigsaw, arc=.35mm, bottomrule=.15mm, bottomtitle=1mm, breakable, colback=white, colbacktitle=quarto-callout-note-color!10!white, colframe=quarto-callout-note-color-frame, coltitle=black, left=2mm, leftrule=.75mm, opacityback=0, opacitybacktitle=0.6, rightrule=.15mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Model Parameter Glossary}, titlerule=0mm, toprule=.15mm, toptitle=1mm]
 
@@ -322,7 +343,7 @@ comparison; see text.}
 
 \tabularnewline
 
-\caption{}\label{T_6a301}\tabularnewline
+\caption{}\label{T_f4a34}\tabularnewline
 \toprule\noalign{}
 Model & k & Aggregate AIC & Aggregate BIC & dAIC & Akaike Weight \\
 \midrule\noalign{}
@@ -333,17 +354,12 @@ Model & k & Aggregate AIC & Aggregate BIC & dAIC & Akaike Weight \\
 \endhead
 \bottomrule\noalign{}
 \endlastfoot
-M6b: WM-RL+dual & 8 & 143324.900000 & 148971.400000 & 0.000000 &
-1.0000 \\
-M5: WM-RL+phi\_rl & 8 & 143897.800000 & 149544.300000 & 572.900000 &
-0.0000 \\
-M6a: WM-RL+kappa\_s & 7 & 144771.600000 & 149712.300000 & 1446.700000 &
-0.0000 \\
-M3: WM-RL+kappa & 7 & 144865.900000 & 149806.600000 & 1541.000000 &
-0.0000 \\
-M2: WM-RL & 6 & 147328.200000 & 151563.000000 & 4003.200000 & 0.0000 \\
-M1: Q-Learning & 3 & 152143.100000 & 154260.600000 & 8818.200000 &
-0.0000 \\
+M6b: WM-RL+dual & 8 & 143,325 & 148,971 & 0.0 & 1.0000 \\
+M5: WM-RL+phi\_rl & 8 & 143,898 & 149,544 & 572.9 & 0.0000 \\
+M6a: WM-RL+kappa\_s & 7 & 144,772 & 149,712 & 1446.7 & 0.0000 \\
+M3: WM-RL+kappa & 7 & 144,866 & 149,807 & 1541.0 & 0.0000 \\
+M2: WM-RL & 6 & 147,328 & 151,563 & 4003.2 & 0.0000 \\
+M1: Q-Learning & 3 & 152,143 & 154,261 & 8818.2 & 0.0000 \\
 
 \end{longtable}
 
@@ -364,7 +380,7 @@ model. Values are mean (SD) across all participants with valid fits.}
 
 \tabularnewline
 
-\caption{}\label{T_4edf5}\tabularnewline
+\caption{}\label{T_51d73}\tabularnewline
 \toprule\noalign{}
 Parameter & Mean & SD & 95\% CI & N \\
 \midrule\noalign{}
@@ -375,19 +391,14 @@ Parameter & Mean & SD & 95\% CI & N \\
 \endhead
 \bottomrule\noalign{}
 \endlastfoot
-\$\textbackslash alpha\_+\$ & 0.028 & 0.101 & {[}0.012, 0.044{]} &
-154 \\
-\$\textbackslash alpha\_-\$ & 0.023 & 0.121 & {[}0.004, 0.042{]} &
-154 \\
-\$\textbackslash phi\$ & 0.239 & 0.176 & {[}0.212, 0.267{]} & 154 \\
-\$\textbackslash rho\$ & 0.855 & 0.195 & {[}0.824, 0.885{]} & 154 \\
-\$K\$ & 3.308 & 1.216 & {[}3.116, 3.501{]} & 154 \\
-\$\textbackslash kappa\_\{\textbackslash mathrm\{total\}\}\$ & 0.148 &
-0.114 & {[}0.130, 0.166{]} & 154 \\
-\$\textbackslash kappa\_\{\textbackslash mathrm\{share\}\}\$ & 0.271 &
-0.273 & {[}0.228, 0.314{]} & 154 \\
-\$\textbackslash varepsilon\$ & 0.061 & 0.098 & {[}0.045, 0.076{]} &
-154 \\
+alpha+ & 0.028 & 0.101 & {[}0.012, 0.044{]} & 154 \\
+alpha- & 0.023 & 0.121 & {[}0.004, 0.042{]} & 154 \\
+phi & 0.239 & 0.176 & {[}0.212, 0.267{]} & 154 \\
+rho & 0.855 & 0.195 & {[}0.824, 0.885{]} & 154 \\
+K & 3.308 & 1.216 & {[}3.116, 3.501{]} & 154 \\
+kappa\_total & 0.148 & 0.114 & {[}0.130, 0.166{]} & 154 \\
+kappa\_share & 0.271 & 0.273 & {[}0.228, 0.314{]} & 154 \\
+epsilon & 0.061 & 0.098 & {[}0.045, 0.076{]} & 154 \\
 
 \end{longtable}
 
@@ -398,7 +409,7 @@ To examine whether model parameters differed between trauma groups, we
 compared parameter estimates between participants classified as No
 Impact and Ongoing Impact using Mann-Whitney U tests (uncorrected
 \(\alpha = 0.05\); Bonferroni-corrected p-values for 8 comparisons
-reported as sensitivity). 45 participants with valid winning-model fits
+reported as sensitivity). 153 participants with valid winning-model fits
 were matched to group assignments.
 
 \begin{figure}[H]
@@ -423,7 +434,7 @@ r.}
 
 \tabularnewline
 
-\caption{}\label{T_68c16}\tabularnewline
+\caption{}\label{T_84b0d}\tabularnewline
 \toprule\noalign{}
 Parameter & n (No Impact) & n (Ongoing) & U & p & p (corrected) & r & M
 (No Impact) & M (Ongoing) \\
@@ -436,21 +447,14 @@ Parameter & n (No Impact) & n (Ongoing) & U & p & p (corrected) & r & M
 \endhead
 \bottomrule\noalign{}
 \endlastfoot
-\$\textbackslash alpha\_+\$ & 26 & 19 & 217.000000 & 0.498 & 1.000 &
-0.12 & 0.012 & 0.015 \\
-\$\textbackslash alpha\_-\$ & 26 & 19 & 249.500000 & 0.933 & 1.000 &
--0.01 & 0.007 & 0.054 \\
-\$\textbackslash phi\$ & 26 & 19 & 178.000000 & 0.115 & 0.924 & 0.28 &
-0.206 & 0.273 \\
-\$\textbackslash rho\$ & 26 & 19 & 273.000000 & 0.556 & 1.000 & -0.11 &
-0.844 & 0.857 \\
-\$K\$ & 26 & 19 & 249.000000 & 0.973 & 1.000 & -0.01 & 3.523 & 3.442 \\
-\$\textbackslash kappa\_\{\textbackslash mathrm\{total\}\}\$ & 26 & 19 &
-295.000000 & 0.275 & 1.000 & -0.19 & 0.171 & 0.125 \\
-\$\textbackslash kappa\_\{\textbackslash mathrm\{share\}\}\$ & 26 & 19 &
-240.500000 & 0.890 & 1.000 & 0.03 & 0.254 & 0.274 \\
-\$\textbackslash varepsilon\$ & 26 & 19 & 242.000000 & 0.913 & 1.000 &
-0.02 & 0.019 & 0.022 \\
+alpha+ & 26 & 19 & 217 & 0.498 & 1.000 & 0.12 & 0.012 & 0.015 \\
+alpha- & 26 & 19 & 250 & 0.933 & 1.000 & -0.01 & 0.007 & 0.054 \\
+phi & 26 & 19 & 178 & 0.115 & 0.924 & 0.28 & 0.206 & 0.273 \\
+rho & 26 & 19 & 273 & 0.556 & 1.000 & -0.11 & 0.844 & 0.857 \\
+K & 26 & 19 & 249 & 0.973 & 1.000 & -0.01 & 3.523 & 3.442 \\
+kappa\_total & 26 & 19 & 295 & 0.275 & 1.000 & -0.19 & 0.171 & 0.125 \\
+kappa\_share & 26 & 19 & 240 & 0.890 & 1.000 & 0.03 & 0.254 & 0.274 \\
+epsilon & 26 & 19 & 242 & 0.913 & 1.000 & 0.02 & 0.019 & 0.022 \\
 
 \end{longtable}
 
@@ -499,7 +503,7 @@ FWE-corrected p-values shown. No correlations survived correction.}
 
 \tabularnewline
 
-\caption{}\label{T_9af95}\tabularnewline
+\caption{}\label{T_dfb02}\tabularnewline
 \toprule\noalign{}
 Parameter & Predictor & N & rho & p (uncorr.) & p (FWE) \\
 \midrule\noalign{}
@@ -510,20 +514,14 @@ Parameter & Predictor & N & rho & p (uncorr.) & p (FWE) \\
 \endhead
 \bottomrule\noalign{}
 \endlastfoot
-\$\textbackslash varepsilon\$ & lec\_personal & 154 & -0.291 & 0.0002 &
-0.010 \\
-\$\textbackslash phi\$ & ies\_intrusion & 154 & 0.256 & 0.0014 &
-0.054 \\
-\$\textbackslash phi\$ & ies\_hyperarousal & 154 & 0.241 & 0.0026 &
-0.103 \\
-\$\textbackslash kappa\_\{\textbackslash mathrm\{total\}\}\$ &
-lec\_total & 154 & 0.234 & 0.0034 & 0.137 \\
-\$\textbackslash phi\$ & ies\_avoidance & 154 & 0.218 & 0.0066 &
-0.262 \\
-\$\textbackslash varepsilon\$ & lec\_total & 154 & -0.171 & 0.0337 &
-1.000 \\
-\$K\$ & lec\_total & 154 & -0.149 & 0.0651 & 1.000 \\
-\$K\$ & ies\_avoidance & 154 & -0.120 & 0.1376 & 1.000 \\
+epsilon & lec\_personal & 154 & -0.291 & 0.0002 & 0.010 \\
+phi & ies\_intrusion & 154 & 0.256 & 0.0014 & 0.054 \\
+phi & ies\_hyperarousal & 154 & 0.241 & 0.0026 & 0.103 \\
+kappa\_total & lec\_total & 154 & 0.234 & 0.0034 & 0.137 \\
+phi & ies\_avoidance & 154 & 0.218 & 0.0066 & 0.262 \\
+epsilon & lec\_total & 154 & -0.171 & 0.0337 & 1.000 \\
+K & lec\_total & 154 & -0.149 & 0.0651 & 1.000 \\
+K & ies\_avoidance & 154 & -0.120 & 0.1376 & 1.000 \\
 
 \end{longtable}
 
@@ -547,7 +545,7 @@ parameters on IES-R subscales (Intrusion, Avoidance, Hyperarousal). Beta
 
 \tabularnewline
 
-\caption{}\label{T_68e54}\tabularnewline
+\caption{}\label{T_fbaca}\tabularnewline
 \toprule\noalign{}
 Parameter & Predictor & β & SE & 95\% CI & t & p \\
 \midrule\noalign{}
@@ -558,54 +556,54 @@ Parameter & Predictor & β & SE & 95\% CI & t & p \\
 \endhead
 \bottomrule\noalign{}
 \endlastfoot
-\$\textbackslash alpha\_+\$ & Ies-R Intrusion & 0.0030 & 0.002000 &
-{[}-0.001, 0.007{]} & 1.33 & 0.185 \\
-\$\textbackslash alpha\_+\$ & Ies-R Avoidance & -0.0010 & 0.002000 &
-{[}-0.004, 0.002{]} & -0.52 & 0.605 \\
-\$\textbackslash alpha\_+\$ & Ies-R Hyperarousal & -0.0020 & 0.002000 &
-{[}-0.006, 0.003{]} & -0.81 & 0.420 \\
-\$\textbackslash alpha\_-\$ & Ies-R Intrusion & 0.0020 & 0.003000 &
-{[}-0.004, 0.007{]} & 0.67 & 0.502 \\
-\$\textbackslash alpha\_-\$ & Ies-R Avoidance & -0.0010 & 0.002000 &
-{[}-0.005, 0.003{]} & -0.58 & 0.560 \\
-\$\textbackslash alpha\_-\$ & Ies-R Hyperarousal & -0.0010 & 0.003000 &
-{[}-0.006, 0.005{]} & -0.22 & 0.827 \\
-\$\textbackslash phi\$ & Ies-R Intrusion & 0.0010 & 0.004000 &
-{[}-0.007, 0.008{]} & 0.22 & 0.826 \\
-\$\textbackslash phi\$ & Ies-R Avoidance & -0.0010 & 0.003000 &
-{[}-0.007, 0.005{]} & -0.34 & 0.732 \\
-\$\textbackslash phi\$ & Ies-R Hyperarousal & 0.0060 & 0.004000 &
-{[}-0.002, 0.013{]} & 1.50 & 0.135 \\
-\$\textbackslash rho\$ & Ies-R Intrusion & 0.0070 & 0.004000 &
-{[}-0.002, 0.015{]} & 1.57 & 0.119 \\
-\$\textbackslash rho\$ & Ies-R Avoidance & 0.0000 & 0.003000 &
-{[}-0.006, 0.007{]} & 0.07 & 0.945 \\
-\$\textbackslash rho\$ & Ies-R Hyperarousal & -0.0060 & 0.004000 &
-{[}-0.015, 0.002{]} & -1.46 & 0.146 \\
+alpha+ & Ies-R Intrusion & 0.0030 & 0.002000 & {[}-0.001, 0.007{]} &
+1.33 & 0.185 \\
+alpha+ & Ies-R Avoidance & -0.0010 & 0.002000 & {[}-0.004, 0.002{]} &
+-0.52 & 0.605 \\
+alpha+ & Ies-R Hyperarousal & -0.0020 & 0.002000 & {[}-0.006, 0.003{]} &
+-0.81 & 0.420 \\
+alpha- & Ies-R Intrusion & 0.0020 & 0.003000 & {[}-0.004, 0.007{]} &
+0.67 & 0.502 \\
+alpha- & Ies-R Avoidance & -0.0010 & 0.002000 & {[}-0.005, 0.003{]} &
+-0.58 & 0.560 \\
+alpha- & Ies-R Hyperarousal & -0.0010 & 0.003000 & {[}-0.006, 0.005{]} &
+-0.22 & 0.827 \\
+phi & Ies-R Intrusion & 0.0010 & 0.004000 & {[}-0.007, 0.008{]} & 0.22 &
+0.826 \\
+phi & Ies-R Avoidance & -0.0010 & 0.003000 & {[}-0.007, 0.005{]} & -0.34
+& 0.732 \\
+phi & Ies-R Hyperarousal & 0.0060 & 0.004000 & {[}-0.002, 0.013{]} &
+1.50 & 0.135 \\
+rho & Ies-R Intrusion & 0.0070 & 0.004000 & {[}-0.002, 0.015{]} & 1.57 &
+0.119 \\
+rho & Ies-R Avoidance & 0.0000 & 0.003000 & {[}-0.006, 0.007{]} & 0.07 &
+0.945 \\
+rho & Ies-R Hyperarousal & -0.0060 & 0.004000 & {[}-0.015, 0.002{]} &
+-1.46 & 0.146 \\
 wm\_capacity\_mean & Ies-R Intrusion & 0.0110 & 0.027000 & {[}-0.043,
 0.064{]} & 0.40 & 0.692 \\
 wm\_capacity\_mean & Ies-R Avoidance & -0.0100 & 0.020000 & {[}-0.050,
 0.030{]} & -0.49 & 0.625 \\
 wm\_capacity\_mean & Ies-R Hyperarousal & -0.0160 & 0.027000 &
 {[}-0.070, 0.038{]} & -0.60 & 0.552 \\
-\$\textbackslash kappa\_\{\textbackslash mathrm\{total\}\}\$ & Ies-R
-Intrusion & -0.0010 & 0.003000 & {[}-0.006, 0.004{]} & -0.22 & 0.824 \\
-\$\textbackslash kappa\_\{\textbackslash mathrm\{total\}\}\$ & Ies-R
-Avoidance & -0.0010 & 0.002000 & {[}-0.004, 0.003{]} & -0.28 & 0.780 \\
-\$\textbackslash kappa\_\{\textbackslash mathrm\{total\}\}\$ & Ies-R
-Hyperarousal & 0.0020 & 0.003000 & {[}-0.003, 0.007{]} & 0.90 & 0.371 \\
-\$\textbackslash kappa\_\{\textbackslash mathrm\{share\}\}\$ & Ies-R
-Intrusion & -0.0030 & 0.006000 & {[}-0.015, 0.009{]} & -0.52 & 0.607 \\
-\$\textbackslash kappa\_\{\textbackslash mathrm\{share\}\}\$ & Ies-R
-Avoidance & -0.0020 & 0.005000 & {[}-0.011, 0.007{]} & -0.42 & 0.677 \\
-\$\textbackslash kappa\_\{\textbackslash mathrm\{share\}\}\$ & Ies-R
-Hyperarousal & 0.0040 & 0.006000 & {[}-0.009, 0.016{]} & 0.59 & 0.558 \\
-\$\textbackslash varepsilon\$ & Ies-R Intrusion & 0.0010 & 0.002000 &
-{[}-0.004, 0.005{]} & 0.30 & 0.768 \\
-\$\textbackslash varepsilon\$ & Ies-R Avoidance & -0.0000 & 0.002000 &
-{[}-0.003, 0.003{]} & -0.11 & 0.913 \\
-\$\textbackslash varepsilon\$ & Ies-R Hyperarousal & 0.0020 & 0.002000 &
-{[}-0.002, 0.007{]} & 1.07 & 0.288 \\
+kappa\_total & Ies-R Intrusion & -0.0010 & 0.003000 & {[}-0.006,
+0.004{]} & -0.22 & 0.824 \\
+kappa\_total & Ies-R Avoidance & -0.0010 & 0.002000 & {[}-0.004,
+0.003{]} & -0.28 & 0.780 \\
+kappa\_total & Ies-R Hyperarousal & 0.0020 & 0.003000 & {[}-0.003,
+0.007{]} & 0.90 & 0.371 \\
+kappa\_share & Ies-R Intrusion & -0.0030 & 0.006000 & {[}-0.015,
+0.009{]} & -0.52 & 0.607 \\
+kappa\_share & Ies-R Avoidance & -0.0020 & 0.005000 & {[}-0.011,
+0.007{]} & -0.42 & 0.677 \\
+kappa\_share & Ies-R Hyperarousal & 0.0040 & 0.006000 & {[}-0.009,
+0.016{]} & 0.59 & 0.558 \\
+epsilon & Ies-R Intrusion & 0.0010 & 0.002000 & {[}-0.004, 0.005{]} &
+0.30 & 0.768 \\
+epsilon & Ies-R Avoidance & -0.0000 & 0.002000 & {[}-0.003, 0.003{]} &
+-0.11 & 0.913 \\
+epsilon & Ies-R Hyperarousal & 0.0020 & 0.002000 & {[}-0.002, 0.007{]} &
+1.07 & 0.288 \\
 
 \end{longtable}
 
@@ -631,7 +629,7 @@ P(direction) shown. Moderate evidence: P(dir) \textgreater{} 0.90.}
 
 \tabularnewline
 
-\caption{}\label{T_a8beb}\tabularnewline
+\caption{}\label{T_79009}\tabularnewline
 \toprule\noalign{}
 Parameter & β (mean) & SD & 95\% HDI & P(direction) & Evidence \\
 \midrule\noalign{}
@@ -769,7 +767,7 @@ not comparable to choice-only models M1--M6b.}
 
 \tabularnewline
 
-\caption{}\label{T_16cf7}\tabularnewline
+\caption{}\label{T_2c570}\tabularnewline
 \toprule\noalign{}
 Model & Free Parameters & k & Type \\
 \midrule\noalign{}
@@ -780,34 +778,18 @@ Model & Free Parameters & k & Type \\
 \endhead
 \bottomrule\noalign{}
 \endlastfoot
-M1: Q-Learning & \$\textbackslash alpha\_+\$,
-\$\textbackslash alpha\_-\$, \$\textbackslash varepsilon\$ & 3 & Choice
-only \\
-M2: WM-RL & \$\textbackslash alpha\_+\$, \$\textbackslash alpha\_-\$,
-\$\textbackslash phi\$, \$\textbackslash rho\$, \$K\$,
-\$\textbackslash varepsilon\$ & 6 & Choice only \\
-M3: WM-RL+kappa & \$\textbackslash alpha\_+\$,
-\$\textbackslash alpha\_-\$, \$\textbackslash phi\$,
-\$\textbackslash rho\$, \$K\$, \$\textbackslash kappa\$,
-\$\textbackslash varepsilon\$ & 7 & Choice only \\
-M5: WM-RL+phi\_rl & \$\textbackslash alpha\_+\$,
-\$\textbackslash alpha\_-\$, \$\textbackslash phi\$,
-\$\textbackslash rho\$, \$K\$, \$\textbackslash kappa\$,
-\$\textbackslash phi\_\{\textbackslash mathrm\{RL\}\}\$,
-\$\textbackslash varepsilon\$ & 8 & Choice only \\
-M6a: WM-RL+kappa\_s & \$\textbackslash alpha\_+\$,
-\$\textbackslash alpha\_-\$, \$\textbackslash phi\$,
-\$\textbackslash rho\$, \$K\$, \$\textbackslash kappa\_s\$,
-\$\textbackslash varepsilon\$ & 7 & Choice only \\
-M6b: WM-RL+dual & \$\textbackslash alpha\_+\$,
-\$\textbackslash alpha\_-\$, \$\textbackslash phi\$,
-\$\textbackslash rho\$, \$K\$,
-\$\textbackslash kappa\_\{\textbackslash mathrm\{total\}\}\$,
-\$\textbackslash kappa\_\{\textbackslash mathrm\{share\}\}\$,
-\$\textbackslash varepsilon\$ & 8 & Choice only \\
-M4: RLWM-LBA & \$\textbackslash alpha\_+\$, \$\textbackslash alpha\_-\$,
-\$\textbackslash phi\$, \$\textbackslash rho\$, \$K\$,
-\$\textbackslash kappa\$, v\_scale, A, delta, t0 & 10 & Choice+RT \\
+M1: Q-Learning & alpha+, alpha-, epsilon & 3 & Choice only \\
+M2: WM-RL & alpha+, alpha-, phi, rho, K, epsilon & 6 & Choice only \\
+M3: WM-RL+kappa & alpha+, alpha-, phi, rho, K, kappa, epsilon & 7 &
+Choice only \\
+M5: WM-RL+phi\_rl & alpha+, alpha-, phi, rho, K, kappa, phi\_RL, epsilon
+& 8 & Choice only \\
+M6a: WM-RL+kappa\_s & alpha+, alpha-, phi, rho, K, kappa\_s, epsilon & 7
+& Choice only \\
+M6b: WM-RL+dual & alpha+, alpha-, phi, rho, K, kappa\_total,
+kappa\_share, epsilon & 8 & Choice only \\
+M4: RLWM-LBA & alpha+, alpha-, phi, rho, K, kappa, v\_scale, A, delta,
+t0 & 10 & Choice+RT \\
 
 \end{longtable}
 
