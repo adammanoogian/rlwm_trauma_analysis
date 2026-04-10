@@ -101,6 +101,25 @@ def compute_aggregate_ic(fits_df: pd.DataFrame, metric: str = 'aic') -> float:
     Uses best-of-N-starts NLL for every participant, regardless of optimizer
     convergence status. The converged flag indicates gradient convergence, but
     every participant has a valid best NLL from multi-start optimization.
+
+    Notes on AIC vs BIC (quick-006, Task 2)
+    ---------------------------------------
+    - AIC penalty = 2k, BIC penalty = k * ln(N)
+    - Per-participant BIC is computed in fit_mle.compute_bic as
+      2 * nll + k * ln(n_trials_per_ppt) where n_trials ~ 420-726 per ppt.
+      ln(727) ~ 6.59, so per-ppt BIC penalizes each parameter ~3.3x more
+      than AIC (which uses a flat 2).
+    - Aggregate IC = sum of per-participant ICs (fit_mle already does this
+      per-ppt, so summing preserves the per-ppt penalty scaling).
+    - AIC favors predictive accuracy (minimizes Kullback-Leibler divergence
+      from the generating process in the large-N limit).
+    - BIC favors parsimonious truth recovery (consistent model selection
+      under the assumption that one of the candidates is the true model).
+    - For N=154 with k in 3..8 and per-ppt n_trials ~727, BIC's stronger
+      parsimony penalty can flip the winner toward simpler models. We
+      report BOTH. The dominant model is the one that wins both rankings.
+    - AIC remains the standard in RLWM literature (Collins, Senta), so we
+      rank by AIC for the primary comparison and show BIC alongside.
     """
     valid = fits_df[fits_df[metric].notna()]
     return valid[metric].sum()
@@ -754,16 +773,60 @@ def main():
     print("-" * 80)
 
     if len(choice_only_dict) >= 2:
-        # Combine results
+        # Combine AIC and BIC results with explicit rank columns
         results = aic_comparison.merge(
             bic_comparison[['model', 'aggregate_bic', 'delta_bic']],
             on='model'
         )
         results['akaike_weight'] = results['model'].map(weights)
 
+        # Add rank columns: 1 = best (lowest IC)
+        results['aic_rank'] = results['aggregate_aic'].rank(method='min').astype(int)
+        results['bic_rank'] = results['aggregate_bic'].rank(method='min').astype(int)
+
+        # Re-sort by AIC (primary ranking)
+        results = results.sort_values('aggregate_aic').reset_index(drop=True)
+
         results_path = output_dir / 'comparison_results.csv'
         results.to_csv(results_path, index=False)
         print(f"[SAVED] {results_path}")
+
+        # Also write a BIC-sorted companion file for convenient consumption
+        # by downstream analyses that need parsimony-ordered rankings.
+        results_bic = results.sort_values('aggregate_bic').reset_index(drop=True)
+        # Re-reference delta_bic against the BIC winner (not the AIC winner)
+        bic_min = results_bic['aggregate_bic'].iloc[0]
+        results_bic = results_bic.copy()
+        results_bic['delta_bic'] = results_bic['aggregate_bic'] - bic_min
+        results_bic_path = output_dir / 'comparison_results_bic.csv'
+        results_bic.to_csv(results_bic_path, index=False)
+        print(f"[SAVED] {results_bic_path}")
+
+        # Print side-by-side AIC vs BIC rank summary
+        print("\nAIC vs BIC ranking (lower rank = better):")
+        print(
+            results[[
+                'model',
+                'aggregate_aic',
+                'delta_aic',
+                'aic_rank',
+                'aggregate_bic',
+                'delta_bic',
+                'bic_rank',
+            ]].to_string(index=False)
+        )
+        aic_winner = results.iloc[0]['model']
+        bic_winner = results_bic.iloc[0]['model']
+        if aic_winner == bic_winner:
+            print(f"\n  >>> AIC and BIC AGREE: {aic_winner} wins both rankings.")
+        else:
+            print(
+                f"\n  >>> AIC and BIC DISAGREE: AIC winner = {aic_winner}, "
+                f"BIC winner = {bic_winner}"
+            )
+            print("      (BIC penalizes complexity more heavily; disagreement "
+                  "suggests the AIC winner gains from extra parameters that BIC "
+                  "deems not worth the penalty.)")
 
     # Save participant wins
     if len(choice_only_dict) >= 2:
