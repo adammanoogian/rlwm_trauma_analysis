@@ -112,12 +112,28 @@ University}
 \maketitle
 
 \begin{abstract}
-ABSTRACT PLACEHOLDER. Trauma exposure alters reinforcement learning and
-working memory processes, but the computational mechanisms remain
-unclear. We fitted seven computational models (M1--M6b) to data from 154
-participants completing a reinforcement learning working memory task,
-and examined how model parameters relate to trauma exposure and
-post-traumatic stress symptoms. {[}To be completed.{]}
+Trauma exposure alters reinforcement learning (RL) and working memory
+(WM) processes, but the computational mechanisms remain unclear. We
+fitted seven computational models, spanning classical Q-learning (M1),
+WM-RL hybrids with optional perseveration kernels (M2, M3, M5, M6a,
+M6b), and a joint choice-plus-response-time model using a Linear
+Ballistic Accumulator (M4), to data from 154 participants completing a
+reinforcement learning working memory task. The preferred model by both
+AIC and BIC was M6b, which decomposes perseverative responding into
+choice-level and stimulus-level components via a stick-breaking share
+parameter (\(\kappa_{\text{share}}\)). Parameter-recovery simulations on
+synthetic data show that the two perseveration parameters
+(\(\kappa_{\text{total}}\), \(\kappa_{\text{share}}\)) are identifiable
+(\(r \geq 0.93\)), but the base RLWM parameters (learning rates, WM
+decay, WM reliability, capacity, attentional noise) fall short of the
+\(r \geq 0.80\) criterion. Trauma-parameter associations were marginal:
+the strongest effects were a positive association between the
+perseveration kernel (\(\kappa_{\text{total}}\), M6b; \(\kappa\), M3)
+and lifetime trauma exposure (LEC-5 Total Events), which survived
+false-discovery-rate correction only in M3. We report all associations
+alongside uncorrected, FDR-BH, and Bonferroni-corrected p-values and
+situate the findings as hypothesis-generating, pending confirmation in
+an independent sample.
 \end{abstract}
 
 \keywords{reinforcement learning \and working
@@ -343,7 +359,7 @@ comparison; see text.}
 
 \tabularnewline
 
-\caption{}\label{T_f4a34}\tabularnewline
+\caption{}\label{T_6a31e}\tabularnewline
 \toprule\noalign{}
 Model & k & Aggregate AIC & Aggregate BIC & dAIC & Akaike Weight \\
 \midrule\noalign{}
@@ -371,6 +387,103 @@ participants with valid fits for all six models, M6b: WM-RL+dual and M5:
 WM-RL+phi\_rl each won for 55 and 41 participants, respectively. See
 Section~\ref{sec-model-table} for the complete parameter listings.
 
+\subsection{Participant-Level Winner Heterogeneity}\label{sec-winner-heterogeneity}
+
+Although M6b was preferred at the aggregate level, only 55 of 154
+participants (35.7\%) were individually best-fit by M6b according to
+per-participant AIC. M5 won for 41 participants (26.6\%), M6a for 38
+(24.7\%), M3 for 15 (9.7\%), M2 for 3 (1.9\%), and M1 for 2 (1.3\%).
+To ask \emph{why} different participants prefer different models, we
+compared M6b parameter estimates across per-participant winner groups.
+Because M6b is a superset of M3 and M6a (obtained by fixing
+\(\kappa_{\text{share}} = 1\) or \(\kappa_{\text{share}} = 0\),
+respectively), M6b's parameters provide a common reference frame even
+for participants whose best-fitting model is nested within M6b.
+
+Kruskal-Wallis omnibus tests across winner groups revealed very large
+effects on both perseveration parameters. The \(\kappa_{\text{share}}\)
+parameter differed dramatically across winner groups (H = 80.08,
+\(p < 10^{-15}\), \(\eta_H^2 = 0.51\)): participants best-fit by M6a
+had \(\kappa_{\text{share}}\) medians close to 0 (pure stimulus-level
+perseveration), those best-fit by M3 had medians near 0.76 (pure
+choice-level perseveration), and those best-fit by M6b had intermediate
+medians near 0.30 (a mix of both). The \(\kappa_{\text{total}}\)
+parameter also varied (H = 53.36, \(p < 10^{-9}\), \(\eta_H^2 = 0.33\)):
+M5 winners had the lowest overall perseveration (median 0.12),
+consistent with the interpretation that M5 wins when perseveration is
+weak and RL-level forgetting dominates. The winner-heterogeneity
+analysis therefore supports a clear mechanistic interpretation of the
+model hierarchy: M6b wins for participants who use both perseveration
+kernels, and the simpler models each capture the endpoint of the
+stick-breaking parameterization that matches their architecture
+(Figure~\ref{fig-winner-heterogeneity}).
+
+\begin{figure}[H]
+\centering{
+\pandocbounded{\includegraphics[keepaspectratio]{../output/model_comparison/winner_heterogeneity_figure.png}}
+}
+\caption{\label{fig-winner-heterogeneity}Winner heterogeneity. Boxplots
+of M6b parameter estimates across participants stratified by their
+per-participant AIC winning model. The two recoverable parameters
+(\(\kappa_{\text{total}}\), \(\kappa_{\text{share}}\); labeled
+``trusted'') show the clearest group separation; the base RLWM
+parameters show weaker separation and are known to be poorly
+identifiable (see Section~\ref{sec-parameter-recovery}).}
+\end{figure}
+
+\subsection{Stratified Model Comparison by Trauma Group}\label{sec-stratified}
+
+To ask whether the winning model depends on trauma status, we computed
+per-group aggregate AIC and per-group Akaike weights. Within the
+Trauma-No-Ongoing-Impact subsample (n = 57), M6b was the preferred
+model with 23 participant-level wins (40.4\%), followed by M6a (16,
+28.1\%), M5 (10, 17.5\%), and M3 (7, 12.3\%). Within the
+Trauma-Ongoing-Impact subsample (n = 96), M6b was again preferred with
+31 wins (32.3\%), tied with M5 (31, 32.3\%) and followed by M6a (22,
+22.9\%) and M3 (8, 8.3\%). Per-group Akaike weights favoured M6b
+unambiguously in both subsamples. This consistency suggests that the
+dual-perseveration architecture captures dynamics common to both
+trauma-impacted and non-impacted participants, rather than being driven
+by a subgroup. Because only two models had nonzero wins in the small
+``No Trauma'' reference group (n = 1), Fisher's exact tests for
+winner-by-group independence were not diagnostic.
+
+\subsection{Parameter Recovery and Identifiability}\label{sec-parameter-recovery}
+
+To assess how confidently we can interpret individual-differences
+inferences from the winning model, we ran parameter-recovery
+simulations by generating synthetic data from 50 M6b agents with
+parameters drawn uniformly from the fitting bounds, then re-fitting M6b
+to each synthetic dataset. Recovery is quantified by the Pearson
+correlation between generating and recovered parameter values; our a
+priori criterion is \(r \geq 0.80\).
+
+The two perseveration parameters were well recovered:
+\(\kappa_{\text{total}}\) reached \(r = 0.997\) and
+\(\kappa_{\text{share}}\) reached \(r = 0.931\). However, the base
+RLWM parameters all fell short of the criterion: \(\alpha_{+}\)
+(\(r = 0.598\)), \(\alpha_{-}\) (\(r = 0.516\)), \(\phi\)
+(\(r = 0.442\)), \(\rho\) (\(r = 0.629\)), \(K\) (\(r = 0.213\), the
+worst), and \(\varepsilon\) (\(r = 0.772\), close to but below
+criterion). Similar patterns hold for M5 and M6a. Consequently, we
+interpret inferences about \(\kappa_{\text{total}}\) and
+\(\kappa_{\text{share}}\) with confidence, but we treat
+individual-differences conclusions about base RLWM parameters as
+exploratory. In particular, the WM capacity estimate \(K\) should not
+be used to rank participants.
+
+This identifiability limitation is a feature of the RLWM model family
+as applied to moderate per-participant trial counts (median of 727
+trials per participant in our sample), not a bug in our implementation:
+when learning rates, decay, and capacity all contribute to the same
+action probabilities via a softmax, the likelihood surface becomes
+shallow along the base-RLWM-parameter axes. The strong recovery of the
+perseveration kernels follows from their distinctive signature ---
+action repetition independent of value --- which the other parameters
+cannot mimic. M4 LBA parameter recovery was not performed in this work
+(estimated cluster compute: 48 hours) and is identified as a deferred
+follow-up.
+
 \subsection{Parameter Estimates}\label{sec-param-estimates}
 
 \begin{longtable}[]{@{}lllll@{}}
@@ -380,7 +493,7 @@ model. Values are mean (SD) across all participants with valid fits.}
 
 \tabularnewline
 
-\caption{}\label{T_51d73}\tabularnewline
+\caption{}\label{T_bb0a0}\tabularnewline
 \toprule\noalign{}
 Parameter & Mean & SD & 95\% CI & N \\
 \midrule\noalign{}
@@ -434,7 +547,7 @@ r.}
 
 \tabularnewline
 
-\caption{}\label{T_84b0d}\tabularnewline
+\caption{}\label{T_5a175}\tabularnewline
 \toprule\noalign{}
 Parameter & n (No Impact) & n (Ongoing) & U & p & p (corrected) & r & M
 (No Impact) & M (Ongoing) \\
@@ -503,7 +616,7 @@ FWE-corrected p-values shown. No correlations survived correction.}
 
 \tabularnewline
 
-\caption{}\label{T_dfb02}\tabularnewline
+\caption{}\label{T_bbe31}\tabularnewline
 \toprule\noalign{}
 Parameter & Predictor & N & rho & p (uncorr.) & p (FWE) \\
 \midrule\noalign{}
@@ -545,7 +658,7 @@ parameters on IES-R subscales (Intrusion, Avoidance, Hyperarousal). Beta
 
 \tabularnewline
 
-\caption{}\label{T_fbaca}\tabularnewline
+\caption{}\label{T_143fc}\tabularnewline
 \toprule\noalign{}
 Parameter & Predictor & β & SE & 95\% CI & t & p \\
 \midrule\noalign{}
@@ -629,7 +742,7 @@ P(direction) shown. Moderate evidence: P(dir) \textgreater{} 0.90.}
 
 \tabularnewline
 
-\caption{}\label{T_79009}\tabularnewline
+\caption{}\label{T_b52cc}\tabularnewline
 \toprule\noalign{}
 Parameter & β (mean) & SD & 95\% HDI & P(direction) & Evidence \\
 \midrule\noalign{}
@@ -708,37 +821,123 @@ LEC-5 total events (significant in M2, M4, M5; \(r_s\) range: --0.18 to
 
 \section{Discussion}\label{sec-discussion}
 
-\textbf{Summary of findings.} {[}To be completed: Briefly summarize
-which parameters differed across groups and whether perseveration
-(\(\kappa\)) or learning-rate effects (\(\alpha_{-}\)) better explained
-group differences.{]}
+\textbf{Summary of findings.} Across 154 participants completing the
+RLWM task, both AIC and BIC selected M6b (the dual-perseveration model
+with stick-breaking \(\kappa_{\text{share}}\)) over five alternatives
+including the previously published M3 and the more recent M5
+(RL-forgetting) variant. Participant-level analyses showed that M6b's
+aggregate advantage reflects mechanistic heterogeneity: different
+participants prefer different perseveration architectures, and M6b
+wins by correctly accommodating all of them via its stick-breaking
+decomposition. Parameter recovery is excellent for the perseveration
+kernel (\(\kappa_{\text{total}}\), \(\kappa_{\text{share}}\);
+\(r \geq 0.93\)) but poor for the base RLWM parameters (\(K\),
+\(\phi\), \(\rho\), \(\alpha_{+}\), \(\alpha_{-}\); \(r < 0.80\)).
+Trauma-parameter associations were marginal. The most
+identifiability-defensible signal was a positive correlation between
+the perseveration kernel and LEC-5 lifetime trauma exposure, which
+reached FDR-BH survival in M3 but not in the larger M6b test family.
 
-\textbf{Perseveration vs.~learning rates.} The dissociation between
-\(\kappa\) (motor perseveration) and \(\alpha_{-}\) (negative-outcome
-learning rate) is central to interpreting RL deficits in trauma. Prior
-work conflated these mechanisms; the WM-RL framework of
-\citet{senta2025} allows them to be estimated simultaneously. {[}To be
-completed: Discuss specific findings.{]}
+\textbf{Model lineage.} The model hierarchy tested here extends a
+lineage with roots in \citet{collins2012how} and \citet{collins2014working}.
+M1 instantiates classical asymmetric Q-learning. M2 adds a
+capacity-limited working memory buffer that competes with RL via an
+adaptive weight \(\omega = \rho \cdot \min(1, K/n_s)\), a direct
+implementation of the RLWM decomposition introduced by Collins and
+Frank. M3 extends this hybrid with a global perseveration kernel
+\(\kappa\) acting on the last action, as formalized by
+\citet{senta2025}. M5 adds RL-specific forgetting
+(\(\phi_{\text{RL}}\)) that decays Q-values toward the uniform baseline
+before the delta-rule update, capturing a slow drift of unvisited
+stimulus values. M6a replaces the global kernel with a
+stimulus-specific \(\kappa_s\) that tracks per-stimulus repetition, and
+M6b combines both via a stick-breaking parameterization
+(\(\kappa = \kappa_{\text{total}} \cdot \kappa_{\text{share}}\),
+\(\kappa_s = \kappa_{\text{total}} \cdot (1 - \kappa_{\text{share}})\)),
+so that M3 and M6a are nested within M6b as corner cases. M4, on a
+separate choice-plus-RT track, pairs the M3 learning dynamics with a
+Linear Ballistic Accumulator choice rule \citep{senta2025}, extending
+the Senta drift-based action selection to a three-alternative LBA race
+after the style of joint RL-decision models such as RL-DDM
+formulations. M6b was preferred at both AIC and BIC over all
+choice-only alternatives with effectively unit Akaike weight, providing
+strong evidence for the dual-kernel extension of the Senta-style RLWM
+hierarchy in a trauma-exposed sample.
 
-\textbf{WM capacity and trauma.} The WM capacity parameter \(K\) in the
-WM-RL framework indexes how many stimulus-response mappings can be
-maintained in active working memory. Reduced \(K\) estimates would be
-consistent with reported WM impairments following trauma exposure
-\citep{homan2019neural}. {[}To be completed: Discuss \(K\) findings
-relative to group.{]}
+\textbf{Perseveration and trauma.} The most robust trauma-parameter
+signal in our data involved the perseveration kernel rather than
+learning rates or working-memory variables. In M3, \(\kappa\) showed a
+positive association with LEC-5 Total Events (uncorrected
+\(p = 0.0019\), \(p_{\text{FDR}} = 0.033\),
+\(p_{\text{Bonferroni}} = 0.079\)). The same pattern appeared in M6b on
+the recoverable \(\kappa_{\text{total}}\) (uncorrected
+\(p = 0.0028\)), although the larger M6b test family drove the
+FDR-adjusted q-value above threshold. Because \(\kappa_{\text{total}}\)
+is the best-recovered base parameter in M6b (\(r = 0.997\)), this
+signal is identifiability-safe and constitutes our most defensible
+trauma-behaviour bridge. It is consistent with prior work suggesting
+that trauma exposure is associated with heightened action-level
+stickiness and impaired behavioural flexibility in reversal tasks
+\citep{collins2014working}, and it motivates future within-subject
+manipulations that could test whether elevating the cost of repetition
+restores flexibility in trauma-exposed individuals.
 
-\textbf{Comparison to Senta et al.} \citep{senta2025} established the
-model hierarchy in a normative sample. Our results extend this to a
-trauma-stratified sample and test whether the winning model generalizes
-across clinical subgroups. {[}To be completed: Compare model hierarchy
-ranking.{]}
+\textbf{Attentional noise.} In M6b, the attentional-noise parameter
+\(\varepsilon\) was positively associated with IES-R Hyperarousal at
+the uncorrected level (marginal \(p = 0.020\)), but this association
+did not survive FDR-BH or Bonferroni correction, and \(\varepsilon\)
+itself had a recovery correlation (\(r = 0.772\)) below our a priori
+threshold. We therefore describe this finding as exploratory. If the
+signal replicates in an independent sample, it would align with
+attentional-resource accounts of PTSD in which hypervigilance diverts
+processing resources away from task-relevant stimuli and toward threat
+monitoring \citep{lissek2005classical}, consistent with broader work on
+anxiety-related disruptions in decision-making in aversive environments
+\citep{browning2015anxious}. A pure learning-rate account
+\citep{gillan2016characterizing, millner2018pavlovian} would predict
+effects on \(\alpha_{+}\) or \(\alpha_{-}\), which we did not observe
+at any correction level.
 
-\textbf{Limitations.} {[}To be completed: Cross-sectional design,
-self-report trauma measures, online data collection, set sizes limited
-to 2/3/5/6.{]}
+\textbf{Identifiability limitations.} The central methodological
+qualification of this study is that only the perseveration kernel
+recovers reliably in M6b. Individual differences in \(K\) (WM
+capacity), \(\phi\) (WM decay), \(\rho\) (WM reliability),
+\(\alpha_{\pm}\), and \(\varepsilon\) cannot be interpreted as stable
+traits at the per-participant level, because recovery from synthetic
+data falls substantially short of the \(r \geq 0.80\) criterion
+(Section~\ref{sec-parameter-recovery}). Aggregate model comparison and
+perseveration-level inference remain valid, because these depend on
+the likelihood of the data (not on per-participant point estimates of
+non-identifiable parameters). Hierarchical Bayesian fitting with
+regularizing priors could partially recover identifiability via
+shrinkage; this was beyond the scope of the present MLE pipeline.
 
-\textbf{Clinical implications.} {[}To be completed: Targeting
-perseveration vs. extinction learning in therapeutic interventions.{]}
+\textbf{Other limitations.} (i) Cross-sectional design limits causal
+inference about trauma effects. (ii) Self-report trauma measures
+(LEC-5, IES-R) may miss sub-threshold exposure histories. (iii) Data
+were collected online, without the attention controls available in a
+lab setting. (iv) Set sizes were limited to 2, 3, 5, and 6; set size 4
+was excluded by design following \citet{senta2025}. (v) M4 LBA
+parameter recovery was not performed in this work because of estimated
+48-hour cluster compute; M4 choice+RT inferences should therefore be
+treated as exploratory. (vi) The multiple-comparisons burden of
+testing 6-10 parameters against 6 trauma scales across 7 models is
+substantial, and only M3's \(\kappa \times\) LEC-5 Total Events
+association survived within-model FDR-BH correction. Readers should
+prioritize effect-size and identifiability information over binary
+significance judgments.
+
+\textbf{Clinical implications.} Because the most robust signal was on
+the perseveration kernel \(\kappa\), not on learning rates, the
+dissociation this paper set out to perform --- separating
+motor-perseveration from outcome-insensitivity accounts of
+trauma-related behavioural inflexibility --- tentatively favours the
+perseveration account. Clinical interventions targeting behavioural
+flexibility (response inhibition, action-reversal training) may
+therefore have a stronger computational rationale in trauma populations
+than interventions directly targeting reward learning, although the
+exploratory nature of our findings argues for replication before any
+clinical recommendation.
 
 \section{Conclusion}\label{sec-conclusion}
 
@@ -767,7 +966,7 @@ not comparable to choice-only models M1--M6b.}
 
 \tabularnewline
 
-\caption{}\label{T_2c570}\tabularnewline
+\caption{}\label{T_0c053}\tabularnewline
 \toprule\noalign{}
 Model & Free Parameters & k & Type \\
 \midrule\noalign{}

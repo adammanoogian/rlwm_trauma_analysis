@@ -11,8 +11,26 @@ See: .planning/PROJECT.md (updated 2026-04-03)
 
 Phase: Not started (next milestone not yet defined)
 Plan: Not started
-Status: v3.0 milestone complete and archived. Manuscript in progress. Cluster re-fit pending.
-Last activity: 2026-04-08 — Quick task 005: pipeline regeneration (N=154) + manuscript figures
+Status: v3.0 milestone complete and archived. Manuscript in progress. Pipeline re-fit on N=154 complete; quick-006 post-refit verification in progress.
+Last activity: 2026-04-10 — Quick task 006: post-refit verification, winner heterogeneity, FDR/Bonferroni, manuscript revision
+
+### Post-Refit Reality (N=154, quick-006)
+
+- Winning model flipped from M5 to **M6b** (dual perseveration with stick-breaking kappa_share).
+  - Aggregate AIC: M6b 143324.93 < M5 143897.82 < M6a 144771.59 < M3 144865.92 < M2 147328.17 < M1 152143.11
+  - Aggregate BIC agrees: M6b is also rank 1 on BIC; AIC and BIC orderings are identical.
+  - Akaike weight of M6b is effectively 1.0.
+- Per-participant AIC winners (N=154): M6b 55 (35.7%), M5 41 (26.6%), M6a 38 (24.7%), M3 15 (9.7%), M2 3 (1.9%), M1 2 (1.3%).
+- M6b parameter recovery (quick-005 outputs, N=50 synthetic):
+  - kappa_total r=0.9971 PASS, kappa_share r=0.9311 PASS
+  - alpha_pos r=0.598 FAIL, alpha_neg r=0.516 FAIL, phi r=0.442 FAIL, rho r=0.629 FAIL, capacity r=0.213 FAIL (worst), epsilon r=0.772 FAIL (close)
+- Practical implication: trust kappa-level inferences; treat base RLWM parameters as individual-level descriptors only, not identified traits.
+- Trauma-parameter regressions (quick-006 Task 4, all 7 models, within-model FDR-BH + Bonferroni):
+  - Only M3 produces FDR-BH survivors (3 of 42 tests): phi x IES-R Hyperarousal, kappa x LEC-5 Total events, phi x IES-R Total.
+  - M6b: 7 uncorrected hits, 0 FDR-BH, 0 Bonferroni. Strongest M6b hit is kappa_total x LEC-5 (p=0.0028 uncorrected, p_fdr=0.135).
+  - The kappa x LEC-5 pattern across M3 and M6b is the most scientifically credible signal because kappa is the recoverable parameter in both.
+- Code audit (quick-006 Task 1): NaN argmin guard verified on both GPU vmap path and CPU per-participant path in fit_mle.py. M2 33% non-convergence diagnosed as bound-attracted optimization, not NaN propagation.
+- Deferred: M4 LBA parameter recovery (~48h cluster job); Bayesian hierarchical fitting of M6b; cross-model recovery validation with M5/M6a/M6b.
 
 ## Performance Metrics
 
@@ -37,7 +55,7 @@ Last activity: 2026-04-08 — Quick task 005: pipeline regeneration (N=154) + ma
 
 - M1: Q-learning (alpha+, alpha-, epsilon) — existing
 - M2: WM-RL hybrid (alpha+, alpha-, phi, rho, K, epsilon) — existing
-- M3: WM-RL + kappa perseveration — v1 shipped, winning model
+- M3: WM-RL + kappa perseveration — v1 shipped
 - M4: RLWM-LBA joint choice+RT (M3 learning + v_scale, b, A, t0) — v3 Phase 11
 - M5: WM-RL + phi_RL RL forgetting (M3 + Q-value decay before update) — v3 Phase 8
 - M6a: WM-RL + kappa_s stimulus-specific perseveration (replaces global kappa) — v3 Phase 9
@@ -54,7 +72,7 @@ Last activity: 2026-04-08 — Quick task 005: pipeline regeneration (N=154) + ma
 - M5: phi_rl placed at param index 6, epsilon at index 7 (WMRL_M5_PARAMS order)
 - M5: phi_rl=0 algebraic identity reduces exactly to M3 (no conditional branch needed, 0.00e+00 difference verified)
 - M5: Model extension pattern established: copy M3 dispatch blocks, add new param as penultimate before epsilon
-- M5: Confirmed new winning model: dAIC=435.6 over M3, dBIC=226.9 (very strong evidence per Burnham & Anderson)
+- M5: Initially confirmed as winning model on pre-refit data (dAIC=435.6 over M3). Superseded after N=154 re-fit by M6b (quick-006).
 - Pipeline: Script 14 --mle-dir default corrected to output/mle; fallback search in output/ root added
 - Pipeline: All downstream scripts (14, 15, 16, model_recovery) follow elif wmrl_m5 extension pattern for M6a/M6b/M4
 - M6a: kappa_s (stimulus-specific) replaces global kappa; carry changes from scalar to (num_stimuli,) int32 array
@@ -120,6 +138,7 @@ Last activity: 2026-04-08 — Quick task 005: pipeline regeneration (N=154) + ma
 | 003 | Softcode manuscript: winning model, group names, n_starts from data files | 2026-04-07 | d7ea897 | [003-quarto-softcoded-winning-model](./quick/003-quarto-softcoded-winning-model/) |
 | 004 | Pipeline sync: survey data fix (scripts 15/16), uncorrected p-values in manuscript, Bayesian MODEL_REGISTRY | 2026-04-07 | 4df1340 | [004-pipeline-sync-uncorrected-peb-config](./quick/004-pipeline-sync-uncorrected-peb-config/) |
 | 005 | Re-run pipeline (N=154), model overview + distribution figures in manuscript | 2026-04-08 | 6b045a4 | [005-rerun-pipeline-analyses-update-quarto-manuscript](./quick/005-rerun-pipeline-analyses-update-quarto-manuscript/) |
+| 006 | Post-refit verification: M6b winner, BIC + winner heterogeneity + FDR/Bonferroni + manuscript revision | 2026-04-10 | TBD | [006-post-refit-verification-recovery-manuscript](./quick/006-post-refit-verification-recovery-manuscript/) |
 
 ### Key Decisions Added (quick-002)
 
@@ -132,6 +151,6 @@ Last activity: 2026-04-08 — Quick task 005: pipeline regeneration (N=154) + ma
 
 ## Session Continuity
 
-Last session: 2026-04-08
-Stopped at: Completed quick task 005 — pipeline regeneration (N=154), model overview + param distribution figures in manuscript.
+Last session: 2026-04-10
+Stopped at: Quick task 006 in progress — post-refit verification, M6b winner, heterogeneity, FDR/Bonferroni, manuscript revision.
 Resume file: None
