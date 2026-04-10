@@ -1,0 +1,19 @@
+{
+  "model": "wmrl",
+  "n_participants": 154,
+  "n_starts": 50,
+  "total_time_s": 20499.00586795807,
+  "total_time_min": 341.65009779930114,
+  "avg_time_per_participant_s": 133.11042771401344,
+  "jit_compilation_time_s": null,
+  "steady_state_avg_s": null,
+  "n_jobs": 1,
+  "peak_memory_mb": 1760.82421875,
+  "initial_memory_mb": 1634.07421875,
+  "memory_increase_mb": 126.75,
+  "timestamp": "2026-04-09T17:54:02.157115",
+  "seed": 42,
+  "data_file": "output/ppc/wmrl_m6a/synthetic_trials.csv",
+  "n_converged": 129,
+  "convergence_rate": 0.8376623376623377
+}
