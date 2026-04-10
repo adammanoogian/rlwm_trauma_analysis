@@ -872,17 +872,126 @@ def main():
                     all_pvalues.append(res['p_value'])
                     all_keys.append((param, pred))
 
+        # Multiple comparison corrections.
+        # Family-wise correction is applied WITHIN-model (all parameter x scale
+        # tests for one model), not across models, because the alternative
+        # choice-only models (M1-M6b) are alternative explanations of the same
+        # data. Correcting across the whole model cube would overcount.
         if HAS_STATSMODELS and len(all_pvalues) > 1:
-            reject, p_fdr, _, _ = multipletests(all_pvalues, method='fdr_bh', alpha=0.05)
-            for (param, pred), pf, sig in zip(all_keys, p_fdr, reject):
+            reject_fdr, p_fdr, _, _ = multipletests(
+                all_pvalues, method='fdr_bh', alpha=0.05
+            )
+            reject_bonf, p_bonf, _, _ = multipletests(
+                all_pvalues, method='bonferroni', alpha=0.05
+            )
+            for (param, pred), pf, sig_fdr, pb, sig_bonf in zip(
+                all_keys, p_fdr, reject_fdr, p_bonf, reject_bonf
+            ):
                 results_dict[param][pred]['p_fdr'] = pf
-                results_dict[param][pred]['sig_fdr'] = bool(sig)
+                results_dict[param][pred]['sig_fdr'] = bool(sig_fdr)
+                results_dict[param][pred]['p_bonferroni'] = pb
+                results_dict[param][pred]['sig_bonferroni'] = bool(sig_bonf)
 
             n_sig_uncorrected = sum(1 for p in all_pvalues if p < 0.05)
-            n_sig_fdr = sum(reject)
-            print(f"\n  FDR correction (Benjamini-Hochberg): {len(all_pvalues)} tests")
+            n_sig_fdr = int(sum(reject_fdr))
+            n_sig_bonf = int(sum(reject_bonf))
+            print(f"\n  Multiple comparison corrections: {len(all_pvalues)} tests (within-model family)")
             print(f"  Significant (uncorrected p < 0.05): {n_sig_uncorrected}")
-            print(f"  Significant (FDR q < 0.05): {n_sig_fdr}")
+            print(f"  Significant (FDR-BH q < 0.05):      {n_sig_fdr}")
+            print(f"  Significant (Bonferroni p < 0.05):  {n_sig_bonf}")
+
+            # Write the corrected-significance CSV required by quick-006
+            # Task 4. Columns mirror the plan spec.
+            corrected_rows = []
+            for (param, pred), p_raw, pf, pb, sig_fdr, sig_bonf in zip(
+                all_keys,
+                all_pvalues,
+                p_fdr,
+                p_bonf,
+                reject_fdr,
+                reject_bonf,
+            ):
+                res = results_dict[param][pred]
+                corrected_rows.append({
+                    'parameter': param,
+                    'scale': pred,
+                    'n': res.get('n'),
+                    'beta': res.get('beta'),
+                    'se': res.get('se'),
+                    't_stat': res.get('t_stat'),
+                    'p_uncorrected': p_raw,
+                    'p_fdr_bh': pf,
+                    'p_bonferroni': pb,
+                    'sig_uncorrected': p_raw < 0.05,
+                    'sig_fdr': bool(sig_fdr),
+                    'sig_bonferroni': bool(sig_bonf),
+                    'r_squared': res.get('r_squared'),
+                })
+            corrected_df = pd.DataFrame(corrected_rows)
+            # Sort with strongest evidence first (smallest uncorrected p)
+            corrected_df = corrected_df.sort_values('p_uncorrected').reset_index(drop=True)
+            corrected_path = model_output_dir / 'significance_corrected.csv'
+            corrected_df.to_csv(corrected_path, index=False)
+            print(f"  [SAVED] {corrected_path}")
+
+            # Companion markdown summary with three tiers of surviving tests
+            summary_lines: list[str] = []
+            summary_lines.append(f"# Significance summary: {model}")
+            summary_lines.append("")
+            summary_lines.append(f"Family-wise correction within-model ({len(all_pvalues)} tests).")
+            summary_lines.append("")
+            summary_lines.append("## Counts")
+            summary_lines.append("")
+            summary_lines.append(f"- Uncorrected p < 0.05: **{n_sig_uncorrected}**")
+            summary_lines.append(f"- FDR-BH q < 0.05:      **{n_sig_fdr}**")
+            summary_lines.append(f"- Bonferroni p < 0.05:  **{n_sig_bonf}**")
+            summary_lines.append("")
+
+            def _rows_to_markdown(rows: pd.DataFrame) -> list[str]:
+                if rows.empty:
+                    return ["_none_", ""]
+                header = (
+                    "| parameter | scale | n | beta | se | t | p_uncorr | p_fdr | p_bonf |"
+                )
+                sep = "|---|---|---|---|---|---|---|---|---|"
+                out = [header, sep]
+                for _, r in rows.iterrows():
+                    out.append(
+                        "| {param} | {scale} | {n} | {beta:.4f} | {se:.4f} | {t:.2f} | "
+                        "{pu:.4f} | {pf:.4f} | {pb:.4f} |".format(
+                            param=r['parameter'],
+                            scale=r['scale'],
+                            n=int(r['n']) if pd.notna(r['n']) else 'NA',
+                            beta=r['beta'],
+                            se=r['se'],
+                            t=r['t_stat'],
+                            pu=r['p_uncorrected'],
+                            pf=r['p_fdr_bh'],
+                            pb=r['p_bonferroni'],
+                        )
+                    )
+                out.append("")
+                return out
+
+            summary_lines.append("## Surviving uncorrected p < 0.05")
+            summary_lines.append("")
+            summary_lines.extend(
+                _rows_to_markdown(corrected_df[corrected_df['sig_uncorrected']])
+            )
+            summary_lines.append("## Surviving FDR-BH q < 0.05")
+            summary_lines.append("")
+            summary_lines.extend(
+                _rows_to_markdown(corrected_df[corrected_df['sig_fdr']])
+            )
+            summary_lines.append("## Surviving Bonferroni p < 0.05")
+            summary_lines.append("")
+            summary_lines.extend(
+                _rows_to_markdown(corrected_df[corrected_df['sig_bonferroni']])
+            )
+
+            summary_path = model_output_dir / 'significance_summary.md'
+            summary_path.write_text("\n".join(summary_lines), encoding='utf-8')
+            print(f"  [SAVED] {summary_path}")
 
         # Save results table
         table_path = model_output_dir / 'regression_results_simple.csv'
