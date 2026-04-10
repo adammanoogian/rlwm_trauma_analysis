@@ -1444,6 +1444,10 @@ def fit_all_gpu(
     # Replace NaN with inf so argmin selects the best finite NLL.
     # jnp.argmin propagates NaN (picks NaN as "minimum"), which discards
     # participants where even 1 of 50 starts returned NaN.
+    # Quick-006 Task 1 audit: this is the ONLY JAX argmin path over NLLs
+    # in fit_mle.py. The CPU path at _fit_single_participant_jaxopt
+    # (see "Get best result" comment ~line 2020) excludes NaN via
+    # r.success=False in a Python min(), not argmin.
     safe_nlls = jnp.where(jnp.isnan(all_nlls), jnp.inf, all_nlls)
     best_idx = jnp.argmin(safe_nlls, axis=1)  # (n_participants,)
     best_params_unc = all_params[jnp.arange(n_participants), best_idx]
@@ -2011,7 +2015,12 @@ def fit_participant_mle(
             'at_bounds': []
         }
 
-    # Get best result (parameters are already in bounded space from L-BFGS-B)
+    # Get best result (parameters are already in bounded space from L-BFGS-B).
+    # NaN-safety audit (quick-006, Task 1): this lambda excludes any start whose
+    # scipy result has success=False. In _fit_single_participant_jaxopt we set
+    # success = nll_finite (line ~1940), so NaN NLLs are excluded here. The
+    # CPU/per-participant sequential path therefore does not need the
+    # jnp.where(isnan, inf) guard that the GPU vmap path uses at line ~1447.
     best_result = min(results, key=lambda r: r.fun if r.success else np.inf)
     best_params = {name: float(best_result.x[i]) for i, name in enumerate(param_names)}
     best_nll = best_result.fun
