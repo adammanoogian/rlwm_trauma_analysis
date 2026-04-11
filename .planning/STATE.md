@@ -5,15 +5,30 @@
 See: .planning/PROJECT.md (updated 2026-04-11)
 
 **Core value:** Correctly dissociate perseverative responding from learning-rate effects (alpha-) to accurately identify whether post-reversal failures reflect motor perseveration or outcome insensitivity
-**Current focus:** v4.0 — Hierarchical Bayesian Pipeline & LBA Acceleration (defining requirements)
+**Current focus:** v4.0 — Hierarchical Bayesian Pipeline & LBA Acceleration (roadmap created, Phase 13 ready to plan)
 
 ## Current Position
 
 Milestone: v4.0 Hierarchical Bayesian Pipeline & LBA Acceleration
-Phase: Not started (defining requirements)
-Plan: —
-Status: Milestone scope locked. Researching domain before requirements definition.
-Last activity: 2026-04-11 — Milestone v4.0 started; 4 parallel researchers spawned
+Phase: 13 of 18 (Infrastructure Repair & Hierarchical Scaffolding)
+Plan: — (not yet planned)
+Status: Roadmap created. Phase 13 ready for `/gsd:plan-phase 13`.
+Last activity: 2026-04-11 — v4.0 ROADMAP.md written with 6 phases (13-18), 51 requirements mapped, zero orphans
+
+Progress: [░░░░░░░░░░] 0% (0/TBD plans across Phases 13-18)
+
+### v4.0 Phase Structure
+
+| Phase | Goal | Requirements | Count |
+|---|---|---|---|
+| 13 | Infrastructure Repair & Hierarchical Scaffolding (fix P0 import, numpyro scaffolding, Collins K research) | INFRA-01..08, K-01 | 9 |
+| 14 | Collins K Refit + GPU LBA Batching (K-02/03 refit + fit_all_gpu_m4) | K-02..03, GPU-01..03 | 5 |
+| 15 | M3 Hierarchical POC with Level-2 Regression (validation gate) | HIER-01, HIER-07..10, L2-01 | 6 |
+| 16 | Choice-Only Family Extension + Subscale L2 (M1/M2/M5/M6a/M6b + full subscale Level-2) | HIER-02..06, L2-02..08 | 12 |
+| 17 | M4 Hierarchical LBA (user-committed despite research recommendation to descope) | M4H-01..06 | 6 |
+| 18 | Integration, Comparison, and Manuscript (schema-parity flag flip, WAIC/LOO, paper revision) | CMP-01..04, MIG-01..05, DOC-01..04 | 13 |
+
+**Coverage:** 51/51 requirements mapped (100%), zero orphans.
 
 ### Post-Refit Reality (N=154, quick-006)
 
@@ -25,13 +40,11 @@ Last activity: 2026-04-11 — Milestone v4.0 started; 4 parallel researchers spa
 - M6b parameter recovery (quick-005 outputs, N=50 synthetic):
   - kappa_total r=0.9971 PASS, kappa_share r=0.9311 PASS
   - alpha_pos r=0.598 FAIL, alpha_neg r=0.516 FAIL, phi r=0.442 FAIL, rho r=0.629 FAIL, capacity r=0.213 FAIL (worst), epsilon r=0.772 FAIL (close)
-- Practical implication: trust kappa-level inferences; treat base RLWM parameters as individual-level descriptors only, not identified traits.
+- Practical implication: trust kappa-level inferences; treat base RLWM parameters as individual-level descriptors only, not identified traits. **This is the core motivation for v4.0 hierarchical shrinkage.**
 - Trauma-parameter regressions (quick-006 Task 4, all 7 models, within-model FDR-BH + Bonferroni):
   - Only M3 produces FDR-BH survivors (3 of 42 tests): phi x IES-R Hyperarousal, kappa x LEC-5 Total events, phi x IES-R Total.
   - M6b: 7 uncorrected hits, 0 FDR-BH, 0 Bonferroni. Strongest M6b hit is kappa_total x LEC-5 (p=0.0028 uncorrected, p_fdr=0.135).
-  - The kappa x LEC-5 pattern across M3 and M6b is the most scientifically credible signal because kappa is the recoverable parameter in both.
-- Code audit (quick-006 Task 1): NaN argmin guard verified on both GPU vmap path and CPU per-participant path in fit_mle.py. M2 33% non-convergence diagnosed as bound-attracted optimization, not NaN propagation.
-- Deferred: M4 LBA parameter recovery (~48h cluster job); Bayesian hierarchical fitting of M6b; cross-model recovery validation with M5/M6a/M6b.
+  - The kappa x LEC-5 pattern across M3 and M6b is the most scientifically credible signal because kappa is the recoverable parameter in both. **v4.0 Phase 15 must reproduce this under hierarchical inference as the POC validation gate.**
 
 ## Performance Metrics
 
@@ -50,85 +63,44 @@ Last activity: 2026-04-11 — Milestone v4.0 started; 4 parallel researchers spa
 - Average duration: 20 min
 - Total execution time: 117 min
 
+**v4 Milestone:**
+- Total plans completed: 0
+- Average duration: —
+- Total execution time: —
+
 ## Accumulated Context
 
-### Model Naming
+### v4.0 Decisions (set at milestone definition 2026-04-11)
 
-- M1: Q-learning (alpha+, alpha-, epsilon) — existing
-- M2: WM-RL hybrid (alpha+, alpha-, phi, rho, K, epsilon) — existing
-- M3: WM-RL + kappa perseveration — v1 shipped
-- M4: RLWM-LBA joint choice+RT (M3 learning + v_scale, b, A, t0) — v3 Phase 11
-- M5: WM-RL + phi_RL RL forgetting (M3 + Q-value decay before update) — v3 Phase 8
-- M6a: WM-RL + kappa_s stimulus-specific perseveration (replaces global kappa) — v3 Phase 9
-- M6b: WM-RL + kappa + kappa_s dual perseveration (stick-breaking constraint) — v3 Phase 10
+- **M4 hierarchical IS in scope** despite research recommendation to descope. Phase 17 committed. Accept ~150-200 GPU-hour total budget, Pareto-k fallback for M4-vs-choice-only comparison.
+- **PyMC dropped entirely** from `16b_bayesian_regression.py`; NumPyro-only backend for v4.0.
+- **IES-R subscale orthogonalization:** IES-R total + Gram-Schmidt residualized subscales as default; horseshoe prior (L2-08) is P2 optional upgrade.
+- **Schema-parity CSV pattern** is the migration cornerstone — downstream scripts 15/16/17 get a single `--source mle|bayesian` flag with no logic rewrite.
+- **P0 broken import** (`fit_bayesian.py:43` imports from `scripts.fitting.numpyro_models` but file is in `legacy/`) is Phase 13 Task 1.
+- **Compile-time gate:** < 60s for M3 hierarchical; may need relaxation for M6b (unconstrained stick-breaking compiles slower, no benchmark yet).
+- **Phase ordering:** P13 → P14 → P15 → P16 → P17 → P18. P15 (M3 POC) is the validation gate before P16 mechanical extension. P17 depends on both P14 (GPU LBA) and P16 (M6b non-centered pattern as template).
 
-### Key Decisions
+### v3.0 Model Decisions (retained for reference)
 
-- v3: Build order M5 → M6a → M6b → M4 (complexity-ordered; M5 validates pipeline integration pattern)
-- v3: M4 gets separate comparison track in compare_mle_models.py (joint likelihood incommensurable with choice-only AIC)
-- v3: Parameter recovery r >= 0.80 is a hard gate within each phase before proceeding to next phase
-- v3: phi_RL decay applied BEFORE delta-rule update (not after) — correctness-critical per Senta et al.
-- v3: M6 carry uses per-stimulus last_actions array (shape num_stimuli), not global scalar
-- M5: phi_rl decay target Q0=1/nA=0.333 (NOT q_init=0.5) — matches WM baseline convention
-- M5: phi_rl placed at param index 6, epsilon at index 7 (WMRL_M5_PARAMS order)
-- M5: phi_rl=0 algebraic identity reduces exactly to M3 (no conditional branch needed, 0.00e+00 difference verified)
-- M5: Model extension pattern established: copy M3 dispatch blocks, add new param as penultimate before epsilon
-- M5: Initially confirmed as winning model on pre-refit data (dAIC=435.6 over M3). Superseded after N=154 re-fit by M6b (quick-006).
-- Pipeline: Script 14 --mle-dir default corrected to output/mle; fallback search in output/ root added
-- Pipeline: All downstream scripts (14, 15, 16, model_recovery) follow elif wmrl_m5 extension pattern for M6a/M6b/M4
-- M6a: kappa_s (stimulus-specific) replaces global kappa; carry changes from scalar to (num_stimuli,) int32 array
-- M6a: last_actions.at[stimulus].set() update unconditional on valid (not gated on use_m2_path)
-- M6a: kappa_s lower bound is 0.0 (matching M3 kappa); starting default 0.1 (small positive)
-- M6a: Per-stimulus tracking structurally verified vs M3 (NLL diff=0.693147 for 2-stimulus sequence)
-- M6a: All four fit_all_gpu dispatch points must be explicit elif -- missing any causes silent data corruption
-- M6a: model_recovery.py uses per-stimulus last_actions={} dict (not global scalar); resets at each block; kernel only if stimulus was seen before in block
-- M6a: compute_diagnostics=False in run_parameter_recovery() avoids ZeroDivisionError at parameter bounds (logit transform issue when optimizer reaches exact upper bound)
-- M6a: n_starts and n_jobs exposed in run_parameter_recovery() and script 11 argparse
-- M6b: Stick-breaking decode in objective functions only (not in transform): kappa = kappa_total * kappa_share; kappa_s = kappa_total * (1 - kappa_share)
-- M6b: Dual carry in lax.scan: 6-element tuple (Q, WM, WM_0, log_lik, last_action_scalar, last_actions_array)
-- M6b: Effective-weight gating (eff_kappa = jnp.where(has_global, kappa, 0.0)) — no use_m2_path branch needed
-- M6b: kappa_share=1.0 verified = M3 (diff 0.0e+00); kappa_share=0.0 verified = M6a (diff 0.0e+00)
-- M6b: fit_all_participants has SECOND param_cols dispatch (separate from main()) — both must include wmrl_m6b
-- M6b: wmrl_m6b_block_likelihood takes decoded kappa/kappa_s (not kappa_total/kappa_share)
-- M6b recovery: generate_synthetic_participant uses dual-kernel tracking; BOTH last_action (global) and last_actions dict (per-stimulus) maintained and reset at block boundaries
-- M6b recovery: stick-breaking decode in generation (kappa = kappa_total * kappa_share) mirrors objective decode
-- M6b downstream: script 15 load_data() now returns 8-tuple; script 14 auto-detects wmrl_m6b_individual_fits.csv via patterns dict
-- M4 (11-01): LBA density module isolated in lba_likelihood.py with jax_enable_x64=True; jax_likelihoods.py NOT modified (float32 contamination avoided)
-- M4: log-density from lba_joint_log_lik CAN be positive (defective PDF integrates to <1 over time but can exceed 1 at a point); test asserts finiteness + ordering not negativity
-- M4: validate_t0_constraint is standalone diagnostic only; structural protection comes from WMRL_M4_BOUNDS t0 upper limit in mle_utils
-- M4 (11-02): wmrl_m4_block_likelihood returns POSITIVE NLL (-log_lik_total); objective functions call it with `return nll` NOT `return -log_lik` (differs from choice-only models)
-- M4: b > A reparameterization decode (b = A + delta) in ALL three objective functions; NOT in transform functions
-- M4: prepare_participant_data valid_rt must be padded to max_trials before multiplying with padding mask (shape compatibility)
-- M4: fit_all_gpu Stage 3 requires separate _run_one branch with 7 data args (stimuli, actions, rewards, masks, set_sizes, rts) -- no silent fallthrough to M5 branch
-- M4: Float64 enabled lazily via `jax.config.update("jax_enable_x64", True)` in prepare_participant_data and main() only when model==wmrl_m4
-- M4 (11-03): LBA race simulation uses numpy rng (not JAX) for start points k~Uniform(0,A); t=(b-k)/max(v,1e-6); winner=argmin(t); RT=t[winner]+t0 in milliseconds
-- M4 (11-03): Convex combination perseveration in synthetic generation: (1-kappa)*hybrid + kappa*Ck -- matches M4 likelihood, prevents kappa recovery bias (M3/M5 still use additive renorm)
-- M4 (11-03): Script 14 pops M4 from fits_dict BEFORE AIC comparison; reports M4 in separate section; --m4 argparse flag
-- M4 (11-03): Script 15 load_data() returns 9-tuple (adds wmrl_m4 at end); Script 16 renames v_scale/A/delta/t0 to v_scale_mean/A_mean/delta_mean/t0_mean
-- 12-01: CHOICE_ONLY_MODELS = ['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b'] — M4 excluded from cross-model AIC comparison
-- 12-01: run_model_recovery_check --output bug fixed (was passing file path, now correctly passes directory to fit_mle.py)
-- 12-01: Cross-model confusion matrix uses plurality criterion (generator must win >50% of datasets)
-- 12-01: Smoke test confirmed M5 wins AIC against all 6 choice-only models (N=5, n_datasets=1)
-- 12-02: MODEL_REFERENCE.md is single authoritative source for all 7 model mathematics (M1-M6b, M4)
-- 12-02: Section 4.2 renamed "Simplifications and Extensions" — perseveration no longer listed as unimplemented
-- 12-03 (gap closure): M6a/M6b elif branches were siblings of `if last_action is not None:` — unreachable after trial 1; fixed to independent if/elif chain
-- 12-03 (gap closure): M3/M5 changed from additive renormalization to convex combination (1-kappa)*P_noisy + kappa*Ck, matching jax_likelihoods.py
-- 12-03 (gap closure): Epsilon applied BEFORE perseveration for ALL non-M4 models; non-M4 action selection no longer re-applies epsilon
-- 12-03 (gap closure): Q-learning epsilon moved inline to Q-learning branch (was in now-removed action selection double-application block)
-- 12-03 (gap closure): M6a kappa_s recovery verified non-degenerate (range=0.3275, r=1.000, N=2); M6b kappa_total recovery verified (range=0.1546, r=1.000, N=2)
+- Build order: M5 → M6a → M6b → M4 (complexity-ordered; M5 validated pipeline integration pattern)
+- M4 gets separate comparison track in `compare_mle_models.py` (joint likelihood incommensurable with choice-only AIC) — **same constraint carries forward into v4.0 Phase 18**
+- Parameter recovery r >= 0.80 is a hard gate per model — **replaced in v4.0 by hierarchical shrinkage diagnostic `1 - var_post_individual / var_post_group >= 0.3` plus convergence gate**
+- MODEL_REGISTRY in config.py is single source of truth for pipeline scripts
+- CHOICE_ONLY_MODELS = ['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b'] — M4 excluded from cross-model AIC comparison
+- M6b: stick-breaking decode in objective functions only (not in transform): `kappa = kappa_total * kappa_share`; `kappa_s = kappa_total * (1 - kappa_share)`. **v4.0 HIER-06 uses non-centered offset on the unconstrained scale and decodes inside the likelihood.**
 
 ### Pending Todos
 
 - **Re-fit all 7 models on cluster** (3 bugs fixed: argmin NaN, stimulus sampling, reward mapping). See `.planning/todos/pending/2026-04-07-refit-all-models-on-cluster.md`
-- Run parameter recovery for all models after re-fit (50 subj / 3 datasets / 20 starts)
+- Run parameter recovery for all models after re-fit (50 subj / 3 datasets / 20 starts) — superseded by Phase 14 Collins K refit
 - Run full cross-model recovery: `python scripts/11_run_model_recovery.py --mode cross-model --model all --n-subjects 50 --n-datasets 3 --n-starts 20 --n-jobs 8`
 
 ### Blockers/Concerns
 
-- Phase 8 (M5): Stimulus sampling bug FIXED (quick-002). Re-run recovery: `python scripts/fitting/model_recovery.py --model wmrl_m5 --n-subjects 50 --n-datasets 3 --n-starts 20 --use-gpu` or `sbatch --export=MODEL=wmrl_m5 cluster/11_recovery_gpu.slurm`
-- Phase 9 (M6a): Full parameter recovery not yet run — quick test (N=2) verified functional. Run on cluster: `sbatch --export=MODEL=wmrl_m6a cluster/11_recovery_gpu.slurm`
-- Phase 9 (M6b): Full parameter recovery not yet run — quick test (N=2) verified functional. Run on cluster: `sbatch --export=MODEL=wmrl_m6b cluster/11_recovery_gpu.slurm`
-- Phase 11 (M4): Full parameter recovery not yet run — quick test (N=2) verified functional. M4 needs ~48h: `sbatch --time=48:00:00 --export=MODEL=wmrl_m4,NSUBJ=30 cluster/11_recovery_gpu.slurm`
+- **Compile-time gate on M6b**: constrained `kappa_total`/`kappa_share` under non-centered hierarchical sampling may compile slower than the 60s target. Phase 13 may need to relax the gate specifically for M6b. (From research: PITFALLS.md confidence MEDIUM on this point.)
+- **Hierarchical LBA has no NumPyro/JAX precedent.** Phase 17 is effectively a research project nested in the milestone — if the non-centered `log(b - A)` + `post_warmup_state` resume pattern fails at scale, Phase 17 falls back to reporting M4 at MLE only.
+- **Pareto-k > 0.7 is near-certain for LBA under NUTS.** Phase 17 MUST include the choice-only-marginal fallback path; M4 cannot sit inside a unified `az.compare` table regardless of how it's fit.
+- **IES-R subscale correlations in N=154 not yet audited** — Phase 16 begins with a collinearity audit; if condition number after orthogonalization remains > 30, the orthogonalization strategy must be revisited.
 
 ### Quick Tasks Completed
 
@@ -141,17 +113,8 @@ Last activity: 2026-04-11 — Milestone v4.0 started; 4 parallel researchers spa
 | 005 | Re-run pipeline (N=154), model overview + distribution figures in manuscript | 2026-04-08 | 6b045a4 | [005-rerun-pipeline-analyses-update-quarto-manuscript](./quick/005-rerun-pipeline-analyses-update-quarto-manuscript/) |
 | 006 | Post-refit verification: M6b winner, BIC + winner heterogeneity + FDR/Bonferroni + manuscript revision | 2026-04-10 | a01febd | [006-post-refit-verification-recovery-manuscript](./quick/006-post-refit-verification-recovery-manuscript/) |
 
-### Key Decisions Added (quick-002)
-
-| Decision | Rationale |
-|----------|-----------|
-| MODEL_REGISTRY in config.py is single source of truth for pipeline scripts | Prevents model list drift; mle_utils.py PARAMS/BOUNDS untouched (JAX inner loop) |
-| Stimulus sampled from range(set_size) per block in synthetic generation | Root cause of M5 recovery failure (r=0.03-0.57); Q/WM tables now (6,3) matching likelihood |
-| Recovery defaults: n_starts=20, n_datasets=3 (was 50, 10) | Adequate for r-metric; saves 60-70% runtime |
-| Wave 3 analysis uses afterok by default (not afterany) | Ensures all 7 models present before comparison; --analysis-after-any flag for partial results |
-
 ## Session Continuity
 
 Last session: 2026-04-11
-Stopped at: v4.0 milestone defined; research spawned (4 parallel agents: stack, features, architecture, pitfalls).
+Stopped at: v4.0 ROADMAP.md written (6 phases, 51 requirements mapped). REQUIREMENTS.md traceability table populated with concrete per-REQ-ID mappings. Ready for `/gsd:plan-phase 13`.
 Resume file: None
