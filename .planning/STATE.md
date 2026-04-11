@@ -2,17 +2,18 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-04-03)
+See: .planning/PROJECT.md (updated 2026-04-11)
 
 **Core value:** Correctly dissociate perseverative responding from learning-rate effects (alpha-) to accurately identify whether post-reversal failures reflect motor perseveration or outcome insensitivity
-**Current focus:** v3.0 shipped. Planning next milestone.
+**Current focus:** v4.0 — Hierarchical Bayesian Pipeline & LBA Acceleration (defining requirements)
 
 ## Current Position
 
-Phase: Not started (next milestone not yet defined)
-Plan: Not started
-Status: v3.0 milestone complete and archived. Manuscript in progress. Pipeline re-fit on N=154 complete; quick-006 post-refit verification in progress.
-Last activity: 2026-04-10 — Quick task 006: post-refit verification, winner heterogeneity, FDR/Bonferroni, manuscript revision
+Milestone: v4.0 Hierarchical Bayesian Pipeline & LBA Acceleration
+Phase: Not started (defining requirements)
+Plan: —
+Status: Milestone scope locked. Researching domain before requirements definition.
+Last activity: 2026-04-11 — Milestone v4.0 started; 4 parallel researchers spawned
 
 ### Post-Refit Reality (N=154, quick-006)
 
@@ -151,6 +152,6 @@ Last activity: 2026-04-10 — Quick task 006: post-refit verification, winner he
 
 ## Session Continuity
 
-Last session: 2026-04-10
-Stopped at: Quick task 006 in progress — post-refit verification, M6b winner, heterogeneity, FDR/Bonferroni, manuscript revision.
+Last session: 2026-04-11
+Stopped at: v4.0 milestone defined; research spawned (4 parallel agents: stack, features, architecture, pitfalls).
 Resume file: None
