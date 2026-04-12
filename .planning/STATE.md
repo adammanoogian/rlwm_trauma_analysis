@@ -11,11 +11,11 @@ See: .planning/PROJECT.md (updated 2026-04-11)
 
 Milestone: v4.0 Hierarchical Bayesian Pipeline & LBA Acceleration
 Phase: 13 of 18 (Infrastructure Repair & Hierarchical Scaffolding)
-Plan: 01 and 02 complete (executing wave 1)
-Status: In progress — Plans 13-01 and 13-02 complete
-Last activity: 2026-04-12 — Completed 13-01-PLAN.md (P0 import fix, PyMC removal, dep pinning)
+Plan: 03 complete (executing wave 1)
+Status: In progress — Plans 13-01, 13-02, 13-03 complete
+Last activity: 2026-04-12 — Completed 13-03-PLAN.md (return_pointwise on all 6 block likelihood fns and stacked wrappers)
 
-Progress: [█░░░░░░░░░] ~4% (2/TBD plans across Phases 13-18)
+Progress: [█░░░░░░░░░] ~6% (3/TBD plans across Phases 13-18)
 
 ### v4.0 Phase Structure
 
@@ -64,8 +64,8 @@ Progress: [█░░░░░░░░░] ~4% (2/TBD plans across Phases 13-18)
 - Total execution time: 117 min
 
 **v4 Milestone:**
-- Total plans completed: 2
-- Average duration: ~11 min (13-01), ~? min (13-02)
+- Total plans completed: 3
+- Average duration: ~11 min (13-01, 13-03), ~? min (13-02)
 - Total execution time: ongoing
 
 ## Accumulated Context
@@ -75,6 +75,12 @@ Progress: [█░░░░░░░░░] ~4% (2/TBD plans across Phases 13-18)
 - **P0 import fixed:** `scripts/fitting/numpyro_models.py` now exists at canonical path. `from scripts.fitting.numpyro_models import ...` resolves without error.
 - **PyMC fully removed (INFRA-07 executed):** `pyproject.toml`, `pytest.ini`, `environment_gpu.yml`, `16b_bayesian_regression.py`, and `validation/test_pymc_integration.py` all updated/deleted.
 - **Deps pinned:** `numpyro==0.20.1`, `arviz==0.23.4`, `netcdf4` added to all dep specs.
+
+### v4.0 Decisions (13-03 completed 2026-04-12)
+
+- **return_pointwise pattern:** `*_block_likelihood` functions expose per-trial log-probs via `*, return_pointwise: bool = False`. Plain Python `if` branch (not `jax.lax.cond`) - JIT specializes on static bool via `static_argnames`.
+- **Stacked wrapper pointwise uses lax.scan** over block indices (not lax.fori_loop) because scan accumulates outputs. Flat reshape `all_block_probs.reshape(-1)` yields `(n_blocks * MAX_TRIALS_PER_BLOCK,)` for arviz.
+- **Padding positions have log_prob=0.0** in pointwise output. Plan 05 `bayesian_diagnostics.py` must filter mask==0 positions before `az.waic()` / `az.loo()` to avoid inflating WAIC effective parameter count.
 
 ### v4.0 Decisions (13-02 completed 2026-04-12)
 
@@ -127,5 +133,5 @@ Progress: [█░░░░░░░░░] ~4% (2/TBD plans across Phases 13-18)
 ## Session Continuity
 
 Last session: 2026-04-12
-Stopped at: Completed 13-01-PLAN.md — P0 import fixed, PyMC removed, deps pinned (numpyro==0.20.1, arviz==0.23.4, netcdf4). Also: 13-02-PLAN.md — docs/K_PARAMETERIZATION.md written.
+Stopped at: Completed 13-03-PLAN.md — return_pointwise on all 6 block likelihood functions and 6 stacked wrappers, 30 tests.
 Resume file: None
