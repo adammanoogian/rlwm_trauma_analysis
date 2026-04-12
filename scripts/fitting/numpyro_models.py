@@ -607,6 +607,101 @@ def run_inference(
     return mcmc
 
 
+def run_inference_with_bump(
+    model: Any,
+    model_args: dict[str, Any],
+    num_warmup: int = 1000,
+    num_samples: int = 2000,
+    num_chains: int = 4,
+    seed: int = 42,
+    target_accept_probs: tuple[float, ...] = (0.80, 0.95, 0.99),
+    max_tree_depth: int = 10,
+) -> MCMC:
+    """Run MCMC inference with automatic convergence bump on divergences.
+
+    Iterates over ``target_accept_probs`` in order, running full MCMC at each
+    level.  Returns immediately if a run produces zero divergences.  If all
+    levels still have divergences, returns the last MCMC object so the
+    downstream convergence gate can flag it.
+
+    Parameters
+    ----------
+    model : callable
+        NumPyro model function (e.g., ``wmrl_m3_hierarchical_model``).
+    model_args : dict
+        Keyword arguments forwarded to ``mcmc.run()`` via ``**model_args``.
+    num_warmup : int
+        Number of warmup/tuning samples per chain.  Default 1000.
+    num_samples : int
+        Number of posterior samples per chain.  Default 2000.
+    num_chains : int
+        Number of independent MCMC chains.  Default 4.
+    seed : int
+        Random seed for ``jax.random.PRNGKey``.  Default 42.
+    target_accept_probs : tuple[float, ...]
+        Sequence of NUTS target acceptance probabilities to try in order.
+        Default ``(0.80, 0.95, 0.99)``.
+    max_tree_depth : int
+        Maximum tree depth for the NUTS kernel.  Default 10.
+
+    Returns
+    -------
+    MCMC
+        The MCMC object from the first run with zero divergences, or the
+        last run if divergences remain after all acceptance-probability
+        levels are exhausted.
+
+    Notes
+    -----
+    - Divergence count is read from ``mcmc.get_extra_fields()["diverging"].sum()``.
+    - A log line ``[convergence-gate] target_accept_prob=X.XX divergences=N``
+      is printed after each run so users can track the bumping process.
+    - The downstream convergence gate in ``fit_bayesian.py`` checks that
+      ``num_divergences == 0`` before writing output files (HIER-07).
+    """
+    print(">> Starting MCMC sampling with convergence auto-bump...")
+    print(f"   Chains: {num_chains}")
+    print(f"   Warmup: {num_warmup}")
+    print(f"   Samples: {num_samples}")
+    print(f"   Total iterations per attempt: {(num_warmup + num_samples) * num_chains}")
+    print(f"   Acceptance probability schedule: {target_accept_probs}")
+    print()
+
+    last_mcmc: MCMC | None = None
+    for tap in target_accept_probs:
+        nuts_kernel = NUTS(
+            model,
+            target_accept_prob=tap,
+            max_tree_depth=max_tree_depth,
+        )
+        mcmc = MCMC(
+            nuts_kernel,
+            num_warmup=num_warmup,
+            num_samples=num_samples,
+            num_chains=num_chains,
+            progress_bar=True,
+        )
+        rng_key = jax.random.PRNGKey(seed)
+        mcmc.run(rng_key, **model_args)
+
+        extra = mcmc.get_extra_fields()
+        n_div = int(extra["diverging"].sum()) if "diverging" in extra else 0
+        print(f"[convergence-gate] target_accept_prob={tap:.2f} divergences={n_div}")
+
+        last_mcmc = mcmc
+        if n_div == 0:
+            print("[convergence-gate] Zero divergences — accepting this run.")
+            return mcmc
+
+        print(f"[convergence-gate] {n_div} divergences remain — bumping target_accept_prob.")
+
+    print(
+        "[convergence-gate] WARNING: divergences remain after all acceptance-probability "
+        "levels exhausted.  Returning last run; downstream gate will flag this."
+    )
+    return last_mcmc  # type: ignore[return-value]
+
+
 def samples_to_arviz(mcmc: MCMC, data_df: pd.DataFrame | None = None) -> Any:
     """
     Convert NumPyro MCMC samples to ArviZ InferenceData format.
