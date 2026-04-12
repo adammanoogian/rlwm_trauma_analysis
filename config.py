@@ -490,5 +490,81 @@ def print_config_summary():
     print(f"  - Tune: {PyMCParams.NUM_TUNE}")
     print("=" * 80)
 
+# ============================================================================
+# PARAMETERIZATION VERSION REGISTRY & VALIDATION
+# ============================================================================
+
+EXPECTED_PARAMETERIZATION: dict[str, str] = {
+    "qlearning": "v4.0-phiapprox",
+    "wmrl": "v4.0-K[2,6]-phiapprox",
+    "wmrl_m3": "v4.0-K[2,6]-phiapprox",
+    "wmrl_m5": "v4.0-K[2,6]-phiapprox",
+    "wmrl_m6a": "v4.0-K[2,6]-phiapprox",
+    "wmrl_m6b": "v4.0-K[2,6]-phiapprox-stickbreaking",
+    "wmrl_m4": "v4.0-K[2,6]-phiapprox-lba",
+}
+"""Expected parameterization_version string for each model's fit CSV.
+
+Downstream scripts must call :func:`load_fits_with_validation` when
+loading individual-level fit CSVs so that stale v3.0 fits (which used
+K in [1, 7] and a non-standard non-centered parameterization) are
+rejected with an informative error rather than silently producing
+wrong inferences.
+"""
+
+
+def load_fits_with_validation(
+    path: "Path",
+    model: str,
+) -> "pd.DataFrame":
+    """Load a fit CSV and validate its parameterization_version.
+
+    Raises loudly if the CSV lacks a ``parameterization_version`` column
+    or if the version does not match the expected string for ``model``.
+    This prevents stale v3.0 fits (K in [1, 7]) from contaminating v4.0
+    hierarchical analyses.
+
+    Parameters
+    ----------
+    path : Path
+        Path to the CSV file (individual-level MLE or Bayesian fits).
+    model : str
+        Model name key into :data:`EXPECTED_PARAMETERIZATION`
+        (e.g. ``"wmrl_m3"``).
+
+    Returns
+    -------
+    pd.DataFrame
+        The loaded DataFrame, validated.
+
+    Raises
+    ------
+    ValueError
+        If ``parameterization_version`` column is absent.  Error message
+        includes expected version so the user knows what to look for.
+    ValueError
+        If the column contains a value that does not match the expected
+        string.  Error message includes expected vs. actual values.
+    """
+    import pandas as pd
+
+    df = pd.read_csv(path)
+    if "parameterization_version" not in df.columns:
+        expected = EXPECTED_PARAMETERIZATION.get(model, "unknown")
+        raise ValueError(
+            f"{path} lacks 'parameterization_version' column — "
+            f"likely a v3.0 legacy fit. "
+            f"Expected: {expected}"
+        )
+    expected = EXPECTED_PARAMETERIZATION[model]
+    actual = df["parameterization_version"].unique()
+    if len(actual) != 1 or actual[0] != expected:
+        raise ValueError(
+            f"{path} parameterization_version mismatch: "
+            f"expected='{expected}', actual={list(actual)}"
+        )
+    return df
+
+
 if __name__ == "__main__":
     print_config_summary()
