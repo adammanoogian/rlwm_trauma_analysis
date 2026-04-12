@@ -1,0 +1,2 @@
+participant_id,alpha_pos,alpha_neg,epsilon,nll,aic,bic,aicc,pseudo_r2,alpha_pos_hdi_low,alpha_pos_hdi_high,alpha_pos_sd,alpha_neg_hdi_low,alpha_neg_hdi_high,alpha_neg_sd,epsilon_hdi_low,epsilon_hdi_high,epsilon_sd,max_rhat,min_ess_bulk,num_divergences,n_trials,converged,at_bounds,parameterization_version
+TEST_001,0.3,0.2,0.05,,,,,,0.2,0.4,0.05,0.1,0.3,0.05,0.01,0.1,0.02,1.001,500,0,200,True,,v4.0-phiapprox
