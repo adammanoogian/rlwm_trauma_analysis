@@ -11,11 +11,11 @@ See: .planning/PROJECT.md (updated 2026-04-11)
 
 Milestone: v4.0 Hierarchical Bayesian Pipeline & LBA Acceleration
 Phase: 14 of 18 (Collins K Refit + GPU LBA Batching) — in progress
-Plan: 1 of 3 complete (14-01 done; 14-02 Wave 2; 14-03 Wave 3)
-Status: In progress — 14-01 complete
-Last activity: 2026-04-12 — Completed 14-01-PLAN.md (K bounds + version stamp)
+Plan: 2 of 3 complete (14-01 done; 14-02 done; 14-03 Wave 3)
+Status: In progress — 14-02 complete
+Last activity: 2026-04-12 — Completed 14-02-PLAN.md (fit_all_gpu_m4 wrapper + M4 smoke test)
 
-Progress: [██░░░░░░░░] ~20% (6/~30 plans across Phases 13-18)
+Progress: [██░░░░░░░░] ~23% (7/~30 plans across Phases 13-18)
 
 ### v4.0 Phase Structure
 
@@ -69,6 +69,13 @@ Progress: [██░░░░░░░░] ~20% (6/~30 plans across Phases 13-18
 - Total execution time: ongoing
 
 ## Accumulated Context
+
+### v4.0 Decisions (14-02 completed 2026-04-12)
+
+- **fit_all_gpu_m4 float64 ordering (locked):** `jax.config.update("jax_enable_x64", True)` must be the FIRST statement in `fit_all_gpu_m4` — cannot be toggled after first JAX array is materialised.
+- **lba_likelihood lazy import in wrapper:** Mirrors `main()` pattern (line 2830); importing `wmrl_m4_multiblock_likelihood_stacked` reinforces float64 globally.
+- **Smoke test @pytest.mark.slow:** `test_fit_all_gpu_m4_smoke` with `n_starts=5` validates JIT compilation + finite NLL without targeting parameter recovery.
+- **GPU-01 requirement complete:** `fit_all_gpu_m4` callable exists in `fit_mle.py` with correct float64 initialization sequence and delegation to `fit_all_gpu`.
 
 ### v4.0 Decisions (14-01 completed 2026-04-12)
 
@@ -155,5 +162,5 @@ Progress: [██░░░░░░░░] ~20% (6/~30 plans across Phases 13-18
 ## Session Continuity
 
 Last session: 2026-04-12
-Stopped at: Completed 14-01-PLAN.md — K bounds [2,6] in all 6 WM BOUNDS dicts, parameterization_version stamp in fit_mle.py
+Stopped at: Completed 14-02-PLAN.md — fit_all_gpu_m4 wrapper with float64 enable, M4 synthetic fixture, GPU smoke test
 Resume file: None

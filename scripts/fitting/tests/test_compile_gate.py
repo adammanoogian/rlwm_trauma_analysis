@@ -55,9 +55,9 @@ def _make_minimal_synthetic_data(
         rewards_blocks = []
 
         for _ in range(n_blocks):
-            stimuli_blocks.append(rng.integers(0, 3, n_trials).tolist())
-            actions_blocks.append(rng.integers(0, 3, n_trials).tolist())
-            rewards_blocks.append(rng.integers(0, 2, n_trials).astype(float).tolist())
+            stimuli_blocks.append(jnp.array(rng.integers(0, 3, n_trials), dtype=jnp.int32))
+            actions_blocks.append(jnp.array(rng.integers(0, 3, n_trials), dtype=jnp.int32))
+            rewards_blocks.append(jnp.array(rng.integers(0, 2, n_trials).astype(np.float32)))
 
         participant_data[i] = {
             "stimuli_blocks": stimuli_blocks,
