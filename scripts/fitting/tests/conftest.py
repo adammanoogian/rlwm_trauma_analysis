@@ -288,3 +288,46 @@ def wmrl_participant_data():
         }
 
     return participant_data
+
+
+@pytest.fixture
+def m4_synthetic_data_small():
+    """Generate 5 synthetic M4 participants for GPU smoke test.
+
+    Returns a DataFrame matching the format expected by
+    ``prepare_participant_data(data, pid, model='wmrl_m4')``.
+    """
+    import pandas as pd
+
+    rows = []
+    for pid_idx in range(5):
+        pid = f"SYNTH_{pid_idx:03d}"
+        for block_idx in range(3):
+            stim, act, rew, ss = simulate_wmrl_block(
+                alpha_pos=0.5,
+                alpha_neg=0.3,
+                phi=0.2,
+                rho=0.7,
+                capacity=4.0,
+                epsilon=0.1,
+                beta=50.0,
+                n_trials=30,
+                n_stim=3,
+                n_act=3,
+                set_size=3,
+                seed=42 + pid_idx * 100 + block_idx,
+            )
+            rts = np.random.default_rng(
+                seed=42 + pid_idx * 100 + block_idx
+            ).uniform(0.3, 0.8, size=len(stim))
+            for t in range(len(stim)):
+                rows.append({
+                    "sona_id": pid,
+                    "block": block_idx + 1,
+                    "stimulus": int(stim[t]),
+                    "key_press": int(act[t]),
+                    "reward": float(rew[t]),
+                    "set_size": int(ss[t]),
+                    "rt": float(rts[t]),
+                })
+    return pd.DataFrame(rows)
