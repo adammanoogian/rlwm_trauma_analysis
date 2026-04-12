@@ -359,8 +359,10 @@ def q_learning_block_likelihood(
     num_stimuli: int = 6,
     num_actions: int = 3,
     q_init: float = 0.5,
-    mask: jnp.ndarray = None
-) -> float:
+    mask: jnp.ndarray = None,
+    *,
+    return_pointwise: bool = False,
+) -> float | tuple[float, jnp.ndarray]:
     """
     Compute log-likelihood for Q-learning on a SINGLE BLOCK.
 
@@ -399,11 +401,19 @@ def q_learning_block_likelihood(
     mask : array, shape (n_trials,), optional
         Mask for padded blocks: 1.0 for real trials, 0.0 for padding.
         If None, all trials are treated as real (backward compatible).
+    return_pointwise : bool, optional
+        If True, return (total_log_lik, per_trial_log_probs) tuple instead of
+        scalar. per_trial_log_probs has shape (max_trials,) where
+        max_trials = MAX_TRIALS_PER_BLOCK (100). Padding trials (where mask=0)
+        have log_prob = 0.0. The sum of per_trial_log_probs equals total_log_lik.
+        Default False for backward compatibility with MLE callers.
 
     Returns
     -------
-    float
-        Total log-likelihood for this block
+    float or tuple[float, jnp.ndarray]
+        If return_pointwise=False (default): total log-likelihood (scalar).
+        If return_pointwise=True: (total_log_lik, per_trial_log_probs) where
+        per_trial_log_probs has shape (max_trials,) with 0.0 for padding entries.
 
     Examples
     --------
@@ -473,6 +483,8 @@ def q_learning_block_likelihood(
     # Run scan over trials
     (Q_final, log_lik_total), log_probs = lax.scan(step_fn, init_carry, scan_inputs)
 
+    if return_pointwise:
+        return log_lik_total, log_probs
     return log_lik_total
 
 def q_learning_multiblock_likelihood(
@@ -620,7 +632,8 @@ def q_learning_multiblock_likelihood(
 # JIT-compile for performance
 q_learning_block_likelihood_jit = jax.jit(
     q_learning_block_likelihood,
-    static_argnums=(6, 7, 8)  # num_stimuli, num_actions, q_init are static (epsilon is at index 5)
+    static_argnums=(6, 7, 8),  # num_stimuli, num_actions, q_init are static (epsilon is at index 5)
+    static_argnames=("return_pointwise",),
 )
 
 def q_learning_multiblock_likelihood_stacked(
@@ -847,8 +860,10 @@ def wmrl_block_likelihood(
     num_actions: int = 3,
     q_init: float = 0.5,
     wm_init: float = 1.0 / 3.0,  # WM baseline = 1/nA (uniform)
-    mask: jnp.ndarray = None
-) -> float:
+    mask: jnp.ndarray = None,
+    *,
+    return_pointwise: bool = False,
+) -> float | tuple[float, jnp.ndarray]:
     """
     Compute log-likelihood for WM-RL hybrid model on a SINGLE BLOCK.
 
@@ -906,11 +921,19 @@ def wmrl_block_likelihood(
     mask : array, shape (n_trials,), optional
         Mask for padded blocks: 1.0 for real trials, 0.0 for padding.
         If None, all trials are treated as real (backward compatible).
+    return_pointwise : bool, optional
+        If True, return (total_log_lik, per_trial_log_probs) tuple instead of
+        scalar. per_trial_log_probs has shape (max_trials,) where
+        max_trials = MAX_TRIALS_PER_BLOCK (100). Padding trials (where mask=0)
+        have log_prob = 0.0. The sum of per_trial_log_probs equals total_log_lik.
+        Default False for backward compatibility with MLE callers.
 
     Returns
     -------
-    float
-        Total log-likelihood for this block
+    float or tuple[float, jnp.ndarray]
+        If return_pointwise=False (default): total log-likelihood (scalar).
+        If return_pointwise=True: (total_log_lik, per_trial_log_probs) where
+        per_trial_log_probs has shape (max_trials,) with 0.0 for padding entries.
     """
     # Initialize Q-table and WM matrix
     Q_init = jnp.ones((num_stimuli, num_actions)) * q_init
@@ -996,6 +1019,8 @@ def wmrl_block_likelihood(
     # Run scan over trials
     (Q_final, WM_final, _, log_lik_total), log_probs = lax.scan(step_fn, init_carry, scan_inputs)
 
+    if return_pointwise:
+        return log_lik_total, log_probs
     return log_lik_total
 
 def wmrl_m3_block_likelihood(
@@ -1014,8 +1039,10 @@ def wmrl_m3_block_likelihood(
     num_actions: int = 3,
     q_init: float = 0.5,
     wm_init: float = 1.0 / 3.0,  # WM baseline = 1/nA (uniform)
-    mask: jnp.ndarray = None
-) -> float:
+    mask: jnp.ndarray = None,
+    *,
+    return_pointwise: bool = False,
+) -> float | tuple[float, jnp.ndarray]:
     """
     Compute log-likelihood for WM-RL M3 model with perseveration on a SINGLE BLOCK.
 
@@ -1087,11 +1114,19 @@ def wmrl_m3_block_likelihood(
     mask : array, shape (n_trials,), optional
         Mask for padded blocks: 1.0 for real trials, 0.0 for padding.
         If None, all trials are treated as real (backward compatible).
+    return_pointwise : bool, optional
+        If True, return (total_log_lik, per_trial_log_probs) tuple instead of
+        scalar. per_trial_log_probs has shape (max_trials,) where
+        max_trials = MAX_TRIALS_PER_BLOCK (100). Padding trials (where mask=0)
+        have log_prob = 0.0. The sum of per_trial_log_probs equals total_log_lik.
+        Default False for backward compatibility with MLE callers.
 
     Returns
     -------
-    float
-        Total log-likelihood for this block
+    float or tuple[float, jnp.ndarray]
+        If return_pointwise=False (default): total log-likelihood (scalar).
+        If return_pointwise=True: (total_log_lik, per_trial_log_probs) where
+        per_trial_log_probs has shape (max_trials,) with 0.0 for padding entries.
     """
     # Initialize Q-table and WM matrix
     Q_init = jnp.ones((num_stimuli, num_actions)) * q_init
@@ -1196,6 +1231,8 @@ def wmrl_m3_block_likelihood(
     # Run scan over trials
     (Q_final, WM_final, _, log_lik_total, _), log_probs = lax.scan(step_fn, init_carry, scan_inputs)
 
+    if return_pointwise:
+        return log_lik_total, log_probs
     return log_lik_total
 
 def wmrl_multiblock_likelihood(
@@ -1606,7 +1643,8 @@ def wmrl_m3_multiblock_likelihood_stacked(
 # JIT-compile WM-RL for performance
 wmrl_block_likelihood_jit = jax.jit(
     wmrl_block_likelihood,
-    static_argnums=(10, 11, 12, 13)  # num_stimuli, num_actions, q_init, wm_init are static
+    static_argnums=(10, 11, 12, 13),  # num_stimuli, num_actions, q_init, wm_init are static
+    static_argnames=("return_pointwise",),
 )
 
 # ============================================================================
@@ -1630,8 +1668,10 @@ def wmrl_m5_block_likelihood(
     num_actions: int = 3,
     q_init: float = 0.5,
     wm_init: float = 1.0 / 3.0,  # WM baseline = 1/nA (uniform)
-    mask: jnp.ndarray = None
-) -> float:
+    mask: jnp.ndarray = None,
+    *,
+    return_pointwise: bool = False,
+) -> float | tuple[float, jnp.ndarray]:
     """
     Compute log-likelihood for WM-RL M5 model with RL forgetting on a SINGLE BLOCK.
 
@@ -1693,11 +1733,19 @@ def wmrl_m5_block_likelihood(
         Initial WM values (baseline = 1/nA for uniform)
     mask : array, shape (n_trials,), optional
         Mask for padded blocks: 1.0 for real trials, 0.0 for padding.
+    return_pointwise : bool, optional
+        If True, return (total_log_lik, per_trial_log_probs) tuple instead of
+        scalar. per_trial_log_probs has shape (max_trials,) where
+        max_trials = MAX_TRIALS_PER_BLOCK (100). Padding trials (where mask=0)
+        have log_prob = 0.0. The sum of per_trial_log_probs equals total_log_lik.
+        Default False for backward compatibility with MLE callers.
 
     Returns
     -------
-    float
-        Total log-likelihood for this block
+    float or tuple[float, jnp.ndarray]
+        If return_pointwise=False (default): total log-likelihood (scalar).
+        If return_pointwise=True: (total_log_lik, per_trial_log_probs) where
+        per_trial_log_probs has shape (max_trials,) with 0.0 for padding entries.
     """
     # Initialize Q-table and WM matrix
     Q_init = jnp.ones((num_stimuli, num_actions)) * q_init
@@ -1808,6 +1856,8 @@ def wmrl_m5_block_likelihood(
     # Run scan over trials
     (Q_final, WM_final, _, log_lik_total, _), log_probs = lax.scan(step_fn, init_carry, scan_inputs)
 
+    if return_pointwise:
+        return log_lik_total, log_probs
     return log_lik_total
 
 
@@ -2011,8 +2061,10 @@ def wmrl_m6a_block_likelihood(
     num_actions: int = 3,
     q_init: float = 0.5,
     wm_init: float = 1.0 / 3.0,  # WM baseline = 1/nA (uniform)
-    mask: jnp.ndarray = None
-) -> float:
+    mask: jnp.ndarray = None,
+    *,
+    return_pointwise: bool = False,
+) -> float | tuple[float, jnp.ndarray]:
     """
     Compute log-likelihood for WM-RL M6a model with stimulus-specific perseveration.
 
@@ -2065,11 +2117,19 @@ def wmrl_m6a_block_likelihood(
         Initial WM values (baseline = 1/nA for uniform)
     mask : array, shape (n_trials,), optional
         Mask for padded blocks: 1.0 for real trials, 0.0 for padding.
+    return_pointwise : bool, optional
+        If True, return (total_log_lik, per_trial_log_probs) tuple instead of
+        scalar. per_trial_log_probs has shape (max_trials,) where
+        max_trials = MAX_TRIALS_PER_BLOCK (100). Padding trials (where mask=0)
+        have log_prob = 0.0. The sum of per_trial_log_probs equals total_log_lik.
+        Default False for backward compatibility with MLE callers.
 
     Returns
     -------
-    float
-        Total log-likelihood for this block
+    float or tuple[float, jnp.ndarray]
+        If return_pointwise=False (default): total log-likelihood (scalar).
+        If return_pointwise=True: (total_log_lik, per_trial_log_probs) where
+        per_trial_log_probs has shape (max_trials,) with 0.0 for padding entries.
     """
     # Initialize Q-table and WM matrix
     Q_init = jnp.ones((num_stimuli, num_actions)) * q_init
@@ -2179,6 +2239,8 @@ def wmrl_m6a_block_likelihood(
     # Run scan over trials
     (Q_final, WM_final, _, log_lik_total, _), log_probs = lax.scan(step_fn, init_carry, scan_inputs)
 
+    if return_pointwise:
+        return log_lik_total, log_probs
     return log_lik_total
 
 
@@ -2355,8 +2417,10 @@ def wmrl_m6b_block_likelihood(
     num_actions: int = 3,
     q_init: float = 0.5,
     wm_init: float = 1.0 / 3.0,  # WM baseline = 1/nA (uniform)
-    mask: jnp.ndarray = None
-) -> float:
+    mask: jnp.ndarray = None,
+    *,
+    return_pointwise: bool = False,
+) -> float | tuple[float, jnp.ndarray]:
     """
     Compute log-likelihood for WM-RL M6b model with DUAL perseveration.
 
@@ -2405,11 +2469,19 @@ def wmrl_m6b_block_likelihood(
     q_init : float
     wm_init : float
     mask : array, shape (n_trials,), optional
+    return_pointwise : bool, optional
+        If True, return (total_log_lik, per_trial_log_probs) tuple instead of
+        scalar. per_trial_log_probs has shape (max_trials,) where
+        max_trials = MAX_TRIALS_PER_BLOCK (100). Padding trials (where mask=0)
+        have log_prob = 0.0. The sum of per_trial_log_probs equals total_log_lik.
+        Default False for backward compatibility with MLE callers.
 
     Returns
     -------
-    float
-        Total log-likelihood for this block
+    float or tuple[float, jnp.ndarray]
+        If return_pointwise=False (default): total log-likelihood (scalar).
+        If return_pointwise=True: (total_log_lik, per_trial_log_probs) where
+        per_trial_log_probs has shape (max_trials,) with 0.0 for padding entries.
     """
     # Initialize Q-table and WM matrix
     Q_init = jnp.ones((num_stimuli, num_actions)) * q_init
@@ -2530,6 +2602,8 @@ def wmrl_m6b_block_likelihood(
         step_fn, init_carry, scan_inputs
     )
 
+    if return_pointwise:
+        return log_lik_total, log_probs
     return log_lik_total
 
 
