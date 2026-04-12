@@ -41,9 +41,9 @@ dev = [
     "pytest-cov>=5.0",
 ]
 bayesian = [
-    "pymc>=5.0",
-    "arviz>=0.15",
-    "numpyro>=0.13",
+    "numpyro==0.20.1",
+    "arviz==0.23.4",
+    "netcdf4",
 ]
 
 # ===========================================================================
@@ -106,7 +106,6 @@ module = [
     "seaborn.*",
     "sklearn.*",
     "statsmodels.*",
-    "pymc.*",
     "arviz.*",
     "jax.*",
     "jaxlib.*",
@@ -129,7 +128,6 @@ addopts = "-v --tb=short --strict-markers --durations=10"
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks integration tests",
-    "requires_pymc: tests that require PyMC installation",
 ]
 filterwarnings = [
     "ignore::DeprecationWarning",

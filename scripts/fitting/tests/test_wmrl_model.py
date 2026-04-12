@@ -35,12 +35,13 @@ def test_wmrl_model_compilation(wmrl_participant_data):
     )(rng_key, participant_data=participant_data)
 
     # Check that key parameters are present
+    # Note: mu_beta not present — beta is fixed at 50 (not estimated)
     assert 'mu_alpha_pos' in prior_samples
-    assert 'mu_beta' in prior_samples
-    assert 'mu_beta_wm' in prior_samples
+    assert 'mu_alpha_neg' in prior_samples
     assert 'mu_phi' in prior_samples
     assert 'mu_rho' in prior_samples
     assert 'mu_capacity' in prior_samples
+    assert 'mu_epsilon' in prior_samples
 
     # Check shapes
     assert prior_samples['mu_alpha_pos'].shape == (10,)

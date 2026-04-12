@@ -4,8 +4,9 @@
 =============================================================
 
 Bayesian multivariate regression of model parameters on trauma scale totals.
-Supports any model via MODEL_REGISTRY. Uses PyMC (pytensor backend) locally
-or NumPyro (JAX backend) on GPU clusters.
+Supports any model via MODEL_REGISTRY. Uses NumPyro/JAX backend.
+
+# v4.0: PyMC backend removed (INFRA-07). NumPyro-only.
 
 Models:
     1. lec_total ~ beta_0 + beta_1*param_1 + ... + beta_k*param_k
@@ -37,8 +38,7 @@ Usage:
     python scripts/16b_bayesian_regression.py --model wmrl_m6b --dry-run
 
 Dependencies:
-    pip install pymc arviz  (PyMC backend, works locally)
-    OR pip install numpyro jax  (JAX backend, faster on GPU)
+    pip install numpyro jax arviz  (NumPyro/JAX backend)
 """
 from __future__ import annotations
 
@@ -55,39 +55,14 @@ project_root = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(project_root))
 from config import EXCLUDED_PARTICIPANTS, MODEL_REGISTRY, ALL_MODELS
 
-# Backend detection: prefer NumPyro/JAX if available, fall back to PyMC
-BACKEND = None
-try:
-    import jax.numpy as jnp
-    import jax.random as random
-    import numpyro
-    import numpyro.distributions as dist
-    from numpyro.infer import MCMC, NUTS
-    BACKEND = "numpyro"
-except ImportError:
-    pass
-
-if BACKEND is None:
-    try:
-        import pymc as pm
-        import arviz as az
-        BACKEND = "pymc"
-    except ImportError:
-        pass
-
-if BACKEND is None:
-    raise ImportError(
-        "Neither NumPyro/JAX nor PyMC found. Install one:\n"
-        "  pip install pymc arviz     (local, CPU)\n"
-        "  pip install numpyro jax    (GPU cluster)"
-    )
-
-# Optional: arviz for Bayesian R-squared (always available with PyMC)
-try:
-    import arviz as az
-    HAS_ARVIZ = True
-except ImportError:
-    HAS_ARVIZ = False
+# Backend: NumPyro/JAX only (v4.0 INFRA-07: PyMC dropped)
+import jax.numpy as jnp
+import jax.random as random
+import numpyro
+import numpyro.distributions as dist
+from numpyro.infer import MCMC, NUTS
+import arviz as az
+BACKEND = "numpyro"
 
 # Plotting style
 sns.set_style("whitegrid")
@@ -213,9 +188,7 @@ def prepare_predictors(df: pd.DataFrame, param_cols: list[str],
 
 def run_mcmc(X, y, outcome_name, param_names, standardize=False,
              n_chains=4, n_warmup=1000, n_samples=2000, seed=42):
-    """Run NUTS MCMC for one outcome model.
-
-    Uses PyMC if available locally, NumPyro/JAX if on GPU cluster.
+    """Run NUTS MCMC for one outcome model using NumPyro/JAX.
 
     Returns
     -------
@@ -230,50 +203,8 @@ def run_mcmc(X, y, outcome_name, param_names, standardize=False,
     print(f"\n  Running MCMC [{BACKEND}] for {outcome_name} ({n_chains} chains, "
           f"{n_warmup} warmup, {n_samples} samples)...")
 
-    if BACKEND == "pymc":
-        return _run_pymc(X, y, param_names, y_mean, y_sd, n_pred,
-                         standardize, n_chains, n_warmup, n_samples, seed)
-    else:
-        return _run_numpyro(X, y, y_mean, y_sd, n_pred,
-                            standardize, n_chains, n_warmup, n_samples, seed)
-
-
-def _run_pymc(X, y, param_names, y_mean, y_sd, n_pred,
-              standardize, n_chains, n_warmup, n_samples, seed):
-    """Run MCMC using PyMC (pytensor backend)."""
-    beta_sd = 1.0 if standardize else y_sd
-
-    with pm.Model() as model:
-        intercept = pm.Normal('intercept', mu=y_mean, sigma=2.0 * y_sd)
-        beta = pm.Normal('beta', mu=0.0, sigma=beta_sd, shape=n_pred)
-        sigma = pm.HalfNormal('sigma', sigma=y_sd)
-
-        mu = intercept + pm.math.dot(X, beta)
-        pm.Normal('y', mu=mu, sigma=sigma, observed=y)
-
-        trace = pm.sample(
-            draws=n_samples,
-            tune=n_warmup,
-            chains=n_chains,
-            random_seed=seed,
-            return_inferencedata=True,
-            progressbar=True,
-        )
-
-    # Print summary
-    summary = az.summary(trace, var_names=['intercept', 'beta', 'sigma'])
-    print(summary)
-
-    # Extract samples as dict matching NumPyro format
-    beta_samples = trace.posterior['beta'].values.reshape(-1, n_pred)
-    intercept_samples = trace.posterior['intercept'].values.flatten()
-    sigma_samples = trace.posterior['sigma'].values.flatten()
-
-    return {
-        'intercept': intercept_samples,
-        'beta': beta_samples,
-        'sigma': sigma_samples,
-    }
+    return _run_numpyro(X, y, y_mean, y_sd, n_pred,
+                        standardize, n_chains, n_warmup, n_samples, seed)
 
 
 def _run_numpyro(X, y, y_mean, y_sd, n_pred,
