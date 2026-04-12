@@ -183,6 +183,83 @@ def test_bounded_param_recovery_capacity():
     )
 
 
+@pytest.mark.slow
+def test_bounded_param_recovery_stick_breaking():
+    """Recover kappa_total and kappa_share group means under stick-breaking decode.
+
+    M6b uses two independent [0,1] bounded params decoded inside the likelihood:
+        kappa   = kappa_total * kappa_share
+        kappa_s = kappa_total * (1 - kappa_share)
+
+    This test verifies that the non-centered parameterization recovers both
+    group-level mu_pr values when observations are the decoded kappa/kappa_s.
+    """
+    from numpyro.infer import MCMC, NUTS
+
+    rng = np.random.default_rng(77)
+    n_participants = 30
+    true_mu_pr_total = -2.0
+    true_mu_pr_share = 0.0
+    true_sigma_pr = 0.1
+
+    z_total = rng.standard_normal(n_participants)
+    z_share = rng.standard_normal(n_participants)
+    kappa_total_true = phi_approx(
+        jnp.array(true_mu_pr_total + true_sigma_pr * z_total)
+    )
+    kappa_share_true = phi_approx(
+        jnp.array(true_mu_pr_share + true_sigma_pr * z_share)
+    )
+    kappa_true = kappa_total_true * kappa_share_true
+    kappa_s_true = kappa_total_true * (1.0 - kappa_share_true)
+
+    def recovery_model(obs_kappa, obs_kappa_s):
+        kt = sample_bounded_param(
+            "kappa_total", lower=0.0, upper=1.0,
+            n_participants=n_participants,
+            mu_prior_loc=-2.0, sigma_prior_scale=0.2,
+        )
+        ks = sample_bounded_param(
+            "kappa_share", lower=0.0, upper=1.0,
+            n_participants=n_participants,
+            mu_prior_loc=0.0, sigma_prior_scale=0.2,
+        )
+        kappa = kt * ks
+        kappa_s = kt * (1.0 - ks)
+        numpyro.sample("obs_kappa", dist.Normal(kappa, 0.005), obs=obs_kappa)
+        numpyro.sample("obs_kappa_s", dist.Normal(kappa_s, 0.005), obs=obs_kappa_s)
+
+    nuts = NUTS(recovery_model)
+    mcmc = MCMC(
+        nuts, num_warmup=1000, num_samples=1000,
+        num_chains=1, progress_bar=False,
+    )
+    mcmc.run(
+        jax.random.PRNGKey(77),
+        obs_kappa=kappa_true,
+        obs_kappa_s=kappa_s_true,
+    )
+    samples = mcmc.get_samples()
+
+    recovered_total = float(jnp.mean(samples["kappa_total_mu_pr"]))
+    rel_err_total = abs(recovered_total - true_mu_pr_total) / max(
+        abs(true_mu_pr_total), 0.1
+    )
+    assert rel_err_total < 0.05, (
+        f"kappa_total_mu_pr recovery: expected={true_mu_pr_total:.4f}, "
+        f"recovered={recovered_total:.4f}, rel_error={rel_err_total:.4f}"
+    )
+
+    recovered_share = float(jnp.mean(samples["kappa_share_mu_pr"]))
+    rel_err_share = abs(recovered_share - true_mu_pr_share) / max(
+        abs(true_mu_pr_share), 0.1
+    )
+    assert rel_err_share < 0.05, (
+        f"kappa_share_mu_pr recovery: expected={true_mu_pr_share:.4f}, "
+        f"recovered={recovered_share:.4f}, rel_error={rel_err_share:.4f}"
+    )
+
+
 # ---------------------------------------------------------------------------
 # PARAM_PRIOR_DEFAULTS completeness
 # ---------------------------------------------------------------------------

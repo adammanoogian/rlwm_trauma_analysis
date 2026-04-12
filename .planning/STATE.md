@@ -11,11 +11,11 @@ See: .planning/PROJECT.md (updated 2026-04-11)
 
 Milestone: v4.0 Hierarchical Bayesian Pipeline & LBA Acceleration
 Phase: 13 of 18 (Infrastructure Repair & Hierarchical Scaffolding)
-Plan: 03 complete (executing wave 1)
-Status: In progress — Plans 13-01, 13-02, 13-03 complete
-Last activity: 2026-04-12 — Completed 13-03-PLAN.md (return_pointwise on all 6 block likelihood fns and stacked wrappers)
+Plan: 05 complete (wave 2 complete)
+Status: In progress — Plans 13-01, 13-02, 13-03, 13-04, 13-05 complete
+Last activity: 2026-04-12 — Completed 13-05-PLAN.md (bayesian_diagnostics, bayesian_summary_writer, SLURM script, compile gate tests)
 
-Progress: [█░░░░░░░░░] ~6% (3/TBD plans across Phases 13-18)
+Progress: [███░░░░░░░] ~10% (5/TBD plans across Phases 13-18)
 
 ### v4.0 Phase Structure
 
@@ -70,11 +70,27 @@ Progress: [█░░░░░░░░░] ~6% (3/TBD plans across Phases 13-18)
 
 ## Accumulated Context
 
+### v4.0 Decisions (13-05 completed 2026-04-12)
+
+- **compute_pointwise_log_lik dispatch pattern:** `model_name` string dispatches to correct stacked likelihood fn; `jax.vmap` over (chains, samples_per_chain); returns shape `(chains, samples, participants, n_blocks*max_trials)`. Padded trials inherit log_prob=0.0 from mask.
+- **M6b decoding in diagnostics:** `kappa_total*kappa_share -> kappa`, `kappa_total*(1-kappa_share) -> kappa_s` decoded inside `_build_per_participant_fn`, NOT in the likelihood fn itself.
+- **Schema-parity column order (locked):** `participant_id -> params -> nll/aic/bic/aicc/pseudo_r2 -> {param}_hdi_low/high/sd -> max_rhat/min_ess_bulk/num_divergences -> n_trials/converged/at_bounds -> parameterization_version`. No `grad_norm`, `hessian_*`, `_se`, `_ci_*`, `high_correlations`.
+- **converged gate (locked):** `max_rhat < 1.01 AND min_ess_bulk > 400 AND num_divergences == 0` (strict inequalities).
+- **SLURM Bayesian script:** `time=06:00:00`, `mem=32G`, `NUMPYRO_HOST_DEVICE_COUNT=1`; JAX cache block verbatim from 12_mle_gpu.slurm.
+
 ### v4.0 Decisions (13-01 completed 2026-04-12)
 
 - **P0 import fixed:** `scripts/fitting/numpyro_models.py` now exists at canonical path. `from scripts.fitting.numpyro_models import ...` resolves without error.
 - **PyMC fully removed (INFRA-07 executed):** `pyproject.toml`, `pytest.ini`, `environment_gpu.yml`, `16b_bayesian_regression.py`, and `validation/test_pymc_integration.py` all updated/deleted.
 - **Deps pinned:** `numpyro==0.20.1`, `arviz==0.23.4`, `netcdf4` added to all dep specs.
+
+### v4.0 Decisions (13-04 completed 2026-04-12)
+
+- **phi_approx = jax.scipy.stats.norm.cdf (LOCKED):** Not expit, not polynomial approximation. Named function in numpyro_helpers.py for grep-ability.
+- **hBayesDM non-centered convention established:** `mu_pr ~ Normal(0,1)`, `sigma_pr ~ HalfNormal(0.2)`, `theta = lower + (upper-lower)*Phi_approx(mu_pr + sigma_pr*z)`. Single implementation in `sample_bounded_param`, used by all Phase 15-17 hierarchical models.
+- **PARAM_PRIOR_DEFAULTS locked:** 11 parameters with shifted mu_prior_loc priors. LBA params (v_scale, A, delta, t0) excluded — handled separately in M4 hierarchical model.
+- **parameterization_version validation gate active:** `load_fits_with_validation()` in config.py raises ValueError with expected vs actual on mismatch. Phase 14 MLE refit must stamp `"v4.0-K[2,6]-phiapprox"` on output CSVs.
+- **float32 phi_approx saturates at ~±6 sigma:** Tests use ±5 (not ±10) to stay non-degenerate.
 
 ### v4.0 Decisions (13-03 completed 2026-04-12)
 
@@ -133,5 +149,5 @@ Progress: [█░░░░░░░░░] ~6% (3/TBD plans across Phases 13-18)
 ## Session Continuity
 
 Last session: 2026-04-12
-Stopped at: Completed 13-03-PLAN.md — return_pointwise on all 6 block likelihood functions and 6 stacked wrappers, 30 tests.
+Stopped at: Completed 13-05-PLAN.md — bayesian_diagnostics.py (compute_pointwise_log_lik + build_inference_data_with_loglik), bayesian_summary_writer.py (schema-parity CSV), cluster/13_bayesian_gpu.slurm (JAX cache), 15 tests + compile gate test.
 Resume file: None
