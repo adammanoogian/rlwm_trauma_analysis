@@ -12,10 +12,12 @@ v4.0 INFRA-03.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import jax
 import jax.numpy as jnp
+import numpy as np
 
 if TYPE_CHECKING:
     import arviz as az
@@ -425,3 +427,170 @@ def build_inference_data_with_loglik(
     )
 
     return idata
+
+
+# ---------------------------------------------------------------------------
+# Shrinkage diagnostics (HIER-08)
+# ---------------------------------------------------------------------------
+
+
+def compute_shrinkage_report(
+    idata: "az.InferenceData",
+    param_names: list[str],
+) -> dict[str, float]:
+    """Compute shrinkage for each individual-level parameter.
+
+    Shrinkage measures how much the posterior individual differences are
+    pulled toward the group mean relative to the total posterior variance.
+    Values close to 1.0 indicate strong shrinkage (the model identifies the
+    parameter well at the group level); values below 0.3 flag the parameter
+    as poorly identified.
+
+    Formula::
+
+        shrinkage = 1 - var_indiv / (var_group_mean + 1e-10)
+
+    Where:
+
+    - ``var_indiv`` = variance of ALL individual-level draws
+      (across all MCMC draws AND all participants)
+    - ``var_group_mean`` = variance of the per-draw group mean
+      (how much the group mean shifts across MCMC iterations)
+
+    Parameters
+    ----------
+    idata : az.InferenceData
+        ArviZ InferenceData with a ``posterior`` group containing individual-
+        level parameter arrays of shape ``(chains, draws, n_participants)``.
+    param_names : list[str]
+        Names of individual-level parameters to compute shrinkage for.
+        Each must be a key in ``idata.posterior``.
+
+    Returns
+    -------
+    dict[str, float]
+        Mapping from parameter name to shrinkage value in ``(-inf, 1.0]``.
+        Negative values are theoretically possible but indicate a poorly
+        specified model (individual variance exceeds group variance).
+
+    Notes
+    -----
+    Uses ``numpy`` (not ``jax.numpy``) because ArviZ arrays are NumPy-backed.
+    """
+    results: dict[str, float] = {}
+    posterior = idata.posterior
+    for param in param_names:
+        arr = posterior[param].values  # (chains, draws, n_participants)
+        flat = arr.reshape(-1, arr.shape[-1])  # (total_draws, n_participants)
+        var_indiv = float(np.var(flat))
+        var_group_mean = float(np.var(flat.mean(axis=1)))
+        shrinkage = 1.0 - var_indiv / (var_group_mean + 1e-10)
+        results[param] = shrinkage
+    return results
+
+
+def write_shrinkage_report(
+    shrinkage: dict[str, float],
+    output_path: Path,
+    *,
+    threshold: float = 0.3,
+) -> Path:
+    """Write a markdown shrinkage diagnostic report.
+
+    Parameters
+    ----------
+    shrinkage : dict[str, float]
+        Output of :func:`compute_shrinkage_report`.
+    output_path : Path
+        File path for the markdown report.
+    threshold : float
+        Shrinkage threshold below which a parameter is flagged as poorly
+        identified.  Default 0.3.
+
+    Returns
+    -------
+    Path
+        The path to the written report (same as ``output_path``).
+    """
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    n_identified = sum(1 for v in shrinkage.values() if v >= threshold)
+    n_poor = len(shrinkage) - n_identified
+
+    lines = [
+        "# Shrinkage Diagnostic Report\n",
+        "Formula: `Shrinkage = 1 - var(individual draws) / var(per-draw group mean)`\n",
+        "- `var(individual draws)`: variance across all MCMC draws AND all participants",
+        "- `var(per-draw group mean)`: variance of the per-draw group mean across iterations\n",
+        "| Parameter | Shrinkage | Status |",
+        "|-----------|-----------|--------|",
+    ]
+    for param, val in shrinkage.items():
+        status = "identified" if val >= threshold else "WARNING: poorly identified"
+        lines.append(f"| {param} | {val:.4f} | {status} |")
+
+    lines += [
+        "",
+        f"**Summary:** {n_identified}/{len(shrinkage)} parameters identified "
+        f"(shrinkage >= {threshold}); {n_poor} poorly identified.",
+        "",
+        "> Parameters with shrinkage < 0.3 should be treated as descriptive only "
+        "for downstream inference.",
+    ]
+
+    output_path.write_text("\n".join(lines), encoding="utf-8")
+    return output_path
+
+
+# ---------------------------------------------------------------------------
+# Padding filter for WAIC/LOO (fixes Pitfall 4 from RESEARCH.md)
+# ---------------------------------------------------------------------------
+
+
+def filter_padding_from_loglik(
+    pointwise_loglik: jnp.ndarray,
+    participant_data_stacked: dict,
+) -> jnp.ndarray:
+    """Replace padded trial positions with NaN so WAIC/LOO ignores them.
+
+    Padded positions in the stacked likelihood output carry
+    ``log_prob = 0.0`` (inherited from the mask in the JAX likelihood
+    functions).  Passing these zeros to ``az.waic()`` or ``az.loo()``
+    inflates the effective parameter count.  This function sets masked
+    positions to ``NaN``, which ArviZ 0.23.4 silently drops.
+
+    Parameters
+    ----------
+    pointwise_loglik : jnp.ndarray
+        Shape ``(chains, samples, n_participants, n_blocks * max_trials)``.
+        Output of :func:`compute_pointwise_log_lik`.
+    participant_data_stacked : dict
+        Mapping from participant_id to stacked arrays.  The ``masks_stacked``
+        key holds a float32 array of shape ``(n_blocks, max_trials)`` where
+        1.0 = real trial and 0.0 = padding.
+
+    Returns
+    -------
+    jnp.ndarray
+        Same shape as ``pointwise_loglik`` but with padding positions set to
+        ``NaN``.  Real-trial positions are unchanged.
+
+    Notes
+    -----
+    The returned array is a NumPy array (not a JAX DeviceArray) because
+    downstream ArviZ operations work on NumPy-backed data.
+    """
+    result = np.array(pointwise_loglik, dtype=np.float32)
+
+    for idx, pid in enumerate(sorted(participant_data_stacked.keys())):
+        mask = np.array(
+            participant_data_stacked[pid]["masks_stacked"], dtype=np.float32
+        )  # (n_blocks, max_trials)
+        flat_mask = mask.reshape(-1)  # (n_blocks * max_trials,)
+
+        # Where mask == 0, set to NaN
+        padding_indices = np.where(flat_mask == 0.0)[0]
+        result[:, :, idx, padding_indices] = np.nan
+
+    return result
