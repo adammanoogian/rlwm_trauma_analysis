@@ -10,12 +10,12 @@ See: .planning/PROJECT.md (updated 2026-04-11)
 ## Current Position
 
 Milestone: v4.0 Hierarchical Bayesian Pipeline & LBA Acceleration
-Phase: 14 of 18 (Collins K Refit + GPU LBA Batching) — not yet planned
-Plan: — (Phase 14 needs `/gsd:plan-phase 14`)
-Status: Phase 13 complete and verified (6/6 must-haves). Phase 14 ready for planning.
-Last activity: 2026-04-12 — Phase 13 executed (5 plans, 2 waves, 12 commits), verified, gap closed
+Phase: 14 of 18 (Collins K Refit + GPU LBA Batching) — in progress
+Plan: 1 of 3 complete (14-01 done; 14-02 Wave 2; 14-03 Wave 3)
+Status: In progress — 14-01 complete
+Last activity: 2026-04-12 — Completed 14-01-PLAN.md (K bounds + version stamp)
 
-Progress: [██░░░░░░░░] ~17% (5/~30 plans across Phases 13-18)
+Progress: [██░░░░░░░░] ~20% (6/~30 plans across Phases 13-18)
 
 ### v4.0 Phase Structure
 
@@ -69,6 +69,12 @@ Progress: [██░░░░░░░░] ~17% (5/~30 plans across Phases 13-18
 - Total execution time: ongoing
 
 ## Accumulated Context
+
+### v4.0 Decisions (14-01 completed 2026-04-12)
+
+- **K bounds [2,6] enforced in mle_utils.py:** All 6 WM capacity BOUNDS dicts updated to `(2.0, 6.0)`. K-02 requirement complete.
+- **Version stamp pattern (locked):** `fits_df['parameterization_version'] = EXPECTED_PARAMETERIZATION[args.model]` in `fit_mle.py main()` before `to_csv`. Enables `load_fits_with_validation()` downstream rejection of stale fits.
+- **Pre-existing test failure:** `test_compile_gate.py::test_compile_gate` fails (JAX scan shape in fixture). Confirmed pre-existing before this plan. Phase 15 must resolve.
 
 ### v4.0 Decisions (13-05 completed 2026-04-12)
 
@@ -149,5 +155,5 @@ Progress: [██░░░░░░░░] ~17% (5/~30 plans across Phases 13-18
 ## Session Continuity
 
 Last session: 2026-04-12
-Stopped at: Completed 13-05-PLAN.md — bayesian_diagnostics.py (compute_pointwise_log_lik + build_inference_data_with_loglik), bayesian_summary_writer.py (schema-parity CSV), cluster/13_bayesian_gpu.slurm (JAX cache), 15 tests + compile gate test.
+Stopped at: Completed 14-01-PLAN.md — K bounds [2,6] in all 6 WM BOUNDS dicts, parameterization_version stamp in fit_mle.py
 Resume file: None

@@ -1704,6 +1704,58 @@ def fit_all_gpu(
 
     return df, timing_info, timing_records
 
+
+def fit_all_gpu_m4(
+    data: pd.DataFrame,
+    n_starts: int = 50,
+    seed: int = 42,
+    verbose: bool = True,
+    compute_diagnostics: bool = False,
+) -> tuple[pd.DataFrame, dict, list[dict]]:
+    """GPU-vectorized MLE fitting for M4 (RLWM-LBA joint choice+RT).
+
+    Wraps :func:`fit_all_gpu` with float64 enabled for LBA numerical
+    stability.  Must be called before any other JAX operations in the
+    process -- ``jax_enable_x64`` cannot be toggled after the first JAX
+    array is materialised.
+
+    Parameters
+    ----------
+    data : pd.DataFrame
+        Trial data with columns ``[sona_id, block, stimulus, key_press,
+        reward, set_size, rt]``.
+    n_starts : int
+        Number of LHS random starting points per participant.
+    seed : int
+        Random seed for reproducibility.
+    verbose : bool
+        Print progress messages.
+    compute_diagnostics : bool
+        Compute Hessian diagnostics post-fit.
+
+    Returns
+    -------
+    tuple[pd.DataFrame, dict, list[dict]]
+        Same format as :func:`fit_all_gpu` /
+        :func:`fit_all_participants`: ``(fits_df, timing_info,
+        timing_records)``.
+    """
+    jax.config.update("jax_enable_x64", True)
+    # Trigger lba_likelihood import (sets float64 globally via module-level config)
+    from scripts.fitting.lba_likelihood import (  # noqa: F401
+        wmrl_m4_multiblock_likelihood_stacked,
+    )
+
+    return fit_all_gpu(
+        data=data,
+        model="wmrl_m4",
+        n_starts=n_starts,
+        seed=seed,
+        verbose=verbose,
+        compute_diagnostics=compute_diagnostics,
+    )
+
+
 # =============================================================================
 # Single Participant Fitting (using L-BFGS-B with analytical gradients)
 # =============================================================================
