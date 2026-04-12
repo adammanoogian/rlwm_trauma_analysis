@@ -11,11 +11,11 @@ See: .planning/PROJECT.md (updated 2026-04-11)
 
 Milestone: v4.0 Hierarchical Bayesian Pipeline & LBA Acceleration
 Phase: 13 of 18 (Infrastructure Repair & Hierarchical Scaffolding)
-Plan: — (not yet planned)
-Status: Roadmap created. Phase 13 ready for `/gsd:plan-phase 13`.
-Last activity: 2026-04-11 — v4.0 ROADMAP.md written with 6 phases (13-18), 51 requirements mapped, zero orphans
+Plan: 02 complete (executing wave 1)
+Status: In progress — Phase 13 Plan 02 completed (K_PARAMETERIZATION.md written)
+Last activity: 2026-04-12 — Completed 13-02-PLAN.md (K parameterization reference doc)
 
-Progress: [░░░░░░░░░░] 0% (0/TBD plans across Phases 13-18)
+Progress: [█░░░░░░░░░] ~2% (1/TBD plans across Phases 13-18)
 
 ### v4.0 Phase Structure
 
@@ -70,6 +70,11 @@ Progress: [░░░░░░░░░░] 0% (0/TBD plans across Phases 13-18)
 
 ## Accumulated Context
 
+### v4.0 Decisions (updated 2026-04-12)
+
+- **K bounds [2, 6] confirmed (K-01):** Lower bound = 2 matching Senta, Bishop, Collins (2025) PLOS Comp Biol 21(9):e1012872 AND structural identifiability (K<2 confounded with rho at ns=2). Upper bound = 6 (task max ns, K>6 non-identified). parameterization_version = "v4.0-K[2,6]-phiapprox". Phase 14 MLE refit must adopt same bounds. Reference: `docs/K_PARAMETERIZATION.md`.
+- **Non-centered K transform established:** `K_i = 2.0 + 4.0 * Phi_approx(mu_K_pr + sigma_K_pr * z_K_i)` where `Phi_approx = jax.scipy.stats.norm.cdf`. Group priors: `mu_K_pr ~ Normal(0,1)`, `sigma_K_pr ~ HalfNormal(0.2)`.
+
 ### v4.0 Decisions (set at milestone definition 2026-04-11)
 
 - **M4 hierarchical IS in scope** despite research recommendation to descope. Phase 17 committed. Accept ~150-200 GPU-hour total budget, Pareto-k fallback for M4-vs-choice-only comparison.
@@ -115,6 +120,6 @@ Progress: [░░░░░░░░░░] 0% (0/TBD plans across Phases 13-18)
 
 ## Session Continuity
 
-Last session: 2026-04-11
-Stopped at: v4.0 ROADMAP.md written (6 phases, 51 requirements mapped). REQUIREMENTS.md traceability table populated with concrete per-REQ-ID mappings. Ready for `/gsd:plan-phase 13`.
+Last session: 2026-04-12
+Stopped at: Completed 13-02-PLAN.md — docs/K_PARAMETERIZATION.md written (K in [2, 6], Phi_approx transform, historical table, BIC rationale, K-01 fulfilled).
 Resume file: None
