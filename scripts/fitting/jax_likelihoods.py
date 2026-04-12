@@ -647,7 +647,9 @@ def q_learning_multiblock_likelihood_stacked(
     num_stimuli: int = 6,
     num_actions: int = 3,
     q_init: float = 0.5,
-) -> float:
+    *,
+    return_pointwise: bool = False,
+) -> float | tuple[float, jnp.ndarray]:
     """
     FAST multiblock likelihood that takes pre-stacked arrays directly.
 
@@ -669,30 +671,59 @@ def q_learning_multiblock_likelihood_stacked(
         Model parameters
     num_stimuli, num_actions, q_init : int/float
         Static parameters
+    return_pointwise : bool, optional
+        If True, return (total_log_lik, per_trial_log_probs) tuple instead of
+        scalar. per_trial_log_probs has shape (n_blocks * max_trials,) flattened.
+        Padding trials have log_prob = 0.0.
+        Default False for backward compatibility with MLE callers.
 
     Returns
     -------
-    float
-        Total log-likelihood summed across all blocks
+    float or tuple[float, jnp.ndarray]
+        If return_pointwise=False (default): total log-likelihood (scalar).
+        If return_pointwise=True: (total_log_lik, per_trial_log_probs) where
+        per_trial_log_probs has shape (n_blocks * max_trials,).
     """
     num_blocks = stimuli_stacked.shape[0]
 
-    def body_fn(block_idx, total_ll):
-        block_ll = q_learning_block_likelihood(
-            stimuli=stimuli_stacked[block_idx],
-            actions=actions_stacked[block_idx],
-            rewards=rewards_stacked[block_idx],
-            alpha_pos=alpha_pos,
-            alpha_neg=alpha_neg,
-            epsilon=epsilon,
-            num_stimuli=num_stimuli,
-            num_actions=num_actions,
-            q_init=q_init,
-            mask=masks_stacked[block_idx]
-        )
-        return total_ll + block_ll
+    if return_pointwise:
+        def scan_body(total_ll, block_idx):
+            block_ll, block_probs = q_learning_block_likelihood(
+                stimuli=stimuli_stacked[block_idx],
+                actions=actions_stacked[block_idx],
+                rewards=rewards_stacked[block_idx],
+                alpha_pos=alpha_pos,
+                alpha_neg=alpha_neg,
+                epsilon=epsilon,
+                num_stimuli=num_stimuli,
+                num_actions=num_actions,
+                q_init=q_init,
+                mask=masks_stacked[block_idx],
+                return_pointwise=True,
+            )
+            return total_ll + block_ll, block_probs
 
-    return lax.fori_loop(0, num_blocks, body_fn, 0.0)
+        total_ll, all_block_probs = lax.scan(
+            scan_body, 0.0, jnp.arange(num_blocks)
+        )
+        return total_ll, all_block_probs.reshape(-1)
+    else:
+        def body_fn(block_idx, total_ll):
+            block_ll = q_learning_block_likelihood(
+                stimuli=stimuli_stacked[block_idx],
+                actions=actions_stacked[block_idx],
+                rewards=rewards_stacked[block_idx],
+                alpha_pos=alpha_pos,
+                alpha_neg=alpha_neg,
+                epsilon=epsilon,
+                num_stimuli=num_stimuli,
+                num_actions=num_actions,
+                q_init=q_init,
+                mask=masks_stacked[block_idx]
+            )
+            return total_ll + block_ll
+
+        return lax.fori_loop(0, num_blocks, body_fn, 0.0)
 
 def prepare_block_data(
     data_df,
@@ -1399,36 +1430,72 @@ def wmrl_multiblock_likelihood_stacked(
     num_actions: int = 3,
     q_init: float = 0.5,
     wm_init: float = 1.0 / 3.0,
-) -> float:
+    *,
+    return_pointwise: bool = False,
+) -> float | tuple[float, jnp.ndarray]:
     """
     FAST WM-RL multiblock likelihood that takes pre-stacked arrays directly.
 
     See wmrl_multiblock_likelihood for full documentation.
     This version avoids list/restack overhead inside JIT.
+
+    Parameters
+    ----------
+    return_pointwise : bool, optional
+        If True, return (total_log_lik, per_trial_log_probs) tuple instead of
+        scalar. per_trial_log_probs has shape (n_blocks * max_trials,) flattened.
+        Default False for backward compatibility with MLE callers.
     """
     num_blocks = stimuli_stacked.shape[0]
 
-    def body_fn(block_idx, total_ll):
-        block_ll = wmrl_block_likelihood(
-            stimuli=stimuli_stacked[block_idx],
-            actions=actions_stacked[block_idx],
-            rewards=rewards_stacked[block_idx],
-            set_sizes=set_sizes_stacked[block_idx],
-            alpha_pos=alpha_pos,
-            alpha_neg=alpha_neg,
-            phi=phi,
-            rho=rho,
-            capacity=capacity,
-            epsilon=epsilon,
-            num_stimuli=num_stimuli,
-            num_actions=num_actions,
-            q_init=q_init,
-            wm_init=wm_init,
-            mask=masks_stacked[block_idx]
-        )
-        return total_ll + block_ll
+    if return_pointwise:
+        def scan_body(total_ll, block_idx):
+            block_ll, block_probs = wmrl_block_likelihood(
+                stimuli=stimuli_stacked[block_idx],
+                actions=actions_stacked[block_idx],
+                rewards=rewards_stacked[block_idx],
+                set_sizes=set_sizes_stacked[block_idx],
+                alpha_pos=alpha_pos,
+                alpha_neg=alpha_neg,
+                phi=phi,
+                rho=rho,
+                capacity=capacity,
+                epsilon=epsilon,
+                num_stimuli=num_stimuli,
+                num_actions=num_actions,
+                q_init=q_init,
+                wm_init=wm_init,
+                mask=masks_stacked[block_idx],
+                return_pointwise=True,
+            )
+            return total_ll + block_ll, block_probs
 
-    return lax.fori_loop(0, num_blocks, body_fn, 0.0)
+        total_ll, all_block_probs = lax.scan(
+            scan_body, 0.0, jnp.arange(num_blocks)
+        )
+        return total_ll, all_block_probs.reshape(-1)
+    else:
+        def body_fn(block_idx, total_ll):
+            block_ll = wmrl_block_likelihood(
+                stimuli=stimuli_stacked[block_idx],
+                actions=actions_stacked[block_idx],
+                rewards=rewards_stacked[block_idx],
+                set_sizes=set_sizes_stacked[block_idx],
+                alpha_pos=alpha_pos,
+                alpha_neg=alpha_neg,
+                phi=phi,
+                rho=rho,
+                capacity=capacity,
+                epsilon=epsilon,
+                num_stimuli=num_stimuli,
+                num_actions=num_actions,
+                q_init=q_init,
+                wm_init=wm_init,
+                mask=masks_stacked[block_idx]
+            )
+            return total_ll + block_ll
+
+        return lax.fori_loop(0, num_blocks, body_fn, 0.0)
 
 def wmrl_m3_multiblock_likelihood(
     stimuli_blocks: list,
@@ -1608,37 +1675,74 @@ def wmrl_m3_multiblock_likelihood_stacked(
     num_actions: int = 3,
     q_init: float = 0.5,
     wm_init: float = 1.0 / 3.0,
-) -> float:
+    *,
+    return_pointwise: bool = False,
+) -> float | tuple[float, jnp.ndarray]:
     """
     FAST WM-RL M3 multiblock likelihood that takes pre-stacked arrays directly.
 
     See wmrl_m3_multiblock_likelihood for full documentation.
     This version avoids list/restack overhead inside JIT.
+
+    Parameters
+    ----------
+    return_pointwise : bool, optional
+        If True, return (total_log_lik, per_trial_log_probs) tuple instead of
+        scalar. per_trial_log_probs has shape (n_blocks * max_trials,) flattened.
+        Default False for backward compatibility with MLE callers.
     """
     num_blocks = stimuli_stacked.shape[0]
 
-    def body_fn(block_idx, total_ll):
-        block_ll = wmrl_m3_block_likelihood(
-            stimuli=stimuli_stacked[block_idx],
-            actions=actions_stacked[block_idx],
-            rewards=rewards_stacked[block_idx],
-            set_sizes=set_sizes_stacked[block_idx],
-            alpha_pos=alpha_pos,
-            alpha_neg=alpha_neg,
-            phi=phi,
-            rho=rho,
-            capacity=capacity,
-            kappa=kappa,
-            epsilon=epsilon,
-            num_stimuli=num_stimuli,
-            num_actions=num_actions,
-            q_init=q_init,
-            wm_init=wm_init,
-            mask=masks_stacked[block_idx]
-        )
-        return total_ll + block_ll
+    if return_pointwise:
+        def scan_body(total_ll, block_idx):
+            block_ll, block_probs = wmrl_m3_block_likelihood(
+                stimuli=stimuli_stacked[block_idx],
+                actions=actions_stacked[block_idx],
+                rewards=rewards_stacked[block_idx],
+                set_sizes=set_sizes_stacked[block_idx],
+                alpha_pos=alpha_pos,
+                alpha_neg=alpha_neg,
+                phi=phi,
+                rho=rho,
+                capacity=capacity,
+                kappa=kappa,
+                epsilon=epsilon,
+                num_stimuli=num_stimuli,
+                num_actions=num_actions,
+                q_init=q_init,
+                wm_init=wm_init,
+                mask=masks_stacked[block_idx],
+                return_pointwise=True,
+            )
+            return total_ll + block_ll, block_probs
 
-    return lax.fori_loop(0, num_blocks, body_fn, 0.0)
+        total_ll, all_block_probs = lax.scan(
+            scan_body, 0.0, jnp.arange(num_blocks)
+        )
+        return total_ll, all_block_probs.reshape(-1)
+    else:
+        def body_fn(block_idx, total_ll):
+            block_ll = wmrl_m3_block_likelihood(
+                stimuli=stimuli_stacked[block_idx],
+                actions=actions_stacked[block_idx],
+                rewards=rewards_stacked[block_idx],
+                set_sizes=set_sizes_stacked[block_idx],
+                alpha_pos=alpha_pos,
+                alpha_neg=alpha_neg,
+                phi=phi,
+                rho=rho,
+                capacity=capacity,
+                kappa=kappa,
+                epsilon=epsilon,
+                num_stimuli=num_stimuli,
+                num_actions=num_actions,
+                q_init=q_init,
+                wm_init=wm_init,
+                mask=masks_stacked[block_idx]
+            )
+            return total_ll + block_ll
+
+        return lax.fori_loop(0, num_blocks, body_fn, 0.0)
 
 # JIT-compile WM-RL for performance
 wmrl_block_likelihood_jit = jax.jit(
@@ -2007,39 +2111,77 @@ def wmrl_m5_multiblock_likelihood_stacked(
     num_actions: int = 3,
     q_init: float = 0.5,
     wm_init: float = 1.0 / 3.0,
-) -> float:
+    *,
+    return_pointwise: bool = False,
+) -> float | tuple[float, jnp.ndarray]:
     """
     FAST WM-RL M5 multiblock likelihood that takes pre-stacked arrays directly.
 
     See wmrl_m5_multiblock_likelihood for full documentation.
     This version avoids list/restack overhead inside JIT.
     When phi_rl=0, results match wmrl_m3_multiblock_likelihood_stacked exactly.
+
+    Parameters
+    ----------
+    return_pointwise : bool, optional
+        If True, return (total_log_lik, per_trial_log_probs) tuple instead of
+        scalar. per_trial_log_probs has shape (n_blocks * max_trials,) flattened.
+        Default False for backward compatibility with MLE callers.
     """
     num_blocks = stimuli_stacked.shape[0]
 
-    def body_fn(block_idx, total_ll):
-        block_ll = wmrl_m5_block_likelihood(
-            stimuli=stimuli_stacked[block_idx],
-            actions=actions_stacked[block_idx],
-            rewards=rewards_stacked[block_idx],
-            set_sizes=set_sizes_stacked[block_idx],
-            alpha_pos=alpha_pos,
-            alpha_neg=alpha_neg,
-            phi=phi,
-            rho=rho,
-            capacity=capacity,
-            kappa=kappa,
-            phi_rl=phi_rl,
-            epsilon=epsilon,
-            num_stimuli=num_stimuli,
-            num_actions=num_actions,
-            q_init=q_init,
-            wm_init=wm_init,
-            mask=masks_stacked[block_idx]
-        )
-        return total_ll + block_ll
+    if return_pointwise:
+        def scan_body(total_ll, block_idx):
+            block_ll, block_probs = wmrl_m5_block_likelihood(
+                stimuli=stimuli_stacked[block_idx],
+                actions=actions_stacked[block_idx],
+                rewards=rewards_stacked[block_idx],
+                set_sizes=set_sizes_stacked[block_idx],
+                alpha_pos=alpha_pos,
+                alpha_neg=alpha_neg,
+                phi=phi,
+                rho=rho,
+                capacity=capacity,
+                kappa=kappa,
+                phi_rl=phi_rl,
+                epsilon=epsilon,
+                num_stimuli=num_stimuli,
+                num_actions=num_actions,
+                q_init=q_init,
+                wm_init=wm_init,
+                mask=masks_stacked[block_idx],
+                return_pointwise=True,
+            )
+            return total_ll + block_ll, block_probs
 
-    return lax.fori_loop(0, num_blocks, body_fn, 0.0)
+        total_ll, all_block_probs = lax.scan(
+            scan_body, 0.0, jnp.arange(num_blocks)
+        )
+        return total_ll, all_block_probs.reshape(-1)
+    else:
+        def body_fn(block_idx, total_ll):
+            block_ll = wmrl_m5_block_likelihood(
+                stimuli=stimuli_stacked[block_idx],
+                actions=actions_stacked[block_idx],
+                rewards=rewards_stacked[block_idx],
+                set_sizes=set_sizes_stacked[block_idx],
+                alpha_pos=alpha_pos,
+                alpha_neg=alpha_neg,
+                phi=phi,
+                rho=rho,
+                capacity=capacity,
+                kappa=kappa,
+                phi_rl=phi_rl,
+                epsilon=epsilon,
+                num_stimuli=num_stimuli,
+                num_actions=num_actions,
+                q_init=q_init,
+                wm_init=wm_init,
+                mask=masks_stacked[block_idx]
+            )
+            return total_ll + block_ll
+
+        return lax.fori_loop(0, num_blocks, body_fn, 0.0)
 
 # ============================================================================
 # WM-RL M6a: STIMULUS-SPECIFIC PERSEVERATION MODEL (M3 with per-stimulus carry)
@@ -2363,38 +2505,75 @@ def wmrl_m6a_multiblock_likelihood_stacked(
     num_actions: int = 3,
     q_init: float = 0.5,
     wm_init: float = 1.0 / 3.0,
-) -> float:
+    *,
+    return_pointwise: bool = False,
+) -> float | tuple[float, jnp.ndarray]:
     """
     FAST WM-RL M6a multiblock likelihood that takes pre-stacked arrays directly.
 
     See wmrl_m6a_multiblock_likelihood for full documentation.
     This version avoids list/restack overhead inside JIT.
     kappa_s controls stimulus-specific perseveration (replaces global kappa from M3).
+
+    Parameters
+    ----------
+    return_pointwise : bool, optional
+        If True, return (total_log_lik, per_trial_log_probs) tuple instead of
+        scalar. per_trial_log_probs has shape (n_blocks * max_trials,) flattened.
+        Default False for backward compatibility with MLE callers.
     """
     num_blocks = stimuli_stacked.shape[0]
 
-    def body_fn(block_idx, total_ll):
-        block_ll = wmrl_m6a_block_likelihood(
-            stimuli=stimuli_stacked[block_idx],
-            actions=actions_stacked[block_idx],
-            rewards=rewards_stacked[block_idx],
-            set_sizes=set_sizes_stacked[block_idx],
-            alpha_pos=alpha_pos,
-            alpha_neg=alpha_neg,
-            phi=phi,
-            rho=rho,
-            capacity=capacity,
-            kappa_s=kappa_s,
-            epsilon=epsilon,
-            num_stimuli=num_stimuli,
-            num_actions=num_actions,
-            q_init=q_init,
-            wm_init=wm_init,
-            mask=masks_stacked[block_idx]
-        )
-        return total_ll + block_ll
+    if return_pointwise:
+        def scan_body(total_ll, block_idx):
+            block_ll, block_probs = wmrl_m6a_block_likelihood(
+                stimuli=stimuli_stacked[block_idx],
+                actions=actions_stacked[block_idx],
+                rewards=rewards_stacked[block_idx],
+                set_sizes=set_sizes_stacked[block_idx],
+                alpha_pos=alpha_pos,
+                alpha_neg=alpha_neg,
+                phi=phi,
+                rho=rho,
+                capacity=capacity,
+                kappa_s=kappa_s,
+                epsilon=epsilon,
+                num_stimuli=num_stimuli,
+                num_actions=num_actions,
+                q_init=q_init,
+                wm_init=wm_init,
+                mask=masks_stacked[block_idx],
+                return_pointwise=True,
+            )
+            return total_ll + block_ll, block_probs
 
-    return lax.fori_loop(0, num_blocks, body_fn, 0.0)
+        total_ll, all_block_probs = lax.scan(
+            scan_body, 0.0, jnp.arange(num_blocks)
+        )
+        return total_ll, all_block_probs.reshape(-1)
+    else:
+        def body_fn(block_idx, total_ll):
+            block_ll = wmrl_m6a_block_likelihood(
+                stimuli=stimuli_stacked[block_idx],
+                actions=actions_stacked[block_idx],
+                rewards=rewards_stacked[block_idx],
+                set_sizes=set_sizes_stacked[block_idx],
+                alpha_pos=alpha_pos,
+                alpha_neg=alpha_neg,
+                phi=phi,
+                rho=rho,
+                capacity=capacity,
+                kappa_s=kappa_s,
+                epsilon=epsilon,
+                num_stimuli=num_stimuli,
+                num_actions=num_actions,
+                q_init=q_init,
+                wm_init=wm_init,
+                mask=masks_stacked[block_idx]
+            )
+            return total_ll + block_ll
+
+        return lax.fori_loop(0, num_blocks, body_fn, 0.0)
 
 # ============================================================================
 # WM-RL M6b: DUAL PERSEVERATION MODEL (global + stimulus-specific, stick-breaking)
@@ -2733,7 +2912,9 @@ def wmrl_m6b_multiblock_likelihood_stacked(
     num_actions: int = 3,
     q_init: float = 0.5,
     wm_init: float = 1.0 / 3.0,
-) -> float:
+    *,
+    return_pointwise: bool = False,
+) -> float | tuple[float, jnp.ndarray]:
     """
     FAST WM-RL M6b multiblock likelihood that takes pre-stacked arrays directly.
 
@@ -2741,32 +2922,68 @@ def wmrl_m6b_multiblock_likelihood_stacked(
     This version avoids list/restack overhead inside JIT.
     kappa and kappa_s are DECODED values (kappa = kappa_total * kappa_share;
     kappa_s = kappa_total * (1 - kappa_share)).
+
+    Parameters
+    ----------
+    return_pointwise : bool, optional
+        If True, return (total_log_lik, per_trial_log_probs) tuple instead of
+        scalar. per_trial_log_probs has shape (n_blocks * max_trials,) flattened.
+        Default False for backward compatibility with MLE callers.
     """
     num_blocks = stimuli_stacked.shape[0]
 
-    def body_fn(block_idx, total_ll):
-        block_ll = wmrl_m6b_block_likelihood(
-            stimuli=stimuli_stacked[block_idx],
-            actions=actions_stacked[block_idx],
-            rewards=rewards_stacked[block_idx],
-            set_sizes=set_sizes_stacked[block_idx],
-            alpha_pos=alpha_pos,
-            alpha_neg=alpha_neg,
-            phi=phi,
-            rho=rho,
-            capacity=capacity,
-            kappa=kappa,
-            kappa_s=kappa_s,
-            epsilon=epsilon,
-            num_stimuli=num_stimuli,
-            num_actions=num_actions,
-            q_init=q_init,
-            wm_init=wm_init,
-            mask=masks_stacked[block_idx]
-        )
-        return total_ll + block_ll
+    if return_pointwise:
+        def scan_body(total_ll, block_idx):
+            block_ll, block_probs = wmrl_m6b_block_likelihood(
+                stimuli=stimuli_stacked[block_idx],
+                actions=actions_stacked[block_idx],
+                rewards=rewards_stacked[block_idx],
+                set_sizes=set_sizes_stacked[block_idx],
+                alpha_pos=alpha_pos,
+                alpha_neg=alpha_neg,
+                phi=phi,
+                rho=rho,
+                capacity=capacity,
+                kappa=kappa,
+                kappa_s=kappa_s,
+                epsilon=epsilon,
+                num_stimuli=num_stimuli,
+                num_actions=num_actions,
+                q_init=q_init,
+                wm_init=wm_init,
+                mask=masks_stacked[block_idx],
+                return_pointwise=True,
+            )
+            return total_ll + block_ll, block_probs
 
-    return lax.fori_loop(0, num_blocks, body_fn, 0.0)
+        total_ll, all_block_probs = lax.scan(
+            scan_body, 0.0, jnp.arange(num_blocks)
+        )
+        return total_ll, all_block_probs.reshape(-1)
+    else:
+        def body_fn(block_idx, total_ll):
+            block_ll = wmrl_m6b_block_likelihood(
+                stimuli=stimuli_stacked[block_idx],
+                actions=actions_stacked[block_idx],
+                rewards=rewards_stacked[block_idx],
+                set_sizes=set_sizes_stacked[block_idx],
+                alpha_pos=alpha_pos,
+                alpha_neg=alpha_neg,
+                phi=phi,
+                rho=rho,
+                capacity=capacity,
+                kappa=kappa,
+                kappa_s=kappa_s,
+                epsilon=epsilon,
+                num_stimuli=num_stimuli,
+                num_actions=num_actions,
+                q_init=q_init,
+                wm_init=wm_init,
+                mask=masks_stacked[block_idx]
+            )
+            return total_ll + block_ll
+
+        return lax.fori_loop(0, num_blocks, body_fn, 0.0)
 
 # ============================================================================
 # WM-RL TEST FUNCTIONS
