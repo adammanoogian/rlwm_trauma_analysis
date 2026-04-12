@@ -44,8 +44,11 @@ import pandas as pd
 from numpyro.infer import MCMC, NUTS
 
 from scripts.fitting.jax_likelihoods import (
+    MAX_TRIALS_PER_BLOCK,
+    pad_block_to_max,
     prepare_block_data,
     q_learning_multiblock_likelihood,
+    wmrl_m3_multiblock_likelihood_stacked,
     wmrl_multiblock_likelihood,
 )
 
@@ -763,6 +766,246 @@ def test_model_with_synthetic_data() -> MCMC:
     print("=" * 80)
 
     return mcmc
+
+
+def prepare_stacked_participant_data(
+    data_df: pd.DataFrame,
+    participant_col: str = "sona_id",
+    block_col: str = "block",
+    stimulus_col: str = "stimulus",
+    action_col: str = "key_press",
+    reward_col: str = "reward",
+    set_size_col: str = "set_size",
+) -> dict[Any, dict[str, jnp.ndarray]]:
+    """Prepare stacked participant data for the M3 hierarchical model.
+
+    Converts a trial-level DataFrame into the pre-stacked JAX array format
+    expected by ``wmrl_m3_hierarchical_model`` and ``compute_pointwise_log_lik``.
+    Each participant's blocks are padded to ``MAX_TRIALS_PER_BLOCK`` using
+    ``pad_block_to_max``, then stacked into 2-D arrays of shape
+    ``(n_blocks, MAX_TRIALS_PER_BLOCK)``.
+
+    Parameters
+    ----------
+    data_df : pd.DataFrame
+        Trial-level data with participant, block, stimulus, action, reward
+        and set_size columns.
+    participant_col : str
+        Column name for participant identifier.  Default ``"sona_id"``.
+    block_col : str
+        Column name for block number.  Default ``"block"``.
+    stimulus_col : str
+        Column name for stimulus index.  Default ``"stimulus"``.
+    action_col : str
+        Column name for action taken.  Default ``"key_press"``.
+    reward_col : str
+        Column name for reward received.  Default ``"reward"``.
+    set_size_col : str
+        Column name for set size.  Default ``"set_size"``.
+
+    Returns
+    -------
+    dict[Any, dict[str, jnp.ndarray]]
+        Mapping from participant_id to a dict with keys:
+
+        * ``stimuli_stacked``   -- shape ``(n_blocks, MAX_TRIALS_PER_BLOCK)``, int32
+        * ``actions_stacked``   -- shape ``(n_blocks, MAX_TRIALS_PER_BLOCK)``, int32
+        * ``rewards_stacked``   -- shape ``(n_blocks, MAX_TRIALS_PER_BLOCK)``, float32
+        * ``set_sizes_stacked`` -- shape ``(n_blocks, MAX_TRIALS_PER_BLOCK)``, float32
+        * ``masks_stacked``     -- shape ``(n_blocks, MAX_TRIALS_PER_BLOCK)``, float32
+
+    Notes
+    -----
+    This function is the bridge between the DataFrame pipeline and the stacked
+    format consumed by ``compute_pointwise_log_lik`` in ``bayesian_diagnostics.py``.
+    The existing ``prepare_data_for_numpyro`` returns lists of arrays (old format);
+    this function returns pre-stacked 2-D JAX arrays (new format for Phase 15+).
+
+    Participant keys are sorted before processing so that downstream covariate
+    arrays (e.g., ``covariate_lec``) align with ``sorted(result.keys())``.
+    """
+    participant_data: dict[Any, dict[str, jnp.ndarray]] = {}
+
+    for participant_id in sorted(data_df[participant_col].unique()):
+        ppt_df = data_df[data_df[participant_col] == participant_id]
+
+        stimuli_blocks = []
+        actions_blocks = []
+        rewards_blocks = []
+        set_sizes_blocks = []
+        masks_blocks = []
+
+        for block_num in sorted(ppt_df[block_col].unique()):
+            block_df = ppt_df[ppt_df[block_col] == block_num]
+
+            stim = jnp.array(block_df[stimulus_col].values, dtype=jnp.int32)
+            act = jnp.array(block_df[action_col].values, dtype=jnp.int32)
+            rew = jnp.array(block_df[reward_col].values, dtype=jnp.float32)
+
+            if set_size_col in block_df.columns:
+                ss = jnp.array(block_df[set_size_col].values, dtype=jnp.float32)
+            else:
+                ss = jnp.ones(len(stim), dtype=jnp.float32) * 6.0
+
+            # pad_block_to_max returns (stim, act, rew, set_sizes_padded, mask)
+            # when set_sizes is provided -- mask is LAST, set_sizes is fourth.
+            p_stim, p_act, p_rew, p_ss, p_mask = pad_block_to_max(
+                stim, act, rew, set_sizes=ss
+            )
+            stimuli_blocks.append(p_stim)
+            actions_blocks.append(p_act)
+            rewards_blocks.append(p_rew)
+            set_sizes_blocks.append(p_ss)
+            masks_blocks.append(p_mask)
+
+        participant_data[participant_id] = {
+            "stimuli_stacked": jnp.stack(stimuli_blocks),
+            "actions_stacked": jnp.stack(actions_blocks),
+            "rewards_stacked": jnp.stack(rewards_blocks),
+            "set_sizes_stacked": jnp.stack(set_sizes_blocks),
+            "masks_stacked": jnp.stack(masks_blocks),
+        }
+
+    return participant_data
+
+
+def wmrl_m3_hierarchical_model(
+    participant_data_stacked: dict,
+    covariate_lec: jnp.ndarray | None = None,
+    num_stimuli: int = 6,
+    num_actions: int = 3,
+    q_init: float = 0.5,
+    wm_init: float = 1.0 / 3.0,
+) -> None:
+    """Hierarchical Bayesian M3 (WM-RL+kappa) model with optional Level-2 regression.
+
+    Uses the hBayesDM non-centered parameterization convention (Ahn, Haines, Zhang 2017):
+    ``theta_unc = mu_pr + sigma_pr * z``,
+    ``theta = lower + (upper - lower) * Phi_approx(theta_unc)``,
+    where ``Phi_approx = jax.scipy.stats.norm.cdf``.
+
+    K (capacity) is parameterized in [2, 6] following Senta, Bishop, Collins (2025).
+
+    Level-2 regression: if ``covariate_lec`` is provided (standardized LEC-total score),
+    a coefficient ``beta_lec_kappa`` is sampled and added as a per-participant shift on
+    the unconstrained kappa scale before the Phi_approx transform:
+    ``kappa_unc_i = kappa_mu_pr + kappa_sigma_pr * z_i + beta_lec_kappa * lec_i``.
+
+    Parameters
+    ----------
+    participant_data_stacked : dict
+        Mapping from participant_id to stacked-format arrays (from
+        ``prepare_stacked_participant_data``). Keys per participant:
+        ``stimuli_stacked``, ``actions_stacked``, ``rewards_stacked``,
+        ``set_sizes_stacked``, ``masks_stacked`` — each shape
+        ``(n_blocks, MAX_TRIALS_PER_BLOCK)``.
+    covariate_lec : jnp.ndarray or None
+        Shape ``(n_participants,)`` standardized LEC-total covariate.
+        Participants must be in the same order as
+        ``sorted(participant_data_stacked.keys())``.  If ``None``,
+        no Level-2 regression is applied and ``beta_lec_kappa`` is
+        not sampled.
+    num_stimuli : int
+        Number of distinct stimuli in the task.  Default 6.
+    num_actions : int
+        Number of possible actions.  Default 3.
+    q_init : float
+        Initial Q-value for all state-action pairs.  Default 0.5.
+    wm_init : float
+        Initial WM values (uniform baseline ``1/nA``).  Default ``1/3``.
+
+    Notes
+    -----
+    - Six parameters (alpha_pos, alpha_neg, phi, rho, capacity, epsilon) are sampled
+      via ``sample_bounded_param`` from ``numpyro_helpers``.
+    - Kappa is sampled manually with the optional L2 shift applied on the probit scale
+      before the Phi_approx transform (OUTSIDE ``sample_bounded_param``).
+    - Likelihood is accumulated via ``numpyro.factor`` in a Python for-loop over
+      participants (matches existing qlearning/wmrl models; vmap not applicable here).
+    - Do NOT modify this function's API: ``fit_bayesian.py`` dispatches to it by name.
+    """
+    from scripts.fitting.numpyro_helpers import (
+        PARAM_PRIOR_DEFAULTS,
+        phi_approx,
+        sample_bounded_param,
+    )
+
+    n_participants = len(participant_data_stacked)
+    participant_ids = sorted(participant_data_stacked.keys())
+
+    # ------------------------------------------------------------------
+    # Level-2: LEC-total -> kappa regression coefficient
+    # ------------------------------------------------------------------
+    if covariate_lec is not None:
+        beta_lec_kappa = numpyro.sample("beta_lec_kappa", dist.Normal(0.0, 1.0))
+    else:
+        beta_lec_kappa = 0.0
+
+    # ------------------------------------------------------------------
+    # Group priors for 6 parameters (all except kappa)
+    # Uses hBayesDM non-centered convention locked in Phase 13.
+    # ------------------------------------------------------------------
+    sampled: dict[str, jnp.ndarray] = {}
+    for param in ["alpha_pos", "alpha_neg", "phi", "rho", "capacity", "epsilon"]:
+        defaults = PARAM_PRIOR_DEFAULTS[param]
+        sampled[param] = sample_bounded_param(
+            param,
+            lower=defaults["lower"],
+            upper=defaults["upper"],
+            n_participants=n_participants,
+            mu_prior_loc=defaults["mu_prior_loc"],
+        )
+
+    # ------------------------------------------------------------------
+    # Kappa with optional L2 shift on the probit scale
+    # Sampled manually to allow per-participant LEC offset.
+    # ------------------------------------------------------------------
+    kappa_defaults = PARAM_PRIOR_DEFAULTS["kappa"]
+    kappa_mu_pr = numpyro.sample(
+        "kappa_mu_pr",
+        dist.Normal(kappa_defaults["mu_prior_loc"], 1.0),
+    )
+    kappa_sigma_pr = numpyro.sample("kappa_sigma_pr", dist.HalfNormal(0.2))
+    kappa_z = numpyro.sample(
+        "kappa_z",
+        dist.Normal(0, 1).expand([n_participants]),
+    )
+    lec_shift = beta_lec_kappa * covariate_lec if covariate_lec is not None else 0.0
+    kappa_unc = kappa_mu_pr + kappa_sigma_pr * kappa_z + lec_shift
+    kappa = numpyro.deterministic(
+        "kappa",
+        kappa_defaults["lower"]
+        + (kappa_defaults["upper"] - kappa_defaults["lower"]) * phi_approx(kappa_unc),
+    )
+    sampled["kappa"] = kappa
+
+    # ------------------------------------------------------------------
+    # Likelihood via numpyro.factor — Python for-loop over participants
+    # (vmap not applicable: stacked likelihood uses lax.fori_loop over
+    # variable-length block structures)
+    # ------------------------------------------------------------------
+    for idx, pid in enumerate(participant_ids):
+        pdata = participant_data_stacked[pid]
+        log_lik = wmrl_m3_multiblock_likelihood_stacked(
+            stimuli_stacked=pdata["stimuli_stacked"],
+            actions_stacked=pdata["actions_stacked"],
+            rewards_stacked=pdata["rewards_stacked"],
+            set_sizes_stacked=pdata["set_sizes_stacked"],
+            masks_stacked=pdata["masks_stacked"],
+            alpha_pos=sampled["alpha_pos"][idx],
+            alpha_neg=sampled["alpha_neg"][idx],
+            phi=sampled["phi"][idx],
+            rho=sampled["rho"][idx],
+            capacity=sampled["capacity"][idx],
+            kappa=sampled["kappa"][idx],
+            epsilon=sampled["epsilon"][idx],
+            num_stimuli=num_stimuli,
+            num_actions=num_actions,
+            q_init=q_init,
+            wm_init=wm_init,
+            return_pointwise=False,
+        )
+        numpyro.factor(f"obs_p{pid}", log_lik)
 
 
 if __name__ == "__main__":
