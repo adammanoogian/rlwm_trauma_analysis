@@ -1,0 +1,8 @@
+mkdir: cannot create directory ‘/scratch/aman0087’: Permission denied
+
+CondaError: Run 'conda init' before 'conda activate'
+
+Traceback (most recent call last):
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/fit_bayesian.py", line 38, in <module>
+    import jax
+ModuleNotFoundError: No module named 'jax'
