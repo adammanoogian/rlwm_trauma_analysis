@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-04-11)
 
 **Core value:** Correctly dissociate perseverative responding from learning-rate effects (alpha-) to accurately identify whether post-reversal failures reflect motor perseveration or outcome insensitivity
-**Current focus:** v4.0 — Hierarchical Bayesian Pipeline & LBA Acceleration (roadmap created, Phase 13 ready to plan)
+**Current focus:** v4.0 — Hierarchical Bayesian Pipeline & LBA Acceleration (Phase 13 complete, Phase 14 next)
 
 ## Current Position
 
 Milestone: v4.0 Hierarchical Bayesian Pipeline & LBA Acceleration
-Phase: 13 of 18 (Infrastructure Repair & Hierarchical Scaffolding)
-Plan: 05 complete (wave 2 complete)
-Status: In progress — Plans 13-01, 13-02, 13-03, 13-04, 13-05 complete
-Last activity: 2026-04-12 — Completed 13-05-PLAN.md (bayesian_diagnostics, bayesian_summary_writer, SLURM script, compile gate tests)
+Phase: 14 of 18 (Collins K Refit + GPU LBA Batching) — not yet planned
+Plan: — (Phase 14 needs `/gsd:plan-phase 14`)
+Status: Phase 13 complete and verified (6/6 must-haves). Phase 14 ready for planning.
+Last activity: 2026-04-12 — Phase 13 executed (5 plans, 2 waves, 12 commits), verified, gap closed
 
-Progress: [███░░░░░░░] ~10% (5/TBD plans across Phases 13-18)
+Progress: [██░░░░░░░░] ~17% (5/~30 plans across Phases 13-18)
 
 ### v4.0 Phase Structure
 

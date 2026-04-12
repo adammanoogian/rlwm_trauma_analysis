@@ -144,8 +144,8 @@ class ModelParams:
 
     # Working Memory + RL Hybrid parameters
     WM_CAPACITY_DEFAULT = 4  # WM capacity for adaptive weighting
-    WM_CAPACITY_MIN = 1
-    WM_CAPACITY_MAX = 7
+    WM_CAPACITY_MIN = 2
+    WM_CAPACITY_MAX = 6
 
     PHI_DEFAULT = 0.1  # WM decay rate toward baseline (0-1)
     PHI_MIN = 0.0

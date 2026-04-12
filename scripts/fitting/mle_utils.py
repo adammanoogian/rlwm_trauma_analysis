@@ -40,7 +40,7 @@ WMRL_BOUNDS = {
     'alpha_neg': (0.001, 0.999),
     'phi': (0.001, 0.999),        # WM decay rate
     'rho': (0.001, 0.999),        # Base WM reliance
-    'capacity': (1.0, 7.0),       # WM capacity (K)
+    'capacity': (2.0, 6.0),       # WM capacity (K); [2,6] per K-01 identifiability analysis
     'epsilon': (0.001, 0.999),
 }
 
@@ -50,7 +50,7 @@ WMRL_M3_BOUNDS = {
     'alpha_neg': (0.001, 0.999),
     'phi': (0.001, 0.999),
     'rho': (0.001, 0.999),
-    'capacity': (1.0, 7.0),
+    'capacity': (2.0, 6.0),
     'kappa': (0.0, 1.0),      # Perseveration parameter - NOTE: 0.0 allowed (M2 equivalence)
     'epsilon': (0.001, 0.999),
 }
@@ -61,7 +61,7 @@ WMRL_M5_BOUNDS = {
     'alpha_neg': (0.001, 0.999),
     'phi': (0.001, 0.999),
     'rho': (0.001, 0.999),
-    'capacity': (1.0, 7.0),
+    'capacity': (2.0, 6.0),
     'kappa': (0.0, 1.0),      # Perseveration parameter
     'phi_rl': (0.001, 0.999),  # RL forgetting rate (decay toward Q0=1/nA before delta-rule)
     'epsilon': (0.001, 0.999),
@@ -73,7 +73,7 @@ WMRL_M6A_BOUNDS = {
     'alpha_neg': (0.001, 0.999),
     'phi': (0.001, 0.999),
     'rho': (0.001, 0.999),
-    'capacity': (1.0, 7.0),
+    'capacity': (2.0, 6.0),
     'kappa_s': (0.0, 1.0),     # Stimulus-specific perseveration (same bounds as kappa)
     'epsilon': (0.001, 0.999),
 }
@@ -84,7 +84,7 @@ WMRL_M6B_BOUNDS = {
     'alpha_neg':   (0.001, 0.999),
     'phi':         (0.001, 0.999),
     'rho':         (0.001, 0.999),
-    'capacity':    (1.0, 7.0),
+    'capacity':    (2.0, 6.0),
     'kappa_total': (0.0, 1.0),    # Total perseveration budget (kappa + kappa_s <= 1 by construction)
     'kappa_share': (0.0, 1.0),    # Fraction allocated to global kernel; remainder goes to stim-specific
     'epsilon':     (0.001, 0.999),
@@ -97,7 +97,7 @@ WMRL_M4_BOUNDS = {
     'alpha_neg':  (0.001, 0.999),
     'phi':        (0.001, 0.999),
     'rho':        (0.001, 0.999),
-    'capacity':   (1.0, 7.0),
+    'capacity':   (2.0, 6.0),
     'kappa':      (0.0, 1.0),
     'v_scale':    (0.1, 20.0),   # Drift rate scaling (log-transform recommended)
     'A':          (0.001, 2.0),  # Max start point (seconds)
