@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-04-11)
 
 **Core value:** Correctly dissociate perseverative responding from learning-rate effects (alpha-) to accurately identify whether post-reversal failures reflect motor perseveration or outcome insensitivity
-**Current focus:** v4.0 — Hierarchical Bayesian Pipeline & LBA Acceleration (Phase 13 complete, Phase 14 next)
+**Current focus:** v4.0 — Hierarchical Bayesian Pipeline & LBA Acceleration (Phase 14 blocked on cluster, Phase 15 planned and ready)
 
 ## Current Position
 
 Milestone: v4.0 Hierarchical Bayesian Pipeline & LBA Acceleration
-Phase: 14 of 18 (Collins K Refit + GPU LBA Batching) — in progress
-Plan: 2 of 3 complete (14-01 done; 14-02 done; 14-03 Wave 3)
-Status: In progress — 14-02 complete
-Last activity: 2026-04-12 — Completed 14-02-PLAN.md (fit_all_gpu_m4 wrapper + M4 smoke test)
+Phase: 15 of 18 (M3 Hierarchical POC with Level-2 Regression) — in progress
+Plan: 15-01 complete (Wave 1); 15-02 and 15-03 remaining
+Status: Phase 15 in progress. 15-01 complete (core model + tests). Ready for 15-02 (fit_bayesian.py extension + convergence bump).
+Last activity: 2026-04-12 — Completed 15-01-PLAN.md: wmrl_m3_hierarchical_model, prepare_stacked_participant_data, fixed test_compile_gate, M3 smoke tests.
 
-Progress: [██░░░░░░░░] ~23% (7/~30 plans across Phases 13-18)
+Progress: [██░░░░░░░░] ~27% (8/~30 plans across Phases 13-18)
 
 ### v4.0 Phase Structure
 
@@ -69,6 +69,13 @@ Progress: [██░░░░░░░░] ~23% (7/~30 plans across Phases 13-18
 - Total execution time: ongoing
 
 ## Accumulated Context
+
+### v4.0 Decisions (15-01 completed 2026-04-12)
+
+- **Compile-gate relaxed to 120s for CPU:** Warm M3 (7 params, 5 ppts, 300 iterations) takes 65-80s on CPU; 60s is a GPU cluster target. Use 120s gate for local CI; expect < 60s on cluster. Same relaxation anticipated for M6b in Phase 16.
+- **Cold/warm protocol for M3 smoke test:** `test_smoke_dispatch` primes JIT with a cold 5/5-sample run, then times the full 100/200-sample warm run. Mirrors `test_compile_gate.py` pattern.
+- **kappa_z uses `.expand([n_participants])` not `numpyro.plate`:** Avoids plate name conflicts; matches `sample_bounded_param` internal pattern. All future M3-family models should use the same approach.
+- **prepare_stacked_participant_data sorts participants:** `sorted(data_df[participant_col].unique())` ensures downstream covariate arrays (e.g., `covariate_lec`) align with `sorted(result.keys())`. This is a correctness constraint.
 
 ### v4.0 Decisions (14-02 completed 2026-04-12)
 
@@ -162,5 +169,5 @@ Progress: [██░░░░░░░░] ~23% (7/~30 plans across Phases 13-18
 ## Session Continuity
 
 Last session: 2026-04-12
-Stopped at: Completed 14-02-PLAN.md — fit_all_gpu_m4 wrapper with float64 enable, M4 synthetic fixture, GPU smoke test
+Stopped at: Completed 15-01-PLAN.md — wmrl_m3_hierarchical_model, prepare_stacked_participant_data, fixed test_compile_gate, M3 smoke dispatch tests
 Resume file: None
