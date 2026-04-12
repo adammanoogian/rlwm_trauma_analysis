@@ -82,7 +82,7 @@ project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 # Import config for exclusions
-from config import EXCLUDED_PARTICIPANTS
+from config import EXCLUDED_PARTICIPANTS, EXPECTED_PARAMETERIZATION
 
 # Import JAX likelihood functions
 from scripts.fitting.jax_likelihoods import (
@@ -2961,6 +2961,9 @@ def main():
     summary_path = output_dir / f'{args.model}_group_summary.csv'
     timing_log_path = output_dir / f'{args.model}_timing_log.csv'
     performance_path = output_dir / f'{args.model}_performance_summary.json'
+
+    # Stamp parameterization version for downstream validation
+    fits_df['parameterization_version'] = EXPECTED_PARAMETERIZATION[args.model]
 
     fits_df.to_csv(fits_path, index=False)
     summary_df.to_csv(summary_path, index=False)
