@@ -21,6 +21,7 @@ import numpy as np
 
 if TYPE_CHECKING:
     import arviz as az
+    import pandas as pd
     from numpyro.infer import MCMC
 
 from scripts.fitting.jax_likelihoods import (
@@ -594,3 +595,268 @@ def filter_padding_from_loglik(
         result[:, :, idx, padding_indices] = np.nan
 
     return result
+
+
+# ---------------------------------------------------------------------------
+# Posterior predictive check (HIER-09)
+# ---------------------------------------------------------------------------
+
+
+def run_posterior_predictive_check(
+    mcmc: "MCMC",
+    participant_data_stacked: dict,
+    model_name: str,
+    data_df: "pd.DataFrame",
+    *,
+    group_col: str = "hypothesis_group",
+    participant_col: str = "sona_id",
+    block_col: str = "block",
+    num_stimuli: int = 6,
+    num_actions: int = 3,
+    q_init: float = 0.5,
+    n_ppc_samples: int = 200,
+    output_dir: Path | None = None,
+) -> dict:
+    """Compute group-stratified posterior predictive checks for block accuracy.
+
+    For each posterior draw, computes the model's per-trial predicted probability
+    (i.e. ``exp(log_prob)`` of the observed action), then averages within blocks
+    to obtain predicted accuracy.  This is the *calibration* PPC: does the model's
+    average predicted probability for the observed action match the observed accuracy?
+
+    Observed accuracy is computed from ``data_df`` as the mean of the ``correct``
+    column (1 = correct, 0 = incorrect) per block per trauma group.
+
+    Parameters
+    ----------
+    mcmc : numpyro.infer.MCMC
+        A fitted MCMC object after ``mcmc.run()``.
+    participant_data_stacked : dict
+        Dict mapping participant_id to stacked arrays (output of
+        ``prepare_stacked_participant_data``).
+    model_name : str
+        One of ``'qlearning'``, ``'wmrl'``, ``'wmrl_m3'``, etc.
+    data_df : pd.DataFrame
+        Original trial-level DataFrame containing at minimum the columns
+        ``participant_col``, ``block_col``, ``group_col``, and ``'correct'``.
+    group_col : str
+        Column in ``data_df`` identifying the trauma group label.
+    participant_col : str
+        Column in ``data_df`` for participant IDs.
+    block_col : str
+        Column in ``data_df`` for block number.
+    num_stimuli : int
+        Number of unique stimuli per block.
+    num_actions : int
+        Number of possible actions.
+    q_init : float
+        Initial Q-value.
+    n_ppc_samples : int
+        Number of posterior draws to use for the PPC (subsampled from the full
+        posterior for efficiency).
+    output_dir : Path or None
+        If provided, saves ``output_dir / "bayesian" / "{model_name}_ppc_results.csv"``.
+
+    Returns
+    -------
+    dict
+        Keys:
+
+        - ``"covered_count"`` : int — number of blocks (out of ``total_blocks``) where
+          observed accuracy falls within the [2.5, 97.5] PPC envelope.
+        - ``"total_blocks"`` : int — total blocks evaluated (main task only, >= block 3).
+        - ``"ppc_results_df"`` : pd.DataFrame — one row per (group, block) with columns
+          ``group``, ``block``, ``observed_accuracy``, ``ppc_median``, ``ppc_2.5``,
+          ``ppc_97.5``, ``covered``.
+
+    Notes
+    -----
+    Uses the *pragmatic* PPC approach: ``exp(log_prob_trial)`` is the model's
+    probability of the *observed* action on that trial.  Averaging within a block
+    gives the model's expected accuracy under the assumption that the observed data
+    is a typical sample.  This is a standard calibration check — it measures whether
+    the model's softmax probabilities are well-calibrated against observed choices.
+    """
+    import pandas as pd  # local import — keep TYPE_CHECKING clean
+
+    samples = mcmc.get_samples(group_by_chain=True)
+    param_names = _get_param_names(model_name)
+    participant_ids = sorted(participant_data_stacked.keys())
+    n_participants = len(participant_ids)
+
+    # Shape: (chains, draws_per_chain, ...) → flatten to (total_draws, ...)
+    # We subsample n_ppc_samples from the flattened draws for efficiency.
+    n_chains = samples[param_names[0]].shape[0]
+    n_draws = samples[param_names[0]].shape[1]
+    total_draws = n_chains * n_draws
+    rng = np.random.default_rng(seed=0)
+    draw_indices = rng.choice(total_draws, size=min(n_ppc_samples, total_draws), replace=False)
+
+    # Flatten samples to (total_draws, n_participants)
+    flat_params: dict[str, np.ndarray] = {}
+    for name in param_names:
+        arr = np.array(samples[name])  # (chains, draws, n_participants)
+        flat_params[name] = arr.reshape(total_draws, n_participants)
+
+    # Get block-level stacked structure from one participant to determine shape
+    # masks_stacked: (n_blocks, max_trials)
+    first_pid = participant_ids[0]
+    n_blocks_stacked = participant_data_stacked[first_pid]["masks_stacked"].shape[0]
+    max_trials = participant_data_stacked[first_pid]["masks_stacked"].shape[1]
+
+    # predicted_acc[draw_idx, participant_idx, block_idx] = mean exp(logprob) in block
+    predicted_acc = np.zeros(
+        (len(draw_indices), n_participants, n_blocks_stacked), dtype=np.float32
+    )
+
+    for draw_i, draw_idx in enumerate(draw_indices):
+        for p_idx, pid in enumerate(participant_ids):
+            pdata = participant_data_stacked[pid]
+
+            # Extract scalar params for this draw and participant
+            param_scalars = [
+                float(flat_params[name][draw_idx, p_idx]) for name in param_names
+            ]
+
+            per_sample_fn = _build_per_participant_fn(
+                model_name, pdata, num_stimuli, num_actions, q_init
+            )
+            # pointwise: (n_blocks * max_trials,) — log P(observed_action | params)
+            pointwise = per_sample_fn(*param_scalars)  # type: ignore[arg-type]
+            pointwise_np = np.array(pointwise, dtype=np.float32)  # (n_blocks * max_trials,)
+
+            # Reshape back to (n_blocks, max_trials)
+            pointwise_blocks = pointwise_np.reshape(n_blocks_stacked, max_trials)
+            mask_blocks = np.array(
+                pdata["masks_stacked"], dtype=np.float32
+            )  # (n_blocks, max_trials)
+
+            # exp(log_prob) = P(observed action | params)
+            prob_blocks = np.exp(pointwise_blocks)
+
+            # Mean over real (non-padded) trials per block
+            for b_idx in range(n_blocks_stacked):
+                real_mask = mask_blocks[b_idx] == 1.0
+                if real_mask.sum() > 0:
+                    predicted_acc[draw_i, p_idx, b_idx] = float(
+                        prob_blocks[b_idx][real_mask].mean()
+                    )
+                else:
+                    predicted_acc[draw_i, p_idx, b_idx] = np.nan
+
+    # Build group assignment map: participant_id -> group label
+    group_map: dict = {}
+    if group_col in data_df.columns:
+        for pid in participant_ids:
+            rows = data_df[data_df[participant_col] == pid]
+            if len(rows) > 0:
+                group_map[pid] = rows[group_col].iloc[0]
+            else:
+                group_map[pid] = "unknown"
+    else:
+        for pid in participant_ids:
+            group_map[pid] = "all"
+
+    # Compute observed accuracy per block per group from data_df
+    main_blocks = sorted(data_df[block_col].unique())
+    # We only report blocks that are present in the data (main task)
+    all_groups = sorted(set(group_map.values()))
+
+    rows_ppc: list[dict] = []
+    covered_count = 0
+    total_blocks_evaluated = 0
+
+    for group in all_groups:
+        group_pids = [pid for pid, g in group_map.items() if g == group]
+        group_pid_indices = [participant_ids.index(pid) for pid in group_pids if pid in participant_ids]
+
+        for block in main_blocks:
+            # Observed accuracy for this group, block
+            mask_obs = (
+                (data_df[participant_col].isin(group_pids))
+                & (data_df[block_col] == block)
+            )
+            block_rows = data_df[mask_obs]
+            if len(block_rows) == 0:
+                continue
+
+            if "correct" not in data_df.columns:
+                continue
+
+            observed_accuracy = float(block_rows["correct"].mean())
+
+            # PPC: predicted_acc[:, group_pid_indices, block_idx_in_stacked]
+            # We need to map block number to stacked block index.
+            # The stacked data was built from the same sorted participant order.
+            # Collect predicted accuracy across draws and group participants
+            # Block index in stacked: blocks are 0-indexed from the minimum block in stacked data.
+            # We use the block number directly as an offset relative to block 3 (main task start).
+            # More robustly: find which stacked block index corresponds to this block number.
+            # The stacked format uses ALL blocks present per participant; we identify the block
+            # by finding its index in the sorted unique blocks of the first group participant.
+            if len(group_pid_indices) == 0:
+                continue
+
+            # Find block index in stacked: iterate stacked blocks for one participant
+            # The stacked data preserves block order from prepare_stacked_participant_data.
+            # We use the observation that the block number order in stacked == sorted unique blocks.
+            ref_pid = participant_ids[group_pid_indices[0]]
+            ref_pdata = participant_data_stacked[ref_pid]
+            # n_blocks_stacked rows; we map block number to row index via data_df
+            # Simplest: find the 0-based block index from sorted unique blocks for that participant
+            ref_blocks_sorted = sorted(
+                data_df[data_df[participant_col] == ref_pid][block_col].unique()
+            )
+            if block not in ref_blocks_sorted:
+                continue
+            b_stacked_idx = ref_blocks_sorted.index(block)
+
+            if b_stacked_idx >= n_blocks_stacked:
+                continue
+
+            # Gather predicted accuracy for this group and block across draws
+            # Shape: (n_ppc_samples, len(group_pid_indices))
+            group_ppc = predicted_acc[:, group_pid_indices, b_stacked_idx]  # (draws, n_group)
+            # Flatten draws × group-participants
+            group_ppc_flat = group_ppc.flatten()
+            group_ppc_flat = group_ppc_flat[~np.isnan(group_ppc_flat)]
+
+            if len(group_ppc_flat) == 0:
+                continue
+
+            ppc_2_5 = float(np.percentile(group_ppc_flat, 2.5))
+            ppc_50 = float(np.percentile(group_ppc_flat, 50.0))
+            ppc_97_5 = float(np.percentile(group_ppc_flat, 97.5))
+            covered = bool(ppc_2_5 <= observed_accuracy <= ppc_97_5)
+
+            rows_ppc.append({
+                "group": group,
+                "block": block,
+                "observed_accuracy": observed_accuracy,
+                "ppc_median": ppc_50,
+                "ppc_2.5": ppc_2_5,
+                "ppc_97.5": ppc_97_5,
+                "covered": covered,
+            })
+
+            covered_count += int(covered)
+            total_blocks_evaluated += 1
+
+    ppc_df = pd.DataFrame(rows_ppc)
+    print(
+        f"\n[PPC] {covered_count}/{total_blocks_evaluated} blocks covered "
+        f"by 95% PPC envelope"
+    )
+
+    if output_dir is not None:
+        bayesian_out = Path(output_dir) / "bayesian"
+        bayesian_out.mkdir(parents=True, exist_ok=True)
+        ppc_csv = bayesian_out / f"{model_name}_ppc_results.csv"
+        ppc_df.to_csv(ppc_csv, index=False)
+        print(f"[PPC] Results saved: {ppc_csv}")
+
+    return {
+        "covered_count": covered_count,
+        "total_blocks": total_blocks_evaluated,
+        "ppc_results_df": ppc_df,
+    }

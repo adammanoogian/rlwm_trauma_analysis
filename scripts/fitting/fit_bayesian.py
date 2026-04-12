@@ -246,7 +246,23 @@ def fit_model(
                 print(f"  {pname}: {float(arr.mean()):.3f} ± {float(arr.std()):.3f}")
         if covariate_lec is not None and "beta_lec_kappa" in samples:
             arr = samples["beta_lec_kappa"]
-            print(f"  beta_lec_kappa: {float(arr.mean()):.3f} ± {float(arr.std()):.3f}")
+            beta_mean = float(arr.mean())
+            beta_std = float(arr.std())
+            print(f"  beta_lec_kappa: {beta_mean:.4f} ± {beta_std:.4f}")
+            # Compute 95% HDI and report whether it excludes zero
+            hdi_result = az.hdi(np.array(arr), hdi_prob=0.95)
+            hdi_low = float(hdi_result[0])
+            hdi_high = float(hdi_result[1])
+            print(
+                f"  beta_lec_kappa: mean={beta_mean:.4f}, "
+                f"95% HDI=[{hdi_low:.4f}, {hdi_high:.4f}]"
+            )
+            if hdi_low > 0:
+                print("  HDI excludes zero (positive direction)")
+            elif hdi_high < 0:
+                print("  HDI excludes zero (negative direction)")
+            else:
+                print("  HDI includes zero")
 
         return mcmc, participant_data_stacked
 
@@ -355,6 +371,7 @@ def save_results(
         filter_padding_from_loglik,
         compute_shrinkage_report,
         write_shrinkage_report,
+        run_posterior_predictive_check,
     )
 
     output_dir = Path(output_dir)
@@ -474,6 +491,19 @@ def save_results(
         shrinkage_path = bayesian_dir / "wmrl_m3_shrinkage_report.md"
         write_shrinkage_report(shrinkage, shrinkage_path)
         print(f"  Saved: {shrinkage_path}")
+
+        # Posterior predictive check (HIER-09)
+        print("\n>> Running posterior predictive check...")
+        ppc_result = run_posterior_predictive_check(
+            mcmc,
+            pdata_stacked,
+            "wmrl_m3",
+            data,
+            output_dir=output_dir,
+        )
+        covered = ppc_result["covered_count"]
+        total_b = ppc_result["total_blocks"]
+        print(f"  PPC: {covered}/{total_b} blocks covered by 95% envelope")
 
         print("\n>> All results saved successfully!")
         return idata
