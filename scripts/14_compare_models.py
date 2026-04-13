@@ -742,6 +742,141 @@ def run_bayesian_comparison(output_dir: Path) -> None:
         "consider Pareto-smoothed IS or WAIC fallback.",
     ]
 
+    # ---- CSV output (CMP-03 + CMP-04) ----
+    csv_path = level2_dir / "stacking_weights.csv"
+    comparison.to_csv(csv_path)
+    print(f"[SAVED] {csv_path}")
+
+    # ---- WAIC secondary metric (CMP-03) ----
+    print("\nWAIC (secondary metric):")
+    waic_results: dict[str, dict[str, float]] = {}
+    for name, idata in compare_dict.items():
+        try:
+            waic_result = az.waic(idata)
+            waic_elpd = (
+                float(waic_result.elpd_waic)
+                if hasattr(waic_result, "elpd_waic")
+                else float(waic_result.waic)
+            )
+            waic_results[name] = {
+                "waic": waic_elpd,
+                "p_waic": float(waic_result.p_waic),
+            }
+            print(
+                f"  {name}: ELPD_WAIC={waic_results[name]['waic']:.1f}, "
+                f"p_WAIC={waic_results[name]['p_waic']:.1f}"
+            )
+        except Exception as exc:  # noqa: BLE001
+            print(f"  WARNING: WAIC failed for {name}: {exc}")
+
+    if waic_results:
+        waic_df = pd.DataFrame(waic_results).T
+        waic_df.index.name = "model"
+        waic_csv_path = level2_dir / "waic_summary.csv"
+        waic_df.to_csv(waic_csv_path)
+        print(f"[SAVED] {waic_csv_path}")
+
+        # Append WAIC section to Markdown lines
+        lines += [
+            "",
+            "## WAIC (Secondary)",
+            "",
+            "| model | ELPD_WAIC | p_WAIC |",
+            "| ----- | --------- | ------ |",
+        ]
+        for wname, wvals in waic_results.items():
+            lines.append(
+                f"| {wname} | {wvals['waic']:.1f} | {wvals['p_waic']:.1f} |"
+            )
+
+    # ---- M4 Separate Track (CMP-02) ----
+    M4_NETCDF_PATH = "output/bayesian/wmrl_m4_posterior.nc"
+    m4_path = project_root / M4_NETCDF_PATH
+    m4_section_lines: list[str] = []
+    if m4_path.exists():
+        print("\n--- M4 Separate Track (Joint Choice+RT) ---")
+        idata_m4 = az.from_netcdf(str(m4_path))
+
+        if hasattr(idata_m4, "log_likelihood"):
+            loo_m4 = az.loo(idata_m4, pointwise=True)
+            k_vals_m4 = loo_m4.pareto_k.values
+            k_pct_m4 = float(np.mean(k_vals_m4 > 0.7) * 100)
+
+            print(f"  M4 LOO: elpd={float(loo_m4.elpd_loo):.1f}")
+            print(f"  Pareto-k > 0.7: {k_pct_m4:.1f}%")
+
+            if k_pct_m4 > 5:
+                print(
+                    "  => FALLBACK: Pareto-k unreliable. Using choice-only marginal NLL."
+                )
+                m4_section_lines = [
+                    "## M4 Separate Track (Joint Choice+RT)",
+                    "",
+                    f"**Pareto-k > 0.7:** {k_pct_m4:.1f}% of observations"
+                    " (threshold: 5%)",
+                    "",
+                    "LOO is unreliable for M4 due to high Pareto-k values.",
+                    "M4 uses a joint choice+RT likelihood (LBA) that is incommensurable",
+                    "with the choice-only log-likelihoods of M1-M6b.",
+                    "M4 is reported separately and is NOT included in the"
+                    " stacking-weight table.",
+                    "",
+                    f"M4 LOO ELPD (unreliable): {float(loo_m4.elpd_loo):.1f}",
+                ]
+            else:
+                m4_section_lines = [
+                    "## M4 Separate Track (Joint Choice+RT)",
+                    "",
+                    f"**Pareto-k > 0.7:** {k_pct_m4:.1f}%"
+                    " (below 5% threshold -- LOO usable)",
+                    "",
+                    "NOTE: M4 is still NOT included in the choice-only"
+                    " stacking-weight table",
+                    "because its joint choice+RT likelihood is incommensurable"
+                    " with choice-only models.",
+                    "",
+                    f"M4 LOO ELPD: {float(loo_m4.elpd_loo):.1f}",
+                ]
+
+            # Compute WAIC for M4
+            try:
+                waic_m4 = az.waic(idata_m4)
+                waic_val_m4 = (
+                    float(waic_m4.elpd_waic)
+                    if hasattr(waic_m4, "elpd_waic")
+                    else float(waic_m4.waic)
+                )
+                m4_section_lines.append(f"M4 WAIC ELPD: {waic_val_m4:.1f}")
+            except Exception as exc:  # noqa: BLE001
+                print(f"  WARNING: M4 WAIC failed: {exc}")
+                waic_val_m4 = float("nan")
+
+            # Write M4 comparison CSV
+            m4_csv_data = {
+                "model": ["M4"],
+                "elpd_loo": [float(loo_m4.elpd_loo)],
+                "pareto_k_pct_above_0.7": [k_pct_m4],
+                "loo_reliable": [k_pct_m4 <= 5],
+                "elpd_waic": [waic_val_m4],
+                "incommensurable_with_choice_only": [True],
+            }
+            m4_df = pd.DataFrame(m4_csv_data)
+            m4_csv_path = level2_dir / "m4_comparison.csv"
+            m4_df.to_csv(m4_csv_path, index=False)
+            print(f"  [SAVED] {m4_csv_path}")
+        else:
+            m4_section_lines = [
+                "## M4 Separate Track",
+                "",
+                "M4 posterior loaded but no log_likelihood group available.",
+            ]
+    else:
+        print(f"\n[SKIP] M4 posterior not found at {m4_path}")
+
+    # Append M4 section to Markdown
+    if m4_section_lines:
+        lines += [""] + m4_section_lines
+
     md_path.write_text("\n".join(lines), encoding="utf-8")
     print(f"\n[SAVED] {md_path}")
 
