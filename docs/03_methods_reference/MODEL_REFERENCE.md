@@ -1315,8 +1315,137 @@ ALL TESTS PASSED!
 
 ---
 
-## See Also
+## 11. Hierarchical Bayesian Pipeline (v4.0)
+
+This section documents the hierarchical Bayesian inference infrastructure
+built in Phases 13-17 of v4.0. It replaces the post-hoc FDR-corrected
+regression approach with a single joint posterior that simultaneously
+estimates individual parameters and trauma associations.
+
+### 11.1 Non-Centered Parameterization
+
+All bounded parameters use the hBayesDM non-centered convention
+(Ahn et al., 2017) implemented in `scripts/fitting/numpyro_helpers.py`:
+
+```
+mu_pr     ~ Normal(mu_prior_loc, 1)
+sigma_pr  ~ HalfNormal(0.2)
+z_i       ~ Normal(0, 1)        for i = 1..N_participants
+theta_i   = lower + (upper - lower) * Phi_approx(mu_pr + sigma_pr * z_i)
+```
+
+where `Phi_approx = jax.scipy.stats.norm.cdf` (probit link). This is
+implemented by `sample_bounded_param()` in `numpyro_helpers.py`.
+
+The prior location `mu_prior_loc` is parameter-specific (see
+`PARAM_PRIOR_DEFAULTS` in `numpyro_helpers.py`):
+
+| Parameter | mu_prior_loc | Bounds | Rationale |
+|-----------|-------------|--------|-----------|
+| alpha_pos, alpha_neg | 0.0 | [0, 1] | Centered on 0.5 on probability scale |
+| phi | -0.8 | [0, 1] | Prior expectation of moderate forgetting |
+| rho | 0.5 | [0, 1] | Prior toward higher WM reliability |
+| capacity (K) | 0.0 | [2, 6] | Centered; see docs/K_PARAMETERIZATION.md |
+| kappa | -2.0 | [0, 1] | Prior toward low perseveration |
+| epsilon | -2.0 | [0, 1] | Prior toward low noise |
+| kappa_total | -2.0 | [0, 1] | Same as kappa |
+| kappa_share | 0.0 | [0, 1] | No a priori preference for global vs stimulus |
+| phi_rl | -0.8 | [0, 1] | Same as phi |
+| kappa_s | -2.0 | [0, 1] | Same as kappa |
+
+**K parameterization:** K uses bounds [2, 6] based on Collins (2012, 2014)
+structural identifiability analysis. See `docs/K_PARAMETERIZATION.md` for
+full rationale and literature review.
+
+### 11.2 Level-2 Regression Structure
+
+Trauma associations are estimated as Level-2 shifts on the unconstrained
+(probit) scale. The 4-predictor design matrix is locked:
+
+```
+X = [lec_total, iesr_total, iesr_intr_resid, iesr_avd_resid]
+```
+
+where `iesr_intr_resid` and `iesr_avd_resid` are Gram-Schmidt
+residualized against `iesr_total` (removes collinearity). The
+hyperarousal residual is excluded because the three IES-R subscales
+sum exactly to the total (rank deficiency). Condition number of the
+design matrix: 11.3 (well below the 30 threshold).
+
+The Level-2 shift modifies the non-centered parameterization:
+
+```
+shifted_mu_pr = mu_pr + sum(beta_k * X_k)
+theta_i = lower + (upper - lower) * Phi_approx(shifted_mu_pr + sigma_pr * z_i)
+```
+
+Beta coefficients use Normal(0, 1) priors. The `build_level2_design_matrix`
+function in `scripts/fitting/level2_design.py` is the single source of truth
+for predictor construction. `COVARIATE_NAMES` list is authoritative.
+
+**N=160 participants** have complete IES-R + LEC-5 data for Level-2.
+
+### 11.3 NumPyro Factor Pattern and Pointwise Log-Likelihood
+
+**Likelihood evaluation:** Each participant's contribution is computed by
+the model-specific stacked likelihood function (e.g.,
+`wmrl_m6b_multiblock_likelihood_stacked`) and attached to the model via
+`numpyro.factor(f"obs_{participant_id}", -nll_i)`.
+
+This pattern avoids numpyro.sample with observed data (which would require
+a custom distribution class) while enabling correct posterior sampling.
+
+**Pointwise log-likelihood for LOO/WAIC:** The `compute_pointwise_log_lik()`
+function in `scripts/fitting/bayesian_diagnostics.py` re-evaluates the
+likelihood post-hoc using `jax.vmap` over (chains, samples_per_chain) to
+produce shape `(chains, samples, participants, n_blocks * max_trials)`.
+
+Padded trial positions have `log_prob = 0.0` from the mask. These are
+filtered by `filter_padding_from_loglik()` before constructing the
+`log_likelihood` group in InferenceData.
+
+### 11.4 WAIC/LOO Workflow
+
+**Primary metric:** LOO-CV via `az.loo(idata, pointwise=True)` with
+Pareto smoothed importance sampling.
+
+**Secondary metric:** WAIC via `az.waic(idata)`.
+
+**Model comparison:** `az.compare(compare_dict, ic='loo', method='stacking')`
+produces stacking weights across the 6 choice-only models (M1, M2, M3, M5,
+M6a, M6b).
+
+**M4 separate track:** M4 (joint choice+RT via LBA) is NOT included in the
+choice-only `az.compare` table because its likelihood domain differs. M4
+gets its own LOO with Pareto-k gating:
+- If < 5% observations have Pareto-k > 0.7: report M4 LOO ELPD separately.
+- If >= 5%: fall back to choice-only marginal log-likelihood.
+- See `scripts/14_compare_models.py --bayesian-comparison` for implementation.
+
+**Convergence gate:** All hierarchical fits must pass before LOO/WAIC:
+`max_rhat < 1.01 AND min_ess_bulk > 400 AND num_divergences == 0`.
+
+### 11.5 Schema-Parity CSV
+
+`scripts/fitting/bayesian_summary_writer.py` writes individual-level
+Bayesian summaries to `output/bayesian/{model}_individual_fits.csv` with
+column names identical to the MLE CSVs plus:
+
+- `{param}_hdi_low`, `{param}_hdi_high`, `{param}_sd` for each parameter
+- `max_rhat`, `min_ess_bulk`, `num_divergences`
+- `converged` (bool), `parameterization_version`
+
+This schema parity enables `scripts/15_analyze_mle_by_trauma.py`,
+`scripts/16_regress_parameters_on_scales.py`, and
+`scripts/17_analyze_winner_heterogeneity.py` to operate on either MLE or
+Bayesian fits via a `--source mle|bayesian` flag with zero analysis-logic
+changes.
+
+---
+
+## 12. See Also
 
 - **Task/Environment**: `docs/TASK_AND_ENVIRONMENT.md`
 - **Configuration**: `config.py`
 - **Agent Classes**: `models/q_learning.py`, `models/wm_rl_hybrid.py`
+- **K Bounds Rationale**: `docs/K_PARAMETERIZATION.md`
