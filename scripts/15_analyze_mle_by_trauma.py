@@ -128,8 +128,22 @@ PARAM_NAMES = {
     't0': r'$t_0$',
 }
 
-def load_data() -> tuple:
-    """Load and merge MLE fits with survey/group data."""
+def load_data(fits_dir: Path = OUTPUT_DIR) -> tuple:
+    """Load and merge model fits with survey/group data.
+
+    Parameters
+    ----------
+    fits_dir
+        Directory containing individual-fit CSVs.  Defaults to the MLE
+        output directory (``OUTPUT_DIR``).  Pass ``PROJECT_ROOT / "output" /
+        "bayesian"`` to load hierarchical Bayesian posterior-mean CSVs.
+
+    Returns
+    -------
+    tuple
+        ``(qlearning, wmrl, wmrl_m3, surveys, groups, wmrl_m5, wmrl_m6a,
+        wmrl_m6b, wmrl_m4)`` as DataFrames (optional models may be ``None``).
+    """
     # Load survey data
     surveys = pd.read_csv(PROJECT_ROOT / "output" / "summary_participant_metrics.csv")
     # Rename columns to match names expected throughout this script
@@ -144,33 +158,36 @@ def load_data() -> tuple:
     surveys['sona_id'] = surveys['sona_id'].astype(str)
     groups['sona_id'] = groups['sona_id'].astype(str)
 
-    # Load MLE fits
-    qlearning = pd.read_csv(OUTPUT_DIR / "qlearning_individual_fits.csv")
-    wmrl = pd.read_csv(OUTPUT_DIR / "wmrl_individual_fits.csv")
-    wmrl_m3 = pd.read_csv(OUTPUT_DIR / "wmrl_m3_individual_fits.csv")
+    # Load fits from fits_dir.  For MLE source, fall back to the legacy output/
+    # root when a file is absent from output/mle/. For Bayesian source, files
+    # are always expected in fits_dir and no fallback is applied.
+    is_mle_source = fits_dir == OUTPUT_DIR
+
+    qlearning = pd.read_csv(fits_dir / "qlearning_individual_fits.csv")
+    wmrl = pd.read_csv(fits_dir / "wmrl_individual_fits.csv")
+    wmrl_m3 = pd.read_csv(fits_dir / "wmrl_m3_individual_fits.csv")
 
     # M5: load defensively (file may not exist)
-    # Check output/mle/ first, then output/ (plan 01 used --output output)
-    wmrl_m5_path = OUTPUT_DIR / "wmrl_m5_individual_fits.csv"
-    if not wmrl_m5_path.exists():
+    wmrl_m5_path = fits_dir / "wmrl_m5_individual_fits.csv"
+    if is_mle_source and not wmrl_m5_path.exists():
         wmrl_m5_path = PROJECT_ROOT / "output" / "wmrl_m5_individual_fits.csv"
     wmrl_m5 = pd.read_csv(wmrl_m5_path) if wmrl_m5_path.exists() else None
 
     # M6a: load defensively (file may not exist)
-    wmrl_m6a_path = OUTPUT_DIR / "wmrl_m6a_individual_fits.csv"
-    if not wmrl_m6a_path.exists():
+    wmrl_m6a_path = fits_dir / "wmrl_m6a_individual_fits.csv"
+    if is_mle_source and not wmrl_m6a_path.exists():
         wmrl_m6a_path = PROJECT_ROOT / "output" / "wmrl_m6a_individual_fits.csv"
     wmrl_m6a = pd.read_csv(wmrl_m6a_path) if wmrl_m6a_path.exists() else None
 
     # M6b: load defensively (file may not exist)
-    wmrl_m6b_path = OUTPUT_DIR / "wmrl_m6b_individual_fits.csv"
-    if not wmrl_m6b_path.exists():
+    wmrl_m6b_path = fits_dir / "wmrl_m6b_individual_fits.csv"
+    if is_mle_source and not wmrl_m6b_path.exists():
         wmrl_m6b_path = PROJECT_ROOT / "output" / "wmrl_m6b_individual_fits.csv"
     wmrl_m6b = pd.read_csv(wmrl_m6b_path) if wmrl_m6b_path.exists() else None
 
     # M4: load defensively (file may not exist)
-    wmrl_m4_path = OUTPUT_DIR / "wmrl_m4_individual_fits.csv"
-    if not wmrl_m4_path.exists():
+    wmrl_m4_path = fits_dir / "wmrl_m4_individual_fits.csv"
+    if is_mle_source and not wmrl_m4_path.exists():
         wmrl_m4_path = PROJECT_ROOT / "output" / "wmrl_m4_individual_fits.csv"
     wmrl_m4 = pd.read_csv(wmrl_m4_path) if wmrl_m4_path.exists() else None
 
@@ -818,20 +835,35 @@ Examples:
                        help='Model to analyze (default: all)')
     parser.add_argument('--color-by', type=str, default=None,
                        help='Column to color scatter plots by (default: hypothesis_group)')
+    parser.add_argument('--source', type=str, default='mle',
+                       choices=['mle', 'bayesian'],
+                       help='Fit source: mle (default) or bayesian')
     args = parser.parse_args()
 
     print("=" * 70)
     print("MLE Parameter Analysis by Trauma Group")
     print("=" * 70)
+    print(f"Source: {args.source.upper()}")
 
     # Apply plotting defaults
     PlotConfig.apply_defaults()
 
+    # Resolve fits directory and output paths based on --source
+    if args.source == 'bayesian':
+        fits_dir = PROJECT_ROOT / "output" / "bayesian"
+        figures_dir = PROJECT_ROOT / "figures" / "bayesian_trauma_analysis"
+        analysis_output_dir = PROJECT_ROOT / "output" / "bayesian" / "analysis"
+    else:
+        fits_dir = OUTPUT_DIR
+        figures_dir = FIGURES_DIR
+        analysis_output_dir = OUTPUT_DIR
+
     # Create output directories
-    FIGURES_DIR.mkdir(parents=True, exist_ok=True)
+    figures_dir.mkdir(parents=True, exist_ok=True)
+    analysis_output_dir.mkdir(parents=True, exist_ok=True)
 
     # Load data
-    qlearning, wmrl, wmrl_m3, surveys, groups, wmrl_m5, wmrl_m6a, wmrl_m6b, wmrl_m4 = load_data()
+    qlearning, wmrl, wmrl_m3, surveys, groups, wmrl_m5, wmrl_m6a, wmrl_m6b, wmrl_m4 = load_data(fits_dir)
 
     # Model configuration
     MODEL_CONFIG = {
@@ -904,16 +936,16 @@ Examples:
     print("=" * 70)
 
     group_df = pd.concat(all_group_results, ignore_index=True)
-    group_df.to_csv(OUTPUT_DIR / "group_comparison_stats.csv", index=False)
-    print(f"Saved: {OUTPUT_DIR / 'group_comparison_stats.csv'}")
+    group_df.to_csv(analysis_output_dir / "group_comparison_stats.csv", index=False)
+    print(f"Saved: {analysis_output_dir / 'group_comparison_stats.csv'}")
 
     corr_df = pd.concat(all_corr_results, ignore_index=True)
-    corr_df.to_csv(OUTPUT_DIR / "spearman_correlations.csv", index=False)
-    print(f"Saved: {OUTPUT_DIR / 'spearman_correlations.csv'}")
+    corr_df.to_csv(analysis_output_dir / "spearman_correlations.csv", index=False)
+    print(f"Saved: {analysis_output_dir / 'spearman_correlations.csv'}")
 
     ols_df = pd.concat(all_ols_results, ignore_index=True)
-    ols_df.to_csv(OUTPUT_DIR / "ols_regression_results.csv", index=False)
-    print(f"Saved: {OUTPUT_DIR / 'ols_regression_results.csv'}")
+    ols_df.to_csv(analysis_output_dir / "ols_regression_results.csv", index=False)
+    print(f"Saved: {analysis_output_dir / 'ols_regression_results.csv'}")
 
     # ========================================
     # Create Figures for Each Model
@@ -940,26 +972,26 @@ Examples:
         nrows = int(np.ceil(n_params / ncols))
         figsize = (12, 4 * nrows)
         fig = plot_parameters_by_group(data, params, model_name, figsize=figsize)
-        fig.savefig(FIGURES_DIR / f"parameters_by_group_{model_key}.png", dpi=300, bbox_inches='tight')
+        fig.savefig(figures_dir / f"parameters_by_group_{model_key}.png", dpi=300, bbox_inches='tight')
         plt.close(fig)
         print(f"Saved: parameters_by_group_{model_key}.png")
 
         # Correlation heatmap
         if len(model_corr_results) > 0:
             fig = plot_correlation_heatmap(model_corr_results, params, model_name)
-            fig.savefig(FIGURES_DIR / f"correlation_heatmap_{model_key}.png", dpi=300, bbox_inches='tight')
+            fig.savefig(figures_dir / f"correlation_heatmap_{model_key}.png", dpi=300, bbox_inches='tight')
             plt.close(fig)
             print(f"Saved: correlation_heatmap_{model_key}.png")
 
         # Forest plot
         fig = plot_forest_group_means(data, params, model_name)
-        fig.savefig(FIGURES_DIR / f"forest_plot_group_means_{model_key}.png", dpi=300, bbox_inches='tight')
+        fig.savefig(figures_dir / f"forest_plot_group_means_{model_key}.png", dpi=300, bbox_inches='tight')
         plt.close(fig)
         print(f"Saved: forest_plot_group_means_{model_key}.png")
 
         # Key scatter plots (with color-by support)
         fig = plot_key_scatter(data, model_name, color_by=args.color_by)
-        fig.savefig(FIGURES_DIR / f"scatter_key_correlations_{model_key}.png", dpi=300, bbox_inches='tight')
+        fig.savefig(figures_dir / f"scatter_key_correlations_{model_key}.png", dpi=300, bbox_inches='tight')
         plt.close(fig)
         print(f"Saved: scatter_key_correlations_{model_key}.png")
 
