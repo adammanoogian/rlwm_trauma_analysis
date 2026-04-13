@@ -11,9 +11,9 @@ See: .planning/PROJECT.md (updated 2026-04-11)
 
 Milestone: v4.0 Hierarchical Bayesian Pipeline & LBA Acceleration
 Phase: 16 of 18 (Choice-Only Family Extension + Subscale L2) — in progress
-Plan: 16-04 complete; 16-05 onward remaining
-Status: Phase 16 in progress. 16-01 through 16-04 complete. All 6 choice-only models dispatchable via fit_bayesian.py CLI with STACKED_MODEL_DISPATCH. 5 SLURM scripts created for cluster submission. Ready for 16-05 (full subscale L2 regression or next planned task).
-Last activity: 2026-04-13 — Completed 16-04-PLAN.md: STACKED_MODEL_DISPATCH, _fit_stacked_model, 5 SLURM scripts, smoke test all 6 models.
+Plan: 16-06 complete; 16-07 onward remaining
+Status: Phase 16 in progress. 16-01 through 16-06 complete. Permutation null test infrastructure (L2-06) added to fit_bayesian.py. SLURM array job ready for cluster submission.
+Last activity: 2026-04-13 — Completed 16-06-PLAN.md: --permutation-shuffle CLI arg, _run_permutation_shuffle helper, 50-task SLURM array job, aggregation script.
 
 Progress: [████░░░░░░] ~33% (10/~30 plans across Phases 13-18)
 
@@ -86,6 +86,21 @@ Progress: [████░░░░░░] ~33% (10/~30 plans across Phases 13-1
 - **M6b dual L2 regression (locked):** Two independent beta coefficients: `beta_lec_kappa_total` and `beta_lec_kappa_share`, each shifting their respective unconstrained parameter when `covariate_lec is not None`.
 - **kappa_share prior (locked):** `mu_prior_loc=0.0` from `PARAM_PRIOR_DEFAULTS["kappa_share"]`; group-mean share near 0.5 a priori on the probit scale (no a priori preference for global vs. stimulus-specific split).
 - **phi_rl prior (locked):** `mu_prior_loc=-0.8` from `PARAM_PRIOR_DEFAULTS["phi_rl"]`; same as phi (both are forgetting rates, symmetric justification).
+
+### v4.0 Decisions (16-05 completed 2026-04-12)
+
+- **32 beta sites (not 40) for subscale model (locked):** `wmrl_m6b_hierarchical_model_subscale` has 8 params x 4 covariates = 32 beta sites. Plan said "~40" (5-covariate assumption); actual is 32 per the 16-01 hyperarousal exclusion.
+- **beta site naming: `beta_{cov_name}_{param_name}` (locked):** Outer loop over `param_names`, inner loop over `covariate_names`. Example: `beta_lec_total_kappa_total`, `beta_iesr_intr_resid_alpha_pos`.
+- **All 8 M6b params bypass `sample_bounded_param` in subscale variant (locked):** Manual `mu_pr/sigma_pr/z` pattern used for all 8 to enable uniform multi-covariate L2 shift application. `sample_bounded_param` is only bypassed in `wmrl_m6b_hierarchical_model_subscale`; other models unchanged.
+- **`subscale=True` guard raises `ValueError` (locked):** `--subscale` with model != wmrl_m6b raises `ValueError` (not `NotImplementedError`); the model exists but the subscale variant is M6b-specific.
+- **SLURM subscale: 12h/48G (locked):** `cluster/13_bayesian_m6b_subscale.slurm` uses `--time=12:00:00` and `--mem=48G` (vs 8h/32G for standard M6b).
+- **beta_* HDI print expanded (locked):** `_fit_stacked_model` now prints all `beta_`-prefixed sites in sorted order (not just `beta_lec_*`), supporting the 32-site subscale output.
+
+### v4.0 Decisions (16-06 completed 2026-04-13)
+
+- **Permutation shuffles covariate labels only (locked):** `np.random.default_rng(shuffle_idx).permutation(covariate_lec)` randomizes participant-level LEC alignment, not within-participant data. JSON-only output per shuffle (no CSV/NetCDF). Aggregation script provides PASS/FAIL at 5% FPR.
+- **Reduced MCMC budget for permutation (locked):** SLURM uses warmup=500/samples=1000 (half of standard). Sufficient for HDI-excludes-zero check; does not need convergence-grade posterior.
+- **parser.error() guard at validation time (locked):** `--permutation-shuffle` raises error immediately before data loading if model != wmrl_m3.
 
 ### v4.0 Decisions (16-04 completed 2026-04-13)
 
@@ -211,6 +226,6 @@ Progress: [████░░░░░░] ~33% (10/~30 plans across Phases 13-1
 
 ## Session Continuity
 
-Last session: 2026-04-13
-Stopped at: Completed 16-04-PLAN.md — STACKED_MODEL_DISPATCH, _fit_stacked_model helper, smoke test all 6 models, 5 SLURM scripts
+Last session: 2026-04-12
+Stopped at: Completed 16-05-PLAN.md (backfilled) — wmrl_m6b_hierarchical_model_subscale, --subscale CLI dispatch, cluster/13_bayesian_m6b_subscale.slurm. 16-06 was already complete.
 Resume file: None
