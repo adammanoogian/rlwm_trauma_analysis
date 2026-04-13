@@ -11,9 +11,9 @@ See: .planning/PROJECT.md (updated 2026-04-11)
 
 Milestone: v4.0 Hierarchical Bayesian Pipeline & LBA Acceleration
 Phase: 17 of 20 (M4 Hierarchical LBA) — In progress
-Plan: 1 of 3 complete (17-01)
-Status: Phase 17 started. 17-01 complete: prepare_stacked_participant_data_m4 and wmrl_m4_hierarchical_model added to numpyro_models.py; 3 unit tests pass (RT data prep, sorted participants, NUTS smoke).
-Last activity: 2026-04-13 — Completed 17-01-PLAN.md
+Plan: 2 of 3 complete (17-02)
+Status: Phase 17 in progress. 17-01 complete: M4 model functions in numpyro_models.py. 17-02 complete: 13_fit_bayesian_m4.py pipeline script with float64 isolation, checkpoint-resume, convergence gate, and Pareto-k gating.
+Last activity: 2026-04-13 — Completed 17-02-PLAN.md
 
 Progress: [█████░░░░░] ~51% (17/~33 plans across Phases 13-20)
 
@@ -95,6 +95,13 @@ Progress: [█████░░░░░] ~51% (17/~33 plans across Phases 13-2
 - **`subscale=True` guard raises `ValueError` (locked):** `--subscale` with model != wmrl_m6b raises `ValueError` (not `NotImplementedError`); the model exists but the subscale variant is M6b-specific.
 - **SLURM subscale: 12h/48G (locked):** `cluster/13_bayesian_m6b_subscale.slurm` uses `--time=12:00:00` and `--mem=48G` (vs 8h/32G for standard M6b).
 - **beta_* HDI print expanded (locked):** `_fit_stacked_model` now prints all `beta_`-prefixed sites in sorted order (not just `beta_lec_*`), supporting the 32-site subscale output.
+
+### v4.0 Decisions (17-02 completed 2026-04-13)
+
+- **Participant-level log-lik for M4 LOO (locked):** `wmrl_m4_multiblock_likelihood_stacked` returns scalar NLL per participant; no `return_pointwise` path in LBA likelihood. `compute_m4_pointwise_loglik` in `13_fit_bayesian_m4.py` computes shape `(chains, samples, n_participants)` via `jax.vmap`. Pareto-k > 0.7 fallback is near-certain in production (expected behavior).
+- **3D InferenceData for M4 (locked):** `_build_inference_data_m4` uses `dims=["participant"]` (not `["participant", "trial"]`). Does NOT reuse `build_inference_data_with_loglik` from bayesian_diagnostics.py (which hardcodes 4D shape).
+- **Convergence gate writes run metadata on failure (locked):** `_write_run_metadata` called before early-return to ensure `wmrl_m4_run_metadata.json` exists for debugging regardless of convergence.
+- **chain_method='vectorized' confirmed for M4 (locked):** Same as choice-only models. `parallel` requires process forking; unavailable on Windows/SLURM.
 
 ### v4.0 Decisions (17-01 completed 2026-04-13)
 
@@ -240,5 +247,5 @@ Progress: [█████░░░░░] ~51% (17/~33 plans across Phases 13-2
 ## Session Continuity
 
 Last session: 2026-04-13
-Stopped at: Phase 16 complete (7/7 plans, 13 commits, verified). Next: Phase 17 (M4 Hierarchical LBA).
+Stopped at: Completed 17-02-PLAN.md (13_fit_bayesian_m4.py created, float64+checkpoint+Pareto-k gating).
 Resume file: None
