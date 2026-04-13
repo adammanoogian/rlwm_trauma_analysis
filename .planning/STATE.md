@@ -11,9 +11,9 @@ See: .planning/PROJECT.md (updated 2026-04-11)
 
 Milestone: v4.0 Hierarchical Bayesian Pipeline & LBA Acceleration
 Phase: 16 of 18 (Choice-Only Family Extension + Subscale L2) — in progress
-Plan: 16-02 complete; 16-03 onward remaining
-Status: Phase 16 in progress. 16-02 complete (qlearning_hierarchical_model_stacked HIER-02, wmrl_hierarchical_model_stacked HIER-03). Ready for 16-03 (M5).
-Last activity: 2026-04-12 — Completed 16-02-PLAN.md: M1 and M2 stacked hierarchical models added to numpyro_models.py.
+Plan: 16-03 complete; 16-04 onward remaining
+Status: Phase 16 in progress. 16-01 (collinearity audit), 16-02 (M1/M2 stacked), 16-03 (M5/M6a/M6b hierarchical models) complete. Ready for 16-04 (fit_bayesian dispatch + bayesian_diagnostics for M5/M6a/M6b).
+Last activity: 2026-04-13 — Completed 16-03-PLAN.md: wmrl_m5_hierarchical_model (HIER-04), wmrl_m6a_hierarchical_model (HIER-05), wmrl_m6b_hierarchical_model (HIER-06) with stick-breaking kappa decode per-participant.
 
 Progress: [████░░░░░░] ~33% (10/~30 plans across Phases 13-18)
 
@@ -69,6 +69,23 @@ Progress: [████░░░░░░] ~33% (10/~30 plans across Phases 13-1
 - Total execution time: ongoing
 
 ## Accumulated Context
+
+### v4.0 Decisions (16-01 completed 2026-04-13)
+
+- **4-predictor L2 design matrix locked:** `lec_total`, `iesr_total`, `iesr_intr_resid`, `iesr_avd_resid`. The hyperarousal residual is excluded because `ies_total = ies_intrusion + ies_avoidance + ies_hyperarousal` exactly in the dataset; all three subscale residuals sum to zero (rank-deficient 3-residual matrix, condition number ~2.4e15). Only 2 subscale residuals are linearly independent.
+- **Full design condition number 11.3 (PASS):** The 4-column design matrix [lec_total, iesr_total, intr_resid, avd_resid] has condition number 11.3, well below the target of 30.
+- **LEC-5 subcategory data gap confirmed (L2-04 closed):** Only `less_total_events` and `less_personal_events` exist in the pipeline. No physical/sexual/accident taxonomy is defined anywhere in the codebase. `include_lec_subcategories=True` raises `ValueError`.
+- **`build_level2_design_matrix` in `scripts/fitting/level2_design.py` is the single source of truth:** All Phase 16 hierarchical models must call this function. `COVARIATE_NAMES` list is authoritative for `beta_*` site naming.
+- **N=160 complete-data participants (not 154):** 160 participants have complete IES-R + LEC-5 data; 154 was the MLE fit count (task-data completeness criterion). Level-2 regression uses N=160.
+
+### v4.0 Decisions (16-03 completed 2026-04-13)
+
+- **M5 kappa stays manually sampled (locked):** phi_rl is added to the `sample_bounded_param` for-loop (7 params via loop), but kappa remains outside the loop to preserve the L2 regression hook pattern from M3. HIER-04 complete.
+- **M6a kappa_s sites named distinctly (locked):** `kappa_s_mu_pr`, `kappa_s_sigma_pr`, `kappa_s_z`, `kappa_s` — mirrors M3's kappa naming but with `_s` suffix. Same bounds/priors as kappa (`mu_prior_loc=-2.0`). HIER-05 complete.
+- **M6b per-participant decode pattern (locked):** `kappa_total_i = sampled["kappa_total"][idx]`, `kappa_share_i = sampled["kappa_share"][idx]`, then `kappa = kappa_total_i * kappa_share_i`, `kappa_s = kappa_total_i * (1.0 - kappa_share_i)`. Decoded values passed to likelihood. Decoding inside the for-loop (not in likelihood). HIER-06 complete.
+- **M6b dual L2 regression (locked):** Two independent beta coefficients: `beta_lec_kappa_total` and `beta_lec_kappa_share`, each shifting their respective unconstrained parameter when `covariate_lec is not None`.
+- **kappa_share prior (locked):** `mu_prior_loc=0.0` from `PARAM_PRIOR_DEFAULTS["kappa_share"]`; group-mean share near 0.5 a priori on the probit scale (no a priori preference for global vs. stimulus-specific split).
+- **phi_rl prior (locked):** `mu_prior_loc=-0.8` from `PARAM_PRIOR_DEFAULTS["phi_rl"]`; same as phi (both are forgetting rates, symmetric justification).
 
 ### v4.0 Decisions (16-02 completed 2026-04-12)
 
@@ -187,6 +204,6 @@ Progress: [████░░░░░░] ~33% (10/~30 plans across Phases 13-1
 
 ## Session Continuity
 
-Last session: 2026-04-12
-Stopped at: Completed 16-02-PLAN.md — qlearning_hierarchical_model_stacked (HIER-02), wmrl_hierarchical_model_stacked (HIER-03) in numpyro_models.py
+Last session: 2026-04-13
+Stopped at: Completed 16-03-PLAN.md — wmrl_m5_hierarchical_model (HIER-04), wmrl_m6a_hierarchical_model (HIER-05), wmrl_m6b_hierarchical_model (HIER-06) with stick-breaking kappa decode in numpyro_models.py
 Resume file: None
