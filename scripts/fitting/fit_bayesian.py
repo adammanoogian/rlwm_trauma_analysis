@@ -905,6 +905,18 @@ def main() -> None:
             "Only valid with --model wmrl_m3."
         ),
     )
+    parser.add_argument(
+        "--subscale",
+        action="store_true",
+        help=(
+            "Use full subscale Level-2 design matrix (only for --model wmrl_m6b). "
+            "Loads 4-predictor design matrix from level2_design.py and fits "
+            "wmrl_m6b_hierarchical_model_subscale with 32 beta coefficient sites "
+            "(8 params x 4 covariates: lec_total, iesr_total, iesr_intr_resid, "
+            "iesr_avd_resid). Requires output/summary_participant_metrics.csv. "
+            "Extended wall-clock time recommended (12h on cluster)."
+        ),
+    )
 
     args = parser.parse_args()
 
@@ -932,8 +944,17 @@ def main() -> None:
     print(f"  Samples: {args.samples}")
     print(f"  Output: {args.output}")
     print(f"  Seed: {args.seed}")
+    if args.subscale:
+        print(f"  Subscale: True (wmrl_m6b_hierarchical_model_subscale, 32 beta sites)")
     if args.permutation_shuffle is not None:
         print(f"  Permutation shuffle: {args.permutation_shuffle}")
+
+    # Validate --subscale
+    if args.subscale and args.model != "wmrl_m6b":
+        parser.error(
+            "--subscale is only supported with --model wmrl_m6b. "
+            f"Got --model {args.model}."
+        )
 
     # Validate --permutation-shuffle
     if args.permutation_shuffle is not None and args.model != "wmrl_m3":
@@ -975,6 +996,7 @@ def main() -> None:
         num_samples=args.samples,
         num_chains=args.chains,
         seed=args.seed,
+        subscale=args.subscale,
     )
 
     # extra is participant_data_stacked for all stacked models
