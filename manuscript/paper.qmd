@@ -463,10 +463,28 @@ likelihood estimation (MLE) using scipy's L-BFGS-B optimizer with
 `{python} n_starts` random restarts per participant.
 Likelihoods were computed via JAX-accelerated functions with GPU support on
 the Monash M3 cluster.
-Model comparison used the Akaike Information Criterion:
+Frequentist model comparison used the Akaike Information Criterion:
 $\text{AIC} = 2k - 2\ln\hat{L}$, where $k$ is the number of free parameters
-[@daw2011model].
-BIC was computed as $\text{BIC} = k\ln(n) - 2\ln\hat{L}$.
+[@daw2011model], and the Bayesian Information Criterion:
+$\text{BIC} = k\ln(n) - 2\ln\hat{L}$.
+
+To obtain full posterior distributions and principled uncertainty
+propagation, we additionally fitted all seven models using hierarchical
+Bayesian inference in NumPyro [@phan2019composable] with the No-U-Turn
+Sampler (NUTS; @hoffman2014no). Individual-level parameters were given
+non-centered parameterizations following the hBayesDM convention
+[@ahn2017revealing]: $\theta_i = l + (u - l) \cdot \Phi(\mu + \sigma
+\cdot z_i)$, where $\Phi$ is the standard normal CDF, $\mu \sim
+\mathcal{N}(\mu_0, 1)$ is the group-level location, $\sigma \sim
+\text{HalfNormal}(0.2)$ is the group-level scale, and $z_i \sim
+\mathcal{N}(0, 1)$ is the individual offset. Trauma associations were
+estimated as Level-2 shifts on the unconstrained (probit) scale:
+$\mu_{\text{shifted}} = \mu + \sum_k \beta_k X_{ik}$, where
+$\mathbf{X}$ is the design matrix of trauma predictors (see Statistical
+Analysis). Working-memory capacity $K$ was bounded to $[2, 6]$ following
+Collins [-@collins2012how; -@collins2014working]. Bayesian model
+comparison used leave-one-out cross-validation (LOO-CV) with stacking
+weights [@vehtari2017practical; @yao2018using].
 
 ### Statistical Analysis {#sec-stats}
 
@@ -479,14 +497,17 @@ corrected p-values reported for sensitivity).
 Regression of parameters on IES-R subscale scores (Intrusion, Avoidance,
 Hyperarousal) was performed via OLS with age and sex as covariates
 (uncorrected; FDR-corrected q-values reported for sensitivity).
-Additionally, Bayesian multivariate regressions (parameters predicting
-LEC-5 total and IES-R total jointly) were fitted using PyMC with weakly
-informative priors [intercept $\sim \mathcal{N}(\bar{y}, 2\sigma_y)$;
-$\beta_k \sim \mathcal{N}(0, \sigma_y)$;
-$\sigma \sim \text{HalfNormal}(\sigma_y)$] and NUTS sampling
-(4 chains, 1000 warmup, 2000 draws). Directional evidence was quantified
-as $P(\text{direction})$: the posterior probability that each coefficient
-is positive or negative.
+Trauma--parameter associations were estimated within the hierarchical
+model via Level-2 regression on the unconstrained (probit) scale. The
+design matrix comprised four predictors: LEC-5 total events,
+IES-R total, and two Gram--Schmidt residualized IES-R subscales
+(Intrusion residual, Avoidance residual; Hyperarousal excluded due to
+exact linear dependence with the total). Beta coefficients received
+$\mathcal{N}(0, 1)$ priors on the probit scale. Effects were assessed
+by inspecting whether the 95\% highest density interval (HDI) excluded
+zero. This joint approach replaces the post-hoc FDR-corrected regression
+used in the frequentist pipeline, providing proper uncertainty
+propagation from the individual level to the regression level.
 
 
 ## Results {#sec-results}

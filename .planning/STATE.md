@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-04-11)
 
 **Core value:** Correctly dissociate perseverative responding from learning-rate effects (alpha-) to accurately identify whether post-reversal failures reflect motor perseveration or outcome insensitivity
-**Current focus:** v4.0 — Hierarchical Bayesian Pipeline & LBA Acceleration (Phase 17 complete, Phase 18 next)
+**Current focus:** v4.0 — Hierarchical Bayesian Pipeline & LBA Acceleration (Phase 18 planned, ready to execute)
 
 ## Current Position
 
 Milestone: v4.0 Hierarchical Bayesian Pipeline & LBA Acceleration
-Phase: 17 of 20 (M4 Hierarchical LBA) — COMPLETE
-Plan: 3 of 3 complete (17-03)
-Status: Phase 17 complete. 17-01: M4 model functions in numpyro_models.py. 17-02: 13_fit_bayesian_m4.py pipeline script with float64 isolation, checkpoint-resume, convergence gate, and Pareto-k gating. 17-03: Integration tests (M4H-01/02/04) + SLURM GPU script (M4H-06).
-Last activity: 2026-04-13 — Completed 17-03-PLAN.md
+Phase: 18 of 20 (Integration, Comparison, and Manuscript) — In progress
+Plan: 4 of 5 complete
+Status: Wave 1 complete. 18-01 through 18-04 done. Wave 2: 18-05 (manuscript revision) remaining.
+Last activity: 2026-04-13 — Completed 18-04-PLAN.md (MODEL_REFERENCE.md Hierarchical Bayesian Pipeline, DOC-01)
 
-Progress: [█████░░░░░] ~54% (18/~33 plans across Phases 13-20)
+Progress: [█████░░░░░] ~60% (22/~35 plans across Phases 13-20)
 
 ### v4.0 Phase Structure
 
@@ -95,6 +95,13 @@ Progress: [█████░░░░░] ~54% (18/~33 plans across Phases 13-2
 - **`subscale=True` guard raises `ValueError` (locked):** `--subscale` with model != wmrl_m6b raises `ValueError` (not `NotImplementedError`); the model exists but the subscale variant is M6b-specific.
 - **SLURM subscale: 12h/48G (locked):** `cluster/13_bayesian_m6b_subscale.slurm` uses `--time=12:00:00` and `--mem=48G` (vs 8h/32G for standard M6b).
 - **beta_* HDI print expanded (locked):** `_fit_stacked_model` now prints all `beta_`-prefixed sites in sorted order (not just `beta_lec_*`), supporting the 32-site subscale output.
+
+### v4.0 Decisions (18-02 completed 2026-04-13)
+
+- **CMP-04 artifact layout (locked):** `--bayesian-comparison` writes 4 files to `output/bayesian/level2/`: `stacking_weights.md`, `stacking_weights.csv`, `waic_summary.csv`, `m4_comparison.csv`. Every Markdown output has a CSV companion.
+- **M4 Pareto-k threshold 5% (locked):** M4 separate track gates LOO reliability on fraction of Pareto-k > 0.7 exceeding 5%. Expected to trigger in production due to joint LBA likelihood.
+- **WAIC is secondary metric (locked):** LOO via `az.compare(ic='loo', method='stacking')` remains primary. WAIC computed per model via `az.waic()` loop. `waic_summary.csv` written only if results non-empty.
+- **M4 never in compare_dict (locked):** `BAYESIAN_NETCDF_MAP` contains only M1-M6b. M4 separate track loads `output/bayesian/wmrl_m4_posterior.nc` independently inside `run_bayesian_comparison()`.
 
 ### v4.0 Decisions (17-03 completed 2026-04-13)
 
@@ -255,5 +262,5 @@ Progress: [█████░░░░░] ~54% (18/~33 plans across Phases 13-2
 ## Session Continuity
 
 Last session: 2026-04-13
-Stopped at: Phase 17 complete (3/3 plans, 7 commits, 3 waves). Verified 6/6 must-haves. Next: Phase 18 (Integration, Comparison, and Manuscript).
+Stopped at: Completed 18-04-PLAN.md — MODEL_REFERENCE.md Hierarchical Bayesian Pipeline section (DOC-01), winning model corrected M5->M6b. Next: 18-05 (manuscript revision).
 Resume file: None
