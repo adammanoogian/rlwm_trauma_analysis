@@ -20,7 +20,7 @@ Seven models are implemented for fitting human behavioral data, organized by com
 
 > **Note on model numbering:** The numbering gap (M3 to M5) is intentional. M4 is listed last because it is the only joint choice+RT model. Its AIC is not comparable to choice-only models M1-M3, M5, M6a, M6b, because the likelihood domains differ (choice-only vs. joint choice+RT).
 
-> **Current winning model (choice-only):** M5 (dAIC=435.6 over M3, dBIC=226.9).
+> **Current winning model (choice-only):** M6b (dual perseveration with stick-breaking kappa_share). M6b has the lowest aggregate AIC and BIC across N=154 participants, with effectively unit Akaike weight. See docs/K_PARAMETERIZATION.md for K bounds.
 
 **Key Design Principles:**
 - **Learning phase only**: This task has no separate testing phase
