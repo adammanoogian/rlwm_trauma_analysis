@@ -27,7 +27,9 @@ Updated: 2026-04-13 — refactored for all 6 choice-only models (16-04)
 from __future__ import annotations
 
 import argparse
+import json
 import sys
+import time
 from pathlib import Path
 from datetime import datetime
 import pandas as pd
@@ -51,6 +53,7 @@ from scripts.fitting.numpyro_models import (
     wmrl_m5_hierarchical_model,
     wmrl_m6a_hierarchical_model,
     wmrl_m6b_hierarchical_model,
+    wmrl_m6b_hierarchical_model_subscale,
     prepare_data_for_numpyro,
     prepare_stacked_participant_data,
     run_inference,
@@ -221,6 +224,59 @@ def _load_lec_covariate(
         return None
 
 
+def _load_subscale_design_matrix(
+    participant_data_stacked: dict,
+) -> tuple[jnp.ndarray | None, list[str]]:
+    """Load the full Level-2 subscale design matrix for M6b subscale fitting.
+
+    Reads ``output/summary_participant_metrics.csv``, aligns to the sorted
+    participant order, and builds the 4-predictor design matrix via
+    ``build_level2_design_matrix`` from ``scripts.fitting.level2_design``.
+
+    Parameters
+    ----------
+    participant_data_stacked : dict
+        Stacked participant data dict.  Used to obtain sorted participant IDs.
+
+    Returns
+    -------
+    tuple[jnp.ndarray or None, list[str]]
+        ``(covariate_matrix, covariate_names)`` where ``covariate_matrix``
+        has shape ``(n_participants, 4)`` (float32 JAX array), or
+        ``(None, [])`` if the metrics file is missing or loading fails.
+    """
+    from scripts.fitting.level2_design import (
+        COVARIATE_NAMES,
+        build_level2_design_matrix,
+    )
+
+    metrics_path = Path("output/summary_participant_metrics.csv")
+    if not metrics_path.exists():
+        print(
+            f"  WARNING: {metrics_path} not found. "
+            "Running subscale model without L2 regression."
+        )
+        return None, []
+
+    try:
+        metrics_df = pd.read_csv(metrics_path)
+        sorted_pids = sorted(participant_data_stacked.keys())
+        X, cov_names = build_level2_design_matrix(metrics_df, sorted_pids)
+        covariate_matrix = jnp.array(X, dtype=jnp.float32)
+        print(
+            f"  Subscale design matrix loaded: shape={X.shape}, "
+            f"covariates={cov_names}, "
+            f"condition_number={float(np.linalg.cond(X)):.2f}"
+        )
+        return covariate_matrix, cov_names
+    except Exception as exc:
+        print(
+            f"  WARNING: Failed to load subscale design matrix ({exc}). "
+            "Running subscale model without L2 regression."
+        )
+        return None, []
+
+
 def _fit_stacked_model(
     data: pd.DataFrame,
     model: str,
@@ -229,15 +285,16 @@ def _fit_stacked_model(
     num_samples: int,
     num_chains: int,
     seed: int,
+    subscale: bool = False,
 ) -> tuple[object, dict]:
     """Fit a canonical stacked hierarchical model.
 
     Shared logic for all hBayesDM non-centered models:
 
     1. ``prepare_stacked_participant_data`` — builds padded stacked arrays.
-    2. Load and z-score LEC covariate from ``output/summary_participant_metrics.csv``.
+    2. Load Level-2 covariate(s) from ``output/summary_participant_metrics.csv``.
     3. ``run_inference_with_bump`` — NUTS with automatic divergence bump.
-    4. Print group-level ``*_mu_pr`` posterior summaries.
+    4. Print group-level ``*_mu_pr`` and ``beta_*`` posterior summaries.
 
     Parameters
     ----------
@@ -246,7 +303,8 @@ def _fit_stacked_model(
     model : str
         Model name key (e.g. ``'wmrl_m6b'``).  Used for display only.
     model_fn : callable
-        NumPyro model function from ``STACKED_MODEL_DISPATCH``.
+        NumPyro model function from ``STACKED_MODEL_DISPATCH`` (or
+        ``wmrl_m6b_hierarchical_model_subscale`` when ``subscale=True``).
     num_warmup : int
         Number of NUTS warmup steps.
     num_samples : int
@@ -255,6 +313,11 @@ def _fit_stacked_model(
         Number of parallel chains.
     seed : int
         JAX random seed.
+    subscale : bool
+        If ``True`` and ``model == 'wmrl_m6b'``, use the full subscale
+        Level-2 design matrix (4 covariates, 32 beta sites).  The
+        ``model_fn`` must already be set to
+        ``wmrl_m6b_hierarchical_model_subscale`` by the caller.
 
     Returns
     -------
@@ -275,20 +338,38 @@ def _fit_stacked_model(
     n_ppts = len(participant_data_stacked)
     print(f"  Prepared {n_ppts} participants (sorted by ID)")
 
-    # Load and z-score LEC covariate (only for models that support L2 regression)
-    if model in _L2_LEC_SUPPORTED:
-        covariate_lec = _load_lec_covariate(participant_data_stacked)
-    else:
-        covariate_lec = None
+    # ------------------------------------------------------------------
+    # Build model_args based on subscale flag or standard L2 covariate
+    # ------------------------------------------------------------------
+    if subscale and model == "wmrl_m6b":
+        # Full subscale design matrix path (L2-05)
         print(
-            f"  Skipping LEC covariate: model '{model}' does not support "
-            "Level-2 regression (no natural L2 target parameter)."
+            "\n>> Loading subscale Level-2 design matrix "
+            "(4 covariates, 32 beta sites)..."
         )
+        covariate_matrix, cov_names = _load_subscale_design_matrix(
+            participant_data_stacked
+        )
+        model_args = {
+            "participant_data_stacked": participant_data_stacked,
+            "covariate_matrix": covariate_matrix,
+            "covariate_names": cov_names,
+        }
+    else:
+        # Standard path: single LEC covariate (or None for M1/M2)
+        if model in _L2_LEC_SUPPORTED:
+            covariate_lec = _load_lec_covariate(participant_data_stacked)
+        else:
+            covariate_lec = None
+            print(
+                f"  Skipping LEC covariate: model '{model}' does not support "
+                "Level-2 regression (no natural L2 target parameter)."
+            )
 
-    model_args = {
-        "participant_data_stacked": participant_data_stacked,
-        "covariate_lec": covariate_lec,
-    }
+        model_args = {
+            "participant_data_stacked": participant_data_stacked,
+            "covariate_lec": covariate_lec,
+        }
 
     print("\n>> Running MCMC inference (NUTS + convergence auto-bump)...")
     mcmc = run_inference_with_bump(
@@ -303,17 +384,18 @@ def _fit_stacked_model(
     # Print group-level posterior summaries (all *_mu_pr sites)
     samples = mcmc.get_samples()
     display_name = model.upper().replace("_", "-")
+    subscale_tag = " [SUBSCALE]" if subscale else ""
     print("\n" + "=" * 80)
-    print(f"{display_name} POSTERIOR ESTIMATES — GROUP LEVEL")
+    print(f"{display_name} POSTERIOR ESTIMATES — GROUP LEVEL{subscale_tag}")
     print("=" * 80)
     mu_pr_sites = sorted(k for k in samples if k.endswith("_mu_pr"))
     for pname in mu_pr_sites:
         arr = samples[pname]
         print(f"  {pname}: {float(arr.mean()):.3f} +/- {float(arr.std()):.3f}")
 
-    # Print beta_lec_* sites with 95% HDI
-    beta_lec_sites = sorted(k for k in samples if k.startswith("beta_lec_"))
-    for bname in beta_lec_sites:
+    # Print all beta_* sites with 95% HDI (covers both single-LEC and subscale)
+    beta_sites = sorted(k for k in samples if k.startswith("beta_"))
+    for bname in beta_sites:
         arr = samples[bname]
         beta_mean = float(arr.mean())
         beta_std = float(arr.std())
@@ -341,12 +423,17 @@ def fit_model(
     num_samples: int,
     num_chains: int,
     seed: int,
+    subscale: bool = False,
 ) -> tuple[object, dict]:
     """Fit a hierarchical Bayesian model.
 
     All six choice-only models (qlearning, wmrl, wmrl_m3, wmrl_m5, wmrl_m6a,
     wmrl_m6b) are dispatched through ``STACKED_MODEL_DISPATCH`` to the shared
     ``_fit_stacked_model`` helper.
+
+    When ``subscale=True`` and ``model='wmrl_m6b'``, the subscale variant
+    ``wmrl_m6b_hierarchical_model_subscale`` is used instead, accepting a full
+    4-predictor design matrix (L2-05: 32 beta coefficient sites).
 
     Parameters
     ----------
@@ -362,6 +449,11 @@ def fit_model(
         Number of parallel chains.
     seed : int
         JAX random seed.
+    subscale : bool
+        If ``True`` and ``model == 'wmrl_m6b'``, use
+        ``wmrl_m6b_hierarchical_model_subscale`` with the full 4-predictor
+        design matrix.  Raises ``ValueError`` if used with any other model
+        (subscale L2 is only defined for M6b in this phase).
 
     Returns
     -------
@@ -372,6 +464,8 @@ def fit_model(
     ------
     NotImplementedError
         If ``model`` is not in ``STACKED_MODEL_DISPATCH``.
+    ValueError
+        If ``subscale=True`` is used with a model other than ``'wmrl_m6b'``.
     """
     if model not in STACKED_MODEL_DISPATCH:
         raise NotImplementedError(
@@ -380,14 +474,30 @@ def fit_model(
             f"Use scripts/12_fit_mle.py for MLE fitting of this model."
         )
 
-    model_fn = STACKED_MODEL_DISPATCH[model]
+    if subscale and model != "wmrl_m6b":
+        raise ValueError(
+            f"--subscale is only supported for model='wmrl_m6b'. "
+            f"Got model='{model}'. The full subscale Level-2 design (L2-05) "
+            "targets M6b parameters (kappa_total, kappa_share, and all 6 base "
+            "params). Run without --subscale for other models."
+        )
+
+    # Select model function: subscale variant for M6b with --subscale flag
+    if subscale and model == "wmrl_m6b":
+        model_fn = wmrl_m6b_hierarchical_model_subscale
+        variant_tag = " [SUBSCALE — 32 beta sites, 4 covariates]"
+    else:
+        model_fn = STACKED_MODEL_DISPATCH[model]
+        variant_tag = ""
+
     display_name = model.upper().replace("_", "-")
     print(f"\n{'=' * 80}")
-    print(f"FITTING {display_name} HIERARCHICAL MODEL")
+    print(f"FITTING {display_name} HIERARCHICAL MODEL{variant_tag}")
     print(f"{'=' * 80}")
 
     return _fit_stacked_model(
-        data, model, model_fn, num_warmup, num_samples, num_chains, seed
+        data, model, model_fn, num_warmup, num_samples, num_chains, seed,
+        subscale=subscale,
     )
 
 
@@ -585,6 +695,141 @@ def save_results(
     )
 
 
+def _run_permutation_shuffle(
+    data: pd.DataFrame,
+    shuffle_idx: int,
+    num_warmup: int,
+    num_samples: int,
+    num_chains: int,
+    seed: int,
+    output_dir: Path,
+) -> None:
+    """Run a single permutation-null shuffle of the LEC covariate for M3.
+
+    Permutes the participant-level LEC covariate with a deterministic RNG
+    seeded by ``shuffle_idx``, runs M3 hierarchical NUTS with the shuffled
+    covariate, extracts ``beta_lec_kappa`` posterior statistics, and saves a
+    compact JSON summary.  Full ``save_results()`` pipeline is skipped.
+
+    Parameters
+    ----------
+    data : pd.DataFrame
+        Prepared trial-level DataFrame (from ``load_and_prepare_data``).
+    shuffle_idx : int
+        Permutation shuffle index (0-49).  Used as both the permutation RNG
+        seed and as the output filename key.
+    num_warmup : int
+        Number of NUTS warmup steps (reduced budget recommended: 500).
+    num_samples : int
+        Number of posterior samples per chain (reduced budget: 1000).
+    num_chains : int
+        Number of parallel MCMC chains.
+    seed : int
+        JAX RNG seed for NUTS (independent of permutation RNG).
+    output_dir : Path
+        Root output directory; JSON files saved to
+        ``output_dir/bayesian/permutation/``.
+    """
+    print(f"\n>> PERMUTATION TEST: shuffle index {shuffle_idx}")
+    print(f"   num_warmup={num_warmup}, num_samples={num_samples}, seed={seed}")
+
+    model = "wmrl_m3"
+    model_fn = STACKED_MODEL_DISPATCH[model]
+
+    print("\n>> Preparing stacked participant data...")
+    participant_data_stacked = prepare_stacked_participant_data(
+        data,
+        participant_col="sona_id",
+        block_col="block",
+        stimulus_col="stimulus",
+        action_col="key_press",
+        reward_col="reward",
+        set_size_col="set_size",
+    )
+    n_ppts = len(participant_data_stacked)
+    print(f"  Prepared {n_ppts} participants (sorted by ID)")
+
+    # Load real LEC covariate, then permute participant labels
+    covariate_lec = _load_lec_covariate(participant_data_stacked)
+    if covariate_lec is None:
+        raise RuntimeError(
+            "Permutation test requires LEC covariate. "
+            "output/summary_participant_metrics.csv not found or missing column."
+        )
+
+    rng = np.random.default_rng(shuffle_idx)
+    covariate_lec_shuffled = jnp.array(
+        rng.permutation(np.array(covariate_lec)), dtype=jnp.float32
+    )
+    print(
+        f"  LEC covariate shuffled with seed={shuffle_idx}: "
+        f"first 5 values: {np.array(covariate_lec_shuffled)[:5]}"
+    )
+
+    model_args = {
+        "participant_data_stacked": participant_data_stacked,
+        "covariate_lec": covariate_lec_shuffled,
+    }
+
+    print("\n>> Running MCMC inference with shuffled covariate...")
+    t0 = time.time()
+    mcmc = run_inference_with_bump(
+        model_fn,
+        model_args,
+        num_warmup=num_warmup,
+        num_samples=num_samples,
+        num_chains=num_chains,
+        seed=seed,
+    )
+    wall_clock_seconds = float(time.time() - t0)
+
+    # Extract beta_lec_kappa posterior statistics
+    samples = mcmc.get_samples()
+    if "beta_lec_kappa" not in samples:
+        raise KeyError(
+            "beta_lec_kappa site not found in MCMC samples. "
+            f"Available sites: {sorted(samples.keys())}"
+        )
+
+    beta_arr = np.array(samples["beta_lec_kappa"])
+    beta_mean = float(beta_arr.mean())
+    beta_std = float(beta_arr.std())
+    hdi_result = az.hdi(beta_arr, hdi_prob=0.95)
+    hdi_low = float(hdi_result[0])
+    hdi_high = float(hdi_result[1])
+    excludes_zero = bool(hdi_low > 0 or hdi_high < 0)
+
+    # Count divergences
+    extra = mcmc.get_extra_fields()
+    n_div = int(extra["diverging"].sum()) if "diverging" in extra else 0
+
+    result = {
+        "shuffle_idx": shuffle_idx,
+        "beta_lec_kappa_mean": beta_mean,
+        "beta_lec_kappa_std": beta_std,
+        "hdi_low": hdi_low,
+        "hdi_high": hdi_high,
+        "excludes_zero": excludes_zero,
+        "n_divergences": n_div,
+        "wall_clock_seconds": wall_clock_seconds,
+    }
+
+    # Save JSON
+    perm_dir = output_dir / "bayesian" / "permutation"
+    perm_dir.mkdir(parents=True, exist_ok=True)
+    out_path = perm_dir / f"shuffle_{shuffle_idx}_results.json"
+    with open(out_path, "w") as fh:
+        json.dump(result, fh, indent=2)
+
+    print(f"\n>> Permutation shuffle {shuffle_idx} complete:")
+    print(f"   beta_lec_kappa: mean={beta_mean:.4f}, std={beta_std:.4f}")
+    print(f"   95% HDI: [{hdi_low:.4f}, {hdi_high:.4f}]")
+    print(f"   HDI excludes zero: {excludes_zero}")
+    print(f"   Divergences: {n_div}")
+    print(f"   Wall clock: {wall_clock_seconds:.1f}s")
+    print(f"   Saved to: {out_path}")
+
+
 def main() -> None:
     """Main fitting workflow."""
     parser = argparse.ArgumentParser(
@@ -649,6 +894,17 @@ def main() -> None:
         default=42,
         help="Random seed (default: 42)",
     )
+    parser.add_argument(
+        "--permutation-shuffle",
+        type=int,
+        default=None,
+        metavar="INT",
+        help=(
+            "Permutation test: shuffle index (0-49). "
+            "Permutes covariate_lec with RNG seed=shuffle_idx. "
+            "Only valid with --model wmrl_m3."
+        ),
+    )
 
     args = parser.parse_args()
 
@@ -676,6 +932,15 @@ def main() -> None:
     print(f"  Samples: {args.samples}")
     print(f"  Output: {args.output}")
     print(f"  Seed: {args.seed}")
+    if args.permutation_shuffle is not None:
+        print(f"  Permutation shuffle: {args.permutation_shuffle}")
+
+    # Validate --permutation-shuffle
+    if args.permutation_shuffle is not None and args.model != "wmrl_m3":
+        parser.error(
+            "--permutation-shuffle is only supported with --model wmrl_m3. "
+            f"Got --model {args.model}."
+        )
 
     # Set NumPyro devices
     num_devices = min(args.chains, jax.local_device_count())
@@ -684,6 +949,23 @@ def main() -> None:
 
     # Load data
     data = load_and_prepare_data(Path(args.data), min_block=min_block)
+
+    # ------------------------------------------------------------------
+    # PERMUTATION NULL TEST PATH
+    # Runs a reduced MCMC with shuffled LEC covariate.  Saves a compact
+    # JSON summary per shuffle; skips full save_results() pipeline.
+    # ------------------------------------------------------------------
+    if args.permutation_shuffle is not None:
+        _run_permutation_shuffle(
+            data=data,
+            shuffle_idx=args.permutation_shuffle,
+            num_warmup=args.warmup,
+            num_samples=args.samples,
+            num_chains=args.chains,
+            seed=args.seed,
+            output_dir=Path(args.output),
+        )
+        return
 
     # Fit model
     mcmc, extra = fit_model(
