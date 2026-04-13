@@ -715,8 +715,26 @@ def main():
         default=None,
         help='Column name to color scatter plots by (e.g., hypothesis_group, gender)'
     )
+    parser.add_argument(
+        '--source',
+        type=str,
+        default='mle',
+        choices=['mle', 'bayesian'],
+        help='Fit source: mle (default) or bayesian'
+    )
 
     args = parser.parse_args()
+
+    # Route output/figures directories based on --source.
+    # Only change defaults; if the user explicitly passed --output-dir or
+    # --figures-dir those values are honoured as-is.
+    _output_dir_default = 'output/regressions'
+    _figures_dir_default = 'figures/regressions'
+    if args.source == 'bayesian':
+        if args.output_dir == _output_dir_default:
+            args.output_dir = 'output/regressions/bayesian'
+        if args.figures_dir == _figures_dir_default:
+            args.figures_dir = 'figures/regressions/bayesian'
 
     # Setup
     base_output_dir = Path(args.output_dir)
@@ -728,6 +746,7 @@ def main():
     print("=" * 80)
     print("REGRESSION ANALYSIS: PARAMETERS ON TRAUMA SCALES")
     print("=" * 80)
+    print(f"Source: {args.source.upper()}")
     if args.min_accuracy is not None:
         print(f"[!] Accuracy filter: excluding participants below {args.min_accuracy:.0%}")
     if args.max_epsilon is not None:
@@ -751,14 +770,22 @@ def main():
         model_figures_dir = base_figures_dir / model
         model_figures_dir.mkdir(parents=True, exist_ok=True)
 
-        # Auto-detect params path from model name
-        # Check output/mle/ first, then output/ (M5 from plan 01 was written to output/)
-        params_path = Path(f'output/mle/{model}_individual_fits.csv')
-        if not params_path.exists():
-            params_path = Path(f'output/{model}_individual_fits.csv')
-        if not params_path.exists():
-            print(f"Warning: {model}_individual_fits.csv not found in output/mle/ or output/, skipping {model}")
-            continue
+        # Auto-detect params path from model name and --source
+        if args.source == 'bayesian':
+            base_fits_dir = Path('output/bayesian')
+            params_path = base_fits_dir / f'{model}_individual_fits.csv'
+            if not params_path.exists():
+                print(f"Warning: {model}_individual_fits.csv not found in {base_fits_dir}, skipping {model}")
+                continue
+        else:
+            base_fits_dir = Path('output/mle')
+            # Check output/mle/ first, then output/ (M5 from plan 01 was written to output/)
+            params_path = base_fits_dir / f'{model}_individual_fits.csv'
+            if not params_path.exists():
+                params_path = Path(f'output/{model}_individual_fits.csv')
+            if not params_path.exists():
+                print(f"Warning: {model}_individual_fits.csv not found in output/mle/ or output/, skipping {model}")
+                continue
 
         # Load data
         df = load_integrated_data(params_path, model, args.min_accuracy, args.max_epsilon)
