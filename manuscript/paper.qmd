@@ -471,7 +471,9 @@ $\text{BIC} = k\ln(n) - 2\ln\hat{L}$.
 To obtain full posterior distributions and principled uncertainty
 propagation, we additionally fitted all seven models using hierarchical
 Bayesian inference in NumPyro [@phan2019composable] with the No-U-Turn
-Sampler (NUTS; @hoffman2014no). Individual-level parameters were given
+Sampler (NUTS; @hoffman2014no). Participant log-likelihoods were
+attached to the model via `numpyro.factor` and evaluated in parallel
+across posterior samples using `jax.vmap`. Individual-level parameters were given
 non-centered parameterizations following the hBayesDM convention
 [@ahn2017revealing]: $\theta_i = l + (u - l) \cdot \Phi(\mu + \sigma
 \cdot z_i)$, where $\Phi$ is the standard normal CDF, $\mu \sim
