@@ -48,8 +48,13 @@ from scripts.fitting.jax_likelihoods import (
     pad_block_to_max,
     prepare_block_data,
     q_learning_multiblock_likelihood,
+    q_learning_multiblock_likelihood_stacked,
     wmrl_m3_multiblock_likelihood_stacked,
+    wmrl_m5_multiblock_likelihood_stacked,
+    wmrl_m6a_multiblock_likelihood_stacked,
+    wmrl_m6b_multiblock_likelihood_stacked,
     wmrl_multiblock_likelihood,
+    wmrl_multiblock_likelihood_stacked,
 )
 
 
@@ -1093,6 +1098,730 @@ def wmrl_m3_hierarchical_model(
             rho=sampled["rho"][idx],
             capacity=sampled["capacity"][idx],
             kappa=sampled["kappa"][idx],
+            epsilon=sampled["epsilon"][idx],
+            num_stimuli=num_stimuli,
+            num_actions=num_actions,
+            q_init=q_init,
+            wm_init=wm_init,
+            return_pointwise=False,
+        )
+        numpyro.factor(f"obs_p{pid}", log_lik)
+
+
+def qlearning_hierarchical_model_stacked(
+    participant_data_stacked: dict,
+    covariate_lec: jnp.ndarray | None = None,
+    num_stimuli: int = 6,
+    num_actions: int = 3,
+    q_init: float = 0.5,
+) -> None:
+    """Hierarchical Bayesian M1 (Q-learning) model using stacked pre-padded arrays.
+
+    Uses the hBayesDM non-centered parameterization convention (Ahn, Haines,
+    Zhang 2017):
+    ``theta_unc = mu_pr + sigma_pr * z``,
+    ``theta = lower + (upper - lower) * Phi_approx(theta_unc)``,
+    where ``Phi_approx = jax.scipy.stats.norm.cdf``.
+
+    Implements HIER-02: ports M1 (Q-learning) to the canonical stacked format
+    introduced in Phase 15 for M3.  Three parameters (alpha_pos, alpha_neg,
+    epsilon) are sampled via :func:`sample_bounded_param` from
+    :mod:`scripts.fitting.numpyro_helpers`.
+
+    Parameters
+    ----------
+    participant_data_stacked : dict
+        Mapping from participant_id to stacked-format arrays (from
+        ``prepare_stacked_participant_data``).  Keys per participant:
+        ``stimuli_stacked``, ``actions_stacked``, ``rewards_stacked``,
+        ``masks_stacked`` — each shape ``(n_blocks, MAX_TRIALS_PER_BLOCK)``.
+        NOTE: ``set_sizes_stacked`` is NOT required by the Q-learning
+        likelihood and is ignored even if present.
+    covariate_lec : jnp.ndarray or None
+        Reserved for forward compatibility.  Must be ``None``; passing a
+        non-None value raises ``NotImplementedError`` because Q-learning
+        has no natural Level-2 target parameter in this release.
+    num_stimuli : int
+        Number of distinct stimuli in the task.  Default 6.
+    num_actions : int
+        Number of possible actions.  Default 3.
+    q_init : float
+        Initial Q-value for all state-action pairs.  Default 0.5.
+
+    Notes
+    -----
+    - Q-learning likelihood (``q_learning_multiblock_likelihood_stacked``) does
+      NOT accept ``set_sizes_stacked``; do NOT pass it.
+    - Participant ordering follows ``sorted(participant_data_stacked.keys())``
+      to align with covariate arrays prepared by downstream scripts.
+    - Do NOT modify this function's API: ``fit_bayesian.py`` dispatches to it
+      by name.
+    """
+    if covariate_lec is not None:
+        raise NotImplementedError(
+            "qlearning_hierarchical_model_stacked: covariate_lec is not "
+            "supported for Q-learning (no natural L2 target parameter). "
+            "Pass covariate_lec=None."
+        )
+
+    from scripts.fitting.numpyro_helpers import (
+        PARAM_PRIOR_DEFAULTS,
+        sample_bounded_param,
+    )
+
+    n_participants = len(participant_data_stacked)
+    participant_ids = sorted(participant_data_stacked.keys())
+
+    # ------------------------------------------------------------------
+    # Group priors for 3 parameters via hBayesDM non-centered convention
+    # ------------------------------------------------------------------
+    sampled: dict[str, jnp.ndarray] = {}
+    for param in ["alpha_pos", "alpha_neg", "epsilon"]:
+        defaults = PARAM_PRIOR_DEFAULTS[param]
+        sampled[param] = sample_bounded_param(
+            param,
+            lower=defaults["lower"],
+            upper=defaults["upper"],
+            n_participants=n_participants,
+            mu_prior_loc=defaults["mu_prior_loc"],
+        )
+
+    # ------------------------------------------------------------------
+    # Likelihood via numpyro.factor — Python for-loop over participants
+    # CRITICAL: do NOT pass set_sizes_stacked to Q-learning likelihood
+    # ------------------------------------------------------------------
+    for idx, pid in enumerate(participant_ids):
+        pdata = participant_data_stacked[pid]
+        log_lik = q_learning_multiblock_likelihood_stacked(
+            stimuli_stacked=pdata["stimuli_stacked"],
+            actions_stacked=pdata["actions_stacked"],
+            rewards_stacked=pdata["rewards_stacked"],
+            masks_stacked=pdata["masks_stacked"],
+            alpha_pos=sampled["alpha_pos"][idx],
+            alpha_neg=sampled["alpha_neg"][idx],
+            epsilon=sampled["epsilon"][idx],
+            num_stimuli=num_stimuli,
+            num_actions=num_actions,
+            q_init=q_init,
+            return_pointwise=False,
+        )
+        numpyro.factor(f"obs_p{pid}", log_lik)
+
+
+def wmrl_hierarchical_model_stacked(
+    participant_data_stacked: dict,
+    covariate_lec: jnp.ndarray | None = None,
+    num_stimuli: int = 6,
+    num_actions: int = 3,
+    q_init: float = 0.5,
+    wm_init: float = 1.0 / 3.0,
+) -> None:
+    """Hierarchical Bayesian M2 (WM-RL) model using stacked pre-padded arrays.
+
+    Uses the hBayesDM non-centered parameterization convention (Ahn, Haines,
+    Zhang 2017):
+    ``theta_unc = mu_pr + sigma_pr * z``,
+    ``theta = lower + (upper - lower) * Phi_approx(theta_unc)``,
+    where ``Phi_approx = jax.scipy.stats.norm.cdf``.
+
+    Implements HIER-03: ports M2 (WM-RL base, no perseveration) to the
+    canonical stacked format introduced in Phase 15 for M3.  Six parameters
+    (alpha_pos, alpha_neg, phi, rho, capacity, epsilon) are sampled via
+    :func:`sample_bounded_param` from :mod:`scripts.fitting.numpyro_helpers`.
+
+    Parameters
+    ----------
+    participant_data_stacked : dict
+        Mapping from participant_id to stacked-format arrays (from
+        ``prepare_stacked_participant_data``).  Keys per participant:
+        ``stimuli_stacked``, ``actions_stacked``, ``rewards_stacked``,
+        ``set_sizes_stacked``, ``masks_stacked`` — each shape
+        ``(n_blocks, MAX_TRIALS_PER_BLOCK)``.
+    covariate_lec : jnp.ndarray or None
+        Reserved for forward compatibility.  Must be ``None``; passing a
+        non-None value raises ``NotImplementedError`` because M2 has no
+        perseveration parameter to target for Level-2 regression in this
+        release.
+    num_stimuli : int
+        Number of distinct stimuli in the task.  Default 6.
+    num_actions : int
+        Number of possible actions.  Default 3.
+    q_init : float
+        Initial Q-value for all state-action pairs.  Default 0.5.
+    wm_init : float
+        Initial WM values (uniform baseline ``1/nA``).  Default ``1/3``.
+
+    Notes
+    -----
+    - WM-RL likelihood (``wmrl_multiblock_likelihood_stacked``) DOES require
+      ``set_sizes_stacked``; it is passed from ``pdata`` at each iteration.
+    - M2 has no kappa (perseveration) parameter; all 6 parameters go through
+      the standard ``sample_bounded_param`` loop.
+    - Participant ordering follows ``sorted(participant_data_stacked.keys())``
+      to align with covariate arrays prepared by downstream scripts.
+    - Do NOT modify this function's API: ``fit_bayesian.py`` dispatches to it
+      by name.
+    """
+    if covariate_lec is not None:
+        raise NotImplementedError(
+            "wmrl_hierarchical_model_stacked: covariate_lec is not supported "
+            "for M2 WM-RL (no perseveration parameter as L2 target). "
+            "Pass covariate_lec=None."
+        )
+
+    from scripts.fitting.numpyro_helpers import (
+        PARAM_PRIOR_DEFAULTS,
+        sample_bounded_param,
+    )
+
+    n_participants = len(participant_data_stacked)
+    participant_ids = sorted(participant_data_stacked.keys())
+
+    # ------------------------------------------------------------------
+    # Group priors for 6 parameters via hBayesDM non-centered convention
+    # ------------------------------------------------------------------
+    sampled: dict[str, jnp.ndarray] = {}
+    for param in ["alpha_pos", "alpha_neg", "phi", "rho", "capacity", "epsilon"]:
+        defaults = PARAM_PRIOR_DEFAULTS[param]
+        sampled[param] = sample_bounded_param(
+            param,
+            lower=defaults["lower"],
+            upper=defaults["upper"],
+            n_participants=n_participants,
+            mu_prior_loc=defaults["mu_prior_loc"],
+        )
+
+    # ------------------------------------------------------------------
+    # Likelihood via numpyro.factor — Python for-loop over participants
+    # WM-RL likelihood requires set_sizes_stacked (unlike Q-learning)
+    # ------------------------------------------------------------------
+    for idx, pid in enumerate(participant_ids):
+        pdata = participant_data_stacked[pid]
+        log_lik = wmrl_multiblock_likelihood_stacked(
+            stimuli_stacked=pdata["stimuli_stacked"],
+            actions_stacked=pdata["actions_stacked"],
+            rewards_stacked=pdata["rewards_stacked"],
+            set_sizes_stacked=pdata["set_sizes_stacked"],
+            masks_stacked=pdata["masks_stacked"],
+            alpha_pos=sampled["alpha_pos"][idx],
+            alpha_neg=sampled["alpha_neg"][idx],
+            phi=sampled["phi"][idx],
+            rho=sampled["rho"][idx],
+            capacity=sampled["capacity"][idx],
+            epsilon=sampled["epsilon"][idx],
+            num_stimuli=num_stimuli,
+            num_actions=num_actions,
+            q_init=q_init,
+            wm_init=wm_init,
+            return_pointwise=False,
+        )
+        numpyro.factor(f"obs_p{pid}", log_lik)
+
+
+def wmrl_m5_hierarchical_model(
+    participant_data_stacked: dict,
+    covariate_lec: jnp.ndarray | None = None,
+    num_stimuli: int = 6,
+    num_actions: int = 3,
+    q_init: float = 0.5,
+    wm_init: float = 1.0 / 3.0,
+) -> None:
+    """Hierarchical Bayesian M5 (WM-RL+phi_rl) model with optional Level-2 regression.
+
+    Uses the hBayesDM non-centered parameterization convention (Ahn, Haines, Zhang 2017):
+    ``theta_unc = mu_pr + sigma_pr * z``,
+    ``theta = lower + (upper - lower) * Phi_approx(theta_unc)``,
+    where ``Phi_approx = jax.scipy.stats.norm.cdf``.
+
+    K (capacity) is parameterized in [2, 6] following Senta, Bishop, Collins (2025).
+
+    Level-2 regression: if ``covariate_lec`` is provided (standardized LEC-total
+    score), a coefficient ``beta_lec_kappa`` is sampled and added as a
+    per-participant shift on the unconstrained kappa scale before the Phi_approx
+    transform:
+    ``kappa_unc_i = kappa_mu_pr + kappa_sigma_pr * z_i + beta_lec_kappa * lec_i``.
+
+    M5 adds ``phi_rl`` (RL forgetting rate) relative to M3.  The 8 model parameters
+    are: alpha_pos, alpha_neg, phi, rho, capacity, epsilon, phi_rl (7, sampled via
+    ``sample_bounded_param``) and kappa (1, sampled manually with optional L2 shift).
+
+    Parameters
+    ----------
+    participant_data_stacked : dict
+        Mapping from participant_id to stacked-format arrays (from
+        ``prepare_stacked_participant_data``). Keys per participant:
+        ``stimuli_stacked``, ``actions_stacked``, ``rewards_stacked``,
+        ``set_sizes_stacked``, ``masks_stacked`` — each shape
+        ``(n_blocks, MAX_TRIALS_PER_BLOCK)``.
+    covariate_lec : jnp.ndarray or None
+        Shape ``(n_participants,)`` standardized LEC-total covariate.
+        Participants must be in the same order as
+        ``sorted(participant_data_stacked.keys())``.  If ``None``,
+        no Level-2 regression is applied and ``beta_lec_kappa`` is
+        not sampled.
+    num_stimuli : int
+        Number of distinct stimuli in the task.  Default 6.
+    num_actions : int
+        Number of possible actions.  Default 3.
+    q_init : float
+        Initial Q-value for all state-action pairs.  Default 0.5.
+    wm_init : float
+        Initial WM values (uniform baseline ``1/nA``).  Default ``1/3``.
+
+    Notes
+    -----
+    - Seven parameters (alpha_pos, alpha_neg, phi, rho, capacity, epsilon, phi_rl)
+      are sampled via ``sample_bounded_param`` from ``numpyro_helpers``.
+    - Kappa is sampled manually with the optional L2 shift applied on the probit
+      scale before the Phi_approx transform (OUTSIDE ``sample_bounded_param``).
+    - phi_rl uses ``mu_prior_loc=-0.8`` (same as phi) from ``PARAM_PRIOR_DEFAULTS``.
+    - Likelihood is accumulated via ``numpyro.factor`` in a Python for-loop over
+      participants.  This implements HIER-04.
+    - Do NOT modify this function's API: ``fit_bayesian.py`` dispatches to it by
+      name.
+    """
+    from scripts.fitting.numpyro_helpers import (
+        PARAM_PRIOR_DEFAULTS,
+        phi_approx,
+        sample_bounded_param,
+    )
+
+    n_participants = len(participant_data_stacked)
+    participant_ids = sorted(participant_data_stacked.keys())
+
+    # ------------------------------------------------------------------
+    # Level-2: LEC-total -> kappa regression coefficient
+    # ------------------------------------------------------------------
+    if covariate_lec is not None:
+        beta_lec_kappa = numpyro.sample("beta_lec_kappa", dist.Normal(0.0, 1.0))
+    else:
+        beta_lec_kappa = 0.0
+
+    # ------------------------------------------------------------------
+    # Group priors for 7 parameters (all except kappa)
+    # Uses hBayesDM non-centered convention locked in Phase 13.
+    # phi_rl: mu_prior_loc=-0.8 from PARAM_PRIOR_DEFAULTS.
+    # ------------------------------------------------------------------
+    sampled: dict[str, jnp.ndarray] = {}
+    for param in [
+        "alpha_pos",
+        "alpha_neg",
+        "phi",
+        "rho",
+        "capacity",
+        "epsilon",
+        "phi_rl",
+    ]:
+        defaults = PARAM_PRIOR_DEFAULTS[param]
+        sampled[param] = sample_bounded_param(
+            param,
+            lower=defaults["lower"],
+            upper=defaults["upper"],
+            n_participants=n_participants,
+            mu_prior_loc=defaults["mu_prior_loc"],
+        )
+
+    # ------------------------------------------------------------------
+    # Kappa with optional L2 shift on the probit scale
+    # Sampled manually to allow per-participant LEC offset.
+    # ------------------------------------------------------------------
+    kappa_defaults = PARAM_PRIOR_DEFAULTS["kappa"]
+    kappa_mu_pr = numpyro.sample(
+        "kappa_mu_pr",
+        dist.Normal(kappa_defaults["mu_prior_loc"], 1.0),
+    )
+    kappa_sigma_pr = numpyro.sample("kappa_sigma_pr", dist.HalfNormal(0.2))
+    kappa_z = numpyro.sample(
+        "kappa_z",
+        dist.Normal(0, 1).expand([n_participants]),
+    )
+    lec_shift = beta_lec_kappa * covariate_lec if covariate_lec is not None else 0.0
+    kappa_unc = kappa_mu_pr + kappa_sigma_pr * kappa_z + lec_shift
+    kappa = numpyro.deterministic(
+        "kappa",
+        kappa_defaults["lower"]
+        + (kappa_defaults["upper"] - kappa_defaults["lower"])
+        * phi_approx(kappa_unc),
+    )
+    sampled["kappa"] = kappa
+
+    # ------------------------------------------------------------------
+    # Likelihood via numpyro.factor — Python for-loop over participants
+    # (vmap not applicable: stacked likelihood uses lax.fori_loop over
+    # variable-length block structures)
+    # ------------------------------------------------------------------
+    for idx, pid in enumerate(participant_ids):
+        pdata = participant_data_stacked[pid]
+        log_lik = wmrl_m5_multiblock_likelihood_stacked(
+            stimuli_stacked=pdata["stimuli_stacked"],
+            actions_stacked=pdata["actions_stacked"],
+            rewards_stacked=pdata["rewards_stacked"],
+            set_sizes_stacked=pdata["set_sizes_stacked"],
+            masks_stacked=pdata["masks_stacked"],
+            alpha_pos=sampled["alpha_pos"][idx],
+            alpha_neg=sampled["alpha_neg"][idx],
+            phi=sampled["phi"][idx],
+            rho=sampled["rho"][idx],
+            capacity=sampled["capacity"][idx],
+            kappa=sampled["kappa"][idx],
+            phi_rl=sampled["phi_rl"][idx],
+            epsilon=sampled["epsilon"][idx],
+            num_stimuli=num_stimuli,
+            num_actions=num_actions,
+            q_init=q_init,
+            wm_init=wm_init,
+            return_pointwise=False,
+        )
+        numpyro.factor(f"obs_p{pid}", log_lik)
+
+
+def wmrl_m6a_hierarchical_model(
+    participant_data_stacked: dict,
+    covariate_lec: jnp.ndarray | None = None,
+    num_stimuli: int = 6,
+    num_actions: int = 3,
+    q_init: float = 0.5,
+    wm_init: float = 1.0 / 3.0,
+) -> None:
+    """Hierarchical Bayesian M6a (WM-RL+kappa_s) model with optional L2 regression.
+
+    Uses the hBayesDM non-centered parameterization convention (Ahn, Haines, Zhang 2017):
+    ``theta_unc = mu_pr + sigma_pr * z``,
+    ``theta = lower + (upper - lower) * Phi_approx(theta_unc)``,
+    where ``Phi_approx = jax.scipy.stats.norm.cdf``.
+
+    K (capacity) is parameterized in [2, 6] following Senta, Bishop, Collins (2025).
+
+    M6a replaces global perseveration ``kappa`` (M3) with stimulus-specific
+    perseveration ``kappa_s``.  The 7 model parameters match M3 in count:
+    alpha_pos, alpha_neg, phi, rho, capacity, epsilon (6, sampled via
+    ``sample_bounded_param``), and kappa_s (1, sampled manually with optional
+    L2 shift using the same pattern as M3's kappa).
+
+    Level-2 regression: if ``covariate_lec`` is provided, a coefficient
+    ``beta_lec_kappa_s`` is sampled and shifts ``kappa_s`` on the probit scale:
+    ``kappa_s_unc_i = kappa_s_mu_pr + kappa_s_sigma_pr * z_i + beta_lec_kappa_s * lec_i``.
+
+    Parameters
+    ----------
+    participant_data_stacked : dict
+        Mapping from participant_id to stacked-format arrays (from
+        ``prepare_stacked_participant_data``). Keys per participant:
+        ``stimuli_stacked``, ``actions_stacked``, ``rewards_stacked``,
+        ``set_sizes_stacked``, ``masks_stacked`` — each shape
+        ``(n_blocks, MAX_TRIALS_PER_BLOCK)``.
+    covariate_lec : jnp.ndarray or None
+        Shape ``(n_participants,)`` standardized LEC-total covariate.
+        Participants must be in the same order as
+        ``sorted(participant_data_stacked.keys())``.  If ``None``,
+        no Level-2 regression is applied and ``beta_lec_kappa_s`` is
+        not sampled.
+    num_stimuli : int
+        Number of distinct stimuli in the task.  Default 6.
+    num_actions : int
+        Number of possible actions.  Default 3.
+    q_init : float
+        Initial Q-value for all state-action pairs.  Default 0.5.
+    wm_init : float
+        Initial WM values (uniform baseline ``1/nA``).  Default ``1/3``.
+
+    Notes
+    -----
+    - Six parameters (alpha_pos, alpha_neg, phi, rho, capacity, epsilon) are sampled
+      via ``sample_bounded_param`` from ``numpyro_helpers``.
+    - kappa_s is sampled manually with the optional L2 shift applied on the probit
+      scale before the Phi_approx transform (OUTSIDE ``sample_bounded_param``).
+    - kappa_s uses the same bounds and prior as M3's kappa: both in [0, 1] with
+      ``mu_prior_loc=-2.0`` from ``PARAM_PRIOR_DEFAULTS``.
+    - Likelihood is accumulated via ``numpyro.factor`` in a Python for-loop over
+      participants.  This implements HIER-05.
+    - Do NOT modify this function's API: ``fit_bayesian.py`` dispatches to it by
+      name.
+    """
+    from scripts.fitting.numpyro_helpers import (
+        PARAM_PRIOR_DEFAULTS,
+        phi_approx,
+        sample_bounded_param,
+    )
+
+    n_participants = len(participant_data_stacked)
+    participant_ids = sorted(participant_data_stacked.keys())
+
+    # ------------------------------------------------------------------
+    # Level-2: LEC-total -> kappa_s regression coefficient
+    # ------------------------------------------------------------------
+    if covariate_lec is not None:
+        beta_lec_kappa_s = numpyro.sample("beta_lec_kappa_s", dist.Normal(0.0, 1.0))
+    else:
+        beta_lec_kappa_s = 0.0
+
+    # ------------------------------------------------------------------
+    # Group priors for 6 parameters (all except kappa_s)
+    # Uses hBayesDM non-centered convention locked in Phase 13.
+    # ------------------------------------------------------------------
+    sampled: dict[str, jnp.ndarray] = {}
+    for param in ["alpha_pos", "alpha_neg", "phi", "rho", "capacity", "epsilon"]:
+        defaults = PARAM_PRIOR_DEFAULTS[param]
+        sampled[param] = sample_bounded_param(
+            param,
+            lower=defaults["lower"],
+            upper=defaults["upper"],
+            n_participants=n_participants,
+            mu_prior_loc=defaults["mu_prior_loc"],
+        )
+
+    # ------------------------------------------------------------------
+    # kappa_s with optional L2 shift on the probit scale
+    # Sampled manually to allow per-participant LEC offset.
+    # Same bounds and prior as M3's kappa (both in PARAM_PRIOR_DEFAULTS).
+    # ------------------------------------------------------------------
+    kappa_s_defaults = PARAM_PRIOR_DEFAULTS["kappa_s"]
+    kappa_s_mu_pr = numpyro.sample(
+        "kappa_s_mu_pr",
+        dist.Normal(kappa_s_defaults["mu_prior_loc"], 1.0),
+    )
+    kappa_s_sigma_pr = numpyro.sample("kappa_s_sigma_pr", dist.HalfNormal(0.2))
+    kappa_s_z = numpyro.sample(
+        "kappa_s_z",
+        dist.Normal(0, 1).expand([n_participants]),
+    )
+    lec_shift = (
+        beta_lec_kappa_s * covariate_lec if covariate_lec is not None else 0.0
+    )
+    kappa_s_unc = kappa_s_mu_pr + kappa_s_sigma_pr * kappa_s_z + lec_shift
+    kappa_s = numpyro.deterministic(
+        "kappa_s",
+        kappa_s_defaults["lower"]
+        + (kappa_s_defaults["upper"] - kappa_s_defaults["lower"])
+        * phi_approx(kappa_s_unc),
+    )
+    sampled["kappa_s"] = kappa_s
+
+    # ------------------------------------------------------------------
+    # Likelihood via numpyro.factor — Python for-loop over participants
+    # ------------------------------------------------------------------
+    for idx, pid in enumerate(participant_ids):
+        pdata = participant_data_stacked[pid]
+        log_lik = wmrl_m6a_multiblock_likelihood_stacked(
+            stimuli_stacked=pdata["stimuli_stacked"],
+            actions_stacked=pdata["actions_stacked"],
+            rewards_stacked=pdata["rewards_stacked"],
+            set_sizes_stacked=pdata["set_sizes_stacked"],
+            masks_stacked=pdata["masks_stacked"],
+            alpha_pos=sampled["alpha_pos"][idx],
+            alpha_neg=sampled["alpha_neg"][idx],
+            phi=sampled["phi"][idx],
+            rho=sampled["rho"][idx],
+            capacity=sampled["capacity"][idx],
+            kappa_s=sampled["kappa_s"][idx],
+            epsilon=sampled["epsilon"][idx],
+            num_stimuli=num_stimuli,
+            num_actions=num_actions,
+            q_init=q_init,
+            wm_init=wm_init,
+            return_pointwise=False,
+        )
+        numpyro.factor(f"obs_p{pid}", log_lik)
+
+
+def wmrl_m6b_hierarchical_model(
+    participant_data_stacked: dict,
+    covariate_lec: jnp.ndarray | None = None,
+    num_stimuli: int = 6,
+    num_actions: int = 3,
+    q_init: float = 0.5,
+    wm_init: float = 1.0 / 3.0,
+) -> None:
+    """Hierarchical Bayesian M6b (WM-RL+dual perseveration) model with optional L2 regression.
+
+    Uses the hBayesDM non-centered parameterization convention (Ahn, Haines, Zhang 2017):
+    ``theta_unc = mu_pr + sigma_pr * z``,
+    ``theta = lower + (upper - lower) * Phi_approx(theta_unc)``,
+    where ``Phi_approx = jax.scipy.stats.norm.cdf``.
+
+    K (capacity) is parameterized in [2, 6] following Senta, Bishop, Collins (2025).
+
+    M6b uses a stick-breaking parameterization for dual perseveration:
+
+    - ``kappa_total`` in [0, 1]: total perseveration budget (sampled manually)
+    - ``kappa_share`` in [0, 1]: fraction allocated to global perseveration (sampled
+      manually)
+
+    Per participant, decoded values are:
+
+    - ``kappa   = kappa_total * kappa_share``       (global perseveration)
+    - ``kappa_s = kappa_total * (1 - kappa_share)`` (stimulus-specific perseveration)
+
+    The decode happens INSIDE the participant for-loop, not in the likelihood function.
+    This guarantees ``kappa + kappa_s == kappa_total <= 1`` by construction (HIER-06).
+
+    Level-2 regression: if ``covariate_lec`` is provided, independent coefficients
+    ``beta_lec_kappa_total`` and ``beta_lec_kappa_share`` shift their respective
+    unconstrained parameters on the probit scale per participant.
+
+    Parameters
+    ----------
+    participant_data_stacked : dict
+        Mapping from participant_id to stacked-format arrays (from
+        ``prepare_stacked_participant_data``). Keys per participant:
+        ``stimuli_stacked``, ``actions_stacked``, ``rewards_stacked``,
+        ``set_sizes_stacked``, ``masks_stacked`` — each shape
+        ``(n_blocks, MAX_TRIALS_PER_BLOCK)``.
+    covariate_lec : jnp.ndarray or None
+        Shape ``(n_participants,)`` standardized LEC-total covariate.
+        Participants must be in the same order as
+        ``sorted(participant_data_stacked.keys())``.  If ``None``,
+        no Level-2 regression is applied and neither beta coefficient is sampled.
+    num_stimuli : int
+        Number of distinct stimuli in the task.  Default 6.
+    num_actions : int
+        Number of possible actions.  Default 3.
+    q_init : float
+        Initial Q-value for all state-action pairs.  Default 0.5.
+    wm_init : float
+        Initial WM values (uniform baseline ``1/nA``).  Default ``1/3``.
+
+    Notes
+    -----
+    - Six parameters (alpha_pos, alpha_neg, phi, rho, capacity, epsilon) are sampled
+      via ``sample_bounded_param`` from ``numpyro_helpers``.
+    - ``kappa_total`` and ``kappa_share`` are each sampled manually (with optional L2
+      shift) using the same probit-scale pattern as M3's kappa.
+    - ``kappa_total`` prior: ``mu_prior_loc=-2.0`` (pushes group mean toward small
+      total perseveration budget).
+    - ``kappa_share`` prior: ``mu_prior_loc=0.0`` (group-mean share near 0.5 a priori).
+    - The decoded values ``kappa`` and ``kappa_s`` are plain JAX scalars computed
+      per participant; they are NOT NumPyro named sites.
+    - Likelihood is accumulated via ``numpyro.factor`` in a Python for-loop over
+      participants.  This implements HIER-06.
+    - Do NOT modify this function's API: ``fit_bayesian.py`` dispatches to it by
+      name.
+    """
+    from scripts.fitting.numpyro_helpers import (
+        PARAM_PRIOR_DEFAULTS,
+        phi_approx,
+        sample_bounded_param,
+    )
+
+    n_participants = len(participant_data_stacked)
+    participant_ids = sorted(participant_data_stacked.keys())
+
+    # ------------------------------------------------------------------
+    # Level-2: LEC-total -> kappa_total and kappa_share regression
+    # Two independent beta coefficients, one per perseveration component.
+    # ------------------------------------------------------------------
+    if covariate_lec is not None:
+        beta_lec_kappa_total = numpyro.sample(
+            "beta_lec_kappa_total", dist.Normal(0.0, 1.0)
+        )
+        beta_lec_kappa_share = numpyro.sample(
+            "beta_lec_kappa_share", dist.Normal(0.0, 1.0)
+        )
+    else:
+        beta_lec_kappa_total = 0.0
+        beta_lec_kappa_share = 0.0
+
+    # ------------------------------------------------------------------
+    # Group priors for 6 standard parameters (all except kappa_total/kappa_share)
+    # Uses hBayesDM non-centered convention locked in Phase 13.
+    # ------------------------------------------------------------------
+    sampled: dict[str, jnp.ndarray] = {}
+    for param in ["alpha_pos", "alpha_neg", "phi", "rho", "capacity", "epsilon"]:
+        defaults = PARAM_PRIOR_DEFAULTS[param]
+        sampled[param] = sample_bounded_param(
+            param,
+            lower=defaults["lower"],
+            upper=defaults["upper"],
+            n_participants=n_participants,
+            mu_prior_loc=defaults["mu_prior_loc"],
+        )
+
+    # ------------------------------------------------------------------
+    # kappa_total with optional L2 shift on the probit scale
+    # mu_prior_loc=-2.0 pushes group mean toward small total budgets.
+    # ------------------------------------------------------------------
+    kt_defaults = PARAM_PRIOR_DEFAULTS["kappa_total"]
+    kappa_total_mu_pr = numpyro.sample(
+        "kappa_total_mu_pr",
+        dist.Normal(kt_defaults["mu_prior_loc"], 1.0),
+    )
+    kappa_total_sigma_pr = numpyro.sample(
+        "kappa_total_sigma_pr", dist.HalfNormal(0.2)
+    )
+    kappa_total_z = numpyro.sample(
+        "kappa_total_z",
+        dist.Normal(0, 1).expand([n_participants]),
+    )
+    lec_shift_total = (
+        beta_lec_kappa_total * covariate_lec if covariate_lec is not None else 0.0
+    )
+    kappa_total_unc = (
+        kappa_total_mu_pr + kappa_total_sigma_pr * kappa_total_z + lec_shift_total
+    )
+    kappa_total = numpyro.deterministic(
+        "kappa_total",
+        kt_defaults["lower"]
+        + (kt_defaults["upper"] - kt_defaults["lower"])
+        * phi_approx(kappa_total_unc),
+    )
+    sampled["kappa_total"] = kappa_total
+
+    # ------------------------------------------------------------------
+    # kappa_share with optional L2 shift on the probit scale
+    # mu_prior_loc=0.0 -> group-mean share near 0.5 a priori.
+    # ------------------------------------------------------------------
+    ks_defaults = PARAM_PRIOR_DEFAULTS["kappa_share"]
+    kappa_share_mu_pr = numpyro.sample(
+        "kappa_share_mu_pr",
+        dist.Normal(ks_defaults["mu_prior_loc"], 1.0),
+    )
+    kappa_share_sigma_pr = numpyro.sample(
+        "kappa_share_sigma_pr", dist.HalfNormal(0.2)
+    )
+    kappa_share_z = numpyro.sample(
+        "kappa_share_z",
+        dist.Normal(0, 1).expand([n_participants]),
+    )
+    lec_shift_share = (
+        beta_lec_kappa_share * covariate_lec if covariate_lec is not None else 0.0
+    )
+    kappa_share_unc = (
+        kappa_share_mu_pr + kappa_share_sigma_pr * kappa_share_z + lec_shift_share
+    )
+    kappa_share = numpyro.deterministic(
+        "kappa_share",
+        ks_defaults["lower"]
+        + (ks_defaults["upper"] - ks_defaults["lower"])
+        * phi_approx(kappa_share_unc),
+    )
+    sampled["kappa_share"] = kappa_share
+
+    # ------------------------------------------------------------------
+    # Likelihood via numpyro.factor — Python for-loop over participants
+    # Decode kappa and kappa_s per-participant (STATE.md locked decision):
+    #   kappa   = kappa_total * kappa_share
+    #   kappa_s = kappa_total * (1 - kappa_share)
+    # Pass decoded values to likelihood, NOT kappa_total/kappa_share directly.
+    # ------------------------------------------------------------------
+    for idx, pid in enumerate(participant_ids):
+        pdata = participant_data_stacked[pid]
+        kappa_total_i = sampled["kappa_total"][idx]
+        kappa_share_i = sampled["kappa_share"][idx]
+        kappa = kappa_total_i * kappa_share_i
+        kappa_s = kappa_total_i * (1.0 - kappa_share_i)
+        log_lik = wmrl_m6b_multiblock_likelihood_stacked(
+            stimuli_stacked=pdata["stimuli_stacked"],
+            actions_stacked=pdata["actions_stacked"],
+            rewards_stacked=pdata["rewards_stacked"],
+            set_sizes_stacked=pdata["set_sizes_stacked"],
+            masks_stacked=pdata["masks_stacked"],
+            alpha_pos=sampled["alpha_pos"][idx],
+            alpha_neg=sampled["alpha_neg"][idx],
+            phi=sampled["phi"][idx],
+            rho=sampled["rho"][idx],
+            capacity=sampled["capacity"][idx],
+            kappa=kappa,
+            kappa_s=kappa_s,
             epsilon=sampled["epsilon"][idx],
             num_stimuli=num_stimuli,
             num_actions=num_actions,
