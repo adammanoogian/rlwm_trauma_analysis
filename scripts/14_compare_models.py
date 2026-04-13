@@ -84,6 +84,24 @@ sys.path.insert(0, str(project_root))
 
 from config import EXCLUDED_PARTICIPANTS, FIGURES_DIR, MODEL_REGISTRY
 
+# Lazy/conditional arviz import — may not be in all environments
+try:
+    import arviz as az
+
+    _ARVIZ_AVAILABLE = True
+except ImportError:
+    _ARVIZ_AVAILABLE = False
+
+# NetCDF paths for all 6 choice-only hierarchical Bayesian models
+BAYESIAN_NETCDF_MAP: dict[str, str] = {
+    "M1": "output/bayesian/qlearning_posterior.nc",
+    "M2": "output/bayesian/wmrl_posterior.nc",
+    "M3": "output/bayesian/wmrl_m3_posterior.nc",
+    "M5": "output/bayesian/wmrl_m5_posterior.nc",
+    "M6a": "output/bayesian/wmrl_m6a_posterior.nc",
+    "M6b": "output/bayesian/wmrl_m6b_posterior.nc",
+}
+
 # M4 parameter names derived from central registry (for per-param summary in separate track)
 WMRL_M4_PARAMS: list[str] = MODEL_REGISTRY['wmrl_m4']['params']
 
@@ -551,6 +569,184 @@ def plot_stratified_wins(
     plt.close()
 
 # ============================================================================
+# BAYESIAN COMPARISON (az.compare with LOO + stacking weights)
+# ============================================================================
+
+
+def _load_bayesian_compare_dict(
+    netcdf_map: dict[str, str],
+) -> dict[str, "az.InferenceData"]:
+    """Load InferenceData objects for all available model NetCDF files.
+
+    Parameters
+    ----------
+    netcdf_map : dict[str, str]
+        Mapping from model short name to NetCDF file path.
+
+    Returns
+    -------
+    dict[str, az.InferenceData]
+        Mapping from model short name to loaded InferenceData.  Models with
+        missing files or missing ``log_likelihood`` groups are skipped with a
+        warning.
+    """
+    compare_dict: dict[str, "az.InferenceData"] = {}
+    for name, path_str in netcdf_map.items():
+        path = project_root / path_str if not Path(path_str).is_absolute() else Path(path_str)
+        if not path.exists():
+            print(f"  WARNING: {path} not found, skipping {name}")
+            continue
+        idata = az.from_netcdf(str(path))
+        if not hasattr(idata, "log_likelihood"):
+            print(
+                f"  WARNING: {name} posterior missing log_likelihood group, "
+                f"skipping (run fit_bayesian with --save-log-lik)"
+            )
+            continue
+        compare_dict[name] = idata
+        print(f"  Loaded {name}: {path}")
+    return compare_dict
+
+
+def _pareto_k_summary(
+    compare_dict: dict[str, "az.InferenceData"],
+) -> dict[str, float]:
+    """Compute percentage of observations with Pareto-k > 0.7 for each model.
+
+    Parameters
+    ----------
+    compare_dict : dict[str, az.InferenceData]
+        Model InferenceData objects (must have log_likelihood group).
+
+    Returns
+    -------
+    dict[str, float]
+        Mapping from model name to percentage of high Pareto-k observations.
+        Returns empty dict if LOO diagnostics are unavailable.
+    """
+    pareto_summary: dict[str, float] = {}
+    for name, idata in compare_dict.items():
+        try:
+            loo_result = az.loo(idata, pointwise=True)
+            k_vals = loo_result.pareto_k.values
+            pct_high = float(np.mean(k_vals > 0.7) * 100)
+            pareto_summary[name] = pct_high
+        except Exception as exc:  # noqa: BLE001
+            print(f"  WARNING: Pareto-k computation failed for {name}: {exc}")
+    return pareto_summary
+
+
+def run_bayesian_comparison(output_dir: Path) -> None:
+    """Run az.compare with LOO + stacking weights for all 6 choice-only models.
+
+    Loads hierarchical Bayesian posteriors from NetCDF files, runs
+    ``az.compare`` with LOO and stacking weights, logs Pareto-k diagnostics,
+    and writes a Markdown verdict file.
+
+    Parameters
+    ----------
+    output_dir : Path
+        Directory to write ``stacking_weights.md``.
+    """
+    if not _ARVIZ_AVAILABLE:
+        print(
+            "\n[SKIP] Bayesian comparison requires arviz. "
+            "Install with: conda install -c conda-forge arviz"
+        )
+        return
+
+    print("\n" + "=" * 70)
+    print("BAYESIAN MODEL COMPARISON (LOO + Stacking Weights)")
+    print("=" * 70)
+
+    print("\nLoading model posteriors ...")
+    compare_dict = _load_bayesian_compare_dict(BAYESIAN_NETCDF_MAP)
+
+    if len(compare_dict) < 2:
+        print(
+            f"\n[SKIP] Only {len(compare_dict)} model(s) available with "
+            "log_likelihood. Need >= 2 for az.compare."
+        )
+        return
+
+    print(f"\nRunning az.compare on {len(compare_dict)} models ...")
+    try:
+        comparison = az.compare(compare_dict, ic="loo", method="stacking")
+    except Exception as exc:
+        print(f"\n[ERROR] az.compare failed: {exc}")
+        return
+
+    print("\nLOO Comparison (stacking weights):")
+    print(comparison.to_string())
+
+    # ---- Pareto-k diagnostics ----
+    print("\nComputing Pareto-k diagnostics ...")
+    pareto_summary = _pareto_k_summary(compare_dict)
+    for name, pct in pareto_summary.items():
+        flag = "[HIGH]" if pct > 10 else "[OK]"
+        print(f"  {flag} {name}: {pct:.1f}% observations with Pareto-k > 0.7")
+
+    # ---- Verdict ----
+    top_model = comparison.index[0]
+    if "weight" in comparison.columns:
+        top_weight = float(comparison.loc[top_model, "weight"])
+    else:
+        top_weight = float("nan")
+
+    if top_model == "M6b" and top_weight >= 0.5:
+        verdict = f"M6b is the preferred model (stacking weight = {top_weight:.3f})"
+    elif top_model == "M6b":
+        verdict = (
+            f"M6b has highest LOO but marginal stacking weight {top_weight:.3f} < 0.5. "
+            "INCONCLUSIVE — inspect per-participant LOO."
+        )
+    else:
+        verdict = (
+            f"INCONCLUSIVE: top model by LOO is {top_model} "
+            f"(weight={top_weight:.3f}), not M6b."
+        )
+
+    print(f"\nVerdict: {verdict}")
+
+    # ---- Write Markdown output ----
+    level2_dir = output_dir.parent / "bayesian" / "level2"
+    level2_dir.mkdir(parents=True, exist_ok=True)
+    md_path = level2_dir / "stacking_weights.md"
+
+    lines: list[str] = [
+        "# Bayesian Model Comparison — Stacking Weights",
+        "",
+        "Generated by `scripts/14_compare_models.py --bayesian-comparison`.",
+        "",
+        "## LOO Comparison",
+        "",
+        comparison.to_markdown() if hasattr(comparison, "to_markdown") else comparison.to_string(),
+        "",
+        "## Pareto-k Diagnostics",
+        "",
+        "Percentage of observations with Pareto-k > 0.7 (threshold for unreliable LOO):",
+        "",
+    ]
+    for name, pct in pareto_summary.items():
+        flag = "HIGH" if pct > 10 else "OK"
+        lines.append(f"- {name}: {pct:.1f}% [{flag}]")
+
+    lines += [
+        "",
+        "## Verdict",
+        "",
+        verdict,
+        "",
+        "> M6b weight >= 0.5 indicates M6b is the preferred hierarchical model.",
+        "> Pareto-k > 0.7 for > 10% of observations signals unreliable LOO — "
+        "consider Pareto-smoothed IS or WAIC fallback.",
+    ]
+
+    md_path.write_text("\n".join(lines), encoding="utf-8")
+    print(f"\n[SAVED] {md_path}")
+
+
+# ============================================================================
 # MAIN
 # ============================================================================
 
@@ -619,6 +815,13 @@ def main():
                         help='Directory containing Bayesian fits')
     parser.add_argument('--generate-predictions', action='store_true',
                         help='Generate predictions from winning model')
+    parser.add_argument('--bayesian-comparison', action='store_true',
+                        help=(
+                            'Run Bayesian model comparison with LOO + stacking '
+                            'weights using hierarchical posterior NetCDF files. '
+                            'Writes output/bayesian/level2/stacking_weights.md. '
+                            'Can be combined with MLE comparison.'
+                        ))
 
     args = parser.parse_args()
 
@@ -877,6 +1080,12 @@ def main():
         m4_fits.to_csv(m4_summary_path, index=False)
         print(f"  [SAVED] {m4_summary_path}")
         print("=" * 60)
+
+    # ==============================
+    # BAYESIAN COMPARISON (LOO + stacking weights)
+    # ==============================
+    if args.bayesian_comparison:
+        run_bayesian_comparison(output_dir)
 
     # ==============================
     # SUMMARY
