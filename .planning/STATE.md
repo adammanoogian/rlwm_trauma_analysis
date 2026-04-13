@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-04-11)
 
 **Core value:** Correctly dissociate perseverative responding from learning-rate effects (alpha-) to accurately identify whether post-reversal failures reflect motor perseveration or outcome insensitivity
-**Current focus:** v4.0 — Hierarchical Bayesian Pipeline & LBA Acceleration (Phase 16 complete, Phase 17 next)
+**Current focus:** v4.0 — Hierarchical Bayesian Pipeline & LBA Acceleration (Phase 17 complete, Phase 18 next)
 
 ## Current Position
 
 Milestone: v4.0 Hierarchical Bayesian Pipeline & LBA Acceleration
-Phase: 17 of 20 (M4 Hierarchical LBA) — In progress
-Plan: 2 of 3 complete (17-02)
-Status: Phase 17 in progress. 17-01 complete: M4 model functions in numpyro_models.py. 17-02 complete: 13_fit_bayesian_m4.py pipeline script with float64 isolation, checkpoint-resume, convergence gate, and Pareto-k gating.
-Last activity: 2026-04-13 — Completed 17-02-PLAN.md
+Phase: 17 of 20 (M4 Hierarchical LBA) — COMPLETE
+Plan: 3 of 3 complete (17-03)
+Status: Phase 17 complete. 17-01: M4 model functions in numpyro_models.py. 17-02: 13_fit_bayesian_m4.py pipeline script with float64 isolation, checkpoint-resume, convergence gate, and Pareto-k gating. 17-03: Integration tests (M4H-01/02/04) + SLURM GPU script (M4H-06).
+Last activity: 2026-04-13 — Completed 17-03-PLAN.md
 
-Progress: [█████░░░░░] ~51% (17/~33 plans across Phases 13-20)
+Progress: [█████░░░░░] ~54% (18/~33 plans across Phases 13-20)
 
 ### v4.0 Phase Structure
 
@@ -95,6 +95,14 @@ Progress: [█████░░░░░] ~51% (17/~33 plans across Phases 13-2
 - **`subscale=True` guard raises `ValueError` (locked):** `--subscale` with model != wmrl_m6b raises `ValueError` (not `NotImplementedError`); the model exists but the subscale variant is M6b-specific.
 - **SLURM subscale: 12h/48G (locked):** `cluster/13_bayesian_m6b_subscale.slurm` uses `--time=12:00:00` and `--mem=48G` (vs 8h/32G for standard M6b).
 - **beta_* HDI print expanded (locked):** `_fit_stacked_model` now prints all `beta_`-prefixed sites in sorted order (not just `beta_lec_*`), supporting the 32-site subscale output.
+
+### v4.0 Decisions (17-03 completed 2026-04-13)
+
+- **Relaxed structural checks for M4 integration tests (locked):** `test_log_delta_recovery` uses delta>0, A>0, b>A checks (not 15% relative error). The 15% criterion applies to the full N=154 cluster fit; at N=10 with short chains the posterior is too diffuse for point recovery.
+- **test_checkpoint_resume tests the API directly (locked):** Warmup-pickle-load-resume cycle tested without process-kill simulation. Matches the exact code path in 13_fit_bayesian_m4.py.
+- **SLURM GPU env priority reversed vs CPU models (locked):** 13_bayesian_m4_gpu.slurm activates rlwm_gpu first, ds_env as fallback. CPU models prefer ds_env first.
+- **Separate JAX cache dir jax_cache_m4_bayesian (locked):** Prevents float64 M4 JIT traces from colliding with float32 choice-only traces in jax_cache_bayesian.
+- **NUMPYRO_HOST_DEVICE_COUNT not set in GPU SLURM script (locked):** GPU chain parallelism uses chain_method='vectorized'; the CPU device count env var is irrelevant on GPU and was intentionally excluded.
 
 ### v4.0 Decisions (17-02 completed 2026-04-13)
 
@@ -247,5 +255,5 @@ Progress: [█████░░░░░] ~51% (17/~33 plans across Phases 13-2
 ## Session Continuity
 
 Last session: 2026-04-13
-Stopped at: Completed 17-02-PLAN.md (13_fit_bayesian_m4.py created, float64+checkpoint+Pareto-k gating).
+Stopped at: Phase 17 complete (3/3 plans, 7 commits, 3 waves). Verified 6/6 must-haves. Next: Phase 18 (Integration, Comparison, and Manuscript).
 Resume file: None

@@ -3,6 +3,24 @@
 16b: Bayesian Linear Regression (Parameters -> Scale Totals)
 =============================================================
 
+.. deprecated::
+    This script is superseded by the Level-2 hierarchical pipeline
+    implemented in Phases 15-16 (``scripts/13_fit_bayesian.py`` with
+    ``--subscale``, and ``scripts/18_bayesian_level2_effects.py``).
+    The Level-2 approach jointly estimates individual parameters and
+    trauma associations in a single inference pass, providing proper
+    uncertainty propagation from the participant level to the
+    regression level.
+
+    This script is retained as a fast-preview / supplementary path
+    that runs a post-hoc NumPyro regression on MLE point estimates.
+    It does NOT require MCMC convergence from Phase 15-17 fits and
+    produces approximate directional evidence suitable for exploratory
+    analysis.
+
+    Use this script for: quick sanity-check before running the full pipeline.
+    Use ``scripts/18_bayesian_level2_effects.py`` for: manuscript-quality results.
+
 Bayesian multivariate regression of model parameters on trauma scale totals.
 Supports any model via MODEL_REGISTRY. Uses NumPyro/JAX backend.
 
