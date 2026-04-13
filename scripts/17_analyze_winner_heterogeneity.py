@@ -42,6 +42,7 @@ Notes
 
 from __future__ import annotations
 
+import argparse
 import sys
 from pathlib import Path
 
@@ -278,18 +279,33 @@ def plot_winner_heterogeneity(
 
 def main() -> None:
     """Run the heterogeneity analysis end-to-end."""
-    mle_dir = project_root / "output" / "mle"
-    output_dir = project_root / "output" / "model_comparison"
-    figures_dir = FIGURES_DIR / "model_comparison"
+    parser = argparse.ArgumentParser(
+        description='Per-participant winning model heterogeneity analysis'
+    )
+    parser.add_argument('--source', type=str, default='mle',
+                        choices=['mle', 'bayesian'],
+                        help='Fit source: mle (default) or bayesian')
+    args = parser.parse_args()
+
+    if args.source == 'bayesian':
+        fits_dir = project_root / "output" / "bayesian"
+        output_dir = project_root / "output" / "bayesian" / "model_comparison"
+        figures_dir = FIGURES_DIR / "bayesian" / "model_comparison"
+    else:
+        fits_dir = project_root / "output" / "mle"
+        output_dir = project_root / "output" / "model_comparison"
+        figures_dir = FIGURES_DIR / "model_comparison"
+
     output_dir.mkdir(parents=True, exist_ok=True)
     figures_dir.mkdir(parents=True, exist_ok=True)
 
     print("=" * 80)
     print("WINNER HETEROGENEITY ANALYSIS")
     print("=" * 80)
+    print(f"Source: {args.source.upper()}")
 
     print("\n[1/4] Loading per-participant AIC for all choice-only models...")
-    winners = load_per_participant_aic(mle_dir)
+    winners = load_per_participant_aic(fits_dir)
     print(f"    Loaded {len(winners)} participants with complete AIC coverage.")
 
     win_counts = winners["winning_model"].value_counts().sort_values(ascending=False)
@@ -299,7 +315,7 @@ def main() -> None:
         print(f"    {model}: {count} ({pct:.1f}%)")
 
     print("\n[2/4] Attaching M6b parameters to each participant...")
-    combined = attach_m6b_parameters(winners, mle_dir)
+    combined = attach_m6b_parameters(winners, fits_dir)
     print(f"    Combined table: {combined.shape[0]} rows, {combined.shape[1]} columns")
 
     print("\n[3/4] Computing per-group summary statistics and Kruskal-Wallis tests...")
