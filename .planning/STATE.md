@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-04-11)
 
 **Core value:** Correctly dissociate perseverative responding from learning-rate effects (alpha-) to accurately identify whether post-reversal failures reflect motor perseveration or outcome insensitivity
-**Current focus:** v4.0 — Hierarchical Bayesian Pipeline & LBA Acceleration (Phase 14 blocked on cluster, Phase 15 planned and ready)
+**Current focus:** v4.0 — Hierarchical Bayesian Pipeline & LBA Acceleration (Phase 16 complete, Phase 17 next)
 
 ## Current Position
 
 Milestone: v4.0 Hierarchical Bayesian Pipeline & LBA Acceleration
-Phase: 16 of 18 (Choice-Only Family Extension + Subscale L2) — in progress
-Plan: 16-06 complete; 16-07 onward remaining
-Status: Phase 16 in progress. 16-01 through 16-06 complete. Permutation null test infrastructure (L2-06) added to fit_bayesian.py. SLURM array job ready for cluster submission.
-Last activity: 2026-04-13 — Completed 16-06-PLAN.md: --permutation-shuffle CLI arg, _run_permutation_shuffle helper, 50-task SLURM array job, aggregation script.
+Phase: 17 of 20 (M4 Hierarchical LBA) — In progress
+Plan: 1 of 3 complete (17-01)
+Status: Phase 17 started. 17-01 complete: prepare_stacked_participant_data_m4 and wmrl_m4_hierarchical_model added to numpyro_models.py; 3 unit tests pass (RT data prep, sorted participants, NUTS smoke).
+Last activity: 2026-04-13 — Completed 17-01-PLAN.md
 
-Progress: [████░░░░░░] ~33% (10/~30 plans across Phases 13-18)
+Progress: [█████░░░░░] ~51% (17/~33 plans across Phases 13-20)
 
 ### v4.0 Phase Structure
 
@@ -95,6 +95,19 @@ Progress: [████░░░░░░] ~33% (10/~30 plans across Phases 13-1
 - **`subscale=True` guard raises `ValueError` (locked):** `--subscale` with model != wmrl_m6b raises `ValueError` (not `NotImplementedError`); the model exists but the subscale variant is M6b-specific.
 - **SLURM subscale: 12h/48G (locked):** `cluster/13_bayesian_m6b_subscale.slurm` uses `--time=12:00:00` and `--mem=48G` (vs 8h/32G for standard M6b).
 - **beta_* HDI print expanded (locked):** `_fit_stacked_model` now prints all `beta_`-prefixed sites in sorted order (not just `beta_lec_*`), supporting the 32-site subscale output.
+
+### v4.0 Decisions (17-01 completed 2026-04-13)
+
+- **Lazy import for lba_likelihood in M4 hierarchical model (locked):** `wmrl_m4_multiblock_likelihood_stacked` and `preprocess_rt_block` imported inside function bodies only. Module-level import of lba_likelihood in numpyro_models.py would activate float64 globally for all choice-only model imports.
+- **delta = b - A parameterization (M4H-02, locked):** `delta` sampled log-normal; `b = A + delta` decoded inside participant for-loop. Guarantees b > A without inequality constraints. `b=b_i` (not delta_i) passed to `wmrl_m4_multiblock_likelihood_stacked`.
+- **RT padding value = 0.5s (locked):** Padding positions in rts_stacked set to 0.5s to prevent t_star = rt - t0 <= 0 in LBA PDF evaluation. Masked-out trials use safe non-zero RT.
+- **No epsilon in M4 hierarchical model (locked):** 10 parameters total (6 RLWM + 4 LBA). Epsilon is a softmax noise term; M4 uses LBA decision dynamics directly.
+
+### v4.0 Decisions (16-07 completed 2026-04-13)
+
+- **L2-08 horseshoe DEFERRED (locked):** Normal(0,1) priors on beta coefficients have not been tested on real data (cluster job not yet run). Horseshoe will be evaluated after cluster job completes by inspecting max_rhat for beta_ sites, posterior SD vs prior scale, and number of 95% HDI exculsions across the 32 sites.
+- **18_bayesian_level2_effects.py created (L2-07):** Forest plots grouped by covariate (LEC-5, IES-R, all). `discover_beta_vars()` finds beta_ sites dynamically at runtime — handles any posterior structure. Graceful skip if NetCDF missing.
+- **--bayesian-comparison flag in script 14 (SC-6):** `az.compare(ic='loo', method='stacking')` over all 6 choice-only model posteriors. Writes `output/bayesian/level2/stacking_weights.md` with verdict (M6b weight >= 0.5 threshold).
 
 ### v4.0 Decisions (16-06 completed 2026-04-13)
 
@@ -226,6 +239,6 @@ Progress: [████░░░░░░] ~33% (10/~30 plans across Phases 13-1
 
 ## Session Continuity
 
-Last session: 2026-04-12
-Stopped at: Completed 16-05-PLAN.md (backfilled) — wmrl_m6b_hierarchical_model_subscale, --subscale CLI dispatch, cluster/13_bayesian_m6b_subscale.slurm. 16-06 was already complete.
+Last session: 2026-04-13
+Stopped at: Phase 16 complete (7/7 plans, 13 commits, verified). Next: Phase 17 (M4 Hierarchical LBA).
 Resume file: None
