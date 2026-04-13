@@ -11,9 +11,9 @@ See: .planning/PROJECT.md (updated 2026-04-11)
 
 Milestone: v4.0 Hierarchical Bayesian Pipeline & LBA Acceleration
 Phase: 16 of 18 (Choice-Only Family Extension + Subscale L2) — in progress
-Plan: 16-03 complete; 16-04 onward remaining
-Status: Phase 16 in progress. 16-01 (collinearity audit), 16-02 (M1/M2 stacked), 16-03 (M5/M6a/M6b hierarchical models) complete. Ready for 16-04 (fit_bayesian dispatch + bayesian_diagnostics for M5/M6a/M6b).
-Last activity: 2026-04-13 — Completed 16-03-PLAN.md: wmrl_m5_hierarchical_model (HIER-04), wmrl_m6a_hierarchical_model (HIER-05), wmrl_m6b_hierarchical_model (HIER-06) with stick-breaking kappa decode per-participant.
+Plan: 16-04 complete; 16-05 onward remaining
+Status: Phase 16 in progress. 16-01 through 16-04 complete. All 6 choice-only models dispatchable via fit_bayesian.py CLI with STACKED_MODEL_DISPATCH. 5 SLURM scripts created for cluster submission. Ready for 16-05 (full subscale L2 regression or next planned task).
+Last activity: 2026-04-13 — Completed 16-04-PLAN.md: STACKED_MODEL_DISPATCH, _fit_stacked_model, 5 SLURM scripts, smoke test all 6 models.
 
 Progress: [████░░░░░░] ~33% (10/~30 plans across Phases 13-18)
 
@@ -86,6 +86,13 @@ Progress: [████░░░░░░] ~33% (10/~30 plans across Phases 13-1
 - **M6b dual L2 regression (locked):** Two independent beta coefficients: `beta_lec_kappa_total` and `beta_lec_kappa_share`, each shifting their respective unconstrained parameter when `covariate_lec is not None`.
 - **kappa_share prior (locked):** `mu_prior_loc=0.0` from `PARAM_PRIOR_DEFAULTS["kappa_share"]`; group-mean share near 0.5 a priori on the probit scale (no a priori preference for global vs. stimulus-specific split).
 - **phi_rl prior (locked):** `mu_prior_loc=-0.8` from `PARAM_PRIOR_DEFAULTS["phi_rl"]`; same as phi (both are forgetting rates, symmetric justification).
+
+### v4.0 Decisions (16-04 completed 2026-04-13)
+
+- **_L2_LEC_SUPPORTED frozenset (locked):** `{wmrl_m3, wmrl_m5, wmrl_m6a, wmrl_m6b}` pass covariate_lec to model; M1/M2 receive None. Guard in `_fit_stacked_model`.
+- **log_likelihood group overwrite (locked):** `build_inference_data_with_loglik` deletes pre-existing `log_likelihood` before `add_groups`. `az.from_numpyro` auto-creates per-participant scalar log-probs from `numpyro.factor` sites (wrong shape for WAIC/LOO). Fix committed in `6f99419`.
+- **STACKED_MODEL_DISPATCH dispatch pattern (locked):** All 6 choice-only models route through this dict; `save_results` uses `model in STACKED_MODEL_DISPATCH` as the single predicate for convergence gate path.
+- **SLURM time limits (locked):** M1=4h, M2=6h, M3=6h, M5=6h, M6a=6h, M6b=8h. M6b extra time for stick-breaking compile overhead.
 
 ### v4.0 Decisions (16-02 completed 2026-04-12)
 
@@ -205,5 +212,5 @@ Progress: [████░░░░░░] ~33% (10/~30 plans across Phases 13-1
 ## Session Continuity
 
 Last session: 2026-04-13
-Stopped at: Completed 16-03-PLAN.md — wmrl_m5_hierarchical_model (HIER-04), wmrl_m6a_hierarchical_model (HIER-05), wmrl_m6b_hierarchical_model (HIER-06) with stick-breaking kappa decode in numpyro_models.py
+Stopped at: Completed 16-04-PLAN.md — STACKED_MODEL_DISPATCH, _fit_stacked_model helper, smoke test all 6 models, 5 SLURM scripts
 Resume file: None

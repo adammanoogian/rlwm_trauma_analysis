@@ -1832,6 +1832,221 @@ def wmrl_m6b_hierarchical_model(
         numpyro.factor(f"obs_p{pid}", log_lik)
 
 
+def wmrl_m6b_hierarchical_model_subscale(
+    participant_data_stacked: dict,
+    covariate_matrix: jnp.ndarray | None = None,
+    covariate_names: list[str] | None = None,
+    num_stimuli: int = 6,
+    num_actions: int = 3,
+    q_init: float = 0.5,
+    wm_init: float = 1.0 / 3.0,
+) -> None:
+    """Hierarchical M6b model with full subscale Level-2 regression (L2-05).
+
+    Extends :func:`wmrl_m6b_hierarchical_model` by accepting a full covariate
+    matrix instead of a single LEC vector, enabling Level-2 regression on ALL
+    8 M6b parameters from the 4-predictor subscale design
+    [lec_total, iesr_total, iesr_intr_resid, iesr_avd_resid].
+
+    This produces **32 beta coefficient sites** (8 parameters x 4 covariates)
+    matching ``COVARIATE_NAMES`` from ``scripts/fitting/level2_design.py``.
+    (Plan references "~40 beta sites" — the actual count is 32 because the
+    hyperarousal residual was dropped due to exact linear dependence.)
+
+    All 8 parameters are sampled **manually** (bypassing ``sample_bounded_param``)
+    so that multi-covariate L2 shifts can be applied uniformly on the unconstrained
+    probit scale before the Phi_approx transform.
+
+    Model structure (non-centered, hBayesDM convention):
+    ::
+
+        # Level-2 beta coefficients (if covariate_matrix provided)
+        beta_{cov}_{param} ~ Normal(0, 1)   # for each covariate x parameter
+
+        # Group priors
+        {param}_mu_pr    ~ Normal(mu_prior_loc, 1.0)
+        {param}_sigma_pr ~ HalfNormal(0.2)
+        {param}_z        ~ Normal(0, 1)  shape (n_participants,)
+
+        # Individual unconstrained
+        theta_unc_i = mu_pr + sigma_pr * z_i + sum_j(beta_j * X_ij)
+
+        # Constrained
+        theta_i = lower + (upper - lower) * Phi_approx(theta_unc_i)
+
+    M6b stick-breaking decode (per participant, inside for-loop):
+    ::
+
+        kappa   = kappa_total_i * kappa_share_i
+        kappa_s = kappa_total_i * (1 - kappa_share_i)
+
+    Parameters
+    ----------
+    participant_data_stacked : dict
+        Mapping from participant_id to stacked-format arrays from
+        ``prepare_stacked_participant_data``. Keys per participant:
+        ``stimuli_stacked``, ``actions_stacked``, ``rewards_stacked``,
+        ``set_sizes_stacked``, ``masks_stacked`` — each shape
+        ``(n_blocks, MAX_TRIALS_PER_BLOCK)``.
+    covariate_matrix : jnp.ndarray or None
+        Shape ``(n_participants, n_covariates)`` standardized design matrix.
+        Participants must be in the same order as
+        ``sorted(participant_data_stacked.keys())``.  Built by
+        ``scripts.fitting.level2_design.build_level2_design_matrix``.
+        If ``None``, no Level-2 shifts are applied (equivalent to the
+        single-covariate model with ``covariate_lec=None``).
+    covariate_names : list[str] or None
+        Names for each column of ``covariate_matrix``, used to name
+        ``beta_{cov}_{param}`` sites.  Must have length matching
+        ``covariate_matrix.shape[1]``.  Expected value (from
+        ``COVARIATE_NAMES`` in ``level2_design.py``):
+        ``["lec_total", "iesr_total", "iesr_intr_resid", "iesr_avd_resid"]``.
+        If ``None`` and ``covariate_matrix`` is not ``None``, columns are
+        named ``cov0``, ``cov1``, etc.
+    num_stimuli : int
+        Number of distinct stimuli in the task.  Default 6.
+    num_actions : int
+        Number of possible actions.  Default 3.
+    q_init : float
+        Initial Q-value for all state-action pairs.  Default 0.5.
+    wm_init : float
+        Initial WM values (uniform baseline ``1/nA``).  Default ``1/3``.
+
+    Notes
+    -----
+    - Beta coefficient naming: ``beta_{covariate_name}_{param_name}``.
+      Example sites: ``beta_lec_total_kappa_total``,
+      ``beta_iesr_intr_resid_alpha_pos``, etc.
+    - This model has a high-dimensional posterior (group priors + 32 beta
+      sites + 8 x n_participants individual parameters).  Use
+      ``run_inference_with_bump`` with target_accept_prob up to 0.99 to
+      handle potential divergences (L2-08 horseshoe prior upgrade is the
+      fallback if divergences persist).
+    - Beta site order: outer loop over param_names, inner loop over
+      covariate_names.  This matches the naming convention for downstream
+      ArviZ extraction.
+    - Do NOT modify this function's API: ``fit_bayesian.py`` dispatches to
+      it via the ``--subscale`` flag.
+    """
+    from scripts.fitting.numpyro_helpers import PARAM_PRIOR_DEFAULTS, phi_approx
+
+    n_participants = len(participant_data_stacked)
+    participant_ids = sorted(participant_data_stacked.keys())
+
+    # All 8 M6b parameters in canonical order
+    param_names = [
+        "alpha_pos",
+        "alpha_neg",
+        "phi",
+        "rho",
+        "capacity",
+        "epsilon",
+        "kappa_total",
+        "kappa_share",
+    ]
+
+    # ------------------------------------------------------------------
+    # Resolve covariate column names
+    # ------------------------------------------------------------------
+    if covariate_matrix is not None:
+        n_covariates = covariate_matrix.shape[1]
+        if covariate_names is None:
+            covariate_names = [f"cov{j}" for j in range(n_covariates)]
+        if len(covariate_names) != n_covariates:
+            raise ValueError(
+                f"wmrl_m6b_hierarchical_model_subscale: covariate_names has "
+                f"{len(covariate_names)} entries but covariate_matrix has "
+                f"{n_covariates} columns. They must match."
+            )
+    else:
+        covariate_names = []
+
+    # ------------------------------------------------------------------
+    # Level-2 beta coefficients — one per (param, covariate) pair
+    # Naming: beta_{covariate_name}_{param_name}
+    # 8 params x 4 covariates = 32 sites when using the default design.
+    # ------------------------------------------------------------------
+    betas: dict[tuple[str, str], object] = {}
+    if covariate_matrix is not None:
+        for pname in param_names:
+            for cov_name in covariate_names:
+                site_name = f"beta_{cov_name}_{pname}"
+                betas[(pname, cov_name)] = numpyro.sample(
+                    site_name, dist.Normal(0.0, 1.0)
+                )
+
+    # ------------------------------------------------------------------
+    # Manual non-centered sampling for all 8 parameters
+    # Bypasses sample_bounded_param to support per-parameter L2 shifts.
+    # Pattern: mu_pr + sigma_pr * z + sum_j(beta_j * X[:, j])
+    # ------------------------------------------------------------------
+    sampled: dict[str, jnp.ndarray] = {}
+    for pname in param_names:
+        defaults = PARAM_PRIOR_DEFAULTS[pname]
+        lower = defaults["lower"]
+        upper = defaults["upper"]
+        mu_prior_loc = defaults["mu_prior_loc"]
+
+        mu_pr = numpyro.sample(
+            f"{pname}_mu_pr",
+            dist.Normal(mu_prior_loc, 1.0),
+        )
+        sigma_pr = numpyro.sample(
+            f"{pname}_sigma_pr",
+            dist.HalfNormal(0.2),
+        )
+        z = numpyro.sample(
+            f"{pname}_z",
+            dist.Normal(0, 1).expand([n_participants]),
+        )
+
+        # Unconstrained individual-level values
+        theta_unc = mu_pr + sigma_pr * z
+
+        # Add L2 shifts from each covariate column
+        if covariate_matrix is not None:
+            for j, cov_name in enumerate(covariate_names):
+                theta_unc = theta_unc + betas[(pname, cov_name)] * covariate_matrix[:, j]
+
+        # Transform to constrained space via Phi_approx
+        theta = lower + (upper - lower) * phi_approx(theta_unc)
+        sampled[pname] = numpyro.deterministic(pname, theta)
+
+    # ------------------------------------------------------------------
+    # Likelihood via numpyro.factor — Python for-loop over participants
+    # Decode kappa and kappa_s per-participant (STATE.md locked decision):
+    #   kappa   = kappa_total * kappa_share
+    #   kappa_s = kappa_total * (1 - kappa_share)
+    # ------------------------------------------------------------------
+    for idx, pid in enumerate(participant_ids):
+        pdata = participant_data_stacked[pid]
+        kappa_total_i = sampled["kappa_total"][idx]
+        kappa_share_i = sampled["kappa_share"][idx]
+        kappa = kappa_total_i * kappa_share_i
+        kappa_s = kappa_total_i * (1.0 - kappa_share_i)
+        log_lik = wmrl_m6b_multiblock_likelihood_stacked(
+            stimuli_stacked=pdata["stimuli_stacked"],
+            actions_stacked=pdata["actions_stacked"],
+            rewards_stacked=pdata["rewards_stacked"],
+            set_sizes_stacked=pdata["set_sizes_stacked"],
+            masks_stacked=pdata["masks_stacked"],
+            alpha_pos=sampled["alpha_pos"][idx],
+            alpha_neg=sampled["alpha_neg"][idx],
+            phi=sampled["phi"][idx],
+            rho=sampled["rho"][idx],
+            capacity=sampled["capacity"][idx],
+            kappa=kappa,
+            kappa_s=kappa_s,
+            epsilon=sampled["epsilon"][idx],
+            num_stimuli=num_stimuli,
+            num_actions=num_actions,
+            q_init=q_init,
+            wm_init=wm_init,
+            return_pointwise=False,
+        )
+        numpyro.factor(f"obs_p{pid}", log_lik)
+
+
 if __name__ == "__main__":
     # Set NumPyro to use all available CPU cores
     numpyro.set_host_device_count(4)
