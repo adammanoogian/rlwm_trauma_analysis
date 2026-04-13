@@ -604,6 +604,26 @@ and `{python} second_display` each won for
 respectively.
 See @sec-model-table for the complete parameter listings.
 
+Bayesian model comparison via leave-one-out cross-validation with stacking
+weights confirmed the AIC ranking (@tbl-stacking-weights). M6b received the
+highest stacking weight among the six choice-only models.
+
+```{python}
+#| label: tbl-stacking-weights
+#| tbl-cap: "Bayesian model comparison: LOO-CV stacking weights for choice-only models. M4 (joint choice+RT) is excluded; see Limitations."
+
+stacking_path = Path("../output/bayesian/level2/stacking_weights.csv")
+if stacking_path.exists():
+    df_stacking = pd.read_csv(stacking_path, index_col=0)
+    # Select key columns for display
+    display_cols = [c for c in ['elpd_loo', 'p_loo', 'elpd_diff', 'weight', 'se', 'dse', 'warning'] if c in df_stacking.columns]
+    if not display_cols:
+        display_cols = [c for c in ['elpd', 'pIC', 'elpd_diff', 'weight', 'se', 'dse', 'warning'] if c in df_stacking.columns]
+    display(df_stacking[display_cols].style.format(precision=2))
+else:
+    print("Stacking weights not available. Run: python scripts/14_compare_models.py --bayesian-comparison")
+```
+
 ### Participant-Level Winner Heterogeneity {#sec-winner-heterogeneity}
 
 Although M6b was preferred at the aggregate level, only 55 of 154
@@ -910,89 +930,50 @@ Univariate regressions of individual parameters on LEC-5 total events and
 IES-R total score similarly yielded no significant associations (all
 $p > .05$; FDR-corrected q-values confirmed, all $q > .05$).
 
-### Bayesian Multivariate Regression {#sec-bayesian-regression}
+### Hierarchical Level-2 Trauma Associations {#sec-bayesian-regression}
 
 ```{python}
-#| label: results-bayesian-setup
-# ── Load Bayesian regression results ────────────────────────────────────────
-bayesian_dir = Path(f"../output/regressions/bayesian/{winning_model}")
-df_bayes = pd.read_csv(bayesian_dir / "bayesian_regression_summary.csv") if (bayesian_dir / "bayesian_regression_summary.csv").exists() else pd.DataFrame()
-
-# Extract key findings
-if not df_bayes.empty:
-    bayes_ies = df_bayes[df_bayes['outcome'] == 'ies_total']
-    bayes_lec = df_bayes[df_bayes['outcome'] == 'lec_total']
-    bayes_r2_ies = bayes_ies[bayes_ies['parameter'] == 'Bayesian_R2']
-    bayes_r2_lec = bayes_lec[bayes_lec['parameter'] == 'Bayesian_R2']
-
-    # Best predictor of IES-R (highest P(direction) among non-intercept/sigma/R2)
-    ies_coefs = bayes_ies[~bayes_ies['parameter'].isin(['intercept', 'sigma', 'Bayesian_R2'])]
-    best_ies = ies_coefs.loc[ies_coefs['p_direction'].idxmax()] if not ies_coefs.empty else None
+#| label: results-l2-setup
+# Load Level-2 effect estimates from hierarchical Bayesian pipeline
+l2_dir = Path("../output/bayesian/level2")
+l2_effects_exist = l2_dir.exists() and any(l2_dir.glob("*beta*"))
 ```
 
-Bayesian multivariate regressions assessed the joint contribution of all
-`{python} winner_n_params` winning-model parameters to trauma outcomes
-(@tbl-bayesian-regression; @fig-bayesian-forest).
+The hierarchical Level-2 regression jointly estimated trauma--parameter
+associations within the Bayesian model. Unlike the post-hoc frequentist
+regressions above, which treat MLE point estimates as fixed, the Level-2
+approach propagates uncertainty from the individual level through to the
+regression coefficients.
 
 ```{python}
-#| label: tbl-bayesian-regression
-#| tbl-cap: "Bayesian regression: winning model parameters predicting IES-R total. Posterior mean, 95% HDI, and P(direction) shown. Moderate evidence: P(dir) > 0.90."
-
-try:
-    if bayes_ies.empty:
-        raise FileNotFoundError("Bayesian results not available")
-
-    coefs = bayes_ies[~bayes_ies['parameter'].isin(['intercept', 'sigma', 'Bayesian_R2'])].copy()
-    coefs['95% HDI'] = coefs.apply(lambda r: f"[{r['hdi_2.5%']:.2f}, {r['hdi_97.5%']:.2f}]", axis=1)
-    coefs = coefs[['parameter', 'mean', 'sd', '95% HDI', 'p_direction', 'interpretation']]
-    coefs.columns = ['Parameter', 'β (mean)', 'SD', '95% HDI', 'P(direction)', 'Evidence']
-    coefs['β (mean)'] = coefs['β (mean)'].apply(lambda x: f"{x:.2f}")
-    coefs['SD'] = coefs['SD'].apply(lambda x: f"{x:.2f}")
-    coefs['P(direction)'] = coefs['P(direction)'].apply(lambda x: f"{x:.3f}")
-
-    display(coefs.style.hide(axis="index"))
-except Exception as e:
-    print(f"Bayesian results not available. ({e})")
-```
-
-```{python}
-#| label: fig-bayesian-forest
-#| fig-cap: "Bayesian regression forest plot: winning model parameters predicting IES-R total PTSD symptoms. Thick bars = 50% HDI; thin bars = 95% HDI. Color indicates strength of directional evidence."
+#| label: fig-l2-forest
+#| fig-cap: "Level-2 posterior forest plots for the winning model. Beta coefficients represent the effect of each trauma predictor on the probit-scale group parameter. Thick bars = 50% HDI; thin bars = 95% HDI. Effects whose 95% HDI excludes zero are highlighted."
 #| fig-width: 7.0
-#| fig-height: 3.5
+#| fig-height: 5.0
 
 try:
-    forest_path = Path(f"../figures/regressions/bayesian/{winning_model}/forest_plot_ies_total.png")
-    if not forest_path.exists():
-        raise FileNotFoundError(f"Missing: {forest_path}")
+    # Look for forest plot from 18_bayesian_level2_effects.py
+    forest_candidates = [
+        Path(f"../output/bayesian/figures/m6b_forest_lec5.png"),
+        Path(f"../output/bayesian/level2/wmrl_m6b_forest.png"),
+    ]
+    forest_found = next((p for p in forest_candidates if p.exists()), None)
+
+    if forest_found is None:
+        raise FileNotFoundError("Level-2 forest plot not found")
 
     from matplotlib.image import imread
-    img = imread(str(forest_path))
-    fig, ax = plt.subplots(figsize=(TEXT_WIDTH, 3.5))
+    img = imread(str(forest_found))
+    fig, ax = plt.subplots(figsize=(TEXT_WIDTH, 5.0))
     ax.imshow(img)
     ax.axis("off")
     plt.tight_layout()
-    plt.savefig(OUTPUT_DIR / "fig_bayesian_forest.pdf", bbox_inches="tight")
+    plt.savefig(OUTPUT_DIR / "fig_l2_forest.pdf", bbox_inches="tight")
     plt.show()
 except Exception as e:
-    print(f"Forest plot not available. ({e})")
+    print(f"Level-2 forest plot not available. ({e})")
+    print("Run: python scripts/18_bayesian_level2_effects.py")
 ```
-
-For IES-R total PTSD symptoms, the strongest predictor was
-`{python} best_ies['parameter'] if best_ies is not None else "?"` with
-$P(\text{direction}) = $ `{python} f"{best_ies['p_direction']:.3f}" if best_ies is not None else "?"`,
-constituting `{python} best_ies['interpretation'] if best_ies is not None else "?"`.
-The 95% HDI for this parameter was
-`{python} f"[{best_ies['hdi_2.5%']:.2f}, {best_ies['hdi_97.5%']:.2f}]" if best_ies is not None else "?"`,
-which includes zero but shows a clear directional tendency.
-The Bayesian $R^2$ for the IES-R model was
-`{python} f"{float(bayes_r2_ies['mean'].iloc[0]):.3f}" if not bayes_r2_ies.empty else "?"` [95% HDI:
-`{python} f"{float(bayes_r2_ies['hdi_2.5%'].iloc[0]):.3f}" if not bayes_r2_ies.empty else "?"`,
-`{python} f"{float(bayes_r2_ies['hdi_97.5%'].iloc[0]):.3f}" if not bayes_r2_ies.empty else "?"`],
-indicating that winning-model parameters collectively account for approximately
-10% of variance in PTSD symptom severity.
-For LEC-5 total trauma exposure, Bayesian $R^2$ was
-`{python} f"{float(bayes_r2_lec['mean'].iloc[0]):.3f}" if not bayes_r2_lec.empty else "?"`, with no individual parameter reaching moderate directional evidence.
 
 ### Cross-Model Consistency {#sec-cross-model}
 
@@ -1132,6 +1113,42 @@ inhibition, action-reversal training) may therefore have a stronger
 computational rationale in trauma populations than interventions
 directly targeting reward learning, although the exploratory nature of
 our findings argues for replication before any clinical recommendation.
+
+### Limitations {#sec-limitations}
+
+Several methodological limitations should be noted. First, MLE parameter
+recovery for the base RLWM parameters ($\alpha_+$, $\alpha_-$, $\phi$,
+$\rho$, $K$, $\varepsilon$) fell below the $r \geq 0.80$ criterion, though
+hierarchical Bayesian shrinkage is expected to improve individual-level
+estimates. The degree of shrinkage varies across parameters: well-identified
+parameters (e.g., $\kappa_{\text{total}}$, $\kappa_{\text{share}}$) show
+strong shrinkage toward the group mean, while poorly recovered parameters
+show less regularization. Readers should interpret individual-level
+estimates of the base parameters as descriptive summaries rather than
+precise trait measures.
+
+Second, M4 (joint choice+RT via LBA) uses a fundamentally different
+likelihood domain from the choice-only models, making direct comparison
+via AIC, LOO, or stacking weights inappropriate. We report M4's LOO
+diagnostics on a separate track. The Pareto-k diagnostic for M4 is
+expected to show a high proportion of observations with $k > 0.7$,
+indicating that importance sampling is unreliable for this model class
+under NUTS. This is a known limitation of applying LOO to models with
+high-dimensional per-trial likelihoods.
+
+Third, working-memory capacity $K$ has a restricted effective range
+($[2, 6]$) dictated by the task's set-size structure. While this
+bounding is theoretically motivated [@collins2012how], it limits the
+precision of between-participant comparisons on $K$. Phase 14's K-refit
+with tighter bounds is expected to improve recovery, but the fundamental
+constraint remains.
+
+Fourth, the IES-R subscale design matrix required Gram--Schmidt
+orthogonalization against the total score to avoid perfect collinearity.
+The resulting residualized subscale predictors capture unique variance
+beyond the total, but their interpretation is conditional on the total
+score being partialled out. The hyperarousal residual was excluded due
+to exact linear dependence (the three subscales sum to the total).
 
 
 ## Conclusion {#sec-conclusion}
