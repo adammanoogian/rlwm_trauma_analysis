@@ -10,12 +10,12 @@ See: .planning/PROJECT.md (updated 2026-04-11)
 ## Current Position
 
 Milestone: v4.0 Hierarchical Bayesian Pipeline & LBA Acceleration
-Phase: 15 of 18 (M3 Hierarchical POC with Level-2 Regression) — in progress
-Plan: 15-01 complete (Wave 1); 15-02 and 15-03 remaining
-Status: Phase 15 in progress. 15-01 complete (core model + tests). Ready for 15-02 (fit_bayesian.py extension + convergence bump).
-Last activity: 2026-04-12 — Completed 15-01-PLAN.md: wmrl_m3_hierarchical_model, prepare_stacked_participant_data, fixed test_compile_gate, M3 smoke tests.
+Phase: 16 of 18 (Choice-Only Family Extension + Subscale L2) — in progress
+Plan: 16-02 complete; 16-03 onward remaining
+Status: Phase 16 in progress. 16-02 complete (qlearning_hierarchical_model_stacked HIER-02, wmrl_hierarchical_model_stacked HIER-03). Ready for 16-03 (M5).
+Last activity: 2026-04-12 — Completed 16-02-PLAN.md: M1 and M2 stacked hierarchical models added to numpyro_models.py.
 
-Progress: [██░░░░░░░░] ~27% (8/~30 plans across Phases 13-18)
+Progress: [████░░░░░░] ~33% (10/~30 plans across Phases 13-18)
 
 ### v4.0 Phase Structure
 
@@ -69,6 +69,20 @@ Progress: [██░░░░░░░░] ~27% (8/~30 plans across Phases 13-18
 - Total execution time: ongoing
 
 ## Accumulated Context
+
+### v4.0 Decisions (16-02 completed 2026-04-12)
+
+- **qlearning_hierarchical_model_stacked signature (locked):** No `set_sizes_stacked` passed to likelihood; `covariate_lec=None` guard raises `NotImplementedError` if non-None (no natural L2 target for M1). HIER-02 complete.
+- **wmrl_hierarchical_model_stacked signature (locked):** `set_sizes_stacked=pdata["set_sizes_stacked"]` always passed to likelihood; `covariate_lec=None` guard raises `NotImplementedError` if non-None (no perseveration parameter as L2 target for M2). HIER-03 complete.
+- **Stacked-format pattern established for M1/M2:** `sorted(participant_data_stacked.keys())` for participant ordering; `sample_bounded_param` loop over param list from `PARAM_PRIOR_DEFAULTS`; `numpyro.factor` per participant. All Phase 16-17 stacked models follow this template.
+
+### v4.0 Decisions (15-02 completed 2026-04-12)
+
+- **run_inference_with_bump pattern (locked):** Python retry loop over `target_accept_probs=(0.80, 0.95, 0.99)`; reads `mcmc.get_extra_fields()["diverging"].sum()`; returns immediately on zero divergences; falls through to last run when exhausted. All Phase 16-17 hierarchical models should use this instead of `run_inference`.
+- **Convergence gate location in save_results():** Gate lives inside `save_results()` (not `fit_model()`), so the MCMC result is always returned to the caller. Early return from `save_results()` without writing any files is the HIER-07 enforcement point.
+- **filter_padding_from_loglik returns NumPy array:** Converts JAX DeviceArray to `np.array(float32)` before masking. ArviZ `add_groups()` requires NumPy-backed arrays; keeping as JAX array causes implicit conversion errors.
+- **LEC covariate column name confirmed:** `less_total_events` (not `lec_total_events`) in `output/summary_participant_metrics.csv`. Z-scored in `fit_model()` before passing to model. Falls back to `covariate_lec=None` with warning if CSV or column missing.
+- **Shrinkage formula:** `1 - var_indiv / (var_group_mean + 1e-10)` where `var_indiv = np.var(flat)` (all draws AND participants), `var_group_mean = np.var(flat.mean(axis=1))`. Threshold 0.3 for "identified" flag.
 
 ### v4.0 Decisions (15-01 completed 2026-04-12)
 
@@ -148,6 +162,11 @@ Progress: [██░░░░░░░░] ~27% (8/~30 plans across Phases 13-18
 - Run parameter recovery for all models after re-fit (50 subj / 3 datasets / 20 starts) — superseded by Phase 14 Collins K refit
 - Run full cross-model recovery: `python scripts/11_run_model_recovery.py --mode cross-model --model all --n-subjects 50 --n-datasets 3 --n-starts 20 --n-jobs 8`
 
+### Roadmap Evolution
+
+- **Phases 19-20 added (2026-04-12):** GPU-accelerated likelihood via associative scan (Phase 19) and DEER non-linear parallelization research (Phase 20). Motivated by analysis of why naive vmap-over-participants was 7-13x slower (memory-bandwidth bottleneck, not compute-bound). The real opportunity is parallelizing the TIME dimension via O(log T) associative scan, not the participant dimension. Phases 15-16 must log CPU wall-clock timing as baseline for Phase 19 benchmarking. Key references: PaMoRL (NeurIPS 2024), DEER (ICLR 2024), S4/Mamba, Unifying Framework (TMLR 2025).
+- **CPU confirmed correct for Phases 15-18:** RLWM Q-value/WM updates have arithmetic intensity ~0.3 FLOP/byte (GPU needs >50 to saturate). CPU L1 cache (~1ns) beats GPU global memory (~200-400 cycles) for 18-float Q-tables. Associative scan changes the algorithm, not the hardware access pattern.
+
 ### Blockers/Concerns
 
 - **Compile-time gate on M6b**: constrained `kappa_total`/`kappa_share` under non-centered hierarchical sampling may compile slower than the 60s target. Phase 13 may need to relax the gate specifically for M6b. (From research: PITFALLS.md confidence MEDIUM on this point.)
@@ -169,5 +188,5 @@ Progress: [██░░░░░░░░] ~27% (8/~30 plans across Phases 13-18
 ## Session Continuity
 
 Last session: 2026-04-12
-Stopped at: Completed 15-01-PLAN.md — wmrl_m3_hierarchical_model, prepare_stacked_participant_data, fixed test_compile_gate, M3 smoke dispatch tests
+Stopped at: Completed 16-02-PLAN.md — qlearning_hierarchical_model_stacked (HIER-02), wmrl_hierarchical_model_stacked (HIER-03) in numpyro_models.py
 Resume file: None
