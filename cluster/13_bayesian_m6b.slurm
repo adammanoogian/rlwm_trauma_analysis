@@ -22,8 +22,8 @@
 #SBATCH --job-name=bayesian_m6b
 #SBATCH --output=logs/bayesian_m6b_%j.out
 #SBATCH --error=logs/bayesian_m6b_%j.err
-#SBATCH --time=08:00:00
-#SBATCH --mem=32G
+#SBATCH --time=36:00:00
+#SBATCH --mem=64G
 #SBATCH --cpus-per-task=4
 #SBATCH --partition=comp
 
@@ -67,7 +67,7 @@ echo ""
 
 # --- JAX compilation cache ---
 export JAX_PLATFORMS=cpu
-export NUMPYRO_HOST_DEVICE_COUNT=1
+export NUMPYRO_HOST_DEVICE_COUNT=4
 _PROJECT="${PROJECT:-fc37}"
 export JAX_COMPILATION_CACHE_DIR="/scratch/${_PROJECT}/${USER}/.jax_cache_bayesian"
 export JAX_PERSISTENT_CACHE_MIN_ENTRY_SIZE_BYTES=0
@@ -91,7 +91,8 @@ python scripts/fitting/fit_bayesian.py \
     --chains 4 \
     --warmup 1000 \
     --samples 2000 \
-    --seed 42
+    --seed 42 \
+    --max-tree-depth 8
 
 EXIT_CODE=$?
 

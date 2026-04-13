@@ -286,6 +286,7 @@ def _fit_stacked_model(
     num_chains: int,
     seed: int,
     subscale: bool = False,
+    max_tree_depth: int = 10,
 ) -> tuple[object, dict]:
     """Fit a canonical stacked hierarchical model.
 
@@ -379,6 +380,7 @@ def _fit_stacked_model(
         num_samples=num_samples,
         num_chains=num_chains,
         seed=seed,
+        max_tree_depth=max_tree_depth,
     )
 
     # Print group-level posterior summaries (all *_mu_pr sites)
@@ -424,6 +426,7 @@ def fit_model(
     num_chains: int,
     seed: int,
     subscale: bool = False,
+    max_tree_depth: int = 10,
 ) -> tuple[object, dict]:
     """Fit a hierarchical Bayesian model.
 
@@ -498,6 +501,7 @@ def fit_model(
     return _fit_stacked_model(
         data, model, model_fn, num_warmup, num_samples, num_chains, seed,
         subscale=subscale,
+        max_tree_depth=max_tree_depth,
     )
 
 
@@ -895,6 +899,16 @@ def main() -> None:
         help="Random seed (default: 42)",
     )
     parser.add_argument(
+        "--max-tree-depth",
+        type=int,
+        default=10,
+        help=(
+            "Maximum NUTS tree depth (default: 10 → up to 1024 leapfrog steps). "
+            "Reducing to 8 (256 steps) cuts per-step time ~4x with minor "
+            "sampling efficiency loss. Recommended for initial runs."
+        ),
+    )
+    parser.add_argument(
         "--permutation-shuffle",
         type=int,
         default=None,
@@ -942,6 +956,7 @@ def main() -> None:
     print(f"  Chains: {args.chains}")
     print(f"  Warmup: {args.warmup}")
     print(f"  Samples: {args.samples}")
+    print(f"  Max tree depth: {args.max_tree_depth}")
     print(f"  Output: {args.output}")
     print(f"  Seed: {args.seed}")
     if args.subscale:
@@ -997,6 +1012,7 @@ def main() -> None:
         num_chains=args.chains,
         seed=args.seed,
         subscale=args.subscale,
+        max_tree_depth=args.max_tree_depth,
     )
 
     # extra is participant_data_stacked for all stacked models

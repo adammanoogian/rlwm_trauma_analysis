@@ -69,7 +69,7 @@ echo ""
 
 # --- JAX compilation cache ---
 export JAX_PLATFORMS=cpu
-export NUMPYRO_HOST_DEVICE_COUNT=1
+export NUMPYRO_HOST_DEVICE_COUNT=4
 _PROJECT="${PROJECT:-fc37}"
 export JAX_COMPILATION_CACHE_DIR="/scratch/${_PROJECT}/${USER}/.jax_cache_bayesian"
 export JAX_PERSISTENT_CACHE_MIN_ENTRY_SIZE_BYTES=0

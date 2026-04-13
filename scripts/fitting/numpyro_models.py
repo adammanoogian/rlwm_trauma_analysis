@@ -664,11 +664,19 @@ def run_inference_with_bump(
     - The downstream convergence gate in ``fit_bayesian.py`` checks that
       ``num_divergences == 0`` before writing output files (HIER-07).
     """
+    # Enable parallel chains on CPU by exposing multiple host devices.
+    # Without this, JAX sees only 1 device and chains run sequentially
+    # (~4x slower for 4 chains).
+    if num_chains > 1:
+        numpyro.set_host_device_count(num_chains)
+
     print(">> Starting MCMC sampling with convergence auto-bump...")
     print(f"   Chains: {num_chains}")
+    print(f"   Host devices: {jax.local_device_count()}")
     print(f"   Warmup: {num_warmup}")
     print(f"   Samples: {num_samples}")
-    print(f"   Total iterations per attempt: {(num_warmup + num_samples) * num_chains}")
+    print(f"   Max tree depth: {max_tree_depth}")
+    print(f"   Total iterations per chain: {num_warmup + num_samples}")
     print(f"   Acceptance probability schedule: {target_accept_probs}")
     print()
 
