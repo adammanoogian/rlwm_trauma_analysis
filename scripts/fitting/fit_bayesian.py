@@ -78,6 +78,12 @@ STACKED_MODEL_DISPATCH: dict[str, object] = {
     "wmrl_m6b": wmrl_m6b_hierarchical_model,
 }
 
+# Models that support Level-2 LEC covariate regression on kappa.
+# M1 and M2 raise NotImplementedError if covariate_lec is not None.
+_L2_LEC_SUPPORTED: frozenset[str] = frozenset(
+    {"wmrl_m3", "wmrl_m5", "wmrl_m6a", "wmrl_m6b"}
+)
+
 
 def load_and_prepare_data(
     data_path: Path,
@@ -269,8 +275,15 @@ def _fit_stacked_model(
     n_ppts = len(participant_data_stacked)
     print(f"  Prepared {n_ppts} participants (sorted by ID)")
 
-    # Load and z-score LEC covariate
-    covariate_lec = _load_lec_covariate(participant_data_stacked)
+    # Load and z-score LEC covariate (only for models that support L2 regression)
+    if model in _L2_LEC_SUPPORTED:
+        covariate_lec = _load_lec_covariate(participant_data_stacked)
+    else:
+        covariate_lec = None
+        print(
+            f"  Skipping LEC covariate: model '{model}' does not support "
+            "Level-2 regression (no natural L2 target parameter)."
+        )
 
     model_args = {
         "participant_data_stacked": participant_data_stacked,

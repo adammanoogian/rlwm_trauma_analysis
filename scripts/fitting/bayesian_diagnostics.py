@@ -418,6 +418,12 @@ def build_inference_data_with_loglik(
 
     idata = az.from_numpyro(mcmc)
 
+    # az.from_numpyro may create a log_likelihood group from numpyro.factor sites
+    # (per-participant scalar log-probs).  Those have the wrong shape for WAIC/LOO.
+    # Overwrite with the proper pointwise array computed by compute_pointwise_log_lik.
+    if "log_likelihood" in idata._groups:
+        del idata["log_likelihood"]
+
     idata.add_groups(
         log_likelihood={"obs": pointwise_log_lik},
         coords={
