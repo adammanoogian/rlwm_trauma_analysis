@@ -626,7 +626,7 @@ def synthetic_stacked_data():
 # =============================================================================
 
 
-def _load_mle_params(model: str, participant_idx: int) -> dict:
+def _load_mle_params(model: str, participant_id: int) -> dict:
     """
     Load MLE parameters for a single participant from the CSV file.
 
@@ -634,8 +634,8 @@ def _load_mle_params(model: str, participant_idx: int) -> dict:
     ----------
     model : str
         One of 'qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b'.
-    participant_idx : int
-        Row index (0-based) in the CSV.
+    participant_id : int
+        Participant ID to look up in the CSV (matches 'participant_id' column).
 
     Returns
     -------
@@ -647,7 +647,13 @@ def _load_mle_params(model: str, participant_idx: int) -> dict:
 
     csv_path = _MLE_DIR / f"{model}_individual_fits.csv"
     df = pd.read_csv(csv_path)
-    row = df.iloc[participant_idx]
+    matches = df[df["participant_id"] == participant_id]
+    if len(matches) == 0:
+        raise KeyError(
+            f"Participant {participant_id} not found in {csv_path.name} "
+            f"(available: {df['participant_id'].tolist()[:5]}...)"
+        )
+    row = matches.iloc[0]
 
     # Model-specific parameter extraction
     base = {
@@ -899,10 +905,20 @@ def test_pscan_agreement_real_data(model):
     data_df = pd.read_csv(_DATA_PATH)
     participant_data = prepare_stacked_participant_data(data_df)
 
-    # Use first participant
-    pid = sorted(participant_data.keys())[0]
+    # Use first participant that has MLE fits
+    mle_df = pd.read_csv(csv_path)
+    mle_pids = set(mle_df["participant_id"].tolist())
+    data_pids = sorted(participant_data.keys())
+    # Find first PID that exists in both data and MLE fits
+    pid = None
+    for _p in data_pids:
+        if int(_p) in mle_pids:
+            pid = _p
+            break
+    if pid is None:
+        pytest.skip(f"No overlapping participants between data and {csv_path.name}")
     pdata = participant_data[pid]
-    params = _load_mle_params(model, participant_idx=0)
+    params = _load_mle_params(model, participant_id=int(pid))
 
     nll_seq, nll_pscan = _call_seq_and_pscan(model, pdata, params)
 
@@ -946,13 +962,20 @@ def test_pscan_full_n154_agreement(model):
     participant_data = prepare_stacked_participant_data(data_df)
     mle_df = pd.read_csv(csv_path)
 
-    participants = sorted(participant_data.keys())
+    # Only test participants that exist in BOTH data and MLE fits
+    mle_pids = set(mle_df["participant_id"].tolist())
+    data_pids = sorted(participant_data.keys())
+    participants = [p for p in data_pids if int(p) in mle_pids]
+
+    if not participants:
+        pytest.skip(f"No overlapping participants between data and {csv_path.name}")
+
     max_rel_err = 0.0
     failures = []
 
-    for idx, pid in enumerate(participants):
+    for pid in participants:
         pdata = participant_data[pid]
-        params = _load_mle_params(model, participant_idx=idx)
+        params = _load_mle_params(model, participant_id=int(pid))
 
         nll_seq, nll_pscan = _call_seq_and_pscan(model, pdata, params)
 
