@@ -1000,3 +1000,191 @@ def test_pscan_full_n154_agreement(model):
         f"First failure: participant={failures[0][0]}, seq={failures[0][1]:.4f}, "
         f"pscan={failures[0][2]:.4f}, rel_err={failures[0][3]:.2e}"
     )
+
+
+# =============================================================================
+# PRECOMPUTATION FUNCTIONS (Phase 20)
+# =============================================================================
+
+from scripts.fitting.jax_likelihoods import (
+    precompute_last_action_global,
+    precompute_last_actions_per_stimulus,
+)
+
+
+class TestPrecomputeLastActionGlobal:
+    """Tests for precompute_last_action_global."""
+
+    def test_precompute_last_action_global_basic(self):
+        """5-trial all-valid: result[0]=-1, result[t]=actions[t-1]."""
+        actions = jnp.array([2, 0, 1, 2, 0], dtype=jnp.int32)
+        mask = jnp.ones(5)
+
+        result = precompute_last_action_global(actions, mask)
+
+        expected = jnp.array([-1, 2, 0, 1, 2], dtype=jnp.int32)
+        np.testing.assert_array_equal(np.asarray(result), np.asarray(expected))
+
+    def test_precompute_last_action_global_masked(self):
+        """Masked trials propagate last valid action forward."""
+        actions = jnp.array([2, 0, 1, 2, 0], dtype=jnp.int32)
+        # Trial 2 (action=1) is masked -> should not update last_action
+        mask = jnp.array([1.0, 1.0, 0.0, 1.0, 1.0])
+
+        result = precompute_last_action_global(actions, mask)
+
+        # t=0: -1 (no previous)
+        # t=1: 2 (action at t=0, valid)
+        # t=2: 0 (action at t=1, valid)
+        # t=3: 0 (action at t=1 propagated, since t=2 was masked)
+        # t=4: 2 (action at t=3, valid)
+        expected = jnp.array([-1, 2, 0, 0, 2], dtype=jnp.int32)
+        np.testing.assert_array_equal(np.asarray(result), np.asarray(expected))
+
+    def test_precompute_last_action_global_all_masked(self):
+        """All trials masked: result should be -1 everywhere."""
+        actions = jnp.array([2, 0, 1], dtype=jnp.int32)
+        mask = jnp.zeros(3)
+
+        result = precompute_last_action_global(actions, mask)
+
+        expected = jnp.array([-1, -1, -1], dtype=jnp.int32)
+        np.testing.assert_array_equal(np.asarray(result), np.asarray(expected))
+
+
+class TestPrecomputeLastActionsPerStimulus:
+    """Tests for precompute_last_actions_per_stimulus."""
+
+    def test_precompute_last_actions_per_stimulus_basic(self):
+        """6-trial, 2 stimuli: verify per-stimulus tracking."""
+        # stimulus: 0  1  0  1  0  1
+        # action:   2  1  0  2  1  0
+        stimuli = jnp.array([0, 1, 0, 1, 0, 1], dtype=jnp.int32)
+        actions = jnp.array([2, 1, 0, 2, 1, 0], dtype=jnp.int32)
+        mask = jnp.ones(6)
+
+        result = precompute_last_actions_per_stimulus(
+            stimuli, actions, mask, num_stimuli=2
+        )
+
+        # t=0: stim=0, never seen before -> -1
+        # t=1: stim=1, never seen before -> -1
+        # t=2: stim=0, last action for stim 0 was 2 (t=0) -> 2
+        # t=3: stim=1, last action for stim 1 was 1 (t=1) -> 1
+        # t=4: stim=0, last action for stim 0 was 0 (t=2) -> 0
+        # t=5: stim=1, last action for stim 1 was 2 (t=3) -> 2
+        expected = jnp.array([-1, -1, 2, 1, 0, 2], dtype=jnp.int32)
+        np.testing.assert_array_equal(np.asarray(result), np.asarray(expected))
+
+    def test_precompute_last_actions_per_stimulus_masked(self):
+        """Masked trials do not update per-stimulus last_action."""
+        stimuli = jnp.array([0, 1, 0, 1, 0], dtype=jnp.int32)
+        actions = jnp.array([2, 1, 0, 2, 1], dtype=jnp.int32)
+        # Trial 2 (stim=0, action=0) is masked
+        mask = jnp.array([1.0, 1.0, 0.0, 1.0, 1.0])
+
+        result = precompute_last_actions_per_stimulus(
+            stimuli, actions, mask, num_stimuli=2
+        )
+
+        # t=0: stim=0, never seen -> -1
+        # t=1: stim=1, never seen -> -1
+        # t=2: stim=0, last action for stim 0 was 2 (t=0) -> 2
+        # t=3: stim=1, last action for stim 1 was 1 (t=1) -> 1
+        # t=4: stim=0, last action for stim 0 is STILL 2 (t=2 was masked, so
+        #       the action=0 at t=2 did not update stim 0) -> 2
+        expected = jnp.array([-1, -1, 2, 1, 2], dtype=jnp.int32)
+        np.testing.assert_array_equal(np.asarray(result), np.asarray(expected))
+
+
+class TestPrecomputeAgreesWithScan:
+    """Verify precomputed arrays match the sequential lax.scan carry."""
+
+    def test_precompute_agrees_with_m3_scan(self):
+        """Precomputed global last_action matches M3 Phase 2 scan carry."""
+        # Simulate a block with known parameters
+        rng = np.random.RandomState(42)
+        T = 50
+        n_stim, n_act = 6, 3
+        stimuli = rng.randint(0, n_stim, T).astype(np.int32)
+        actions = rng.randint(0, n_act, T).astype(np.int32)
+        rewards = rng.randint(0, 2, T).astype(np.float32)
+        set_sizes = np.full(T, n_stim, dtype=np.float32)
+        # Add some masked trials at the end (padding)
+        mask = np.ones(T, dtype=np.float32)
+        mask[45:] = 0.0
+
+        stimuli_j = jnp.array(stimuli)
+        actions_j = jnp.array(actions)
+        rewards_j = jnp.array(rewards)
+        set_sizes_j = jnp.array(set_sizes)
+        mask_j = jnp.array(mask)
+
+        # Precompute using the new function
+        precomputed = precompute_last_action_global(actions_j, mask_j)
+
+        # Extract the sequential carry from the M3 Phase 2 scan
+        # by running a scan that only tracks last_action
+        def _extract_last_action(carry, inputs):
+            last_action = carry
+            action, valid = inputs
+            out = last_action
+            new_last_action = jnp.where(valid, action, last_action).astype(
+                jnp.int32
+            )
+            return new_last_action, out
+
+        _, sequential_last_action = jax.lax.scan(
+            _extract_last_action,
+            jnp.array(-1, dtype=jnp.int32),
+            (actions_j, mask_j),
+        )
+
+        np.testing.assert_array_equal(
+            np.asarray(precomputed),
+            np.asarray(sequential_last_action),
+        )
+
+    def test_precompute_agrees_with_m6a_scan(self):
+        """Precomputed per-stimulus last_action matches M6a Phase 2 scan carry."""
+        rng = np.random.RandomState(123)
+        T = 60
+        n_stim, n_act = 6, 3
+        stimuli = rng.randint(0, n_stim, T).astype(np.int32)
+        actions = rng.randint(0, n_act, T).astype(np.int32)
+        mask = np.ones(T, dtype=np.float32)
+        # Add scattered masked trials
+        mask[10] = 0.0
+        mask[25] = 0.0
+        mask[50:] = 0.0
+
+        stimuli_j = jnp.array(stimuli)
+        actions_j = jnp.array(actions)
+        mask_j = jnp.array(mask)
+
+        # Precompute using the new function
+        precomputed = precompute_last_actions_per_stimulus(
+            stimuli_j, actions_j, mask_j, num_stimuli=n_stim
+        )
+
+        # Extract the sequential carry from the M6a Phase 2 scan
+        def _extract_last_actions(carry, inputs):
+            last_actions = carry
+            stimulus, action, valid = inputs
+            last_action_s = last_actions[stimulus]
+            new_last_actions = last_actions.at[stimulus].set(
+                jnp.where(valid, action, last_action_s).astype(jnp.int32)
+            )
+            return new_last_actions, last_action_s
+
+        init = jnp.full((n_stim,), -1, dtype=jnp.int32)
+        _, sequential_last_action = jax.lax.scan(
+            _extract_last_actions,
+            init,
+            (stimuli_j, actions_j, mask_j),
+        )
+
+        np.testing.assert_array_equal(
+            np.asarray(precomputed),
+            np.asarray(sequential_last_action),
+        )

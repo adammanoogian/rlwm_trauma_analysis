@@ -579,6 +579,132 @@ def associative_scan_wm_update(
     return wm_for_policy, wm_after_update
 
 
+# =============================================================================
+# PERSEVERATION PRECOMPUTATION (Phase 20)
+# These extract last_action arrays from observed data, eliminating the
+# sequential dependency in the Phase 2 policy pass.  Run once before MCMC.
+# =============================================================================
+
+
+def precompute_last_action_global(
+    actions: jnp.ndarray,
+    mask: jnp.ndarray,
+) -> jnp.ndarray:
+    """
+    Precompute global last_action array from observed data.
+
+    For each trial t, ``result[t]`` is the most recent valid action before
+    trial t. This eliminates the ``last_action`` carry in the Phase 2
+    sequential ``lax.scan`` for M3/M5 models, making the policy computation
+    embarrassingly parallel.
+
+    This function is **parameter-independent** and should be called once
+    before MCMC begins, not at every likelihood evaluation.
+
+    Parameters
+    ----------
+    actions : array, shape (T,)
+        Observed action indices (int).
+    mask : array, shape (T,)
+        1.0 for valid trials, 0.0 for padding/invalid.
+
+    Returns
+    -------
+    last_action : array, shape (T,), dtype int32
+        ``last_action[0] = -1`` (sentinel: no previous action).
+        ``last_action[t]`` = most recent valid action before trial t.
+        For masked trials, the last valid action propagates forward.
+
+    Notes
+    -----
+    Matches the sequential carry behavior in ``wmrl_m3_block_likelihood_pscan``
+    where ``new_last_action = jnp.where(valid, action, last_action)``.
+    """
+
+    def _scan_fn(
+        last_act: jnp.ndarray,
+        inputs: tuple[jnp.ndarray, jnp.ndarray],
+    ) -> tuple[jnp.ndarray, jnp.ndarray]:
+        action, valid = inputs
+        # Output: last_action BEFORE this trial (for the policy at this trial)
+        out = last_act
+        # Update: if this trial is valid, record its action for future trials
+        new_last_act = jnp.where(valid, action, last_act).astype(jnp.int32)
+        return new_last_act, out
+
+    _, last_action_arr = lax.scan(
+        _scan_fn,
+        jnp.array(-1, dtype=jnp.int32),
+        (actions, mask),
+    )
+    return last_action_arr
+
+
+def precompute_last_actions_per_stimulus(
+    stimuli: jnp.ndarray,
+    actions: jnp.ndarray,
+    mask: jnp.ndarray,
+    num_stimuli: int = 6,
+) -> jnp.ndarray:
+    """
+    Precompute per-stimulus last_action array from observed data.
+
+    For each trial t, ``result[t]`` is the last action taken for the stimulus
+    presented at trial t, considering only trials 0..t-1. This eliminates the
+    ``last_actions`` carry (shape ``(num_stimuli,)``) in the Phase 2
+    sequential ``lax.scan`` for M6a/M6b models.
+
+    This function is **parameter-independent** and should be called once
+    before MCMC begins, not at every likelihood evaluation.
+
+    Parameters
+    ----------
+    stimuli : array, shape (T,)
+        Stimulus indices (int).
+    actions : array, shape (T,)
+        Observed action indices (int).
+    mask : array, shape (T,)
+        1.0 for valid trials, 0.0 for padding/invalid.
+    num_stimuli : int, optional
+        Number of distinct stimuli. Default 6.
+
+    Returns
+    -------
+    last_action_per_trial : array, shape (T,), dtype int32
+        ``last_action_per_trial[t]`` = last action taken for ``stimuli[t]``,
+        considering only valid trials before t. Returns -1 if stimulus has
+        not been seen before.
+
+    Notes
+    -----
+    Uses ``lax.scan`` with carry ``last_actions`` shape ``(num_stimuli,)``
+    initialized to -1. The scan is O(T) but runs once outside the likelihood
+    function. Matches the sequential carry behavior in
+    ``wmrl_m6a_block_likelihood_pscan``.
+    """
+
+    def _scan_fn(
+        last_actions: jnp.ndarray,
+        inputs: tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray],
+    ) -> tuple[jnp.ndarray, jnp.ndarray]:
+        stimulus, action, valid = inputs
+        # Output: last action for THIS stimulus before THIS trial
+        last_action_s = last_actions[stimulus]
+        # Update: record this trial's action for this stimulus (if valid)
+        new_last_actions = last_actions.at[stimulus].set(
+            jnp.where(valid, action, last_action_s).astype(jnp.int32)
+        )
+        return new_last_actions, last_action_s
+
+    init = jnp.full((num_stimuli,), -1, dtype=jnp.int32)
+    _, last_action_per_trial = lax.scan(
+        _scan_fn,
+        init,
+        (stimuli, actions, mask),
+    )
+    return last_action_per_trial
+
+
 def q_learning_step(
     carry: tuple[jnp.ndarray, float],
     inputs: tuple[int, int, float]
