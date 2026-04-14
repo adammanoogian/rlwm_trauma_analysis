@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-04-11)
 
 **Core value:** Correctly dissociate perseverative responding from learning-rate effects (alpha-) to accurately identify whether post-reversal failures reflect motor perseveration or outcome insensitivity
-**Current focus:** v4.0 — Hierarchical Bayesian Pipeline & LBA Acceleration (Phase 18 planned, ready to execute)
+**Current focus:** v4.0 — Hierarchical Bayesian Pipeline & LBA Acceleration (Phase 18 complete, Phase 19 next)
 
 ## Current Position
 
 Milestone: v4.0 Hierarchical Bayesian Pipeline & LBA Acceleration
-Phase: 18 of 20 (Integration, Comparison, and Manuscript) — Phase complete
-Plan: 5 of 5 complete
-Status: Phase 18 fully complete. All 5 plans done (18-01 through 18-05).
-Last activity: 2026-04-13 — Completed 18-05-PLAN.md (manuscript revision, DOC-02/03/04)
+Phase: 19 of 20 (Associative Scan Likelihood Parallelization) — In progress
+Plan: 1 of ? complete (19-01 done)
+Status: Phase 19 Wave 1 complete. Core pscan primitives implemented and tested.
+Last activity: 2026-04-14 — Completed 19-01-PLAN.md (affine_scan, Q-update, WM scan primitives)
 
-Progress: [██████░░░░] ~65% (23/~35 plans across Phases 13-20)
+Progress: [██████░░░░] ~67% (24/~35 plans across Phases 13-20)
 
 ### v4.0 Phase Structure
 
@@ -95,6 +95,14 @@ Progress: [██████░░░░] ~65% (23/~35 plans across Phases 13-2
 - **`subscale=True` guard raises `ValueError` (locked):** `--subscale` with model != wmrl_m6b raises `ValueError` (not `NotImplementedError`); the model exists but the subscale variant is M6b-specific.
 - **SLURM subscale: 12h/48G (locked):** `cluster/13_bayesian_m6b_subscale.slurm` uses `--time=12:00:00` and `--mem=48G` (vs 8h/32G for standard M6b).
 - **beta_* HDI print expanded (locked):** `_fit_stacked_model` now prints all `beta_`-prefixed sites in sorted order (not just `beta_lec_*`), supporting the 32-site subscale output.
+
+### v4.0 Decisions (19-01 completed 2026-04-14)
+
+- **Single-pass WM scan (locked):** `associative_scan_wm_update` uses one scan combining decay+overwrite. `wm_for_policy[t] = (1-phi)*carry_in[t] + phi*wm_init` recovered as post-scan vectorized step (no second scan).
+- **Padding trials decay (not identity) (locked):** Confirmed from wmrl_m3_block_likelihood: decay `(1-phi)*WM + phi*baseline` applies on ALL trials. Only the overwrite is masked. Parallel scan base coefficients are decay everywhere; only active+valid positions override to reset `(a=0, b=r)`.
+- **wm_after_update[t] = WM after overwrite at trial t (locked):** `= WM_all[t]` directly (no prepend/drop). The prepend/drop indexing applies to `wm_carry_in` (used internally to compute wm_for_policy), not to wm_after_update.
+- **Tolerance thresholds (locked):** < 1e-5 relative error for typical alpha (<=0.5), < 1e-3 for extreme alpha (~0.95). Documented in PARALLEL_SCAN_LIKELIHOOD.md Section 5.
+- **Alpha approximation scope (locked):** Reward-based approximation affects Q-update scan only (r==1 → alpha_pos vs delta-sign rule). WM overwrite has no approximation (exact reset). WM decay is exact (constant coefficients).
 
 ### v4.0 Decisions (18-05 completed 2026-04-13)
 
@@ -271,6 +279,6 @@ Progress: [██████░░░░] ~65% (23/~35 plans across Phases 13-2
 
 ## Session Continuity
 
-Last session: 2026-04-13
-Stopped at: Completed 18-05-PLAN.md — manuscript revision (DOC-02/03/04). Phase 18 fully complete. Next: Phases 19-20 (GPU scan research) or cluster execution.
+Last session: 2026-04-14
+Stopped at: Phase 19 Plan 01 complete (2 tasks, 2 commits). affine_scan, associative_scan_q_update, associative_scan_wm_update implemented and tested. Next: Phase 19 Plan 02 (per-model pscan likelihood variants).
 Resume file: None
