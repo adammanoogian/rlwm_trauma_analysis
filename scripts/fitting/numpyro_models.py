@@ -49,12 +49,18 @@ from scripts.fitting.jax_likelihoods import (
     prepare_block_data,
     q_learning_multiblock_likelihood,
     q_learning_multiblock_likelihood_stacked,
+    q_learning_multiblock_likelihood_stacked_pscan,
     wmrl_m3_multiblock_likelihood_stacked,
+    wmrl_m3_multiblock_likelihood_stacked_pscan,
     wmrl_m5_multiblock_likelihood_stacked,
+    wmrl_m5_multiblock_likelihood_stacked_pscan,
     wmrl_m6a_multiblock_likelihood_stacked,
+    wmrl_m6a_multiblock_likelihood_stacked_pscan,
     wmrl_m6b_multiblock_likelihood_stacked,
+    wmrl_m6b_multiblock_likelihood_stacked_pscan,
     wmrl_multiblock_likelihood,
     wmrl_multiblock_likelihood_stacked,
+    wmrl_multiblock_likelihood_stacked_pscan,
 )
 
 
@@ -984,6 +990,7 @@ def wmrl_m3_hierarchical_model(
     num_actions: int = 3,
     q_init: float = 0.5,
     wm_init: float = 1.0 / 3.0,
+    use_pscan: bool = False,
 ) -> None:
     """Hierarchical Bayesian M3 (WM-RL+kappa) model with optional Level-2 regression.
 
@@ -1092,9 +1099,14 @@ def wmrl_m3_hierarchical_model(
     # (vmap not applicable: stacked likelihood uses lax.fori_loop over
     # variable-length block structures)
     # ------------------------------------------------------------------
+    _m3_lik_fn = (
+        wmrl_m3_multiblock_likelihood_stacked_pscan
+        if use_pscan
+        else wmrl_m3_multiblock_likelihood_stacked
+    )
     for idx, pid in enumerate(participant_ids):
         pdata = participant_data_stacked[pid]
-        log_lik = wmrl_m3_multiblock_likelihood_stacked(
+        log_lik = _m3_lik_fn(
             stimuli_stacked=pdata["stimuli_stacked"],
             actions_stacked=pdata["actions_stacked"],
             rewards_stacked=pdata["rewards_stacked"],
@@ -1122,6 +1134,7 @@ def qlearning_hierarchical_model_stacked(
     num_stimuli: int = 6,
     num_actions: int = 3,
     q_init: float = 0.5,
+    use_pscan: bool = False,
 ) -> None:
     """Hierarchical Bayesian M1 (Q-learning) model using stacked pre-padded arrays.
 
@@ -1198,9 +1211,14 @@ def qlearning_hierarchical_model_stacked(
     # Likelihood via numpyro.factor — Python for-loop over participants
     # CRITICAL: do NOT pass set_sizes_stacked to Q-learning likelihood
     # ------------------------------------------------------------------
+    _ql_lik_fn = (
+        q_learning_multiblock_likelihood_stacked_pscan
+        if use_pscan
+        else q_learning_multiblock_likelihood_stacked
+    )
     for idx, pid in enumerate(participant_ids):
         pdata = participant_data_stacked[pid]
-        log_lik = q_learning_multiblock_likelihood_stacked(
+        log_lik = _ql_lik_fn(
             stimuli_stacked=pdata["stimuli_stacked"],
             actions_stacked=pdata["actions_stacked"],
             rewards_stacked=pdata["rewards_stacked"],
@@ -1223,6 +1241,7 @@ def wmrl_hierarchical_model_stacked(
     num_actions: int = 3,
     q_init: float = 0.5,
     wm_init: float = 1.0 / 3.0,
+    use_pscan: bool = False,
 ) -> None:
     """Hierarchical Bayesian M2 (WM-RL) model using stacked pre-padded arrays.
 
@@ -1303,9 +1322,14 @@ def wmrl_hierarchical_model_stacked(
     # Likelihood via numpyro.factor — Python for-loop over participants
     # WM-RL likelihood requires set_sizes_stacked (unlike Q-learning)
     # ------------------------------------------------------------------
+    _wmrl_lik_fn = (
+        wmrl_multiblock_likelihood_stacked_pscan
+        if use_pscan
+        else wmrl_multiblock_likelihood_stacked
+    )
     for idx, pid in enumerate(participant_ids):
         pdata = participant_data_stacked[pid]
-        log_lik = wmrl_multiblock_likelihood_stacked(
+        log_lik = _wmrl_lik_fn(
             stimuli_stacked=pdata["stimuli_stacked"],
             actions_stacked=pdata["actions_stacked"],
             rewards_stacked=pdata["rewards_stacked"],
@@ -1333,6 +1357,7 @@ def wmrl_m5_hierarchical_model(
     num_actions: int = 3,
     q_init: float = 0.5,
     wm_init: float = 1.0 / 3.0,
+    use_pscan: bool = False,
 ) -> None:
     """Hierarchical Bayesian M5 (WM-RL+phi_rl) model with optional Level-2 regression.
 
@@ -1458,9 +1483,14 @@ def wmrl_m5_hierarchical_model(
     # (vmap not applicable: stacked likelihood uses lax.fori_loop over
     # variable-length block structures)
     # ------------------------------------------------------------------
+    _m5_lik_fn = (
+        wmrl_m5_multiblock_likelihood_stacked_pscan
+        if use_pscan
+        else wmrl_m5_multiblock_likelihood_stacked
+    )
     for idx, pid in enumerate(participant_ids):
         pdata = participant_data_stacked[pid]
-        log_lik = wmrl_m5_multiblock_likelihood_stacked(
+        log_lik = _m5_lik_fn(
             stimuli_stacked=pdata["stimuli_stacked"],
             actions_stacked=pdata["actions_stacked"],
             rewards_stacked=pdata["rewards_stacked"],
@@ -1490,6 +1520,7 @@ def wmrl_m6a_hierarchical_model(
     num_actions: int = 3,
     q_init: float = 0.5,
     wm_init: float = 1.0 / 3.0,
+    use_pscan: bool = False,
 ) -> None:
     """Hierarchical Bayesian M6a (WM-RL+kappa_s) model with optional L2 regression.
 
@@ -1608,9 +1639,14 @@ def wmrl_m6a_hierarchical_model(
     # ------------------------------------------------------------------
     # Likelihood via numpyro.factor — Python for-loop over participants
     # ------------------------------------------------------------------
+    _m6a_lik_fn = (
+        wmrl_m6a_multiblock_likelihood_stacked_pscan
+        if use_pscan
+        else wmrl_m6a_multiblock_likelihood_stacked
+    )
     for idx, pid in enumerate(participant_ids):
         pdata = participant_data_stacked[pid]
-        log_lik = wmrl_m6a_multiblock_likelihood_stacked(
+        log_lik = _m6a_lik_fn(
             stimuli_stacked=pdata["stimuli_stacked"],
             actions_stacked=pdata["actions_stacked"],
             rewards_stacked=pdata["rewards_stacked"],
@@ -1639,6 +1675,7 @@ def wmrl_m6b_hierarchical_model(
     num_actions: int = 3,
     q_init: float = 0.5,
     wm_init: float = 1.0 / 3.0,
+    use_pscan: bool = False,
 ) -> None:
     """Hierarchical Bayesian M6b (WM-RL+dual perseveration) model with optional L2 regression.
 
@@ -1811,13 +1848,18 @@ def wmrl_m6b_hierarchical_model(
     #   kappa_s = kappa_total * (1 - kappa_share)
     # Pass decoded values to likelihood, NOT kappa_total/kappa_share directly.
     # ------------------------------------------------------------------
+    _m6b_lik_fn = (
+        wmrl_m6b_multiblock_likelihood_stacked_pscan
+        if use_pscan
+        else wmrl_m6b_multiblock_likelihood_stacked
+    )
     for idx, pid in enumerate(participant_ids):
         pdata = participant_data_stacked[pid]
         kappa_total_i = sampled["kappa_total"][idx]
         kappa_share_i = sampled["kappa_share"][idx]
         kappa = kappa_total_i * kappa_share_i
         kappa_s = kappa_total_i * (1.0 - kappa_share_i)
-        log_lik = wmrl_m6b_multiblock_likelihood_stacked(
+        log_lik = _m6b_lik_fn(
             stimuli_stacked=pdata["stimuli_stacked"],
             actions_stacked=pdata["actions_stacked"],
             rewards_stacked=pdata["rewards_stacked"],
@@ -1848,6 +1890,7 @@ def wmrl_m6b_hierarchical_model_subscale(
     num_actions: int = 3,
     q_init: float = 0.5,
     wm_init: float = 1.0 / 3.0,
+    use_pscan: bool = False,
 ) -> None:
     """Hierarchical M6b model with full subscale Level-2 regression (L2-05).
 
@@ -2026,13 +2069,18 @@ def wmrl_m6b_hierarchical_model_subscale(
     #   kappa   = kappa_total * kappa_share
     #   kappa_s = kappa_total * (1 - kappa_share)
     # ------------------------------------------------------------------
+    _m6b_sub_lik_fn = (
+        wmrl_m6b_multiblock_likelihood_stacked_pscan
+        if use_pscan
+        else wmrl_m6b_multiblock_likelihood_stacked
+    )
     for idx, pid in enumerate(participant_ids):
         pdata = participant_data_stacked[pid]
         kappa_total_i = sampled["kappa_total"][idx]
         kappa_share_i = sampled["kappa_share"][idx]
         kappa = kappa_total_i * kappa_share_i
         kappa_s = kappa_total_i * (1.0 - kappa_share_i)
-        log_lik = wmrl_m6b_multiblock_likelihood_stacked(
+        log_lik = _m6b_sub_lik_fn(
             stimuli_stacked=pdata["stimuli_stacked"],
             actions_stacked=pdata["actions_stacked"],
             rewards_stacked=pdata["rewards_stacked"],

@@ -287,6 +287,7 @@ def _fit_stacked_model(
     seed: int,
     subscale: bool = False,
     max_tree_depth: int = 10,
+    use_pscan: bool = False,
 ) -> tuple[object, dict]:
     """Fit a canonical stacked hierarchical model.
 
@@ -319,6 +320,10 @@ def _fit_stacked_model(
         Level-2 design matrix (4 covariates, 32 beta sites).  The
         ``model_fn`` must already be set to
         ``wmrl_m6b_hierarchical_model_subscale`` by the caller.
+    use_pscan : bool
+        If ``True``, use O(log T) associative scan likelihoods instead of
+        sequential ``lax.scan``.  Passed as ``use_pscan`` kwarg to the
+        NumPyro model function.  Default ``False``.
 
     Returns
     -------
@@ -355,6 +360,7 @@ def _fit_stacked_model(
             "participant_data_stacked": participant_data_stacked,
             "covariate_matrix": covariate_matrix,
             "covariate_names": cov_names,
+            "use_pscan": use_pscan,
         }
     else:
         # Standard path: single LEC covariate (or None for M1/M2)
@@ -370,6 +376,7 @@ def _fit_stacked_model(
         model_args = {
             "participant_data_stacked": participant_data_stacked,
             "covariate_lec": covariate_lec,
+            "use_pscan": use_pscan,
         }
 
     print("\n>> Running MCMC inference (NUTS + convergence auto-bump)...")
@@ -427,6 +434,7 @@ def fit_model(
     seed: int,
     subscale: bool = False,
     max_tree_depth: int = 10,
+    use_pscan: bool = False,
 ) -> tuple[object, dict]:
     """Fit a hierarchical Bayesian model.
 
@@ -457,6 +465,9 @@ def fit_model(
         ``wmrl_m6b_hierarchical_model_subscale`` with the full 4-predictor
         design matrix.  Raises ``ValueError`` if used with any other model
         (subscale L2 is only defined for M6b in this phase).
+    use_pscan : bool
+        If ``True``, use O(log T) associative scan likelihoods.
+        Default ``False`` (sequential ``lax.scan``).
 
     Returns
     -------
@@ -502,6 +513,7 @@ def fit_model(
         data, model, model_fn, num_warmup, num_samples, num_chains, seed,
         subscale=subscale,
         max_tree_depth=max_tree_depth,
+        use_pscan=use_pscan,
     )
 
 
@@ -512,6 +524,7 @@ def save_results(
     output_dir: Path,
     save_plots: bool = True,
     participant_data_stacked: dict | None = None,
+    use_pscan: bool = False,
 ) -> object:
     """Save fitting results to disk.
 
@@ -523,6 +536,10 @@ def save_results(
     - WAIC and LOO information criteria
     - Shrinkage report (``{model}_shrinkage_report.md``)
     - Posterior predictive check results
+
+    When ``use_pscan=True``, the NetCDF filename includes a ``_pscan`` suffix
+    (e.g. ``wmrl_m3_posterior_pscan.nc``) to avoid overwriting the sequential
+    baseline.  This enables A/B comparison of posterior agreement.
 
     Parameters
     ----------
@@ -539,6 +556,9 @@ def save_results(
     participant_data_stacked : dict or None
         Stacked participant data dict from ``prepare_stacked_participant_data``.
         Required for all stacked models.
+    use_pscan : bool
+        If ``True``, append ``_pscan`` to the output NetCDF filename stem.
+        Default ``False``.
 
     Returns
     -------
@@ -643,10 +663,13 @@ def save_results(
         )
         print(f"  Saved: {csv_path}")
 
-        # NetCDF posterior
-        netcdf_path = bayesian_dir / f"{model}_posterior.nc"
+        # NetCDF posterior (pscan suffix avoids overwriting sequential baseline)
+        pscan_tag = "_pscan" if use_pscan else ""
+        netcdf_path = bayesian_dir / f"{model}_posterior{pscan_tag}.nc"
         idata.to_netcdf(str(netcdf_path))
         print(f"  Saved posterior NetCDF: {netcdf_path}")
+        if use_pscan:
+            print(f"  (pscan variant — compare with {model}_posterior.nc)")
 
         # WAIC and LOO
         print("\n>> Computing WAIC and LOO...")
@@ -931,6 +954,16 @@ def main() -> None:
             "Extended wall-clock time recommended (12h on cluster)."
         ),
     )
+    parser.add_argument(
+        "--use-pscan",
+        action="store_true",
+        default=False,
+        help=(
+            "Use O(log T) associative scan for Q-update and WM-decay "
+            "(parallel prefix scan). Requires GPU for speedup benefit. "
+            "Default: use sequential lax.scan."
+        ),
+    )
 
     args = parser.parse_args()
 
@@ -959,6 +992,8 @@ def main() -> None:
     print(f"  Max tree depth: {args.max_tree_depth}")
     print(f"  Output: {args.output}")
     print(f"  Seed: {args.seed}")
+    if args.use_pscan:
+        print(f"  Parallel scan: True (O(log T) associative scan likelihoods)")
     if args.subscale:
         print(f"  Subscale: True (wmrl_m6b_hierarchical_model_subscale, 32 beta sites)")
     if args.permutation_shuffle is not None:
@@ -1013,6 +1048,7 @@ def main() -> None:
         seed=args.seed,
         subscale=args.subscale,
         max_tree_depth=args.max_tree_depth,
+        use_pscan=args.use_pscan,
     )
 
     # extra is participant_data_stacked for all stacked models
@@ -1023,6 +1059,7 @@ def main() -> None:
         Path(args.output),
         args.save_plots,
         participant_data_stacked=extra if args.model in STACKED_MODEL_DISPATCH else None,
+        use_pscan=args.use_pscan,
     )
 
     print("\n" + "=" * 80)
