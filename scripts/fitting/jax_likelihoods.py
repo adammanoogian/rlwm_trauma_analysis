@@ -280,6 +280,305 @@ def apply_epsilon_noise(probs: jnp.ndarray, epsilon: float, num_actions: int = N
     noisy_probs = epsilon * uniform_prob + (1 - epsilon) * probs
     return noisy_probs
 
+
+# =============================================================================
+# PARALLEL SCAN PRIMITIVES (Phase 19)
+# These implement O(log T) AR(1) recurrence evaluation via associative scan.
+# The existing sequential lax.scan functions are untouched.
+# =============================================================================
+
+
+def affine_scan(
+    a_seq: jnp.ndarray,
+    b_seq: jnp.ndarray,
+    x0: jnp.ndarray,
+) -> jnp.ndarray:
+    """
+    Parallel prefix scan for the AR(1) recurrence x_t = a_t * x_{t-1} + b_t.
+
+    Uses ``jax.lax.associative_scan`` with the affine operator
+    ``(a_r, b_r) ∘ (a_l, b_l) = (a_r*a_l, a_r*b_l + b_r)`` to compute all
+    output states in O(log T) steps (wall-clock on parallel hardware).
+
+    The associativity proof:
+    ``x_2 = a_2*(a_1*x_0 + b_1) + b_2 = (a_2*a_1)*x_0 + (a_2*b_1 + b_2)``
+
+    Parameters
+    ----------
+    a_seq : array, shape (T, ...)
+        Multiplicative coefficients.
+    b_seq : array, shape (T, ...)
+        Additive coefficients.
+    x0 : array, shape (...)
+        Initial value, broadcastable to the trailing dimensions of a_seq.
+
+    Returns
+    -------
+    x_all : array, shape (T, ...)
+        ``x_all[t]`` is the state AFTER applying operator at position t.
+        ``x_all[0] = a_seq[0]*x0 + b_seq[0]``.
+
+    Notes
+    -----
+    Inactive positions use identity coefficients ``(1.0, 0.0)`` so their
+    state passes through unchanged. Hard resets use ``(0.0, r)`` to zero
+    out all history before that position.
+    """
+    # Prepend (1.0, x0) as the identity/init element.
+    # This makes the prefix scan include x0 without treating it as a step.
+    T = a_seq.shape[0]
+    trailing = a_seq.shape[1:]
+
+    # Broadcast x0 to trailing shape
+    x0_broadcast = jnp.broadcast_to(x0, trailing)
+
+    # Prepend: a=1.0 (identity multiplier), b=x0 (initial value)
+    a_init = jnp.ones(trailing)
+    b_init = x0_broadcast
+
+    # Stack: shape (T+1, ...)
+    a_full = jnp.concatenate([a_init[None], a_seq], axis=0)
+    b_full = jnp.concatenate([b_init[None], b_seq], axis=0)
+
+    def _affine_op(
+        left: tuple[jnp.ndarray, jnp.ndarray],
+        right: tuple[jnp.ndarray, jnp.ndarray],
+    ) -> tuple[jnp.ndarray, jnp.ndarray]:
+        """Compose two AR(1) operators: right ∘ left."""
+        a_l, b_l = left
+        a_r, b_r = right
+        return a_r * a_l, a_r * b_l + b_r
+
+    # associative_scan accumulates left-to-right: result[t] = op_t ∘ ... ∘ op_0
+    _, b_accumulated = lax.associative_scan(_affine_op, (a_full, b_full))
+
+    # Drop the prepended init element; result[t] corresponds to trial t
+    return b_accumulated[1:]
+
+
+def associative_scan_q_update(
+    stimuli: jnp.ndarray,
+    actions: jnp.ndarray,
+    rewards: jnp.ndarray,
+    masks: jnp.ndarray,
+    alpha_pos: float,
+    alpha_neg: float,
+    q_init: float,
+    num_stimuli: int,
+    num_actions: int,
+) -> jnp.ndarray:
+    """
+    Compute Q-value trajectories for a single block via parallel scan.
+
+    Uses the AR(1) reformulation of the Q-learning update:
+    ``Q_t(s,a) = (1-alpha)*Q_{t-1}(s,a) + alpha*r_t``
+    for the active (s,a) pair at trial t; identity elsewhere.
+
+    **Alpha approximation:** Uses ``alpha = alpha_pos if r==1 else alpha_neg``
+    instead of the exact ``alpha = alpha_pos if delta>0 else alpha_neg``.
+    Agreement with the exact sequential rule is < 1e-5 for typical parameters
+    (alpha <= 0.5) and < 1e-3 for extreme parameters (alpha ~ 0.95).
+    See ``docs/PARALLEL_SCAN_LIKELIHOOD.md`` for derivation.
+
+    Parameters
+    ----------
+    stimuli : array, shape (T,)
+        Stimulus indices (may include padding).
+    actions : array, shape (T,)
+        Action indices (may include padding).
+    rewards : array, shape (T,)
+        Rewards, 0 or 1 (may include padding).
+    masks : array, shape (T,)
+        1.0 for real trials, 0.0 for padding.
+    alpha_pos : float
+        Learning rate for positive outcomes (r=1).
+    alpha_neg : float
+        Learning rate for negative outcomes (r=0).
+    q_init : float
+        Initial Q-value for all (s, a) pairs.
+    num_stimuli : int
+        Number of stimuli (S).
+    num_actions : int
+        Number of actions (A).
+
+    Returns
+    -------
+    Q_for_policy : array, shape (T, num_stimuli, num_actions)
+        ``Q_for_policy[t]`` is the Q-table BEFORE the update at trial t.
+        Use this array for computing the policy at trial t.
+    """
+    T = stimuli.shape[0]
+    S, A = num_stimuli, num_actions
+
+    # One-hot encode stimuli and actions: shapes (T, S) and (T, A)
+    stim_oh = jax.nn.one_hot(stimuli, S)    # (T, S)
+    act_oh = jax.nn.one_hot(actions, A)     # (T, A)
+
+    # Outer product -> (T, S, A): 1 only at the active (s, a) pair
+    sa_mask = stim_oh[:, :, None] * act_oh[:, None, :]  # (T, S, A)
+
+    # Apply trial validity mask: inactive for padding trials
+    active = sa_mask * masks[:, None, None]  # (T, S, A)
+
+    # Data-dependent alpha: reward-based approximation
+    # alpha_t = alpha_pos if r==1, else alpha_neg
+    alpha_t = jnp.where(
+        rewards[:, None, None] == 1.0,
+        alpha_pos,
+        alpha_neg,
+    )  # (T, S, A) broadcast
+
+    # AR(1) coefficients
+    # Active position: a = 1 - alpha, b = alpha * r
+    # Inactive position: a = 1.0 (identity), b = 0.0
+    a_seq = jnp.where(active, 1.0 - alpha_t, 1.0)
+    b_seq = jnp.where(active, alpha_t * rewards[:, None, None], 0.0)
+
+    # Initial Q-table: shape (S, A)
+    q_init_table = jnp.ones((S, A)) * q_init
+
+    # Run parallel scan: Q_all[t] = Q-table AFTER update at trial t
+    Q_all = affine_scan(a_seq, b_seq, x0=q_init_table)  # (T, S, A)
+
+    # For policy at trial t, we need Q BEFORE update t.
+    # Prepend Q_init and drop the last element.
+    Q_for_policy = jnp.concatenate(
+        [q_init_table[None], Q_all[:-1]], axis=0
+    )  # (T, S, A)
+
+    return Q_for_policy
+
+
+def associative_scan_wm_update(
+    stimuli: jnp.ndarray,
+    actions: jnp.ndarray,
+    rewards: jnp.ndarray,
+    masks: jnp.ndarray,
+    phi: float,
+    wm_init: float,
+    num_stimuli: int,
+    num_actions: int,
+) -> tuple[jnp.ndarray, jnp.ndarray]:
+    """
+    Compute WM trajectories for a single block via parallel scan.
+
+    Implements a single AR(1) associative scan that encodes the combined
+    decay + conditional overwrite update:
+
+    1. Decay (always, including padding trials):
+       ``WM_decayed = (1-phi)*WM + phi*wm_init``
+    2. Overwrite (only on valid trials):
+       ``WM[s,a] <- r``
+
+    AR(1) coefficients per (s,a) entry at trial t:
+    - Inactive (not the presented s,a): ``a_t=1-phi, b_t=phi*wm_init``
+    - Active + valid (overwrite): ``a_t=0, b_t=r``
+    - Active + padding (decay only, no overwrite): ``a_t=1-phi, b_t=phi*wm_init``
+
+    The ``wm_for_policy`` output is derived from ``wm_after_update`` via a
+    vectorized post-scan computation: ``wm_for_policy[t] = (1-phi)*carry[t] + phi*wm_init``
+    where ``carry[t]`` is the WM state entering trial t.
+
+    The WM decay formula from the sequential implementation (confirmed from
+    ``wmrl_m3_block_likelihood`` in jax_likelihoods.py, line ~993):
+    ``WM_decayed = (1 - phi) * WM_table + phi * WM_baseline``
+    maps to ``a_t = 1-phi, b_t = phi*wm_init``.
+
+    Parameters
+    ----------
+    stimuli : array, shape (T,)
+        Stimulus indices (may include padding).
+    actions : array, shape (T,)
+        Action indices (may include padding).
+    rewards : array, shape (T,)
+        Rewards, 0 or 1 (may include padding).
+    masks : array, shape (T,)
+        1.0 for real trials, 0.0 for padding.
+    phi : float
+        WM decay rate (0 = no decay, 1 = full reset to baseline each trial).
+    wm_init : float
+        WM baseline value (= 1/nA for uniform prior).
+    num_stimuli : int
+        Number of stimuli (S).
+    num_actions : int
+        Number of actions (A).
+
+    Returns
+    -------
+    wm_for_policy : array, shape (T, num_stimuli, num_actions)
+        ``wm_for_policy[t]`` is the WM table AFTER decay but BEFORE overwrite
+        at trial t. Used for policy computation at trial t.
+    wm_after_update : array, shape (T, num_stimuli, num_actions)
+        ``wm_after_update[t]`` is the WM table AFTER both decay and overwrite
+        at trial t. Used for propagation to trial t+1.
+    """
+    T = stimuli.shape[0]
+    S, A = num_stimuli, num_actions
+
+    # One-hot encodings: (T, S), (T, A)
+    stim_oh = jax.nn.one_hot(stimuli, S)
+    act_oh = jax.nn.one_hot(actions, A)
+
+    # Active (s, a) mask: (T, S, A)
+    sa_mask = stim_oh[:, :, None] * act_oh[:, None, :]
+    active = sa_mask * masks[:, None, None]  # 1 only at valid, active positions
+
+    # Initial WM table
+    wm_init_table = jnp.ones((S, A)) * wm_init
+
+    # -------------------------------------------------------------------------
+    # Single pass: Decay + overwrite together.
+    #
+    # The scan encodes the full sequential update per trial t:
+    #   WM_decayed = (1-phi)*carry + phi*wm_init     [decay, ALWAYS happens]
+    #   WM_updated = WM_decayed.at[s,a].set(r)       [overwrite ONLY if valid]
+    #
+    # In AR(1) form for each (s, a) entry at trial t:
+    #   - All inactive positions (not the presented s,a), any mask:
+    #       a_t = 1-phi, b_t = phi*wm_init   (decay only, no overwrite)
+    #   - Active + valid (presented s,a, real trial, mask=1):
+    #       Combined decay+overwrite: x_t = 0 * x_{t-1} + r
+    #       => a_t=0, b_t=r   (zero multiplier erases history; r is new value)
+    #   - Active + padding (presented s,a index, but mask=0):
+    #       Decay only: a_t=1-phi, b_t=phi*wm_init  (no overwrite for padding)
+    #
+    # IMPORTANT: Decay happens on ALL trials, even padding trials. The mask
+    # only gates the overwrite step, not the decay step. This matches the
+    # sequential implementation in wmrl_m3_block_likelihood where:
+    #   WM_decayed = (1-phi)*WM + phi*baseline   (always, comment: "Decay
+    #   happens for all trials (valid or not) to maintain consistent WM state")
+    # -------------------------------------------------------------------------
+    a_seq = jnp.full((T, S, A), 1.0 - phi)   # base: decay everywhere
+    b_seq = jnp.full((T, S, A), phi * wm_init)
+
+    # Override ONLY active+valid positions: reset encodes (decay then overwrite)
+    # Note: we do NOT override padding positions — they correctly use decay.
+    a_seq = jnp.where(active, 0.0, a_seq)
+    b_seq = jnp.where(active, rewards[:, None, None], b_seq)
+
+    # WM_all[t] = WM AFTER (decay+overwrite) at trial t
+    WM_all = affine_scan(a_seq, b_seq, x0=wm_init_table)  # (T, S, A)
+
+    # wm_after_update[t] = WM after both decay and overwrite at trial t.
+    # This is directly WM_all[t].
+    wm_after_update = WM_all  # (T, S, A)
+
+    # wm_for_policy[t] = WM after decay at trial t, BEFORE overwrite.
+    # Sequential model: WM entering trial t is WM_all[t-1] (= carry from t-1).
+    # Decay is applied to that carry: (1-phi)*WM_all[t-1] + phi*wm_init.
+    # For t=0, the carry is wm_init_table.
+    # We construct the "carry entering t" array by prepending wm_init and
+    # dropping the last element.
+    wm_carry_in = jnp.concatenate(
+        [wm_init_table[None], WM_all[:-1]], axis=0
+    )  # (T, S, A): wm_carry_in[t] = WM carry entering trial t
+
+    # Apply decay: wm_for_policy[t] = (1-phi)*carry_in[t] + phi*wm_init
+    wm_for_policy = (1.0 - phi) * wm_carry_in + phi * wm_init  # (T, S, A)
+
+    return wm_for_policy, wm_after_update
+
+
 def q_learning_step(
     carry: tuple[jnp.ndarray, float],
     inputs: tuple[int, int, float]
