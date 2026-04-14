@@ -586,6 +586,7 @@ def run_inference(
 
     print(">> Starting MCMC sampling...")
     print(f"   Chains: {num_chains}")
+    print(f"   Host devices: {jax.local_device_count()}")
     print(f"   Warmup: {num_warmup}")
     print(f"   Samples: {num_samples}")
     print(f"   Total iterations: {(num_warmup + num_samples) * num_chains}")
@@ -599,11 +600,17 @@ def run_inference(
     )
 
     # Create MCMC object
+    # Use parallel chains when multiple host devices are available (set via
+    # NUMPYRO_HOST_DEVICE_COUNT env var or numpyro.set_host_device_count).
+    _chain_method = (
+        "parallel" if jax.local_device_count() >= num_chains else "sequential"
+    )
     mcmc = MCMC(
         nuts_kernel,
         num_warmup=num_warmup,
         num_samples=num_samples,
         num_chains=num_chains,
+        chain_method=_chain_method,
         progress_bar=True,
     )
 
@@ -693,11 +700,15 @@ def run_inference_with_bump(
             target_accept_prob=tap,
             max_tree_depth=max_tree_depth,
         )
+        _chain_method = (
+            "parallel" if jax.local_device_count() >= num_chains else "sequential"
+        )
         mcmc = MCMC(
             nuts_kernel,
             num_warmup=num_warmup,
             num_samples=num_samples,
             num_chains=num_chains,
+            chain_method=_chain_method,
             progress_bar=True,
         )
         rng_key = jax.random.PRNGKey(seed)
