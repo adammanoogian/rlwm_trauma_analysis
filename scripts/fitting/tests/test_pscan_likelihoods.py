@@ -1188,3 +1188,220 @@ class TestPrecomputeAgreesWithScan:
             np.asarray(precomputed),
             np.asarray(sequential_last_action),
         )
+
+
+# =============================================================================
+# TESTS: Vectorized Phase 2 agreement (Phase 20-02)
+# =============================================================================
+
+
+@pytest.fixture
+def multiblock_17_data():
+    """
+    Generate realistic 17-block stacked data mimicking a full participant.
+
+    Returns a dict with arrays shaped (17, MAX_TRIALS_PER_BLOCK) and
+    realistic set sizes [2, 3, 6] cycling across blocks.
+    """
+    rng = np.random.default_rng(20260414)
+    n_blocks = 17
+    S, A = 6, 3
+    T = MAX_TRIALS_PER_BLOCK  # 100
+
+    stimuli_stacked = np.zeros((n_blocks, T), dtype=np.int32)
+    actions_stacked = np.zeros((n_blocks, T), dtype=np.int32)
+    rewards_stacked = np.zeros((n_blocks, T), dtype=np.float32)
+    set_sizes_stacked = np.ones((n_blocks, T), dtype=np.float32) * 2.0
+    masks_stacked = np.zeros((n_blocks, T), dtype=np.float32)
+
+    block_set_sizes = [2, 3, 6]
+
+    for b in range(n_blocks):
+        # Realistic trial counts: 30-60 trials per block
+        n = rng.integers(30, 61)
+        stimuli_stacked[b, :n] = rng.integers(0, S, n)
+        actions_stacked[b, :n] = rng.integers(0, A, n)
+        rewards_stacked[b, :n] = rng.choice([0.0, 1.0], n).astype(np.float32)
+        set_sizes_stacked[b, :n] = block_set_sizes[b % 3]
+        masks_stacked[b, :n] = 1.0
+
+    return {
+        "stimuli_stacked": jnp.array(stimuli_stacked),
+        "actions_stacked": jnp.array(actions_stacked),
+        "rewards_stacked": jnp.array(rewards_stacked),
+        "set_sizes_stacked": jnp.array(set_sizes_stacked),
+        "masks_stacked": jnp.array(masks_stacked),
+        "n_blocks": n_blocks,
+    }
+
+
+class TestVectorizedPhase2:
+    """
+    Tests confirming vectorized Phase 2 (Plan 20-02) produces identical
+    results to the sequential originals for all 6 choice-only models.
+
+    These tests exercise realistic multi-block data (17 blocks) and verify
+    both total NLL and per-trial pointwise log-probs.
+    """
+
+    def test_vectorized_m3_real_data_agreement(self, multiblock_17_data):
+        """
+        M3 multiblock: sequential vs pscan (vectorized) NLL agreement < 1e-4
+        on 17-block synthetic data. Also verifies return_pointwise.
+        """
+        data = multiblock_17_data
+        params = _TYPICAL_PARAMS["wmrl_m3"]
+
+        stim = data["stimuli_stacked"]
+        act = data["actions_stacked"]
+        rew = data["rewards_stacked"]
+        ss = data["set_sizes_stacked"]
+        mask = data["masks_stacked"]
+
+        # Total NLL comparison
+        nll_seq = float(wmrl_m3_multiblock_likelihood_stacked(
+            stim, act, rew, ss, mask, **params
+        ))
+        nll_pscan = float(wmrl_m3_multiblock_likelihood_stacked_pscan(
+            stim, act, rew, ss, mask, **params
+        ))
+
+        abs_err = abs(nll_seq - nll_pscan)
+        max_nll = max(abs(nll_seq), 1e-8)
+        rel_err = abs_err / max_nll
+
+        assert rel_err < 1e-4, (
+            f"[M3 17-block] NLL agreement failed: "
+            f"seq={nll_seq:.6f}, pscan={nll_pscan:.6f}, rel_err={rel_err:.2e}"
+        )
+
+        # Pointwise comparison
+        nll_seq_pw, probs_seq = wmrl_m3_multiblock_likelihood_stacked(
+            stim, act, rew, ss, mask, return_pointwise=True, **params
+        )
+        nll_pscan_pw, probs_pscan = wmrl_m3_multiblock_likelihood_stacked_pscan(
+            stim, act, rew, ss, mask, return_pointwise=True, **params
+        )
+
+        probs_seq_np = np.array(probs_seq)
+        probs_pscan_np = np.array(probs_pscan)
+        max_pw_err = float(np.max(np.abs(probs_seq_np - probs_pscan_np)))
+        assert max_pw_err < 1e-4, (
+            f"[M3 17-block] pointwise max deviation: {max_pw_err:.2e} > 1e-4"
+        )
+
+    def test_vectorized_m6b_real_data_agreement(self, multiblock_17_data):
+        """
+        M6b dual perseveration (hardest case) on 17-block data: < 1e-4.
+
+        M6b exercises both ``precompute_last_action_global`` and
+        ``precompute_last_actions_per_stimulus`` simultaneously.
+        """
+        data = multiblock_17_data
+        params = _TYPICAL_PARAMS["wmrl_m6b"]
+
+        stim = data["stimuli_stacked"]
+        act = data["actions_stacked"]
+        rew = data["rewards_stacked"]
+        ss = data["set_sizes_stacked"]
+        mask = data["masks_stacked"]
+
+        nll_seq = float(wmrl_m6b_multiblock_likelihood_stacked(
+            stim, act, rew, ss, mask, **params
+        ))
+        nll_pscan = float(wmrl_m6b_multiblock_likelihood_stacked_pscan(
+            stim, act, rew, ss, mask, **params
+        ))
+
+        abs_err = abs(nll_seq - nll_pscan)
+        max_nll = max(abs(nll_seq), 1e-8)
+        rel_err = abs_err / max_nll
+
+        assert rel_err < 1e-4, (
+            f"[M6b 17-block] NLL agreement failed: "
+            f"seq={nll_seq:.6f}, pscan={nll_pscan:.6f}, rel_err={rel_err:.2e}"
+        )
+
+        # Pointwise comparison
+        _, probs_seq = wmrl_m6b_multiblock_likelihood_stacked(
+            stim, act, rew, ss, mask, return_pointwise=True, **params
+        )
+        _, probs_pscan = wmrl_m6b_multiblock_likelihood_stacked_pscan(
+            stim, act, rew, ss, mask, return_pointwise=True, **params
+        )
+
+        max_pw_err = float(np.max(np.abs(
+            np.array(probs_seq) - np.array(probs_pscan)
+        )))
+        assert max_pw_err < 1e-4, (
+            f"[M6b 17-block] pointwise max deviation: {max_pw_err:.2e} > 1e-4"
+        )
+
+    @pytest.mark.parametrize("model", [
+        "qlearning", "wmrl", "wmrl_m3", "wmrl_m5", "wmrl_m6a", "wmrl_m6b",
+    ])
+    def test_vectorized_all_models_agreement(
+        self, model, synthetic_stacked_data
+    ):
+        """
+        Parametrized: all 6 models agree < 1e-4 on synthetic 3-block data.
+
+        This is a cross-check that the vectorized Phase 2 works for every
+        model variant, not just M3 and M6b.
+        """
+        data = synthetic_stacked_data
+        params = _TYPICAL_PARAMS[model]
+
+        nll_seq, nll_pscan = _call_seq_and_pscan(model, data, params)
+
+        abs_err = abs(nll_seq - nll_pscan)
+        max_nll = max(abs(nll_seq), 1e-8)
+        rel_err = abs_err / max_nll
+
+        assert abs_err < 1e-4 or rel_err < 1e-4, (
+            f"[{model}] vectorized agreement failed: "
+            f"seq={nll_seq:.6f}, pscan={nll_pscan:.6f}, "
+            f"abs_err={abs_err:.2e}, rel_err={rel_err:.2e}"
+        )
+
+    def test_vectorized_pointwise_m3(self, multiblock_17_data):
+        """
+        Verify return_pointwise=True: per-trial log-probs sum to total NLL
+        and agree trial-by-trial with sequential.
+        """
+        data = multiblock_17_data
+        params = _TYPICAL_PARAMS["wmrl_m3"]
+
+        stim = data["stimuli_stacked"]
+        act = data["actions_stacked"]
+        rew = data["rewards_stacked"]
+        ss = data["set_sizes_stacked"]
+        mask = data["masks_stacked"]
+
+        # Pscan pointwise
+        nll_pscan_total, probs_pscan = wmrl_m3_multiblock_likelihood_stacked_pscan(
+            stim, act, rew, ss, mask, return_pointwise=True, **params
+        )
+
+        # Sum of per-trial log-probs should equal total NLL
+        probs_sum = float(jnp.sum(probs_pscan))
+        nll_total = float(nll_pscan_total)
+        sum_err = abs(probs_sum - nll_total)
+        assert sum_err < 1e-5, (
+            f"Pointwise sum != total NLL: sum={probs_sum:.6f}, "
+            f"total={nll_total:.6f}, err={sum_err:.2e}"
+        )
+
+        # Sequential pointwise for trial-by-trial comparison
+        _, probs_seq = wmrl_m3_multiblock_likelihood_stacked(
+            stim, act, rew, ss, mask, return_pointwise=True, **params
+        )
+
+        probs_seq_np = np.array(probs_seq)
+        probs_pscan_np = np.array(probs_pscan)
+
+        # Per-trial agreement
+        max_pw_err = float(np.max(np.abs(probs_seq_np - probs_pscan_np)))
+        assert max_pw_err < 1e-4, (
+            f"Per-trial log-prob max deviation: {max_pw_err:.2e} > 1e-4"
+        )
