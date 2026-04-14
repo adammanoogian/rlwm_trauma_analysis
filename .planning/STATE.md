@@ -11,11 +11,11 @@ See: .planning/PROJECT.md (updated 2026-04-11)
 
 Milestone: v4.0 Hierarchical Bayesian Pipeline & LBA Acceleration
 Phase: 19 of 20 (Associative Scan Likelihood Parallelization) — In progress
-Plan: 1 of ? complete (19-01 done)
-Status: Phase 19 Wave 1 complete. Core pscan primitives implemented and tested.
-Last activity: 2026-04-14 — Completed 19-01-PLAN.md (affine_scan, Q-update, WM scan primitives)
+Plan: 2 of 3 complete (19-01, 19-02 done)
+Status: Phase 19 Wave 2 complete. 12 pscan likelihood variants implemented and tested for all 6 choice-only models.
+Last activity: 2026-04-14 — Completed 19-02-PLAN.md (12 pscan likelihoods + agreement tests)
 
-Progress: [██████░░░░] ~67% (24/~35 plans across Phases 13-20)
+Progress: [██████░░░░] ~69% (25/~36 plans across Phases 13-20)
 
 ### v4.0 Phase Structure
 
@@ -95,6 +95,13 @@ Progress: [██████░░░░] ~67% (24/~35 plans across Phases 13-2
 - **`subscale=True` guard raises `ValueError` (locked):** `--subscale` with model != wmrl_m6b raises `ValueError` (not `NotImplementedError`); the model exists but the subscale variant is M6b-specific.
 - **SLURM subscale: 12h/48G (locked):** `cluster/13_bayesian_m6b_subscale.slurm` uses `--time=12:00:00` and `--mem=48G` (vs 8h/32G for standard M6b).
 - **beta_* HDI print expanded (locked):** `_fit_stacked_model` now prints all `beta_`-prefixed sites in sorted order (not just `beta_lec_*`), supporting the 32-site subscale output.
+
+### v4.0 Decisions (19-02 completed 2026-04-14)
+
+- **M5 composed affine operator (locked):** For active (s,a) at trial t: `a = (1-alpha)*(1-phi_rl)`, `b = (1-alpha)*phi_rl*Q0 + alpha*r`. For inactive: `a = 1-phi_rl`, `b = phi_rl*Q0`. Fuses phi_rl decay and delta-rule update in a single scan pass.
+- **Q_decayed_for_policy post-scan recovery (locked):** `Q_decayed_for_policy = (1-phi_rl)*Q_for_policy + phi_rl*Q0`. Same pattern as wm_for_policy recovery in 19-01 (apply decay to carry-in array). Required for M5 pscan correctness.
+- **Agreement threshold (locked):** < 1e-4 relative error for multiblock NLL agreement between pscan and sequential. Q-learning N=154 achieves max rel_err 6.46e-07 (well under threshold).
+- **Two-phase pscan architecture (locked):** Phase 1 parallel O(log T) for Q/WM trajectories; Phase 2 sequential O(T) for policy computation (softmax, epsilon, perseveration carry). All 6 models follow this pattern.
 
 ### v4.0 Decisions (19-01 completed 2026-04-14)
 
@@ -280,5 +287,5 @@ Progress: [██████░░░░] ~67% (24/~35 plans across Phases 13-2
 ## Session Continuity
 
 Last session: 2026-04-14
-Stopped at: Phase 19 Plan 01 complete (2 tasks, 2 commits). affine_scan, associative_scan_q_update, associative_scan_wm_update implemented and tested. Next: Phase 19 Plan 02 (per-model pscan likelihood variants).
+Stopped at: Phase 19 Plan 02 complete (2 tasks, 4 commits). 12 pscan likelihood variants for all 6 choice-only models implemented and tested. All synthetic and real-data agreement tests pass. Next: Phase 19 Plan 03 (benchmarking pscan vs sequential).
 Resume file: None
