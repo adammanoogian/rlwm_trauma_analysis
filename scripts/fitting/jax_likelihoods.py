@@ -3285,6 +3285,1236 @@ def wmrl_m6b_multiblock_likelihood_stacked(
         return lax.fori_loop(0, num_blocks, body_fn, 0.0)
 
 # ============================================================================
+# PSCAN VARIANT LIKELIHOODS (Phase 19 Wave 2)
+# Each model has a *_block_likelihood_pscan and a
+# *_multiblock_likelihood_stacked_pscan counterpart.
+# Architecture: Phase 1 uses associative_scan_q_update /
+# associative_scan_wm_update to build Q and WM trajectories in O(log T);
+# Phase 2 runs a sequential lax.scan that reads those pre-computed arrays
+# and only carries the non-linear perseveration state (last_action, etc.).
+# ============================================================================
+
+
+# ----------------------------------------------------------------------------
+# M1: Q-Learning pscan variants
+# ----------------------------------------------------------------------------
+
+
+def q_learning_block_likelihood_pscan(
+    stimuli: jnp.ndarray,
+    actions: jnp.ndarray,
+    rewards: jnp.ndarray,
+    alpha_pos: float,
+    alpha_neg: float,
+    epsilon: float = DEFAULT_EPSILON,
+    num_stimuli: int = 6,
+    num_actions: int = 3,
+    q_init: float = 0.5,
+    mask: jnp.ndarray = None,
+    *,
+    return_pointwise: bool = False,
+) -> float | tuple[float, jnp.ndarray]:
+    """
+    Q-learning block likelihood using parallel scan for Q-value trajectories.
+
+    Drop-in replacement for ``q_learning_block_likelihood``.
+
+    Phase 1 (parallel): Pre-compute Q_for_policy[t] for all t via
+    ``associative_scan_q_update`` (O(log T) depth on parallel hardware).
+    Phase 2 (sequential): ``lax.scan`` reads Q_for_policy[t], computes
+    softmax + epsilon + log_prob, and accumulates log-likelihood.
+    No perseveration carry — only log-likelihood is accumulated.
+
+    Parameters
+    ----------
+    stimuli : array, shape (n_trials,)
+    actions : array, shape (n_trials,)
+    rewards : array, shape (n_trials,)
+    alpha_pos, alpha_neg : float
+    epsilon : float
+    num_stimuli, num_actions : int
+    q_init : float
+    mask : array, shape (n_trials,), optional
+    return_pointwise : bool, optional
+
+    Returns
+    -------
+    float or tuple[float, jnp.ndarray]
+        Same as ``q_learning_block_likelihood``.
+    """
+    if mask is None:
+        mask = jnp.ones(len(stimuli))
+
+    # ------------------------------------------------------------------
+    # Phase 1 (parallel): Q-value trajectories for the whole block
+    # Q_for_policy[t] = Q-table BEFORE update at trial t
+    # ------------------------------------------------------------------
+    Q_for_policy = associative_scan_q_update(
+        stimuli, actions, rewards, mask,
+        alpha_pos, alpha_neg, q_init,
+        num_stimuli, num_actions,
+    )  # (T, S, A)
+
+    # ------------------------------------------------------------------
+    # Phase 2 (sequential): policy computation only
+    # Carry: accumulated log-likelihood (scalar float)
+    # ------------------------------------------------------------------
+    def policy_step(log_lik_accum, t_inputs):
+        t_idx, stimulus, action, valid = t_inputs
+
+        q_vals = Q_for_policy[t_idx, stimulus]  # (A,)
+        base_probs = softmax_policy(q_vals, FIXED_BETA)
+        noisy_probs = apply_epsilon_noise(base_probs, epsilon, num_actions)
+
+        log_prob = jnp.log(noisy_probs[action] + 1e-8)
+        log_prob_masked = log_prob * valid
+
+        return log_lik_accum + log_prob_masked, log_prob_masked
+
+    T = stimuli.shape[0]
+    t_indices = jnp.arange(T)
+    log_lik_total, log_probs = lax.scan(
+        policy_step, 0.0, (t_indices, stimuli, actions, mask)
+    )
+
+    if return_pointwise:
+        return log_lik_total, log_probs
+    return log_lik_total
+
+
+def q_learning_multiblock_likelihood_stacked_pscan(
+    stimuli_stacked: jnp.ndarray,
+    actions_stacked: jnp.ndarray,
+    rewards_stacked: jnp.ndarray,
+    masks_stacked: jnp.ndarray,
+    alpha_pos: float,
+    alpha_neg: float,
+    epsilon: float = DEFAULT_EPSILON,
+    num_stimuli: int = 6,
+    num_actions: int = 3,
+    q_init: float = 0.5,
+    *,
+    return_pointwise: bool = False,
+) -> float | tuple[float, jnp.ndarray]:
+    """
+    Q-learning multiblock likelihood using parallel scan.
+
+    Drop-in replacement for ``q_learning_multiblock_likelihood_stacked``.
+
+    Parameters
+    ----------
+    stimuli_stacked : array, shape (n_blocks, max_trials)
+    actions_stacked : array, shape (n_blocks, max_trials)
+    rewards_stacked : array, shape (n_blocks, max_trials)
+    masks_stacked : array, shape (n_blocks, max_trials)
+    alpha_pos, alpha_neg, epsilon : float
+    num_stimuli, num_actions, q_init : int / float
+    return_pointwise : bool, optional
+
+    Returns
+    -------
+    float or tuple[float, jnp.ndarray]
+        Same as ``q_learning_multiblock_likelihood_stacked``.
+    """
+    num_blocks = stimuli_stacked.shape[0]
+
+    if return_pointwise:
+        def scan_body(total_ll, block_idx):
+            block_ll, block_probs = q_learning_block_likelihood_pscan(
+                stimuli=stimuli_stacked[block_idx],
+                actions=actions_stacked[block_idx],
+                rewards=rewards_stacked[block_idx],
+                alpha_pos=alpha_pos,
+                alpha_neg=alpha_neg,
+                epsilon=epsilon,
+                num_stimuli=num_stimuli,
+                num_actions=num_actions,
+                q_init=q_init,
+                mask=masks_stacked[block_idx],
+                return_pointwise=True,
+            )
+            return total_ll + block_ll, block_probs
+
+        total_ll, all_block_probs = lax.scan(
+            scan_body, 0.0, jnp.arange(num_blocks)
+        )
+        return total_ll, all_block_probs.reshape(-1)
+    else:
+        def body_fn(block_idx, total_ll):
+            block_ll = q_learning_block_likelihood_pscan(
+                stimuli=stimuli_stacked[block_idx],
+                actions=actions_stacked[block_idx],
+                rewards=rewards_stacked[block_idx],
+                alpha_pos=alpha_pos,
+                alpha_neg=alpha_neg,
+                epsilon=epsilon,
+                num_stimuli=num_stimuli,
+                num_actions=num_actions,
+                q_init=q_init,
+                mask=masks_stacked[block_idx],
+            )
+            return total_ll + block_ll
+
+        return lax.fori_loop(0, num_blocks, body_fn, 0.0)
+
+
+# ----------------------------------------------------------------------------
+# M2: WM-RL pscan variants
+# ----------------------------------------------------------------------------
+
+
+def wmrl_block_likelihood_pscan(
+    stimuli: jnp.ndarray,
+    actions: jnp.ndarray,
+    rewards: jnp.ndarray,
+    set_sizes: jnp.ndarray,
+    alpha_pos: float,
+    alpha_neg: float,
+    phi: float,
+    rho: float,
+    capacity: float,
+    epsilon: float = DEFAULT_EPSILON,
+    num_stimuli: int = 6,
+    num_actions: int = 3,
+    q_init: float = 0.5,
+    wm_init: float = 1.0 / 3.0,
+    mask: jnp.ndarray = None,
+    *,
+    return_pointwise: bool = False,
+) -> float | tuple[float, jnp.ndarray]:
+    """
+    WM-RL block likelihood using parallel scan (M2 — no perseveration).
+
+    Drop-in replacement for ``wmrl_block_likelihood``.
+
+    Phase 1 (parallel): Pre-compute Q_for_policy[t] and wm_for_policy[t]
+    via associative scans.
+    Phase 2 (sequential): Read pre-computed arrays, compute hybrid policy,
+    epsilon noise, log_prob, accumulate.  No perseveration carry.
+
+    Parameters
+    ----------
+    stimuli, actions, rewards, set_sizes : arrays, shape (n_trials,)
+    alpha_pos, alpha_neg, phi, rho, capacity, epsilon : float
+    num_stimuli, num_actions : int
+    q_init, wm_init : float
+    mask : array, shape (n_trials,), optional
+    return_pointwise : bool, optional
+
+    Returns
+    -------
+    float or tuple[float, jnp.ndarray]
+        Same as ``wmrl_block_likelihood``.
+    """
+    if mask is None:
+        mask = jnp.ones(len(stimuli))
+
+    # Phase 1: parallel Q and WM trajectories
+    Q_for_policy = associative_scan_q_update(
+        stimuli, actions, rewards, mask,
+        alpha_pos, alpha_neg, q_init,
+        num_stimuli, num_actions,
+    )  # (T, S, A)
+
+    wm_for_policy, _ = associative_scan_wm_update(
+        stimuli, actions, rewards, mask,
+        phi, wm_init, num_stimuli, num_actions,
+    )  # (T, S, A)
+
+    # Phase 2: sequential policy scan (no perseveration carry)
+    def policy_step(log_lik_accum, t_inputs):
+        t_idx, stimulus, action, set_size, valid = t_inputs
+
+        q_vals = Q_for_policy[t_idx, stimulus]
+        wm_vals = wm_for_policy[t_idx, stimulus]
+
+        omega = rho * jnp.minimum(1.0, capacity / set_size)
+        rl_probs = softmax_policy(q_vals, FIXED_BETA)
+        wm_probs = softmax_policy(wm_vals, FIXED_BETA)
+        hybrid_probs = omega * wm_probs + (1 - omega) * rl_probs
+        hybrid_probs = hybrid_probs / jnp.sum(hybrid_probs)
+        noisy_probs = apply_epsilon_noise(hybrid_probs, epsilon, num_actions)
+
+        log_prob = jnp.log(noisy_probs[action] + 1e-8)
+        log_prob_masked = log_prob * valid
+
+        return log_lik_accum + log_prob_masked, log_prob_masked
+
+    T = stimuli.shape[0]
+    t_indices = jnp.arange(T)
+    log_lik_total, log_probs = lax.scan(
+        policy_step, 0.0, (t_indices, stimuli, actions, set_sizes, mask)
+    )
+
+    if return_pointwise:
+        return log_lik_total, log_probs
+    return log_lik_total
+
+
+def wmrl_multiblock_likelihood_stacked_pscan(
+    stimuli_stacked: jnp.ndarray,
+    actions_stacked: jnp.ndarray,
+    rewards_stacked: jnp.ndarray,
+    set_sizes_stacked: jnp.ndarray,
+    masks_stacked: jnp.ndarray,
+    alpha_pos: float,
+    alpha_neg: float,
+    phi: float,
+    rho: float,
+    capacity: float,
+    epsilon: float = DEFAULT_EPSILON,
+    num_stimuli: int = 6,
+    num_actions: int = 3,
+    q_init: float = 0.5,
+    wm_init: float = 1.0 / 3.0,
+    *,
+    return_pointwise: bool = False,
+) -> float | tuple[float, jnp.ndarray]:
+    """
+    WM-RL multiblock likelihood using parallel scan (M2).
+
+    Drop-in replacement for ``wmrl_multiblock_likelihood_stacked``.
+
+    Parameters
+    ----------
+    stimuli_stacked, actions_stacked, rewards_stacked,
+    set_sizes_stacked, masks_stacked : arrays, shape (n_blocks, max_trials)
+    alpha_pos, alpha_neg, phi, rho, capacity, epsilon : float
+    num_stimuli, num_actions : int
+    q_init, wm_init : float
+    return_pointwise : bool, optional
+
+    Returns
+    -------
+    float or tuple[float, jnp.ndarray]
+        Same as ``wmrl_multiblock_likelihood_stacked``.
+    """
+    num_blocks = stimuli_stacked.shape[0]
+
+    if return_pointwise:
+        def scan_body(total_ll, block_idx):
+            block_ll, block_probs = wmrl_block_likelihood_pscan(
+                stimuli=stimuli_stacked[block_idx],
+                actions=actions_stacked[block_idx],
+                rewards=rewards_stacked[block_idx],
+                set_sizes=set_sizes_stacked[block_idx],
+                alpha_pos=alpha_pos,
+                alpha_neg=alpha_neg,
+                phi=phi,
+                rho=rho,
+                capacity=capacity,
+                epsilon=epsilon,
+                num_stimuli=num_stimuli,
+                num_actions=num_actions,
+                q_init=q_init,
+                wm_init=wm_init,
+                mask=masks_stacked[block_idx],
+                return_pointwise=True,
+            )
+            return total_ll + block_ll, block_probs
+
+        total_ll, all_block_probs = lax.scan(
+            scan_body, 0.0, jnp.arange(num_blocks)
+        )
+        return total_ll, all_block_probs.reshape(-1)
+    else:
+        def body_fn(block_idx, total_ll):
+            block_ll = wmrl_block_likelihood_pscan(
+                stimuli=stimuli_stacked[block_idx],
+                actions=actions_stacked[block_idx],
+                rewards=rewards_stacked[block_idx],
+                set_sizes=set_sizes_stacked[block_idx],
+                alpha_pos=alpha_pos,
+                alpha_neg=alpha_neg,
+                phi=phi,
+                rho=rho,
+                capacity=capacity,
+                epsilon=epsilon,
+                num_stimuli=num_stimuli,
+                num_actions=num_actions,
+                q_init=q_init,
+                wm_init=wm_init,
+                mask=masks_stacked[block_idx],
+            )
+            return total_ll + block_ll
+
+        return lax.fori_loop(0, num_blocks, body_fn, 0.0)
+
+
+# ----------------------------------------------------------------------------
+# M3: WM-RL+kappa pscan variants
+# ----------------------------------------------------------------------------
+
+
+def wmrl_m3_block_likelihood_pscan(
+    stimuli: jnp.ndarray,
+    actions: jnp.ndarray,
+    rewards: jnp.ndarray,
+    set_sizes: jnp.ndarray,
+    alpha_pos: float,
+    alpha_neg: float,
+    phi: float,
+    rho: float,
+    capacity: float,
+    kappa: float,
+    epsilon: float = DEFAULT_EPSILON,
+    num_stimuli: int = 6,
+    num_actions: int = 3,
+    q_init: float = 0.5,
+    wm_init: float = 1.0 / 3.0,
+    mask: jnp.ndarray = None,
+    *,
+    return_pointwise: bool = False,
+) -> float | tuple[float, jnp.ndarray]:
+    """
+    WM-RL M3 block likelihood using parallel scan (global perseveration).
+
+    Drop-in replacement for ``wmrl_m3_block_likelihood``.
+
+    Phase 1 (parallel): Pre-compute Q_for_policy[t] and wm_for_policy[t].
+    Phase 2 (sequential): ``lax.scan`` over trials carrying ``last_action``
+    (scalar int) for the global perseveration kernel.  Q and WM are read
+    from the pre-computed arrays at each trial, not updated sequentially.
+
+    Parameters
+    ----------
+    stimuli, actions, rewards, set_sizes : arrays, shape (n_trials,)
+    alpha_pos, alpha_neg, phi, rho, capacity, kappa, epsilon : float
+    num_stimuli, num_actions : int
+    q_init, wm_init : float
+    mask : array, optional
+    return_pointwise : bool, optional
+
+    Returns
+    -------
+    float or tuple[float, jnp.ndarray]
+        Same as ``wmrl_m3_block_likelihood``.
+    """
+    if mask is None:
+        mask = jnp.ones(len(stimuli))
+
+    # Phase 1: parallel Q and WM trajectories
+    Q_for_policy = associative_scan_q_update(
+        stimuli, actions, rewards, mask,
+        alpha_pos, alpha_neg, q_init,
+        num_stimuli, num_actions,
+    )  # (T, S, A)
+
+    wm_for_policy, _ = associative_scan_wm_update(
+        stimuli, actions, rewards, mask,
+        phi, wm_init, num_stimuli, num_actions,
+    )  # (T, S, A)
+
+    # Phase 2: sequential scan carrying last_action for perseveration
+    def policy_step(carry, t_inputs):
+        log_lik_accum, last_action = carry
+        t_idx, stimulus, action, set_size, valid = t_inputs
+
+        q_vals = Q_for_policy[t_idx, stimulus]
+        wm_vals = wm_for_policy[t_idx, stimulus]
+
+        omega = rho * jnp.minimum(1.0, capacity / set_size)
+        rl_probs = softmax_policy(q_vals, FIXED_BETA)
+        wm_probs = softmax_policy(wm_vals, FIXED_BETA)
+        base_probs = omega * wm_probs + (1 - omega) * rl_probs
+        base_probs = base_probs / jnp.sum(base_probs)
+
+        noisy_base = apply_epsilon_noise(base_probs, epsilon, num_actions)
+
+        use_m2_path = jnp.logical_or(kappa == 0.0, last_action < 0)
+        choice_kernel = jnp.eye(num_actions)[jnp.maximum(last_action, 0)]
+        hybrid_probs_m3 = (1 - kappa) * noisy_base + kappa * choice_kernel
+        noisy_probs = jnp.where(use_m2_path, noisy_base, hybrid_probs_m3)
+
+        log_prob = jnp.log(noisy_probs[action] + 1e-8)
+        log_prob_masked = log_prob * valid
+
+        new_last_action = jnp.where(valid, action, last_action).astype(jnp.int32)
+
+        return (log_lik_accum + log_prob_masked, new_last_action), log_prob_masked
+
+    T = stimuli.shape[0]
+    t_indices = jnp.arange(T)
+    (log_lik_total, _), log_probs = lax.scan(
+        policy_step,
+        (0.0, jnp.array(-1, dtype=jnp.int32)),
+        (t_indices, stimuli, actions, set_sizes, mask),
+    )
+
+    if return_pointwise:
+        return log_lik_total, log_probs
+    return log_lik_total
+
+
+def wmrl_m3_multiblock_likelihood_stacked_pscan(
+    stimuli_stacked: jnp.ndarray,
+    actions_stacked: jnp.ndarray,
+    rewards_stacked: jnp.ndarray,
+    set_sizes_stacked: jnp.ndarray,
+    masks_stacked: jnp.ndarray,
+    alpha_pos: float,
+    alpha_neg: float,
+    phi: float,
+    rho: float,
+    capacity: float,
+    kappa: float,
+    epsilon: float = DEFAULT_EPSILON,
+    num_stimuli: int = 6,
+    num_actions: int = 3,
+    q_init: float = 0.5,
+    wm_init: float = 1.0 / 3.0,
+    *,
+    return_pointwise: bool = False,
+) -> float | tuple[float, jnp.ndarray]:
+    """
+    WM-RL M3 multiblock likelihood using parallel scan.
+
+    Drop-in replacement for ``wmrl_m3_multiblock_likelihood_stacked``.
+
+    Parameters
+    ----------
+    stimuli_stacked, actions_stacked, rewards_stacked,
+    set_sizes_stacked, masks_stacked : arrays, shape (n_blocks, max_trials)
+    alpha_pos, alpha_neg, phi, rho, capacity, kappa, epsilon : float
+    num_stimuli, num_actions : int
+    q_init, wm_init : float
+    return_pointwise : bool, optional
+
+    Returns
+    -------
+    float or tuple[float, jnp.ndarray]
+        Same as ``wmrl_m3_multiblock_likelihood_stacked``.
+    """
+    num_blocks = stimuli_stacked.shape[0]
+
+    if return_pointwise:
+        def scan_body(total_ll, block_idx):
+            block_ll, block_probs = wmrl_m3_block_likelihood_pscan(
+                stimuli=stimuli_stacked[block_idx],
+                actions=actions_stacked[block_idx],
+                rewards=rewards_stacked[block_idx],
+                set_sizes=set_sizes_stacked[block_idx],
+                alpha_pos=alpha_pos,
+                alpha_neg=alpha_neg,
+                phi=phi,
+                rho=rho,
+                capacity=capacity,
+                kappa=kappa,
+                epsilon=epsilon,
+                num_stimuli=num_stimuli,
+                num_actions=num_actions,
+                q_init=q_init,
+                wm_init=wm_init,
+                mask=masks_stacked[block_idx],
+                return_pointwise=True,
+            )
+            return total_ll + block_ll, block_probs
+
+        total_ll, all_block_probs = lax.scan(
+            scan_body, 0.0, jnp.arange(num_blocks)
+        )
+        return total_ll, all_block_probs.reshape(-1)
+    else:
+        def body_fn(block_idx, total_ll):
+            block_ll = wmrl_m3_block_likelihood_pscan(
+                stimuli=stimuli_stacked[block_idx],
+                actions=actions_stacked[block_idx],
+                rewards=rewards_stacked[block_idx],
+                set_sizes=set_sizes_stacked[block_idx],
+                alpha_pos=alpha_pos,
+                alpha_neg=alpha_neg,
+                phi=phi,
+                rho=rho,
+                capacity=capacity,
+                kappa=kappa,
+                epsilon=epsilon,
+                num_stimuli=num_stimuli,
+                num_actions=num_actions,
+                q_init=q_init,
+                wm_init=wm_init,
+                mask=masks_stacked[block_idx],
+            )
+            return total_ll + block_ll
+
+        return lax.fori_loop(0, num_blocks, body_fn, 0.0)
+
+
+# ----------------------------------------------------------------------------
+# M5: WM-RL+phi_rl pscan variants
+# ----------------------------------------------------------------------------
+
+
+def wmrl_m5_block_likelihood_pscan(
+    stimuli: jnp.ndarray,
+    actions: jnp.ndarray,
+    rewards: jnp.ndarray,
+    set_sizes: jnp.ndarray,
+    alpha_pos: float,
+    alpha_neg: float,
+    phi: float,
+    rho: float,
+    capacity: float,
+    kappa: float,
+    phi_rl: float,
+    epsilon: float = DEFAULT_EPSILON,
+    num_stimuli: int = 6,
+    num_actions: int = 3,
+    q_init: float = 0.5,
+    wm_init: float = 1.0 / 3.0,
+    mask: jnp.ndarray = None,
+    *,
+    return_pointwise: bool = False,
+) -> float | tuple[float, jnp.ndarray]:
+    """
+    WM-RL M5 block likelihood using parallel scan (RL forgetting + perseveration).
+
+    Drop-in replacement for ``wmrl_m5_block_likelihood``.
+
+    Phase 1 (parallel): Q scan uses a composed affine operator that combines
+    per-trial Q-forgetting (phi_rl) and the delta-rule update.  WM scan uses
+    the standard ``associative_scan_wm_update``.
+
+    **M5 Q-forgetting composition:**
+    For each trial t at the active (s, a) pair the sequential update is:
+      Q_decayed = (1-phi_rl)*Q + phi_rl*Q0          [decay toward Q0=1/nA]
+      Q_updated = Q_decayed + alpha*(r - Q_decayed)  [delta-rule on decayed]
+    Combined: Q_updated = (1-alpha)*(1-phi_rl)*Q + (1-alpha)*phi_rl*Q0 + alpha*r
+    As AR(1): a_t = (1-alpha)*(1-phi_rl),  b_t = (1-alpha)*phi_rl*Q0 + alpha*r
+
+    For inactive (s', a') pairs at trial t:
+      Q_decayed = (1-phi_rl)*Q + phi_rl*Q0           [decay only]
+    As AR(1): a_t = 1-phi_rl, b_t = phi_rl*Q0
+
+    For padding trials (mask=0): same as inactive — decay only, no update.
+
+    Phase 2 (sequential): ``lax.scan`` with ``last_action`` carry for
+    global perseveration kernel.  Reads pre-computed Q_for_policy[t] and
+    wm_for_policy[t].
+
+    Parameters
+    ----------
+    stimuli, actions, rewards, set_sizes : arrays, shape (n_trials,)
+    alpha_pos, alpha_neg, phi, rho, capacity, kappa, phi_rl, epsilon : float
+    num_stimuli, num_actions : int
+    q_init, wm_init : float
+    mask : array, optional
+    return_pointwise : bool, optional
+
+    Returns
+    -------
+    float or tuple[float, jnp.ndarray]
+        Same as ``wmrl_m5_block_likelihood``.
+    """
+    if mask is None:
+        mask = jnp.ones(len(stimuli))
+
+    T = stimuli.shape[0]
+    S, A = num_stimuli, num_actions
+    Q0 = 1.0 / A  # RL forgetting target (1/nA)
+
+    # ------------------------------------------------------------------
+    # Phase 1a: Build composed affine coefficients for M5 Q-update
+    # ------------------------------------------------------------------
+    stim_oh = jax.nn.one_hot(stimuli, S)    # (T, S)
+    act_oh = jax.nn.one_hot(actions, A)     # (T, A)
+    sa_mask = stim_oh[:, :, None] * act_oh[:, None, :]  # (T, S, A)
+    active = sa_mask * mask[:, None, None]  # (T, S, A)
+
+    # Reward-based alpha approximation (same as standard Q scan)
+    alpha_t = jnp.where(
+        rewards[:, None, None] == 1.0,
+        alpha_pos,
+        alpha_neg,
+    )  # (T, S, A)
+
+    # Composed coefficients for active (learning) positions:
+    #   a = (1-alpha)*(1-phi_rl),  b = (1-alpha)*phi_rl*Q0 + alpha*r
+    a_active = (1.0 - alpha_t) * (1.0 - phi_rl)
+    b_active = (1.0 - alpha_t) * phi_rl * Q0 + alpha_t * rewards[:, None, None]
+
+    # Coefficients for inactive / padding positions (decay only):
+    #   a = 1-phi_rl,  b = phi_rl*Q0
+    a_decay = 1.0 - phi_rl
+    b_decay = phi_rl * Q0
+
+    a_seq = jnp.where(active, a_active, a_decay)
+    b_seq = jnp.where(active, b_active, b_decay)
+
+    q_init_table = jnp.ones((S, A)) * q_init
+
+    # affine_scan returns Q AFTER update at each trial
+    Q_all = affine_scan(a_seq, b_seq, x0=q_init_table)  # (T, S, A)
+    # Q_for_policy[t] = Q BEFORE update at trial t
+    Q_for_policy = jnp.concatenate([q_init_table[None], Q_all[:-1]], axis=0)
+
+    # Phase 1b: WM trajectories (same as M3)
+    wm_for_policy, _ = associative_scan_wm_update(
+        stimuli, actions, rewards, mask,
+        phi, wm_init, num_stimuli, num_actions,
+    )  # (T, S, A)
+
+    # ------------------------------------------------------------------
+    # Phase 2: sequential policy scan with last_action carry
+    # ------------------------------------------------------------------
+    def policy_step(carry, t_inputs):
+        log_lik_accum, last_action = carry
+        t_idx, stimulus, action, set_size, valid = t_inputs
+
+        q_vals = Q_for_policy[t_idx, stimulus]
+        wm_vals = wm_for_policy[t_idx, stimulus]
+
+        omega = rho * jnp.minimum(1.0, capacity / set_size)
+        rl_probs = softmax_policy(q_vals, FIXED_BETA)
+        wm_probs = softmax_policy(wm_vals, FIXED_BETA)
+        base_probs = omega * wm_probs + (1 - omega) * rl_probs
+        base_probs = base_probs / jnp.sum(base_probs)
+
+        noisy_base = apply_epsilon_noise(base_probs, epsilon, num_actions)
+
+        use_m2_path = jnp.logical_or(kappa == 0.0, last_action < 0)
+        choice_kernel = jnp.eye(num_actions)[jnp.maximum(last_action, 0)]
+        hybrid_probs_m5 = (1 - kappa) * noisy_base + kappa * choice_kernel
+        noisy_probs = jnp.where(use_m2_path, noisy_base, hybrid_probs_m5)
+
+        log_prob = jnp.log(noisy_probs[action] + 1e-8)
+        log_prob_masked = log_prob * valid
+
+        new_last_action = jnp.where(valid, action, last_action).astype(jnp.int32)
+
+        return (log_lik_accum + log_prob_masked, new_last_action), log_prob_masked
+
+    t_indices = jnp.arange(T)
+    (log_lik_total, _), log_probs = lax.scan(
+        policy_step,
+        (0.0, jnp.array(-1, dtype=jnp.int32)),
+        (t_indices, stimuli, actions, set_sizes, mask),
+    )
+
+    if return_pointwise:
+        return log_lik_total, log_probs
+    return log_lik_total
+
+
+def wmrl_m5_multiblock_likelihood_stacked_pscan(
+    stimuli_stacked: jnp.ndarray,
+    actions_stacked: jnp.ndarray,
+    rewards_stacked: jnp.ndarray,
+    set_sizes_stacked: jnp.ndarray,
+    masks_stacked: jnp.ndarray,
+    alpha_pos: float,
+    alpha_neg: float,
+    phi: float,
+    rho: float,
+    capacity: float,
+    kappa: float,
+    phi_rl: float,
+    epsilon: float = DEFAULT_EPSILON,
+    num_stimuli: int = 6,
+    num_actions: int = 3,
+    q_init: float = 0.5,
+    wm_init: float = 1.0 / 3.0,
+    *,
+    return_pointwise: bool = False,
+) -> float | tuple[float, jnp.ndarray]:
+    """
+    WM-RL M5 multiblock likelihood using parallel scan.
+
+    Drop-in replacement for ``wmrl_m5_multiblock_likelihood_stacked``.
+
+    Parameters
+    ----------
+    stimuli_stacked, actions_stacked, rewards_stacked,
+    set_sizes_stacked, masks_stacked : arrays, shape (n_blocks, max_trials)
+    alpha_pos, alpha_neg, phi, rho, capacity, kappa, phi_rl, epsilon : float
+    num_stimuli, num_actions : int
+    q_init, wm_init : float
+    return_pointwise : bool, optional
+
+    Returns
+    -------
+    float or tuple[float, jnp.ndarray]
+        Same as ``wmrl_m5_multiblock_likelihood_stacked``.
+    """
+    num_blocks = stimuli_stacked.shape[0]
+
+    if return_pointwise:
+        def scan_body(total_ll, block_idx):
+            block_ll, block_probs = wmrl_m5_block_likelihood_pscan(
+                stimuli=stimuli_stacked[block_idx],
+                actions=actions_stacked[block_idx],
+                rewards=rewards_stacked[block_idx],
+                set_sizes=set_sizes_stacked[block_idx],
+                alpha_pos=alpha_pos,
+                alpha_neg=alpha_neg,
+                phi=phi,
+                rho=rho,
+                capacity=capacity,
+                kappa=kappa,
+                phi_rl=phi_rl,
+                epsilon=epsilon,
+                num_stimuli=num_stimuli,
+                num_actions=num_actions,
+                q_init=q_init,
+                wm_init=wm_init,
+                mask=masks_stacked[block_idx],
+                return_pointwise=True,
+            )
+            return total_ll + block_ll, block_probs
+
+        total_ll, all_block_probs = lax.scan(
+            scan_body, 0.0, jnp.arange(num_blocks)
+        )
+        return total_ll, all_block_probs.reshape(-1)
+    else:
+        def body_fn(block_idx, total_ll):
+            block_ll = wmrl_m5_block_likelihood_pscan(
+                stimuli=stimuli_stacked[block_idx],
+                actions=actions_stacked[block_idx],
+                rewards=rewards_stacked[block_idx],
+                set_sizes=set_sizes_stacked[block_idx],
+                alpha_pos=alpha_pos,
+                alpha_neg=alpha_neg,
+                phi=phi,
+                rho=rho,
+                capacity=capacity,
+                kappa=kappa,
+                phi_rl=phi_rl,
+                epsilon=epsilon,
+                num_stimuli=num_stimuli,
+                num_actions=num_actions,
+                q_init=q_init,
+                wm_init=wm_init,
+                mask=masks_stacked[block_idx],
+            )
+            return total_ll + block_ll
+
+        return lax.fori_loop(0, num_blocks, body_fn, 0.0)
+
+
+# ----------------------------------------------------------------------------
+# M6a: WM-RL+kappa_s pscan variants (stimulus-specific perseveration)
+# ----------------------------------------------------------------------------
+
+
+def wmrl_m6a_block_likelihood_pscan(
+    stimuli: jnp.ndarray,
+    actions: jnp.ndarray,
+    rewards: jnp.ndarray,
+    set_sizes: jnp.ndarray,
+    alpha_pos: float,
+    alpha_neg: float,
+    phi: float,
+    rho: float,
+    capacity: float,
+    kappa_s: float,
+    epsilon: float = DEFAULT_EPSILON,
+    num_stimuli: int = 6,
+    num_actions: int = 3,
+    q_init: float = 0.5,
+    wm_init: float = 1.0 / 3.0,
+    mask: jnp.ndarray = None,
+    *,
+    return_pointwise: bool = False,
+) -> float | tuple[float, jnp.ndarray]:
+    """
+    WM-RL M6a block likelihood using parallel scan (stimulus-specific perseveration).
+
+    Drop-in replacement for ``wmrl_m6a_block_likelihood``.
+
+    Phase 1 (parallel): Pre-compute Q_for_policy[t] and wm_for_policy[t].
+    Phase 2 (sequential): ``lax.scan`` carries ``last_actions`` (shape
+    (num_stimuli,) int32) for per-stimulus choice kernels.  Q and WM are
+    read from pre-computed arrays.
+
+    Parameters
+    ----------
+    stimuli, actions, rewards, set_sizes : arrays, shape (n_trials,)
+    alpha_pos, alpha_neg, phi, rho, capacity, kappa_s, epsilon : float
+    num_stimuli, num_actions : int
+    q_init, wm_init : float
+    mask : array, optional
+    return_pointwise : bool, optional
+
+    Returns
+    -------
+    float or tuple[float, jnp.ndarray]
+        Same as ``wmrl_m6a_block_likelihood``.
+    """
+    if mask is None:
+        mask = jnp.ones(len(stimuli))
+
+    # Phase 1: parallel Q and WM trajectories
+    Q_for_policy = associative_scan_q_update(
+        stimuli, actions, rewards, mask,
+        alpha_pos, alpha_neg, q_init,
+        num_stimuli, num_actions,
+    )
+
+    wm_for_policy, _ = associative_scan_wm_update(
+        stimuli, actions, rewards, mask,
+        phi, wm_init, num_stimuli, num_actions,
+    )
+
+    # Phase 2: sequential scan carrying per-stimulus last_actions
+    def policy_step(carry, t_inputs):
+        log_lik_accum, last_actions = carry
+        t_idx, stimulus, action, set_size, valid = t_inputs
+
+        q_vals = Q_for_policy[t_idx, stimulus]
+        wm_vals = wm_for_policy[t_idx, stimulus]
+
+        omega = rho * jnp.minimum(1.0, capacity / set_size)
+        rl_probs = softmax_policy(q_vals, FIXED_BETA)
+        wm_probs = softmax_policy(wm_vals, FIXED_BETA)
+        base_probs = omega * wm_probs + (1 - omega) * rl_probs
+        base_probs = base_probs / jnp.sum(base_probs)
+
+        noisy_base = apply_epsilon_noise(base_probs, epsilon, num_actions)
+
+        last_action_s = last_actions[stimulus]
+        use_m2_path = jnp.logical_or(kappa_s == 0.0, last_action_s < 0)
+        choice_kernel = jnp.eye(num_actions)[jnp.maximum(last_action_s, 0)]
+        hybrid_probs_m6a = (1 - kappa_s) * noisy_base + kappa_s * choice_kernel
+        noisy_probs = jnp.where(use_m2_path, noisy_base, hybrid_probs_m6a)
+
+        log_prob = jnp.log(noisy_probs[action] + 1e-8)
+        log_prob_masked = log_prob * valid
+
+        # Update per-stimulus last_action for this stimulus
+        new_last_actions = last_actions.at[stimulus].set(
+            jnp.where(valid, action, last_action_s).astype(jnp.int32)
+        )
+
+        return (log_lik_accum + log_prob_masked, new_last_actions), log_prob_masked
+
+    T = stimuli.shape[0]
+    last_actions_init = jnp.full((num_stimuli,), -1, dtype=jnp.int32)
+    t_indices = jnp.arange(T)
+    (log_lik_total, _), log_probs = lax.scan(
+        policy_step,
+        (0.0, last_actions_init),
+        (t_indices, stimuli, actions, set_sizes, mask),
+    )
+
+    if return_pointwise:
+        return log_lik_total, log_probs
+    return log_lik_total
+
+
+def wmrl_m6a_multiblock_likelihood_stacked_pscan(
+    stimuli_stacked: jnp.ndarray,
+    actions_stacked: jnp.ndarray,
+    rewards_stacked: jnp.ndarray,
+    set_sizes_stacked: jnp.ndarray,
+    masks_stacked: jnp.ndarray,
+    alpha_pos: float,
+    alpha_neg: float,
+    phi: float,
+    rho: float,
+    capacity: float,
+    kappa_s: float,
+    epsilon: float = DEFAULT_EPSILON,
+    num_stimuli: int = 6,
+    num_actions: int = 3,
+    q_init: float = 0.5,
+    wm_init: float = 1.0 / 3.0,
+    *,
+    return_pointwise: bool = False,
+) -> float | tuple[float, jnp.ndarray]:
+    """
+    WM-RL M6a multiblock likelihood using parallel scan.
+
+    Drop-in replacement for ``wmrl_m6a_multiblock_likelihood_stacked``.
+
+    Parameters
+    ----------
+    stimuli_stacked, actions_stacked, rewards_stacked,
+    set_sizes_stacked, masks_stacked : arrays, shape (n_blocks, max_trials)
+    alpha_pos, alpha_neg, phi, rho, capacity, kappa_s, epsilon : float
+    num_stimuli, num_actions : int
+    q_init, wm_init : float
+    return_pointwise : bool, optional
+
+    Returns
+    -------
+    float or tuple[float, jnp.ndarray]
+        Same as ``wmrl_m6a_multiblock_likelihood_stacked``.
+    """
+    num_blocks = stimuli_stacked.shape[0]
+
+    if return_pointwise:
+        def scan_body(total_ll, block_idx):
+            block_ll, block_probs = wmrl_m6a_block_likelihood_pscan(
+                stimuli=stimuli_stacked[block_idx],
+                actions=actions_stacked[block_idx],
+                rewards=rewards_stacked[block_idx],
+                set_sizes=set_sizes_stacked[block_idx],
+                alpha_pos=alpha_pos,
+                alpha_neg=alpha_neg,
+                phi=phi,
+                rho=rho,
+                capacity=capacity,
+                kappa_s=kappa_s,
+                epsilon=epsilon,
+                num_stimuli=num_stimuli,
+                num_actions=num_actions,
+                q_init=q_init,
+                wm_init=wm_init,
+                mask=masks_stacked[block_idx],
+                return_pointwise=True,
+            )
+            return total_ll + block_ll, block_probs
+
+        total_ll, all_block_probs = lax.scan(
+            scan_body, 0.0, jnp.arange(num_blocks)
+        )
+        return total_ll, all_block_probs.reshape(-1)
+    else:
+        def body_fn(block_idx, total_ll):
+            block_ll = wmrl_m6a_block_likelihood_pscan(
+                stimuli=stimuli_stacked[block_idx],
+                actions=actions_stacked[block_idx],
+                rewards=rewards_stacked[block_idx],
+                set_sizes=set_sizes_stacked[block_idx],
+                alpha_pos=alpha_pos,
+                alpha_neg=alpha_neg,
+                phi=phi,
+                rho=rho,
+                capacity=capacity,
+                kappa_s=kappa_s,
+                epsilon=epsilon,
+                num_stimuli=num_stimuli,
+                num_actions=num_actions,
+                q_init=q_init,
+                wm_init=wm_init,
+                mask=masks_stacked[block_idx],
+            )
+            return total_ll + block_ll
+
+        return lax.fori_loop(0, num_blocks, body_fn, 0.0)
+
+
+# ----------------------------------------------------------------------------
+# M6b: WM-RL+dual pscan variants (global + stimulus-specific perseveration)
+# ----------------------------------------------------------------------------
+
+
+def wmrl_m6b_block_likelihood_pscan(
+    stimuli: jnp.ndarray,
+    actions: jnp.ndarray,
+    rewards: jnp.ndarray,
+    set_sizes: jnp.ndarray,
+    alpha_pos: float,
+    alpha_neg: float,
+    phi: float,
+    rho: float,
+    capacity: float,
+    kappa: float,
+    kappa_s: float,
+    epsilon: float = DEFAULT_EPSILON,
+    num_stimuli: int = 6,
+    num_actions: int = 3,
+    q_init: float = 0.5,
+    wm_init: float = 1.0 / 3.0,
+    mask: jnp.ndarray = None,
+    *,
+    return_pointwise: bool = False,
+) -> float | tuple[float, jnp.ndarray]:
+    """
+    WM-RL M6b block likelihood using parallel scan (dual perseveration).
+
+    Drop-in replacement for ``wmrl_m6b_block_likelihood``.
+
+    Phase 1 (parallel): Pre-compute Q_for_policy[t] and wm_for_policy[t].
+    Phase 2 (sequential): ``lax.scan`` carries both ``last_action`` (scalar
+    int, global M3 component) and ``last_actions`` (array shape (num_stimuli,)
+    int32, per-stimulus M6a component).  Q and WM are read from pre-computed
+    arrays.
+
+    Parameters
+    ----------
+    stimuli, actions, rewards, set_sizes : arrays, shape (n_trials,)
+    alpha_pos, alpha_neg, phi, rho, capacity, kappa, kappa_s, epsilon : float
+    num_stimuli, num_actions : int
+    q_init, wm_init : float
+    mask : array, optional
+    return_pointwise : bool, optional
+
+    Returns
+    -------
+    float or tuple[float, jnp.ndarray]
+        Same as ``wmrl_m6b_block_likelihood``.
+    """
+    if mask is None:
+        mask = jnp.ones(len(stimuli))
+
+    # Phase 1: parallel Q and WM trajectories
+    Q_for_policy = associative_scan_q_update(
+        stimuli, actions, rewards, mask,
+        alpha_pos, alpha_neg, q_init,
+        num_stimuli, num_actions,
+    )
+
+    wm_for_policy, _ = associative_scan_wm_update(
+        stimuli, actions, rewards, mask,
+        phi, wm_init, num_stimuli, num_actions,
+    )
+
+    # Phase 2: sequential scan carrying DUAL perseveration state
+    def policy_step(carry, t_inputs):
+        log_lik_accum, last_action, last_actions = carry
+        t_idx, stimulus, action, set_size, valid = t_inputs
+
+        q_vals = Q_for_policy[t_idx, stimulus]
+        wm_vals = wm_for_policy[t_idx, stimulus]
+
+        omega = rho * jnp.minimum(1.0, capacity / set_size)
+        rl_probs = softmax_policy(q_vals, FIXED_BETA)
+        wm_probs = softmax_policy(wm_vals, FIXED_BETA)
+        base_probs = omega * wm_probs + (1 - omega) * rl_probs
+        base_probs = base_probs / jnp.sum(base_probs)
+
+        P_noisy = apply_epsilon_noise(base_probs, epsilon, num_actions)
+
+        # Global kernel (M3 component)
+        has_global = jnp.logical_and(kappa > 0.0, last_action >= 0)
+        Ck_global = jnp.eye(num_actions)[jnp.maximum(last_action, 0)]
+        eff_kappa = jnp.where(has_global, kappa, 0.0)
+
+        # Stimulus-specific kernel (M6a component)
+        last_action_s = last_actions[stimulus]
+        has_stim = jnp.logical_and(kappa_s > 0.0, last_action_s >= 0)
+        Ck_stim = jnp.eye(num_actions)[jnp.maximum(last_action_s, 0)]
+        eff_kappa_s = jnp.where(has_stim, kappa_s, 0.0)
+
+        noisy_probs = (
+            (1.0 - eff_kappa - eff_kappa_s) * P_noisy
+            + eff_kappa * Ck_global
+            + eff_kappa_s * Ck_stim
+        )
+
+        log_prob = jnp.log(noisy_probs[action] + 1e-8)
+        log_prob_masked = log_prob * valid
+
+        # Update both perseveration states
+        new_last_action = jnp.where(valid, action, last_action).astype(jnp.int32)
+        new_last_actions = last_actions.at[stimulus].set(
+            jnp.where(valid, action, last_action_s).astype(jnp.int32)
+        )
+
+        return (log_lik_accum + log_prob_masked, new_last_action, new_last_actions), log_prob_masked
+
+    T = stimuli.shape[0]
+    last_actions_init = jnp.full((num_stimuli,), -1, dtype=jnp.int32)
+    t_indices = jnp.arange(T)
+    (log_lik_total, _, _), log_probs = lax.scan(
+        policy_step,
+        (0.0, jnp.array(-1, dtype=jnp.int32), last_actions_init),
+        (t_indices, stimuli, actions, set_sizes, mask),
+    )
+
+    if return_pointwise:
+        return log_lik_total, log_probs
+    return log_lik_total
+
+
+def wmrl_m6b_multiblock_likelihood_stacked_pscan(
+    stimuli_stacked: jnp.ndarray,
+    actions_stacked: jnp.ndarray,
+    rewards_stacked: jnp.ndarray,
+    set_sizes_stacked: jnp.ndarray,
+    masks_stacked: jnp.ndarray,
+    alpha_pos: float,
+    alpha_neg: float,
+    phi: float,
+    rho: float,
+    capacity: float,
+    kappa: float,
+    kappa_s: float,
+    epsilon: float = DEFAULT_EPSILON,
+    num_stimuli: int = 6,
+    num_actions: int = 3,
+    q_init: float = 0.5,
+    wm_init: float = 1.0 / 3.0,
+    *,
+    return_pointwise: bool = False,
+) -> float | tuple[float, jnp.ndarray]:
+    """
+    WM-RL M6b multiblock likelihood using parallel scan.
+
+    Drop-in replacement for ``wmrl_m6b_multiblock_likelihood_stacked``.
+
+    Parameters
+    ----------
+    stimuli_stacked, actions_stacked, rewards_stacked,
+    set_sizes_stacked, masks_stacked : arrays, shape (n_blocks, max_trials)
+    alpha_pos, alpha_neg, phi, rho, capacity, kappa, kappa_s, epsilon : float
+    num_stimuli, num_actions : int
+    q_init, wm_init : float
+    return_pointwise : bool, optional
+
+    Returns
+    -------
+    float or tuple[float, jnp.ndarray]
+        Same as ``wmrl_m6b_multiblock_likelihood_stacked``.
+    """
+    num_blocks = stimuli_stacked.shape[0]
+
+    if return_pointwise:
+        def scan_body(total_ll, block_idx):
+            block_ll, block_probs = wmrl_m6b_block_likelihood_pscan(
+                stimuli=stimuli_stacked[block_idx],
+                actions=actions_stacked[block_idx],
+                rewards=rewards_stacked[block_idx],
+                set_sizes=set_sizes_stacked[block_idx],
+                alpha_pos=alpha_pos,
+                alpha_neg=alpha_neg,
+                phi=phi,
+                rho=rho,
+                capacity=capacity,
+                kappa=kappa,
+                kappa_s=kappa_s,
+                epsilon=epsilon,
+                num_stimuli=num_stimuli,
+                num_actions=num_actions,
+                q_init=q_init,
+                wm_init=wm_init,
+                mask=masks_stacked[block_idx],
+                return_pointwise=True,
+            )
+            return total_ll + block_ll, block_probs
+
+        total_ll, all_block_probs = lax.scan(
+            scan_body, 0.0, jnp.arange(num_blocks)
+        )
+        return total_ll, all_block_probs.reshape(-1)
+    else:
+        def body_fn(block_idx, total_ll):
+            block_ll = wmrl_m6b_block_likelihood_pscan(
+                stimuli=stimuli_stacked[block_idx],
+                actions=actions_stacked[block_idx],
+                rewards=rewards_stacked[block_idx],
+                set_sizes=set_sizes_stacked[block_idx],
+                alpha_pos=alpha_pos,
+                alpha_neg=alpha_neg,
+                phi=phi,
+                rho=rho,
+                capacity=capacity,
+                kappa=kappa,
+                kappa_s=kappa_s,
+                epsilon=epsilon,
+                num_stimuli=num_stimuli,
+                num_actions=num_actions,
+                q_init=q_init,
+                wm_init=wm_init,
+                mask=masks_stacked[block_idx],
+            )
+            return total_ll + block_ll
+
+        return lax.fori_loop(0, num_blocks, body_fn, 0.0)
+
+
+# ============================================================================
 # WM-RL TEST FUNCTIONS
 # ============================================================================
 
