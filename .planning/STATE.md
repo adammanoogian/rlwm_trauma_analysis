@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-04-11)
 
 **Core value:** Correctly dissociate perseverative responding from learning-rate effects (alpha-) to accurately identify whether post-reversal failures reflect motor perseveration or outcome insensitivity
-**Current focus:** v4.0 — Hierarchical Bayesian Pipeline & LBA Acceleration (Phase 20 in progress, 1/3 plans done)
+**Current focus:** v4.0 — Hierarchical Bayesian Pipeline & LBA Acceleration (Phase 20 in progress, 2/3 plans done)
 
 ## Current Position
 
 Milestone: v4.0 Hierarchical Bayesian Pipeline & LBA Acceleration
 Phase: 20 of 20 (DEER Non-Linear Parallelization) — In progress
-Plan: 1 of 3 complete (20-01 done)
-Status: DEER research document + precomputation functions delivered. NO-GO on DEER, GO on vectorized policy. Plans 20-02 (vectorized variants) and 20-03 (docs update) remain.
-Last activity: 2026-04-14 — Completed 20-01-PLAN.md (DEER research + precomputation)
+Plan: 2 of 3 complete (20-01, 20-02 done)
+Status: All 12 pscan likelihood variants now use fully vectorized Phase 2. Plan 20-03 (docs update) remains.
+Last activity: 2026-04-14 — Completed 20-02-PLAN.md (vectorized Phase 2 in pscan likelihoods)
 
-Progress: [████████░░] ~75% (27/~36 plans across Phases 13-20)
+Progress: [████████░░] ~78% (28/~36 plans across Phases 13-20)
 
 ### v4.0 Phase Structure
 
@@ -95,6 +95,13 @@ Progress: [████████░░] ~75% (27/~36 plans across Phases 13-2
 - **`subscale=True` guard raises `ValueError` (locked):** `--subscale` with model != wmrl_m6b raises `ValueError` (not `NotImplementedError`); the model exists but the subscale variant is M6b-specific.
 - **SLURM subscale: 12h/48G (locked):** `cluster/13_bayesian_m6b_subscale.slurm` uses `--time=12:00:00` and `--mem=48G` (vs 8h/32G for standard M6b).
 - **beta_* HDI print expanded (locked):** `_fit_stacked_model` now prints all `beta_`-prefixed sites in sorted order (not just `beta_lec_*`), supporting the 32-site subscale output.
+
+### v4.0 Decisions (20-02 completed 2026-04-14)
+
+- **Vectorized Phase 2 in-place modification (locked):** Modified existing pscan functions rather than creating new variants. The pscan path is already the "parallel" path; vectorization completes it.
+- **Precompute helpers called inside block functions (locked):** `precompute_last_action_global` and `precompute_last_actions_per_stimulus` called inside each `*_block_likelihood_pscan()`, not hoisted to multiblock level. Keeps block functions self-contained and correct when called standalone.
+- **jax.vmap for batched softmax/epsilon (locked):** `jax.vmap(softmax_policy, in_axes=(0, None))` rather than reimplementing a batched version. Clean, reuses existing scalar functions.
+- **axis=-1 renormalization for WM-RL models (locked):** `base_probs / jnp.sum(base_probs, axis=-1, keepdims=True)` for batched (T, A) arrays. M1 does not need renormalization (no WM-Q mixing).
 
 ### v4.0 Decisions (20-01 completed 2026-04-14)
 
@@ -303,5 +310,5 @@ Progress: [████████░░] ~75% (27/~36 plans across Phases 13-2
 ## Session Continuity
 
 Last session: 2026-04-14
-Stopped at: Phase 20 plan 01 complete. DEER research document delivered (NO-GO), precompute_last_action_global and precompute_last_actions_per_stimulus implemented with 7 passing tests. Next: 20-02 (vectorized policy likelihood variants) and 20-03 (documentation update).
+Stopped at: Phase 20 plan 02 complete. All 12 pscan likelihood variants now use vectorized Phase 2 (no sequential policy scan). 30 non-slow tests pass. Next: 20-03 (documentation update).
 Resume file: None

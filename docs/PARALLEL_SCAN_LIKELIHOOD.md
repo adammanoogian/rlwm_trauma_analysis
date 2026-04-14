@@ -1,11 +1,15 @@
 # Parallel Scan Likelihood: Implementation Guide
 
-**Phase 19 — Associative Scan Likelihood Parallelization**
+**Phases 19-20 — Fully Parallel RLWM Likelihood**
 
-This document is an implementation guide for replacing O(T) sequential `lax.scan`
-loops with O(log T) `jax.lax.associative_scan` for the linear-recurrence parts of
-the RLWM likelihood. Non-linear components (WM-Q mixing, softmax) remain sequential
-and are covered in Phase 20 (DEER).
+This document is an implementation guide for the fully parallel RLWM likelihood
+evaluation pipeline. Phase 19 replaced O(T) sequential `lax.scan` loops with
+O(log T) `jax.lax.associative_scan` for the linear-recurrence components
+(Q-value updates, WM decay/overwrite). Phase 20 then vectorized the remaining
+policy computation (WM-Q mixing, softmax, perseveration, log-probability) into
+O(1)-depth array operations, eliminating all sequential passes. See also
+[DEER_NONLINEAR_PARALLELIZATION.md](DEER_NONLINEAR_PARALLELIZATION.md) for the
+DEER no-go analysis that motivated the vectorized policy approach.
 
 ---
 
@@ -306,3 +310,142 @@ multiplications.
 
 These thresholds apply to element-wise comparison of `(T, S, A)` Q/WM
 trajectories between the parallel and sequential implementations.
+
+---
+
+## 7. Phase 20: Vectorized Policy Pass (Fully Parallel Likelihood)
+
+### The key insight: simulation vs likelihood
+
+In **simulation**, the agent generates actions from its policy, so trial t's
+action depends on the policy at trial t, which depends on the Q-values and WM
+state (and perseveration carry) up through trial t-1. This creates a genuine
+sequential dependency: you cannot compute trial t's action without knowing all
+previous actions.
+
+In **likelihood evaluation**, actions are **observed data**. The model does not
+choose actions -- it evaluates the probability of actions that already occurred.
+This means:
+
+- `last_action[t]` (for global perseveration in M3/M5) is fully determined by
+  the observed action sequence `a_{0:t-1}`, independent of model parameters.
+- `last_action_per_stimulus[t]` (for stimulus-specific perseveration in M6a/M6b)
+  is fully determined by the observed `(stimulus, action)` sequence.
+- Every trial's log-probability is an **independent function** of known inputs
+  once Q-values and WM values have been computed.
+
+The Phase 2 `lax.scan` in the Phase 19 pscan variants was an implementation
+artifact, not a mathematical necessity. The sequential carry only tracked
+`last_action`, which can be precomputed from data.
+
+### Precomputation approach
+
+Two helper functions precompute perseveration arrays from observed data:
+
+**`precompute_last_action_global(actions, mask)`** (M3, M5, M6b):
+Returns `last_action[t]` = the most recent valid action before trial t,
+regardless of stimulus. For unmasked sequences, equivalent to
+`concat([-1], actions[:-1])`. With padding, propagates the last valid action.
+
+**`precompute_last_actions_per_stimulus(stimuli, actions, mask, num_stimuli)`**
+(M6a, M6b): Returns `last_action_per_stimulus[t]` = the last action taken for
+`stimulus[t]`, considering only trials 0..t-1. Requires O(T) sequential scan
+but runs once before MCMC, not at every likelihood evaluation.
+
+Both functions are parameter-independent and operate on observed data only.
+
+### Vectorized Phase 2 pattern
+
+**Old (Phase 19 pscan -- sequential Phase 2 via `lax.scan`):**
+
+```python
+# Inside Phase 2 scan body (called T times sequentially):
+def phase2_scan_fn(carry, trial_data):
+    last_action = carry
+    q_vals = q_traj[t, stimulus, :]  # one trial at a time
+    wm_vals = wm_traj[t, stimulus, :]
+    # ... compute policy, log-prob ...
+    new_last_action = action
+    return new_last_action, log_prob_t
+```
+
+**New (Phase 20 -- fully vectorized):**
+
+```python
+# Precompute perseveration array (parameter-independent):
+last_actions = precompute_last_action_global(actions, mask)
+
+# Vectorized Phase 2 (all T trials simultaneously):
+trial_idx = jnp.arange(T)
+q_vals = q_traj[trial_idx, stimuli, :]           # shape (T, nA)
+wm_vals = wm_traj[trial_idx, stimuli, :]         # shape (T, nA)
+omega = rho * jnp.minimum(1.0, capacity / set_sizes)  # shape (T,)
+
+base_probs = omega[:, None] * wm_vals + (1 - omega[:, None]) * softmax(beta * q_vals)
+probs = epsilon / nA + (1 - epsilon) * base_probs
+
+# Perseveration (applied to all T trials at once):
+has_prev = (last_actions >= 0)
+kappa_arr = jnp.where(has_prev, kappa, 0.0)
+probs = probs.at[trial_idx, last_actions].add(kappa_arr)
+probs = probs / probs.sum(axis=-1, keepdims=True)
+
+log_probs = jnp.log(probs[trial_idx, actions] + 1e-8) * mask
+total_nll = -jnp.sum(log_probs)
+```
+
+The actual implementation uses `jax.vmap` for batched softmax and per-trial
+indexing, but the principle is the same: all T trials evaluated in parallel
+with no sequential dependency.
+
+### DEER No-Go summary
+
+Phase 20 initially investigated DEER (Deep Equilibrium Recurrences) for
+parallelizing the non-linear Phase 2 components. The investigation concluded
+that DEER is **unnecessary and inapplicable**:
+
+1. **No actual recurrence:** The Phase 2 sequential dependency was an
+   implementation artifact (tracking `last_action` via carry), not a true
+   non-linear recurrence. Precomputation eliminates it entirely.
+2. **Discrete state:** Perseveration carry is a discrete integer (action index
+   0, 1, or 2). DEER linearizes continuous states -- linearizing a discrete
+   variable is mathematically ill-defined.
+3. **Negative speedup:** For D=1 and T=100, DEER's per-iteration overhead
+   exceeds sequential cost.
+
+See [DEER_NONLINEAR_PARALLELIZATION.md](DEER_NONLINEAR_PARALLELIZATION.md) for
+the full analysis including convergence properties, alternative approaches
+comparison, and the Unifying Framework perspective.
+
+### Updated architecture: fully parallel likelihood
+
+After Phase 19 + Phase 20, the RLWM likelihood has no sequential passes:
+
+| Component | Depth | Method |
+|---|---|---|
+| Phase 1: Q-value update | O(log T) | `jax.lax.associative_scan` (Phase 19) |
+| Phase 1: WM decay/overwrite | O(log T) | `jax.lax.associative_scan` (Phase 19) |
+| Phase 2: Policy + log-prob | O(1) | Vectorized array ops (Phase 20) |
+| **Total** | **O(log T)** | **Fully parallel** |
+
+The perseveration precomputation is O(T) but parameter-independent, so it runs
+once before MCMC sampling and is amortized over thousands of likelihood
+evaluations.
+
+### Implementation status
+
+All 12 pscan likelihood variants (6 block-level + 6 multiblock-stacked) have
+been updated in `scripts/fitting/jax_likelihoods.py`:
+
+| Model | Block pscan | Multiblock pscan | Vectorized Phase 2 |
+|---|---|---|---|
+| Q-learning (M1) | Yes | Yes | Yes (Phase 20) |
+| WM-RL (M2) | Yes | Yes | Yes (Phase 20) |
+| WM-RL+kappa (M3) | Yes | Yes | Yes (Phase 20) |
+| WM-RL+phi_rl (M5) | Yes | Yes | Yes (Phase 20) |
+| WM-RL+kappa_s (M6a) | Yes | Yes | Yes (Phase 20) |
+| WM-RL+dual (M6b) | Yes | Yes | Yes (Phase 20) |
+
+Numerical agreement tests (`scripts/fitting/tests/test_pscan_likelihoods.py`)
+confirm NLL equivalence between sequential and pscan variants to within 1e-4
+relative tolerance for all models.
