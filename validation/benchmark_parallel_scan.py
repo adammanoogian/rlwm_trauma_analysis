@@ -1,8 +1,12 @@
-"""Micro-benchmark: sequential lax.scan vs associative_scan for RLWM likelihoods.
+"""Micro-benchmark: sequential vs vectorized pscan for RLWM likelihoods.
 
-Measures single-participant likelihood evaluation wall time for both sequential
-and parallel-scan (pscan) variants of all 6 choice-only models.  Reports
-speedup ratios, numerical agreement, and JIT compilation overhead.
+Compares single-participant likelihood evaluation wall time between sequential
+(``lax.scan``) and fully vectorized pscan variants of all 6 choice-only models.
+The pscan variants use Phase 19 associative scan for Q/WM updates (O(log T))
+and Phase 20 vectorized policy computation (O(1) depth) -- together forming a
+fully parallel likelihood with no sequential passes.
+
+Reports speedup ratios, numerical agreement, and JIT compilation overhead.
 
 Usage
 -----
@@ -18,6 +22,12 @@ Outputs
 -------
     - Console: timing table with speedup ratios
     - JSON: output/bayesian/pscan_benchmark_{cpu|gpu}.json
+
+Notes
+-----
+    Requires JAX (``pip install jax jaxlib``). On Windows without JAX, the
+    script will fail at import time. Use the ``rlwm_gpu`` conda environment
+    on the Monash M3 cluster for GPU benchmarks.
 """
 
 from __future__ import annotations
@@ -452,7 +462,8 @@ def main() -> None:
     timestamp = datetime.now(timezone.utc).isoformat()
 
     print("=" * 72)
-    print("PARALLEL SCAN LIKELIHOOD MICRO-BENCHMARK")
+    print("SEQUENTIAL vs VECTORIZED PSCAN LIKELIHOOD BENCHMARK")
+    print("(Phase 19 associative scan + Phase 20 vectorized policy)")
     print("=" * 72)
     print(f"Device:        {device_info}")
     print(f"JAX version:   {jax.__version__}")
@@ -512,6 +523,11 @@ def main() -> None:
     output_path = output_dir / f"pscan_benchmark_{backend}.json"
 
     output_data = {
+        "phase": "phase_20_vectorized",
+        "description": (
+            "Phase 19 associative scan (O(log T) Q/WM updates) "
+            "+ Phase 20 vectorized policy (O(1) depth)"
+        ),
         "device": device_info,
         "jax_version": jax.__version__,
         "timestamp": timestamp,
