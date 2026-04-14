@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-04-11)
 
 **Core value:** Correctly dissociate perseverative responding from learning-rate effects (alpha-) to accurately identify whether post-reversal failures reflect motor perseveration or outcome insensitivity
-**Current focus:** v4.0 — Hierarchical Bayesian Pipeline & LBA Acceleration (Phase 18 complete, Phase 19 next)
+**Current focus:** v4.0 — Hierarchical Bayesian Pipeline & LBA Acceleration (Phase 20 in progress, 1/3 plans done)
 
 ## Current Position
 
 Milestone: v4.0 Hierarchical Bayesian Pipeline & LBA Acceleration
-Phase: 19 of 20 (Associative Scan Likelihood Parallelization) — In progress
-Plan: 2 of 3 complete (19-01, 19-02 done)
-Status: Phase 19 Wave 2 complete. 12 pscan likelihood variants implemented and tested for all 6 choice-only models.
-Last activity: 2026-04-14 — Completed 19-02-PLAN.md (12 pscan likelihoods + agreement tests)
+Phase: 20 of 20 (DEER Non-Linear Parallelization) — In progress
+Plan: 1 of 3 complete (20-01 done)
+Status: DEER research document + precomputation functions delivered. NO-GO on DEER, GO on vectorized policy. Plans 20-02 (vectorized variants) and 20-03 (docs update) remain.
+Last activity: 2026-04-14 — Completed 20-01-PLAN.md (DEER research + precomputation)
 
-Progress: [██████░░░░] ~69% (25/~36 plans across Phases 13-20)
+Progress: [████████░░] ~75% (27/~36 plans across Phases 13-20)
 
 ### v4.0 Phase Structure
 
@@ -95,6 +95,22 @@ Progress: [██████░░░░] ~69% (25/~36 plans across Phases 13-2
 - **`subscale=True` guard raises `ValueError` (locked):** `--subscale` with model != wmrl_m6b raises `ValueError` (not `NotImplementedError`); the model exists but the subscale variant is M6b-specific.
 - **SLURM subscale: 12h/48G (locked):** `cluster/13_bayesian_m6b_subscale.slurm` uses `--time=12:00:00` and `--mem=48G` (vs 8h/32G for standard M6b).
 - **beta_* HDI print expanded (locked):** `_fit_stacked_model` now prints all `beta_`-prefixed sites in sorted order (not just `beta_lec_*`), supporting the 32-site subscale output.
+
+### v4.0 Decisions (20-01 completed 2026-04-14)
+
+- **DEER NO-GO (locked):** DEER/quasi-DEER/ELK not applicable to RLWM likelihood. The perseveration carry (`last_action`) is updated with observed actions (data), not model-computed actions. In likelihood evaluation, this is a phantom dependency: `last_action[t] = actions[t-1]` is precomputable from the data array.
+- **Vectorized policy GO (locked):** Replace Phase 2 sequential `lax.scan` with vectorized array ops. Precompute `last_action` arrays once before MCMC (parameter-independent). All T trial log-probs computed simultaneously.
+- **precompute_last_action_global signature (locked):** `(actions, mask) -> (T,) int32`. Uses `lax.scan` to correctly propagate through masked trials. Located after `associative_scan_wm_update` in jax_likelihoods.py.
+- **precompute_last_actions_per_stimulus signature (locked):** `(stimuli, actions, mask, num_stimuli=6) -> (T,) int32`. Uses `lax.scan` with carry shape `(num_stimuli,)`. Returns per-trial last_action for that trial's stimulus.
+- **Contraction mapping question moot (informational):** In simulation context, perseveration is NOT a contraction (discrete state, non-differentiable argmax). In likelihood evaluation context, there is no recurrence to analyze.
+
+### v4.0 Decisions (19-03 completed 2026-04-14)
+
+- **use_pscan kwarg propagation via model_args (locked):** `use_pscan` passed as part of the `model_args` dict that gets unpacked as `**model_args` in `mcmc.run()`. NumPyro passes all `run()` kwargs to the model function. No changes to `run_inference_with_bump` or NUTS kernel required.
+- **NetCDF pscan suffix (locked):** When `use_pscan=True`, output NetCDF is `{model}_posterior_pscan.nc` (not separate directory). Enables A/B comparison with `{model}_posterior.nc` in same directory.
+- **No outer jax.jit in benchmark (locked):** Likelihood functions use Python `if return_pointwise:` branching which is not JIT-compatible. Benchmark calls functions directly; internal `lax.fori_loop`/`lax.scan` handles JIT compilation.
+- **CPU pscan baseline (informational):** Pscan ~3.7x slower on CPU for M3 (825ms vs 222ms, 17 blocks x 100 trials). Expected: associative scan has O(2T) work vs O(T) but O(log T) depth. GPU required for speedup.
+- **PSCAN-06 criteria (locked):** Group-mean posterior relative error < 5%, WAIC/LOO absolute difference < 1.0. Automated in cluster/13_bayesian_pscan.slurm Stage 3.
 
 ### v4.0 Decisions (19-02 completed 2026-04-14)
 
@@ -287,5 +303,5 @@ Progress: [██████░░░░] ~69% (25/~36 plans across Phases 13-2
 ## Session Continuity
 
 Last session: 2026-04-14
-Stopped at: Phase 19 Plan 02 complete (2 tasks, 4 commits). 12 pscan likelihood variants for all 6 choice-only models implemented and tested. All synthetic and real-data agreement tests pass. Next: Phase 19 Plan 03 (benchmarking pscan vs sequential).
+Stopped at: Phase 20 plan 01 complete. DEER research document delivered (NO-GO), precompute_last_action_global and precompute_last_actions_per_stimulus implemented with 7 passing tests. Next: 20-02 (vectorized policy likelihood variants) and 20-03 (documentation update).
 Resume file: None

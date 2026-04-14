@@ -3447,9 +3447,9 @@ def q_learning_block_likelihood_pscan(
 
     Phase 1 (parallel): Pre-compute Q_for_policy[t] for all t via
     ``associative_scan_q_update`` (O(log T) depth on parallel hardware).
-    Phase 2 (sequential): ``lax.scan`` reads Q_for_policy[t], computes
-    softmax + epsilon + log_prob, and accumulates log-likelihood.
-    No perseveration carry — only log-likelihood is accumulated.
+    Phase 2 (vectorized): Compute softmax + epsilon + log_prob for all
+    trials simultaneously using ``jax.vmap``. No sequential carry needed
+    (M1 has no perseveration).
 
     Parameters
     ----------
@@ -3475,6 +3475,7 @@ def q_learning_block_likelihood_pscan(
     # Phase 1 (parallel): Q-value trajectories for the whole block
     # Q_for_policy[t] = Q-table BEFORE update at trial t
     # ------------------------------------------------------------------
+    T = stimuli.shape[0]
     Q_for_policy = associative_scan_q_update(
         stimuli, actions, rewards, mask,
         alpha_pos, alpha_neg, q_init,
@@ -3482,30 +3483,19 @@ def q_learning_block_likelihood_pscan(
     )  # (T, S, A)
 
     # ------------------------------------------------------------------
-    # Phase 2 (sequential): policy computation only
-    # Carry: accumulated log-likelihood (scalar float)
+    # Phase 2 (vectorized): policy computation for all trials at once
+    # No perseveration carry — fully embarrassingly parallel.
     # ------------------------------------------------------------------
-    def policy_step(log_lik_accum, t_inputs):
-        t_idx, stimulus, action, valid = t_inputs
-
-        q_vals = Q_for_policy[t_idx, stimulus]  # (A,)
-        base_probs = softmax_policy(q_vals, FIXED_BETA)
-        noisy_probs = apply_epsilon_noise(base_probs, epsilon, num_actions)
-
-        log_prob = jnp.log(noisy_probs[action] + 1e-8)
-        log_prob_masked = log_prob * valid
-
-        return log_lik_accum + log_prob_masked, log_prob_masked
-
-    T = stimuli.shape[0]
-    t_indices = jnp.arange(T)
-    log_lik_total, log_probs = lax.scan(
-        policy_step, 0.0, (t_indices, stimuli, actions, mask)
-    )
+    q_vals = Q_for_policy[jnp.arange(T), stimuli]  # (T, A)
+    base_probs = jax.vmap(softmax_policy, in_axes=(0, None))(q_vals, FIXED_BETA)
+    noisy_probs = jax.vmap(apply_epsilon_noise, in_axes=(0, None, None))(
+        base_probs, epsilon, num_actions
+    )  # (T, A)
+    log_probs = jnp.log(noisy_probs[jnp.arange(T), actions] + 1e-8) * mask
 
     if return_pointwise:
-        return log_lik_total, log_probs
-    return log_lik_total
+        return jnp.sum(log_probs), log_probs
+    return jnp.sum(log_probs)
 
 
 def q_learning_multiblock_likelihood_stacked_pscan(
@@ -3615,8 +3605,9 @@ def wmrl_block_likelihood_pscan(
 
     Phase 1 (parallel): Pre-compute Q_for_policy[t] and wm_for_policy[t]
     via associative scans.
-    Phase 2 (sequential): Read pre-computed arrays, compute hybrid policy,
-    epsilon noise, log_prob, accumulate.  No perseveration carry.
+    Phase 2 (vectorized): Compute hybrid WM-Q policy, epsilon noise, and
+    log-probs for all trials simultaneously. No perseveration carry needed
+    (M2 has no choice kernel).
 
     Parameters
     ----------
@@ -3636,6 +3627,7 @@ def wmrl_block_likelihood_pscan(
         mask = jnp.ones(len(stimuli))
 
     # Phase 1: parallel Q and WM trajectories
+    T = stimuli.shape[0]
     Q_for_policy = associative_scan_q_update(
         stimuli, actions, rewards, mask,
         alpha_pos, alpha_neg, q_init,
@@ -3647,34 +3639,26 @@ def wmrl_block_likelihood_pscan(
         phi, wm_init, num_stimuli, num_actions,
     )  # (T, S, A)
 
-    # Phase 2: sequential policy scan (no perseveration carry)
-    def policy_step(log_lik_accum, t_inputs):
-        t_idx, stimulus, action, set_size, valid = t_inputs
+    # ------------------------------------------------------------------
+    # Phase 2 (vectorized): hybrid WM-Q policy for all trials at once
+    # ------------------------------------------------------------------
+    t_idx = jnp.arange(T)
+    q_vals = Q_for_policy[t_idx, stimuli]      # (T, A)
+    wm_vals = wm_for_policy[t_idx, stimuli]    # (T, A)
 
-        q_vals = Q_for_policy[t_idx, stimulus]
-        wm_vals = wm_for_policy[t_idx, stimulus]
-
-        omega = rho * jnp.minimum(1.0, capacity / set_size)
-        rl_probs = softmax_policy(q_vals, FIXED_BETA)
-        wm_probs = softmax_policy(wm_vals, FIXED_BETA)
-        hybrid_probs = omega * wm_probs + (1 - omega) * rl_probs
-        hybrid_probs = hybrid_probs / jnp.sum(hybrid_probs)
-        noisy_probs = apply_epsilon_noise(hybrid_probs, epsilon, num_actions)
-
-        log_prob = jnp.log(noisy_probs[action] + 1e-8)
-        log_prob_masked = log_prob * valid
-
-        return log_lik_accum + log_prob_masked, log_prob_masked
-
-    T = stimuli.shape[0]
-    t_indices = jnp.arange(T)
-    log_lik_total, log_probs = lax.scan(
-        policy_step, 0.0, (t_indices, stimuli, actions, set_sizes, mask)
-    )
+    omega = rho * jnp.minimum(1.0, capacity / set_sizes)  # (T,)
+    rl_probs = jax.vmap(softmax_policy, in_axes=(0, None))(q_vals, FIXED_BETA)
+    wm_probs = jax.vmap(softmax_policy, in_axes=(0, None))(wm_vals, FIXED_BETA)
+    base_probs = omega[:, None] * wm_probs + (1 - omega[:, None]) * rl_probs
+    base_probs = base_probs / jnp.sum(base_probs, axis=-1, keepdims=True)
+    noisy_probs = jax.vmap(apply_epsilon_noise, in_axes=(0, None, None))(
+        base_probs, epsilon, num_actions
+    )  # (T, A)
+    log_probs = jnp.log(noisy_probs[t_idx, actions] + 1e-8) * mask
 
     if return_pointwise:
-        return log_lik_total, log_probs
-    return log_lik_total
+        return jnp.sum(log_probs), log_probs
+    return jnp.sum(log_probs)
 
 
 def wmrl_multiblock_likelihood_stacked_pscan(
@@ -3798,9 +3782,9 @@ def wmrl_m3_block_likelihood_pscan(
     Drop-in replacement for ``wmrl_m3_block_likelihood``.
 
     Phase 1 (parallel): Pre-compute Q_for_policy[t] and wm_for_policy[t].
-    Phase 2 (sequential): ``lax.scan`` over trials carrying ``last_action``
-    (scalar int) for the global perseveration kernel.  Q and WM are read
-    from the pre-computed arrays at each trial, not updated sequentially.
+    Phase 2 (vectorized): Precompute global last_action array via
+    ``precompute_last_action_global``, then compute hybrid WM-Q policy
+    with global perseveration kernel for all trials simultaneously.
 
     Parameters
     ----------
@@ -3820,6 +3804,7 @@ def wmrl_m3_block_likelihood_pscan(
         mask = jnp.ones(len(stimuli))
 
     # Phase 1: parallel Q and WM trajectories
+    T = stimuli.shape[0]
     Q_for_policy = associative_scan_q_update(
         stimuli, actions, rewards, mask,
         alpha_pos, alpha_neg, q_init,
@@ -3831,45 +3816,35 @@ def wmrl_m3_block_likelihood_pscan(
         phi, wm_init, num_stimuli, num_actions,
     )  # (T, S, A)
 
-    # Phase 2: sequential scan carrying last_action for perseveration
-    def policy_step(carry, t_inputs):
-        log_lik_accum, last_action = carry
-        t_idx, stimulus, action, set_size, valid = t_inputs
+    # ------------------------------------------------------------------
+    # Phase 2 (vectorized): hybrid policy + global perseveration
+    # ------------------------------------------------------------------
+    t_idx = jnp.arange(T)
+    q_vals = Q_for_policy[t_idx, stimuli]      # (T, A)
+    wm_vals = wm_for_policy[t_idx, stimuli]    # (T, A)
 
-        q_vals = Q_for_policy[t_idx, stimulus]
-        wm_vals = wm_for_policy[t_idx, stimulus]
+    omega = rho * jnp.minimum(1.0, capacity / set_sizes)  # (T,)
+    rl_probs = jax.vmap(softmax_policy, in_axes=(0, None))(q_vals, FIXED_BETA)
+    wm_probs = jax.vmap(softmax_policy, in_axes=(0, None))(wm_vals, FIXED_BETA)
+    base_probs = omega[:, None] * wm_probs + (1 - omega[:, None]) * rl_probs
+    base_probs = base_probs / jnp.sum(base_probs, axis=-1, keepdims=True)
 
-        omega = rho * jnp.minimum(1.0, capacity / set_size)
-        rl_probs = softmax_policy(q_vals, FIXED_BETA)
-        wm_probs = softmax_policy(wm_vals, FIXED_BETA)
-        base_probs = omega * wm_probs + (1 - omega) * rl_probs
-        base_probs = base_probs / jnp.sum(base_probs)
+    noisy_base = jax.vmap(apply_epsilon_noise, in_axes=(0, None, None))(
+        base_probs, epsilon, num_actions
+    )  # (T, A)
 
-        noisy_base = apply_epsilon_noise(base_probs, epsilon, num_actions)
+    # Precompute global last_action for perseveration
+    last_action_pre = precompute_last_action_global(actions, mask)  # (T,)
+    use_m2_path = jnp.logical_or(kappa == 0.0, last_action_pre < 0)  # (T,)
+    choice_kernels = jnp.eye(num_actions)[jnp.maximum(last_action_pre, 0)]  # (T, A)
+    hybrid_probs = (1 - kappa) * noisy_base + kappa * choice_kernels
+    noisy_probs = jnp.where(use_m2_path[:, None], noisy_base, hybrid_probs)  # (T, A)
 
-        use_m2_path = jnp.logical_or(kappa == 0.0, last_action < 0)
-        choice_kernel = jnp.eye(num_actions)[jnp.maximum(last_action, 0)]
-        hybrid_probs_m3 = (1 - kappa) * noisy_base + kappa * choice_kernel
-        noisy_probs = jnp.where(use_m2_path, noisy_base, hybrid_probs_m3)
-
-        log_prob = jnp.log(noisy_probs[action] + 1e-8)
-        log_prob_masked = log_prob * valid
-
-        new_last_action = jnp.where(valid, action, last_action).astype(jnp.int32)
-
-        return (log_lik_accum + log_prob_masked, new_last_action), log_prob_masked
-
-    T = stimuli.shape[0]
-    t_indices = jnp.arange(T)
-    (log_lik_total, _), log_probs = lax.scan(
-        policy_step,
-        (0.0, jnp.array(-1, dtype=jnp.int32)),
-        (t_indices, stimuli, actions, set_sizes, mask),
-    )
+    log_probs = jnp.log(noisy_probs[t_idx, actions] + 1e-8) * mask
 
     if return_pointwise:
-        return log_lik_total, log_probs
-    return log_lik_total
+        return jnp.sum(log_probs), log_probs
+    return jnp.sum(log_probs)
 
 
 def wmrl_m3_multiblock_likelihood_stacked_pscan(
@@ -4013,9 +3988,10 @@ def wmrl_m5_block_likelihood_pscan(
 
     For padding trials (mask=0): same as inactive — decay only, no update.
 
-    Phase 2 (sequential): ``lax.scan`` with ``last_action`` carry for
-    global perseveration kernel.  Reads pre-computed Q_for_policy[t] and
-    wm_for_policy[t].
+    Phase 2 (vectorized): Precompute global last_action array via
+    ``precompute_last_action_global``, then compute hybrid WM-Q policy
+    with global perseveration kernel for all trials simultaneously.
+    Identical to M3 Phase 2 since M5 only differs in Phase 1.
 
     Parameters
     ----------
@@ -4088,45 +4064,34 @@ def wmrl_m5_block_likelihood_pscan(
     Q_decayed_for_policy = (1.0 - phi_rl) * Q_for_policy + phi_rl * Q0  # (T, S, A)
 
     # ------------------------------------------------------------------
-    # Phase 2: sequential policy scan with last_action carry
+    # Phase 2 (vectorized): hybrid policy + global perseveration
     # ------------------------------------------------------------------
-    def policy_step(carry, t_inputs):
-        log_lik_accum, last_action = carry
-        t_idx, stimulus, action, set_size, valid = t_inputs
+    t_idx = jnp.arange(T)
+    q_vals = Q_decayed_for_policy[t_idx, stimuli]  # (T, A)
+    wm_vals = wm_for_policy[t_idx, stimuli]        # (T, A)
 
-        q_vals = Q_decayed_for_policy[t_idx, stimulus]
-        wm_vals = wm_for_policy[t_idx, stimulus]
+    omega = rho * jnp.minimum(1.0, capacity / set_sizes)  # (T,)
+    rl_probs = jax.vmap(softmax_policy, in_axes=(0, None))(q_vals, FIXED_BETA)
+    wm_probs = jax.vmap(softmax_policy, in_axes=(0, None))(wm_vals, FIXED_BETA)
+    base_probs = omega[:, None] * wm_probs + (1 - omega[:, None]) * rl_probs
+    base_probs = base_probs / jnp.sum(base_probs, axis=-1, keepdims=True)
 
-        omega = rho * jnp.minimum(1.0, capacity / set_size)
-        rl_probs = softmax_policy(q_vals, FIXED_BETA)
-        wm_probs = softmax_policy(wm_vals, FIXED_BETA)
-        base_probs = omega * wm_probs + (1 - omega) * rl_probs
-        base_probs = base_probs / jnp.sum(base_probs)
+    noisy_base = jax.vmap(apply_epsilon_noise, in_axes=(0, None, None))(
+        base_probs, epsilon, num_actions
+    )  # (T, A)
 
-        noisy_base = apply_epsilon_noise(base_probs, epsilon, num_actions)
+    # Precompute global last_action for perseveration
+    last_action_pre = precompute_last_action_global(actions, mask)  # (T,)
+    use_m2_path = jnp.logical_or(kappa == 0.0, last_action_pre < 0)  # (T,)
+    choice_kernels = jnp.eye(num_actions)[jnp.maximum(last_action_pre, 0)]  # (T, A)
+    hybrid_probs = (1 - kappa) * noisy_base + kappa * choice_kernels
+    noisy_probs = jnp.where(use_m2_path[:, None], noisy_base, hybrid_probs)  # (T, A)
 
-        use_m2_path = jnp.logical_or(kappa == 0.0, last_action < 0)
-        choice_kernel = jnp.eye(num_actions)[jnp.maximum(last_action, 0)]
-        hybrid_probs_m5 = (1 - kappa) * noisy_base + kappa * choice_kernel
-        noisy_probs = jnp.where(use_m2_path, noisy_base, hybrid_probs_m5)
-
-        log_prob = jnp.log(noisy_probs[action] + 1e-8)
-        log_prob_masked = log_prob * valid
-
-        new_last_action = jnp.where(valid, action, last_action).astype(jnp.int32)
-
-        return (log_lik_accum + log_prob_masked, new_last_action), log_prob_masked
-
-    t_indices = jnp.arange(T)
-    (log_lik_total, _), log_probs = lax.scan(
-        policy_step,
-        (0.0, jnp.array(-1, dtype=jnp.int32)),
-        (t_indices, stimuli, actions, set_sizes, mask),
-    )
+    log_probs = jnp.log(noisy_probs[t_idx, actions] + 1e-8) * mask
 
     if return_pointwise:
-        return log_lik_total, log_probs
-    return log_lik_total
+        return jnp.sum(log_probs), log_probs
+    return jnp.sum(log_probs)
 
 
 def wmrl_m5_multiblock_likelihood_stacked_pscan(
@@ -4256,9 +4221,10 @@ def wmrl_m6a_block_likelihood_pscan(
     Drop-in replacement for ``wmrl_m6a_block_likelihood``.
 
     Phase 1 (parallel): Pre-compute Q_for_policy[t] and wm_for_policy[t].
-    Phase 2 (sequential): ``lax.scan`` carries ``last_actions`` (shape
-    (num_stimuli,) int32) for per-stimulus choice kernels.  Q and WM are
-    read from pre-computed arrays.
+    Phase 2 (vectorized): Precompute per-stimulus last_action array via
+    ``precompute_last_actions_per_stimulus``, then compute hybrid WM-Q
+    policy with per-stimulus perseveration kernel for all trials
+    simultaneously.
 
     Parameters
     ----------
@@ -4278,6 +4244,7 @@ def wmrl_m6a_block_likelihood_pscan(
         mask = jnp.ones(len(stimuli))
 
     # Phase 1: parallel Q and WM trajectories
+    T = stimuli.shape[0]
     Q_for_policy = associative_scan_q_update(
         stimuli, actions, rewards, mask,
         alpha_pos, alpha_neg, q_init,
@@ -4289,50 +4256,37 @@ def wmrl_m6a_block_likelihood_pscan(
         phi, wm_init, num_stimuli, num_actions,
     )
 
-    # Phase 2: sequential scan carrying per-stimulus last_actions
-    def policy_step(carry, t_inputs):
-        log_lik_accum, last_actions = carry
-        t_idx, stimulus, action, set_size, valid = t_inputs
+    # ------------------------------------------------------------------
+    # Phase 2 (vectorized): hybrid policy + per-stimulus perseveration
+    # ------------------------------------------------------------------
+    t_idx = jnp.arange(T)
+    q_vals = Q_for_policy[t_idx, stimuli]      # (T, A)
+    wm_vals = wm_for_policy[t_idx, stimuli]    # (T, A)
 
-        q_vals = Q_for_policy[t_idx, stimulus]
-        wm_vals = wm_for_policy[t_idx, stimulus]
+    omega = rho * jnp.minimum(1.0, capacity / set_sizes)  # (T,)
+    rl_probs = jax.vmap(softmax_policy, in_axes=(0, None))(q_vals, FIXED_BETA)
+    wm_probs = jax.vmap(softmax_policy, in_axes=(0, None))(wm_vals, FIXED_BETA)
+    base_probs = omega[:, None] * wm_probs + (1 - omega[:, None]) * rl_probs
+    base_probs = base_probs / jnp.sum(base_probs, axis=-1, keepdims=True)
 
-        omega = rho * jnp.minimum(1.0, capacity / set_size)
-        rl_probs = softmax_policy(q_vals, FIXED_BETA)
-        wm_probs = softmax_policy(wm_vals, FIXED_BETA)
-        base_probs = omega * wm_probs + (1 - omega) * rl_probs
-        base_probs = base_probs / jnp.sum(base_probs)
+    noisy_base = jax.vmap(apply_epsilon_noise, in_axes=(0, None, None))(
+        base_probs, epsilon, num_actions
+    )  # (T, A)
 
-        noisy_base = apply_epsilon_noise(base_probs, epsilon, num_actions)
+    # Precompute per-stimulus last_action for perseveration
+    last_action_stim = precompute_last_actions_per_stimulus(
+        stimuli, actions, mask, num_stimuli
+    )  # (T,)
+    use_m2_path = jnp.logical_or(kappa_s == 0.0, last_action_stim < 0)  # (T,)
+    choice_kernels = jnp.eye(num_actions)[jnp.maximum(last_action_stim, 0)]  # (T, A)
+    hybrid_probs = (1 - kappa_s) * noisy_base + kappa_s * choice_kernels
+    noisy_probs = jnp.where(use_m2_path[:, None], noisy_base, hybrid_probs)  # (T, A)
 
-        last_action_s = last_actions[stimulus]
-        use_m2_path = jnp.logical_or(kappa_s == 0.0, last_action_s < 0)
-        choice_kernel = jnp.eye(num_actions)[jnp.maximum(last_action_s, 0)]
-        hybrid_probs_m6a = (1 - kappa_s) * noisy_base + kappa_s * choice_kernel
-        noisy_probs = jnp.where(use_m2_path, noisy_base, hybrid_probs_m6a)
-
-        log_prob = jnp.log(noisy_probs[action] + 1e-8)
-        log_prob_masked = log_prob * valid
-
-        # Update per-stimulus last_action for this stimulus
-        new_last_actions = last_actions.at[stimulus].set(
-            jnp.where(valid, action, last_action_s).astype(jnp.int32)
-        )
-
-        return (log_lik_accum + log_prob_masked, new_last_actions), log_prob_masked
-
-    T = stimuli.shape[0]
-    last_actions_init = jnp.full((num_stimuli,), -1, dtype=jnp.int32)
-    t_indices = jnp.arange(T)
-    (log_lik_total, _), log_probs = lax.scan(
-        policy_step,
-        (0.0, last_actions_init),
-        (t_indices, stimuli, actions, set_sizes, mask),
-    )
+    log_probs = jnp.log(noisy_probs[t_idx, actions] + 1e-8) * mask
 
     if return_pointwise:
-        return log_lik_total, log_probs
-    return log_lik_total
+        return jnp.sum(log_probs), log_probs
+    return jnp.sum(log_probs)
 
 
 def wmrl_m6a_multiblock_likelihood_stacked_pscan(
@@ -4460,10 +4414,10 @@ def wmrl_m6b_block_likelihood_pscan(
     Drop-in replacement for ``wmrl_m6b_block_likelihood``.
 
     Phase 1 (parallel): Pre-compute Q_for_policy[t] and wm_for_policy[t].
-    Phase 2 (sequential): ``lax.scan`` carries both ``last_action`` (scalar
-    int, global M3 component) and ``last_actions`` (array shape (num_stimuli,)
-    int32, per-stimulus M6a component).  Q and WM are read from pre-computed
-    arrays.
+    Phase 2 (vectorized): Precompute both global and per-stimulus last_action
+    arrays via ``precompute_last_action_global`` and
+    ``precompute_last_actions_per_stimulus``, then compute hybrid WM-Q
+    policy with dual perseveration kernels for all trials simultaneously.
 
     Parameters
     ----------
@@ -4483,6 +4437,7 @@ def wmrl_m6b_block_likelihood_pscan(
         mask = jnp.ones(len(stimuli))
 
     # Phase 1: parallel Q and WM trajectories
+    T = stimuli.shape[0]
     Q_for_policy = associative_scan_q_update(
         stimuli, actions, rewards, mask,
         alpha_pos, alpha_neg, q_init,
@@ -4494,62 +4449,50 @@ def wmrl_m6b_block_likelihood_pscan(
         phi, wm_init, num_stimuli, num_actions,
     )
 
-    # Phase 2: sequential scan carrying DUAL perseveration state
-    def policy_step(carry, t_inputs):
-        log_lik_accum, last_action, last_actions = carry
-        t_idx, stimulus, action, set_size, valid = t_inputs
+    # ------------------------------------------------------------------
+    # Phase 2 (vectorized): hybrid policy + dual perseveration
+    # ------------------------------------------------------------------
+    t_idx = jnp.arange(T)
+    q_vals = Q_for_policy[t_idx, stimuli]      # (T, A)
+    wm_vals = wm_for_policy[t_idx, stimuli]    # (T, A)
 
-        q_vals = Q_for_policy[t_idx, stimulus]
-        wm_vals = wm_for_policy[t_idx, stimulus]
+    omega = rho * jnp.minimum(1.0, capacity / set_sizes)  # (T,)
+    rl_probs = jax.vmap(softmax_policy, in_axes=(0, None))(q_vals, FIXED_BETA)
+    wm_probs = jax.vmap(softmax_policy, in_axes=(0, None))(wm_vals, FIXED_BETA)
+    base_probs = omega[:, None] * wm_probs + (1 - omega[:, None]) * rl_probs
+    base_probs = base_probs / jnp.sum(base_probs, axis=-1, keepdims=True)
 
-        omega = rho * jnp.minimum(1.0, capacity / set_size)
-        rl_probs = softmax_policy(q_vals, FIXED_BETA)
-        wm_probs = softmax_policy(wm_vals, FIXED_BETA)
-        base_probs = omega * wm_probs + (1 - omega) * rl_probs
-        base_probs = base_probs / jnp.sum(base_probs)
+    P_noisy = jax.vmap(apply_epsilon_noise, in_axes=(0, None, None))(
+        base_probs, epsilon, num_actions
+    )  # (T, A)
 
-        P_noisy = apply_epsilon_noise(base_probs, epsilon, num_actions)
+    # Precompute BOTH global and per-stimulus last_action arrays
+    last_action_global = precompute_last_action_global(actions, mask)  # (T,)
+    last_action_stim = precompute_last_actions_per_stimulus(
+        stimuli, actions, mask, num_stimuli
+    )  # (T,)
 
-        # Global kernel (M3 component)
-        has_global = jnp.logical_and(kappa > 0.0, last_action >= 0)
-        Ck_global = jnp.eye(num_actions)[jnp.maximum(last_action, 0)]
-        eff_kappa = jnp.where(has_global, kappa, 0.0)
+    # Global kernel (M3 component)
+    has_global = jnp.logical_and(kappa > 0.0, last_action_global >= 0)  # (T,)
+    Ck_global = jnp.eye(num_actions)[jnp.maximum(last_action_global, 0)]  # (T, A)
+    eff_kappa = jnp.where(has_global, kappa, 0.0)  # (T,)
 
-        # Stimulus-specific kernel (M6a component)
-        last_action_s = last_actions[stimulus]
-        has_stim = jnp.logical_and(kappa_s > 0.0, last_action_s >= 0)
-        Ck_stim = jnp.eye(num_actions)[jnp.maximum(last_action_s, 0)]
-        eff_kappa_s = jnp.where(has_stim, kappa_s, 0.0)
+    # Stimulus-specific kernel (M6a component)
+    has_stim = jnp.logical_and(kappa_s > 0.0, last_action_stim >= 0)  # (T,)
+    Ck_stim = jnp.eye(num_actions)[jnp.maximum(last_action_stim, 0)]  # (T, A)
+    eff_kappa_s = jnp.where(has_stim, kappa_s, 0.0)  # (T,)
 
-        noisy_probs = (
-            (1.0 - eff_kappa - eff_kappa_s) * P_noisy
-            + eff_kappa * Ck_global
-            + eff_kappa_s * Ck_stim
-        )
+    noisy_probs = (
+        (1.0 - eff_kappa[:, None] - eff_kappa_s[:, None]) * P_noisy
+        + eff_kappa[:, None] * Ck_global
+        + eff_kappa_s[:, None] * Ck_stim
+    )  # (T, A)
 
-        log_prob = jnp.log(noisy_probs[action] + 1e-8)
-        log_prob_masked = log_prob * valid
-
-        # Update both perseveration states
-        new_last_action = jnp.where(valid, action, last_action).astype(jnp.int32)
-        new_last_actions = last_actions.at[stimulus].set(
-            jnp.where(valid, action, last_action_s).astype(jnp.int32)
-        )
-
-        return (log_lik_accum + log_prob_masked, new_last_action, new_last_actions), log_prob_masked
-
-    T = stimuli.shape[0]
-    last_actions_init = jnp.full((num_stimuli,), -1, dtype=jnp.int32)
-    t_indices = jnp.arange(T)
-    (log_lik_total, _, _), log_probs = lax.scan(
-        policy_step,
-        (0.0, jnp.array(-1, dtype=jnp.int32), last_actions_init),
-        (t_indices, stimuli, actions, set_sizes, mask),
-    )
+    log_probs = jnp.log(noisy_probs[t_idx, actions] + 1e-8) * mask
 
     if return_pointwise:
-        return log_lik_total, log_probs
-    return log_lik_total
+        return jnp.sum(log_probs), log_probs
+    return jnp.sum(log_probs)
 
 
 def wmrl_m6b_multiblock_likelihood_stacked_pscan(
