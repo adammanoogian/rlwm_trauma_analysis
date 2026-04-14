@@ -17,7 +17,7 @@ Usage
 Outputs
 -------
     - Console: timing table with speedup ratios
-    - JSON: output/bayesian/pscan_benchmark.json
+    - JSON: output/bayesian/pscan_benchmark_{cpu|gpu}.json
 """
 
 from __future__ import annotations
@@ -505,10 +505,11 @@ def main() -> None:
         peak_mb = gpu_mem["peak_bytes_in_use"] / (1024 * 1024)
         print(f"GPU peak memory: {peak_mb:.1f} MB")
 
-    # Save JSON
+    # Save JSON — filename includes backend so CPU and GPU results coexist
     output_dir = _PROJECT_ROOT / "output" / "bayesian"
     output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = output_dir / "pscan_benchmark.json"
+    backend = jax.default_backend().lower()  # "cpu" or "gpu"
+    output_path = output_dir / f"pscan_benchmark_{backend}.json"
 
     output_data = {
         "device": device_info,
