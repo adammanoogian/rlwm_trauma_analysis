@@ -1,18 +1,25 @@
 """
-Unit tests for parallel scan (pscan) likelihood primitives.
+Unit tests for parallel scan (pscan) likelihood primitives and model variants.
 
 Tests:
 - affine_scan: basic correctness, identity, reset handling
 - associative_scan_q_update: agreement with sequential Q-learning
 - associative_scan_wm_update: decay-only and decay+overwrite against sequential
+- Model pscan variants: agreement with sequential *_multiblock_likelihood_stacked
+  for all 6 choice-only models (M1/M2/M3/M5/M6a/M6b) on synthetic data
+- Real-data agreement tests (marked slow, skipped if data files unavailable)
 
 All comparisons use element-wise relative error thresholds documented in
 ``docs/PARALLEL_SCAN_LIKELIHOOD.md``:
 - Typical parameters (alpha <= 0.5): < 1e-5 relative error
 - Extreme alpha (~0.95): < 1e-3 relative error (alpha approximation degrades)
+- Multiblock NLL agreement: < 1e-4 absolute or relative error
 """
 
 from __future__ import annotations
+
+import os
+from pathlib import Path
 
 import numpy as np
 import jax
@@ -20,10 +27,30 @@ import jax.numpy as jnp
 import pytest
 
 from scripts.fitting.jax_likelihoods import (
+    MAX_TRIALS_PER_BLOCK,
     affine_scan,
     associative_scan_q_update,
     associative_scan_wm_update,
+    # Sequential multiblock stacked variants
+    q_learning_multiblock_likelihood_stacked,
+    wmrl_multiblock_likelihood_stacked,
+    wmrl_m3_multiblock_likelihood_stacked,
+    wmrl_m5_multiblock_likelihood_stacked,
+    wmrl_m6a_multiblock_likelihood_stacked,
+    wmrl_m6b_multiblock_likelihood_stacked,
+    # Pscan multiblock stacked variants
+    q_learning_multiblock_likelihood_stacked_pscan,
+    wmrl_multiblock_likelihood_stacked_pscan,
+    wmrl_m3_multiblock_likelihood_stacked_pscan,
+    wmrl_m5_multiblock_likelihood_stacked_pscan,
+    wmrl_m6a_multiblock_likelihood_stacked_pscan,
+    wmrl_m6b_multiblock_likelihood_stacked_pscan,
 )
+
+# Path to project root (3 levels up from scripts/fitting/tests/)
+_PROJECT_ROOT = Path(__file__).parents[3]
+_MLE_DIR = _PROJECT_ROOT / "output" / "mle"
+_DATA_PATH = _PROJECT_ROOT / "output" / "task_trials_long.csv"
 
 
 # =============================================================================
@@ -539,4 +566,414 @@ def test_wm_update_agreement_with_sequential():
     )
     assert rel_err_after < 1e-5, (
         f"wm_after_update relative error {rel_err_after:.2e} > 1e-5"
+    )
+
+
+# =============================================================================
+# FIXTURE: synthetic multi-block stacked data
+# =============================================================================
+
+
+@pytest.fixture
+def synthetic_stacked_data():
+    """
+    Generate synthetic 3-block stacked data in the format expected by
+    ``*_multiblock_likelihood_stacked`` functions.
+
+    Returns a dict with:
+        stimuli_stacked   (3, MAX_TRIALS_PER_BLOCK) int32
+        actions_stacked   (3, MAX_TRIALS_PER_BLOCK) int32
+        rewards_stacked   (3, MAX_TRIALS_PER_BLOCK) float32
+        set_sizes_stacked (3, MAX_TRIALS_PER_BLOCK) float32
+        masks_stacked     (3, MAX_TRIALS_PER_BLOCK) float32
+        n_blocks          3
+    """
+    rng = np.random.default_rng(20240414)
+    n_blocks = 3
+    real_trials = [50, 50, 50]  # same for each block
+    S, A = 6, 3
+    T = MAX_TRIALS_PER_BLOCK  # 100
+
+    stimuli_stacked = np.zeros((n_blocks, T), dtype=np.int32)
+    actions_stacked = np.zeros((n_blocks, T), dtype=np.int32)
+    rewards_stacked = np.zeros((n_blocks, T), dtype=np.float32)
+    set_sizes_stacked = np.ones((n_blocks, T), dtype=np.float32) * 2.0
+    masks_stacked = np.zeros((n_blocks, T), dtype=np.float32)
+
+    # Different set sizes per block to exercise omega computation
+    block_set_sizes = [2, 3, 6]
+
+    for b in range(n_blocks):
+        n = real_trials[b]
+        stimuli_stacked[b, :n] = rng.integers(0, S, n)
+        actions_stacked[b, :n] = rng.integers(0, A, n)
+        rewards_stacked[b, :n] = rng.choice([0.0, 1.0], n).astype(np.float32)
+        set_sizes_stacked[b, :n] = block_set_sizes[b]
+        masks_stacked[b, :n] = 1.0
+
+    return {
+        "stimuli_stacked": jnp.array(stimuli_stacked),
+        "actions_stacked": jnp.array(actions_stacked),
+        "rewards_stacked": jnp.array(rewards_stacked),
+        "set_sizes_stacked": jnp.array(set_sizes_stacked),
+        "masks_stacked": jnp.array(masks_stacked),
+        "n_blocks": n_blocks,
+    }
+
+
+# =============================================================================
+# HELPER: load MLE parameters from CSV
+# =============================================================================
+
+
+def _load_mle_params(model: str, participant_idx: int) -> dict:
+    """
+    Load MLE parameters for a single participant from the CSV file.
+
+    Parameters
+    ----------
+    model : str
+        One of 'qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b'.
+    participant_idx : int
+        Row index (0-based) in the CSV.
+
+    Returns
+    -------
+    dict
+        Parameter dict matching the function signature of the model's
+        sequential likelihood.
+    """
+    import pandas as pd
+
+    csv_path = _MLE_DIR / f"{model}_individual_fits.csv"
+    df = pd.read_csv(csv_path)
+    row = df.iloc[participant_idx]
+
+    # Model-specific parameter extraction
+    base = {
+        "alpha_pos": float(row["alpha_pos"]),
+        "alpha_neg": float(row["alpha_neg"]),
+        "epsilon": float(row["epsilon"]),
+    }
+    if model == "qlearning":
+        return base
+
+    wm_base = {
+        **base,
+        "phi": float(row["phi"]),
+        "rho": float(row["rho"]),
+        "capacity": float(row["capacity"]),
+    }
+    if model == "wmrl":
+        return wm_base
+
+    if model == "wmrl_m3":
+        return {**wm_base, "kappa": float(row["kappa"])}
+
+    if model == "wmrl_m5":
+        return {**wm_base, "kappa": float(row["kappa"]), "phi_rl": float(row["phi_rl"])}
+
+    if model == "wmrl_m6a":
+        return {**wm_base, "kappa_s": float(row["kappa_s"])}
+
+    if model == "wmrl_m6b":
+        # M6b stores kappa_total / kappa_share in CSV; decode to kappa / kappa_s
+        kappa_total = float(row["kappa_total"])
+        kappa_share = float(row["kappa_share"])
+        return {
+            **wm_base,
+            "kappa": kappa_total * kappa_share,
+            "kappa_s": kappa_total * (1.0 - kappa_share),
+        }
+
+    raise ValueError(f"Unknown model: {model}")
+
+
+# =============================================================================
+# HELPER: call sequential and pscan multiblock functions for a given model
+# =============================================================================
+
+
+def _call_seq_and_pscan(model: str, data: dict, params: dict) -> tuple[float, float]:
+    """
+    Call the sequential and pscan multiblock stacked functions for a model.
+
+    Returns
+    -------
+    (nll_seq, nll_pscan) : tuple of float
+        Negative log-likelihoods (actually raw log-likelihoods; compare as-is).
+    """
+    stim = data["stimuli_stacked"]
+    act = data["actions_stacked"]
+    rew = data["rewards_stacked"]
+    mask = data["masks_stacked"]
+
+    if model == "qlearning":
+        nll_seq = float(q_learning_multiblock_likelihood_stacked(
+            stim, act, rew, mask, **params
+        ))
+        nll_pscan = float(q_learning_multiblock_likelihood_stacked_pscan(
+            stim, act, rew, mask, **params
+        ))
+        return nll_seq, nll_pscan
+
+    ss = data["set_sizes_stacked"]
+
+    if model == "wmrl":
+        nll_seq = float(wmrl_multiblock_likelihood_stacked(
+            stim, act, rew, ss, mask, **params
+        ))
+        nll_pscan = float(wmrl_multiblock_likelihood_stacked_pscan(
+            stim, act, rew, ss, mask, **params
+        ))
+
+    elif model == "wmrl_m3":
+        nll_seq = float(wmrl_m3_multiblock_likelihood_stacked(
+            stim, act, rew, ss, mask, **params
+        ))
+        nll_pscan = float(wmrl_m3_multiblock_likelihood_stacked_pscan(
+            stim, act, rew, ss, mask, **params
+        ))
+
+    elif model == "wmrl_m5":
+        nll_seq = float(wmrl_m5_multiblock_likelihood_stacked(
+            stim, act, rew, ss, mask, **params
+        ))
+        nll_pscan = float(wmrl_m5_multiblock_likelihood_stacked_pscan(
+            stim, act, rew, ss, mask, **params
+        ))
+
+    elif model == "wmrl_m6a":
+        nll_seq = float(wmrl_m6a_multiblock_likelihood_stacked(
+            stim, act, rew, ss, mask, **params
+        ))
+        nll_pscan = float(wmrl_m6a_multiblock_likelihood_stacked_pscan(
+            stim, act, rew, ss, mask, **params
+        ))
+
+    elif model == "wmrl_m6b":
+        nll_seq = float(wmrl_m6b_multiblock_likelihood_stacked(
+            stim, act, rew, ss, mask, **params
+        ))
+        nll_pscan = float(wmrl_m6b_multiblock_likelihood_stacked_pscan(
+            stim, act, rew, ss, mask, **params
+        ))
+
+    else:
+        raise ValueError(f"Unknown model: {model}")
+
+    return nll_seq, nll_pscan
+
+
+# =============================================================================
+# TYPICAL PARAMETERS FOR EACH MODEL (used in synthetic tests)
+# =============================================================================
+
+_TYPICAL_PARAMS = {
+    "qlearning": {"alpha_pos": 0.3, "alpha_neg": 0.1, "epsilon": 0.05},
+    "wmrl": {
+        "alpha_pos": 0.3, "alpha_neg": 0.1,
+        "phi": 0.1, "rho": 0.7, "capacity": 3.0, "epsilon": 0.05,
+    },
+    "wmrl_m3": {
+        "alpha_pos": 0.3, "alpha_neg": 0.1,
+        "phi": 0.1, "rho": 0.7, "capacity": 3.0, "kappa": 0.2, "epsilon": 0.05,
+    },
+    "wmrl_m5": {
+        "alpha_pos": 0.3, "alpha_neg": 0.1,
+        "phi": 0.1, "rho": 0.7, "capacity": 3.0, "kappa": 0.2,
+        "phi_rl": 0.05, "epsilon": 0.05,
+    },
+    "wmrl_m6a": {
+        "alpha_pos": 0.3, "alpha_neg": 0.1,
+        "phi": 0.1, "rho": 0.7, "capacity": 3.0, "kappa_s": 0.2, "epsilon": 0.05,
+    },
+    "wmrl_m6b": {
+        "alpha_pos": 0.3, "alpha_neg": 0.1,
+        "phi": 0.1, "rho": 0.7, "capacity": 3.0,
+        "kappa": 0.15, "kappa_s": 0.10, "epsilon": 0.05,
+    },
+}
+
+
+# =============================================================================
+# TESTS 9-14: Synthetic agreement tests for all 6 models
+# =============================================================================
+
+
+@pytest.mark.parametrize("model", [
+    "qlearning", "wmrl", "wmrl_m3", "wmrl_m5", "wmrl_m6a", "wmrl_m6b",
+])
+def test_pscan_agreement_synthetic(model, synthetic_stacked_data):
+    """
+    Each pscan multiblock likelihood must agree with its sequential counterpart
+    to < 1e-4 absolute error on synthetic 3-block data.
+
+    Also tests return_pointwise=True: per-trial log-probs agree to < 1e-4.
+    """
+    data = synthetic_stacked_data
+    params = _TYPICAL_PARAMS[model]
+
+    nll_seq, nll_pscan = _call_seq_and_pscan(model, data, params)
+
+    abs_err = abs(nll_seq - nll_pscan)
+    max_nll = max(abs(nll_seq), 1e-8)
+    rel_err = abs_err / max_nll
+
+    assert abs_err < 1e-4 or rel_err < 1e-4, (
+        f"[{model}] synthetic NLL agreement failed: "
+        f"seq={nll_seq:.6f}, pscan={nll_pscan:.6f}, "
+        f"abs_err={abs_err:.2e}, rel_err={rel_err:.2e}"
+    )
+
+    # Also test return_pointwise=True
+    stim = data["stimuli_stacked"]
+    act = data["actions_stacked"]
+    rew = data["rewards_stacked"]
+    mask = data["masks_stacked"]
+
+    if model == "qlearning":
+        _, probs_seq = q_learning_multiblock_likelihood_stacked(
+            stim, act, rew, mask, return_pointwise=True, **params
+        )
+        _, probs_pscan = q_learning_multiblock_likelihood_stacked_pscan(
+            stim, act, rew, mask, return_pointwise=True, **params
+        )
+    else:
+        ss = data["set_sizes_stacked"]
+        seq_fn_map = {
+            "wmrl": wmrl_multiblock_likelihood_stacked,
+            "wmrl_m3": wmrl_m3_multiblock_likelihood_stacked,
+            "wmrl_m5": wmrl_m5_multiblock_likelihood_stacked,
+            "wmrl_m6a": wmrl_m6a_multiblock_likelihood_stacked,
+            "wmrl_m6b": wmrl_m6b_multiblock_likelihood_stacked,
+        }
+        pscan_fn_map = {
+            "wmrl": wmrl_multiblock_likelihood_stacked_pscan,
+            "wmrl_m3": wmrl_m3_multiblock_likelihood_stacked_pscan,
+            "wmrl_m5": wmrl_m5_multiblock_likelihood_stacked_pscan,
+            "wmrl_m6a": wmrl_m6a_multiblock_likelihood_stacked_pscan,
+            "wmrl_m6b": wmrl_m6b_multiblock_likelihood_stacked_pscan,
+        }
+        _, probs_seq = seq_fn_map[model](
+            stim, act, rew, ss, mask, return_pointwise=True, **params
+        )
+        _, probs_pscan = pscan_fn_map[model](
+            stim, act, rew, ss, mask, return_pointwise=True, **params
+        )
+
+    probs_seq_np = np.array(probs_seq)
+    probs_pscan_np = np.array(probs_pscan)
+    max_pointwise_err = float(np.max(np.abs(probs_seq_np - probs_pscan_np)))
+    assert max_pointwise_err < 1e-4, (
+        f"[{model}] per-trial log-prob max deviation: {max_pointwise_err:.2e} > 1e-4"
+    )
+
+
+# =============================================================================
+# TESTS 15-20: Real-data single-participant smoke tests (marked slow)
+# =============================================================================
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize("model", [
+    "qlearning", "wmrl", "wmrl_m3", "wmrl_m5", "wmrl_m6a", "wmrl_m6b",
+])
+def test_pscan_agreement_real_data(model):
+    """
+    Pscan variant must agree with sequential to < 1e-4 relative error on the
+    first participant's real data using that participant's MLE parameters.
+
+    Skipped if the MLE CSV or trial data files are not available.
+    """
+    csv_path = _MLE_DIR / f"{model}_individual_fits.csv"
+    if not csv_path.exists():
+        pytest.skip(f"MLE CSV not found: {csv_path}")
+    if not _DATA_PATH.exists():
+        pytest.skip(f"Trial data not found: {_DATA_PATH}")
+
+    import pandas as pd
+    from scripts.fitting.numpyro_models import prepare_stacked_participant_data
+
+    # Load trial data
+    data_df = pd.read_csv(_DATA_PATH)
+    participant_data = prepare_stacked_participant_data(data_df)
+
+    # Use first participant
+    pid = sorted(participant_data.keys())[0]
+    pdata = participant_data[pid]
+    params = _load_mle_params(model, participant_idx=0)
+
+    nll_seq, nll_pscan = _call_seq_and_pscan(model, pdata, params)
+
+    abs_err = abs(nll_seq - nll_pscan)
+    max_nll = max(abs(nll_seq), 1e-8)
+    rel_err = abs_err / max_nll
+
+    assert rel_err < 1e-4, (
+        f"[{model}] real-data (participant {pid}) agreement failed: "
+        f"seq={nll_seq:.4f}, pscan={nll_pscan:.4f}, rel_err={rel_err:.2e}"
+    )
+
+
+# =============================================================================
+# TESTS 21-26: Full N=154 agreement (marked slow, PSCAN-04 validation)
+# =============================================================================
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize("model", [
+    "qlearning", "wmrl", "wmrl_m3", "wmrl_m5", "wmrl_m6a", "wmrl_m6b",
+])
+def test_pscan_full_n154_agreement(model):
+    """
+    PSCAN-04: Pscan multiblock likelihood must agree with sequential to
+    < 1e-4 relative error for ALL 154 real participants.
+
+    Logs the maximum relative error observed across all participants per model.
+    Skipped if data files are unavailable.
+    """
+    csv_path = _MLE_DIR / f"{model}_individual_fits.csv"
+    if not csv_path.exists():
+        pytest.skip(f"MLE CSV not found: {csv_path}")
+    if not _DATA_PATH.exists():
+        pytest.skip(f"Trial data not found: {_DATA_PATH}")
+
+    import pandas as pd
+    from scripts.fitting.numpyro_models import prepare_stacked_participant_data
+
+    data_df = pd.read_csv(_DATA_PATH)
+    participant_data = prepare_stacked_participant_data(data_df)
+    mle_df = pd.read_csv(csv_path)
+
+    participants = sorted(participant_data.keys())
+    max_rel_err = 0.0
+    failures = []
+
+    for idx, pid in enumerate(participants):
+        pdata = participant_data[pid]
+        params = _load_mle_params(model, participant_idx=idx)
+
+        nll_seq, nll_pscan = _call_seq_and_pscan(model, pdata, params)
+
+        abs_err = abs(nll_seq - nll_pscan)
+        max_nll = max(abs(nll_seq), 1e-8)
+        rel_err = abs_err / max_nll
+
+        if rel_err > max_rel_err:
+            max_rel_err = rel_err
+
+        if rel_err >= 1e-4:
+            failures.append((pid, nll_seq, nll_pscan, rel_err))
+
+    print(
+        f"\n[{model}] N=154 max relative error: {max_rel_err:.2e} "
+        f"({'PASS' if not failures else 'FAIL'})"
+    )
+
+    assert not failures, (
+        f"[{model}] {len(failures)}/{len(participants)} participants exceeded 1e-4 "
+        f"relative error threshold. Max rel_err={max_rel_err:.2e}. "
+        f"First failure: participant={failures[0][0]}, seq={failures[0][1]:.4f}, "
+        f"pscan={failures[0][2]:.4f}, rel_err={failures[0][3]:.2e}"
     )
