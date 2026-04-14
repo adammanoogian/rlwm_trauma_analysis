@@ -344,7 +344,8 @@ def compute_pointwise_log_lik(
     n_participants = len(participant_ids)
 
     # Build per-participant pointwise arrays, one participant at a time.
-    # Each call returns shape (chains, samples_per_chain, n_blocks * max_trials).
+    # Each call returns shape (chains, samples_per_chain, n_blocks_i * max_trials)
+    # where n_blocks_i may differ across participants.
     per_participant_outputs = []
 
     for idx, pid in enumerate(participant_ids):
@@ -366,12 +367,23 @@ def compute_pointwise_log_lik(
         # JIT for performance
         jitted = jax.jit(vmapped_over_chains)
 
-        # Result: (chains, samples_per_chain, n_blocks * max_trials)
+        # Result: (chains, samples_per_chain, n_blocks_i * max_trials)
         result = jitted(*param_arrays)
         per_participant_outputs.append(result)
 
-    # Stack: (chains, samples_per_chain, n_participants, n_blocks * max_trials)
-    return jnp.stack(per_participant_outputs, axis=2)
+    # Participants may have different n_blocks (e.g., 12 vs 17), producing
+    # different trial-dimension lengths.  Pad shorter arrays with 0.0
+    # (masked trials already contribute 0.0) so jnp.stack succeeds.
+    max_trials_dim = max(arr.shape[-1] for arr in per_participant_outputs)
+    padded_outputs = []
+    for arr in per_participant_outputs:
+        pad_width = max_trials_dim - arr.shape[-1]
+        if pad_width > 0:
+            arr = jnp.pad(arr, ((0, 0), (0, 0), (0, pad_width)), constant_values=0.0)
+        padded_outputs.append(arr)
+
+    # Stack: (chains, samples_per_chain, n_participants, max_trials_dim)
+    return jnp.stack(padded_outputs, axis=2)
 
 
 def build_inference_data_with_loglik(
@@ -589,12 +601,20 @@ def filter_padding_from_loglik(
     downstream ArviZ operations work on NumPy-backed data.
     """
     result = np.array(pointwise_loglik, dtype=np.float32)
+    max_trials_dim = result.shape[-1]
 
     for idx, pid in enumerate(sorted(participant_data_stacked.keys())):
         mask = np.array(
             participant_data_stacked[pid]["masks_stacked"], dtype=np.float32
-        )  # (n_blocks, max_trials)
-        flat_mask = mask.reshape(-1)  # (n_blocks * max_trials,)
+        )  # (n_blocks_i, max_trials)
+        flat_mask = mask.reshape(-1)  # (n_blocks_i * max_trials,)
+
+        # Pad flat_mask to match the padded trial dimension (participants
+        # with fewer blocks have shorter masks than max_trials_dim).
+        if flat_mask.shape[0] < max_trials_dim:
+            flat_mask = np.pad(
+                flat_mask, (0, max_trials_dim - flat_mask.shape[0]), constant_values=0.0
+            )
 
         # Where mask == 0, set to NaN
         padding_indices = np.where(flat_mask == 0.0)[0]
@@ -704,20 +724,23 @@ def run_posterior_predictive_check(
         arr = np.array(samples[name])  # (chains, draws, n_participants)
         flat_params[name] = arr.reshape(total_draws, n_participants)
 
-    # Get block-level stacked structure from one participant to determine shape
-    # masks_stacked: (n_blocks, max_trials)
-    first_pid = participant_ids[0]
-    n_blocks_stacked = participant_data_stacked[first_pid]["masks_stacked"].shape[0]
-    max_trials = participant_data_stacked[first_pid]["masks_stacked"].shape[1]
+    # Get block-level stacked structure — participants may have different n_blocks.
+    # Use the max across all participants for the predicted_acc array.
+    max_trials = participant_data_stacked[participant_ids[0]]["masks_stacked"].shape[1]
+    max_n_blocks = max(
+        participant_data_stacked[pid]["masks_stacked"].shape[0]
+        for pid in participant_ids
+    )
 
     # predicted_acc[draw_idx, participant_idx, block_idx] = mean exp(logprob) in block
-    predicted_acc = np.zeros(
-        (len(draw_indices), n_participants, n_blocks_stacked), dtype=np.float32
+    predicted_acc = np.full(
+        (len(draw_indices), n_participants, max_n_blocks), np.nan, dtype=np.float32
     )
 
     for draw_i, draw_idx in enumerate(draw_indices):
         for p_idx, pid in enumerate(participant_ids):
             pdata = participant_data_stacked[pid]
+            n_blocks_i = pdata["masks_stacked"].shape[0]
 
             # Extract scalar params for this draw and participant
             param_scalars = [
@@ -727,28 +750,26 @@ def run_posterior_predictive_check(
             per_sample_fn = _build_per_participant_fn(
                 model_name, pdata, num_stimuli, num_actions, q_init
             )
-            # pointwise: (n_blocks * max_trials,) — log P(observed_action | params)
+            # pointwise: (n_blocks_i * max_trials,) — log P(observed_action | params)
             pointwise = per_sample_fn(*param_scalars)  # type: ignore[arg-type]
-            pointwise_np = np.array(pointwise, dtype=np.float32)  # (n_blocks * max_trials,)
+            pointwise_np = np.array(pointwise, dtype=np.float32)
 
-            # Reshape back to (n_blocks, max_trials)
-            pointwise_blocks = pointwise_np.reshape(n_blocks_stacked, max_trials)
+            # Reshape back to (n_blocks_i, max_trials)
+            pointwise_blocks = pointwise_np.reshape(n_blocks_i, max_trials)
             mask_blocks = np.array(
                 pdata["masks_stacked"], dtype=np.float32
-            )  # (n_blocks, max_trials)
+            )  # (n_blocks_i, max_trials)
 
             # exp(log_prob) = P(observed action | params)
             prob_blocks = np.exp(pointwise_blocks)
 
             # Mean over real (non-padded) trials per block
-            for b_idx in range(n_blocks_stacked):
+            for b_idx in range(n_blocks_i):
                 real_mask = mask_blocks[b_idx] == 1.0
                 if real_mask.sum() > 0:
                     predicted_acc[draw_i, p_idx, b_idx] = float(
                         prob_blocks[b_idx][real_mask].mean()
                     )
-                else:
-                    predicted_acc[draw_i, p_idx, b_idx] = np.nan
 
     # Build group assignment map: participant_id -> group label
     group_map: dict = {}
@@ -808,8 +829,8 @@ def run_posterior_predictive_check(
             # We use the observation that the block number order in stacked == sorted unique blocks.
             ref_pid = participant_ids[group_pid_indices[0]]
             ref_pdata = participant_data_stacked[ref_pid]
-            # n_blocks_stacked rows; we map block number to row index via data_df
-            # Simplest: find the 0-based block index from sorted unique blocks for that participant
+            ref_n_blocks = ref_pdata["masks_stacked"].shape[0]
+            # Find the 0-based block index from sorted unique blocks for that participant
             ref_blocks_sorted = sorted(
                 data_df[data_df[participant_col] == ref_pid][block_col].unique()
             )
@@ -817,7 +838,7 @@ def run_posterior_predictive_check(
                 continue
             b_stacked_idx = ref_blocks_sorted.index(block)
 
-            if b_stacked_idx >= n_blocks_stacked:
+            if b_stacked_idx >= ref_n_blocks:
                 continue
 
             # Gather predicted accuracy for this group and block across draws
