@@ -3953,6 +3953,14 @@ def wmrl_m5_block_likelihood_pscan(
         phi, wm_init, num_stimuli, num_actions,
     )  # (T, S, A)
 
+    # Phase 1c: Derive Q_decayed_for_policy
+    # The policy at trial t uses Q_decayed = (1-phi_rl)*Q_carry_in + phi_rl*Q0,
+    # where Q_carry_in[t] = Q BEFORE the combined (decay+update) at trial t.
+    # Our Q_for_policy contains the carry-in values (= Q_all[t-1] prepended with
+    # Q_init). Apply one phi_rl decay step to recover Q_decayed as seen by policy.
+    # This mirrors wm_for_policy recovery in associative_scan_wm_update.
+    Q_decayed_for_policy = (1.0 - phi_rl) * Q_for_policy + phi_rl * Q0  # (T, S, A)
+
     # ------------------------------------------------------------------
     # Phase 2: sequential policy scan with last_action carry
     # ------------------------------------------------------------------
@@ -3960,7 +3968,7 @@ def wmrl_m5_block_likelihood_pscan(
         log_lik_accum, last_action = carry
         t_idx, stimulus, action, set_size, valid = t_inputs
 
-        q_vals = Q_for_policy[t_idx, stimulus]
+        q_vals = Q_decayed_for_policy[t_idx, stimulus]
         wm_vals = wm_for_policy[t_idx, stimulus]
 
         omega = rho * jnp.minimum(1.0, capacity / set_size)
