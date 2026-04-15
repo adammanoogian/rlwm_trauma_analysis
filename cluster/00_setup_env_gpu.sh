@@ -97,9 +97,10 @@ if [[ "$MODE" == "update" ]]; then
         conda install python=3.11 -y
     fi
 
-    # Force reinstall JAX with CUDA support
-    echo "Installing/upgrading JAX with CUDA 12 support..."
+    # Force reinstall JAX with CUDA support + Bayesian fitting deps
+    echo "Installing/upgrading JAX with CUDA 12 support + NumPyro/ArviZ..."
     pip install --upgrade --force-reinstall "jax[cuda12]>=0.5.0" "jaxopt>=0.8.0"
+    pip install --upgrade "numpyro==0.20.1" "arviz==0.23.4"
 
     echo ""
     echo "Update complete!"
@@ -152,6 +153,7 @@ else
                     conda install python=3.11 -y
                 fi
                 pip install --upgrade --force-reinstall "jax[cuda12]>=0.5.0" "jaxopt>=0.8.0"
+                pip install --upgrade "numpyro==0.20.1" "arviz==0.23.4"
                 ;;
             [Ff]*)
                 echo "Removing existing environment..."
@@ -160,6 +162,7 @@ else
                     conda activate rlwm_gpu
                     conda remove cuda-nvcc cudatoolkit --force -y 2>/dev/null || true
                     pip install --upgrade --force-reinstall "jax[cuda12]>=0.5.0" "jaxopt>=0.8.0"
+                pip install --upgrade "numpyro==0.20.1" "arviz==0.23.4"
                 }
                 if conda env list | grep -q "rlwm_gpu"; then
                     : # Already handled by fallback
@@ -209,6 +212,14 @@ python --version
 echo ""
 echo "JAX version:"
 python -c "import jax; print(f'JAX {jax.__version__}')"
+
+echo ""
+echo "NumPyro version:"
+python -c "import numpyro; print(f'NumPyro {numpyro.__version__}')" || echo "WARNING: NumPyro not installed"
+
+echo ""
+echo "ArviZ version:"
+python -c "import arviz; print(f'ArviZ {arviz.__version__}')" || echo "WARNING: ArviZ not installed"
 
 echo ""
 echo "Testing JAX device detection..."
