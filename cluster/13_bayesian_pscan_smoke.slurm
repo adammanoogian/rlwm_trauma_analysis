@@ -14,16 +14,23 @@
 # Usage:
 #   sbatch cluster/13_bayesian_pscan_smoke.slurm
 #
-# Expected wall time: ~2-3 hours total (compilation-dominated)
+# Expected wall time: ~2-4 hours (compilation-dominated)
+#
+# Note: Pscan compilation generates large XLA intermediate representations.
+# 96GB host RAM is required to avoid OOM during compilation even though
+# runtime memory usage is much lower. GPU partition used because pscan
+# benefits from GPU acceleration and NVPTX compiler handles large graphs
+# more efficiently than CPU XLA.
 # =============================================================================
 
 #SBATCH --job-name=pscan_smoke
 #SBATCH --output=logs/pscan_smoke_%j.out
 #SBATCH --error=logs/pscan_smoke_%j.err
 #SBATCH --time=6:00:00
-#SBATCH --mem=48G
+#SBATCH --mem=96G
 #SBATCH --cpus-per-task=4
-#SBATCH --partition=comp
+#SBATCH --partition=gpu
+#SBATCH --gres=gpu:1
 
 # =============================================================================
 # Configuration
@@ -55,29 +62,38 @@ echo "Models: $MODELS"
 echo "Start time: $(date)"
 echo "============================================================"
 
-# Activate conda environment (CPU — ds_env preferred)
-if conda activate ds_env 2>/dev/null; then
-    echo "Activated ds_env by name"
-elif conda activate /scratch/fc37/$USER/conda/envs/ds_env 2>/dev/null; then
-    echo "Activated ds_env from /scratch/fc37/$USER/"
-elif conda activate /scratch/${PROJECT:-fc37}/$USER/conda/envs/ds_env 2>/dev/null; then
-    echo "Activated ds_env from /scratch/$PROJECT/$USER/"
-elif conda activate rlwm_gpu 2>/dev/null; then
-    echo "Activated rlwm_gpu (fallback)"
+# Activate GPU conda environment (rlwm_gpu preferred for GPU partition)
+if conda activate rlwm_gpu 2>/dev/null; then
+    echo "Activated rlwm_gpu by name"
+elif conda activate /scratch/fc37/$USER/conda/envs/rlwm_gpu 2>/dev/null; then
+    echo "Activated rlwm_gpu from /scratch/fc37/$USER/"
+elif conda activate /scratch/${PROJECT:-fc37}/$USER/conda/envs/rlwm_gpu 2>/dev/null; then
+    echo "Activated rlwm_gpu from /scratch/$PROJECT/$USER/"
+elif conda activate ds_env 2>/dev/null; then
+    echo "Activated ds_env (fallback, no GPU)"
 else
-    echo "ERROR: Failed to activate conda environment (tried ds_env, rlwm_gpu)"
+    echo "ERROR: Failed to activate conda environment (tried rlwm_gpu, ds_env)"
     exit 1
 fi
 
-python -c "import jax; print(f'JAX version: {jax.__version__}, platforms: {jax.devices()}')" || {
+# Verify GPU access
+python -c "
+import jax
+devices = jax.devices()
+print(f'JAX version: {jax.__version__}, platforms: {devices}')
+gpu_devices = [d for d in devices if d.platform == 'gpu']
+if gpu_devices:
+    print(f'GPU(s) available: {gpu_devices}')
+else:
+    print('WARNING: No GPU detected — pscan will run on CPU (slow)')
+" || {
     echo "ERROR: JAX import failed after conda activation"
     exit 1
 }
 echo ""
 
-# JAX compilation cache
-export JAX_PLATFORMS=cpu
-export NUMPYRO_HOST_DEVICE_COUNT=2
+# JAX compilation cache (separate from production fits)
+export NUMPYRO_HOST_DEVICE_COUNT=1
 _PROJECT="${PROJECT:-fc37}"
 export JAX_COMPILATION_CACHE_DIR="/scratch/${_PROJECT}/${USER}/.jax_cache_pscan_smoke"
 export JAX_PERSISTENT_CACHE_MIN_ENTRY_SIZE_BYTES=0
