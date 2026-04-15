@@ -170,6 +170,12 @@ for MODEL in $MODELS; do
     # (expected for smoke test) — check if it got past pointwise log-lik
     if [[ $SEQ_EXIT -eq 0 ]]; then
         SEQ_RESULTS[$MODEL]="PASS (${SEQ_WALL}s)"
+    elif [[ $SEQ_EXIT -eq 137 || $SEQ_EXIT -eq 139 ]]; then
+        # 137=SIGKILL (OOM), 139=SIGSEGV — fatal, no point continuing
+        SEQ_RESULTS[$MODEL]="KILLED (exit=$SEQ_EXIT, ${SEQ_WALL}s)"
+        OVERALL_PASS=false
+        echo "  Sequential $MODEL: KILLED (exit=$SEQ_EXIT) — aborting remaining sequential models"
+        break
     else
         SEQ_RESULTS[$MODEL]="EXIT=$SEQ_EXIT (${SEQ_WALL}s)"
         # Only flag as overall fail if it crashed quickly (< 30s = likely import/compile error)
@@ -214,6 +220,12 @@ for MODEL in $MODELS; do
 
     if [[ $PSCAN_EXIT -eq 0 ]]; then
         PSCAN_RESULTS[$MODEL]="PASS (${PSCAN_WALL}s)"
+    elif [[ $PSCAN_EXIT -eq 137 || $PSCAN_EXIT -eq 139 ]]; then
+        # 137=SIGKILL (OOM), 139=SIGSEGV — fatal, no point continuing
+        PSCAN_RESULTS[$MODEL]="KILLED (exit=$PSCAN_EXIT, ${PSCAN_WALL}s)"
+        OVERALL_PASS=false
+        echo "  PScan $MODEL: KILLED (exit=$PSCAN_EXIT) — aborting remaining pscan models"
+        break
     else
         PSCAN_RESULTS[$MODEL]="EXIT=$PSCAN_EXIT (${PSCAN_WALL}s)"
         if [[ $PSCAN_WALL -lt 30 ]]; then
