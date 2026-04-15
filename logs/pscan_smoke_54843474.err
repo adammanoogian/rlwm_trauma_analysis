@@ -1,0 +1,78 @@
+W0415 23:55:01.618899 1215043 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0415 23:55:01.978935 1215043 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0415 23:55:03.075061 1215043 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0415 23:55:03.242738 1215043 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0415 23:55:03.362869 1215043 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0415 23:55:03.484922 1215043 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0415 23:55:03.871739 1215043 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0415 23:55:04.272964 1215043 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0415 23:55:05.430848 1215043 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0415 23:55:05.625697 1215043 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0415 23:55:05.761453 1215043 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0415 23:55:05.897685 1215043 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0415 23:55:06.290280 1215043 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0415 23:55:06.715014 1215043 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0415 23:55:07.943601 1215043 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0415 23:55:08.154314 1215043 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0415 23:55:08.292431 1215043 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0415 23:55:08.430480 1215043 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0415 23:55:08.835412 1215043 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0415 23:55:09.254272 1215043 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0415 23:55:10.477258 1215043 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0415 23:55:10.616492 1215043 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0415 23:55:10.826859 1215043 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0415 23:55:10.970563 1215043 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0415 23:55:11.410732 1215043 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0415 23:55:11.866666 1215043 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0415 23:55:13.177976 1215043 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0415 23:55:13.427164 1215043 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0415 23:55:13.589329 1215043 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0415 23:55:13.748534 1215043 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+Traceback (most recent call last):
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/fit_bayesian.py", line 45, in <module>
+    import arviz as az
+ModuleNotFoundError: No module named 'arviz'
+Traceback (most recent call last):
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/fit_bayesian.py", line 45, in <module>
+    import arviz as az
+ModuleNotFoundError: No module named 'arviz'
+Traceback (most recent call last):
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/fit_bayesian.py", line 45, in <module>
+    import arviz as az
+ModuleNotFoundError: No module named 'arviz'
+Traceback (most recent call last):
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/fit_bayesian.py", line 45, in <module>
+    import arviz as az
+ModuleNotFoundError: No module named 'arviz'
+Traceback (most recent call last):
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/fit_bayesian.py", line 45, in <module>
+    import arviz as az
+ModuleNotFoundError: No module named 'arviz'
+Traceback (most recent call last):
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/fit_bayesian.py", line 45, in <module>
+    import arviz as az
+ModuleNotFoundError: No module named 'arviz'
+Traceback (most recent call last):
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/fit_bayesian.py", line 45, in <module>
+    import arviz as az
+ModuleNotFoundError: No module named 'arviz'
+Traceback (most recent call last):
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/fit_bayesian.py", line 45, in <module>
+    import arviz as az
+ModuleNotFoundError: No module named 'arviz'
+Traceback (most recent call last):
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/fit_bayesian.py", line 45, in <module>
+    import arviz as az
+ModuleNotFoundError: No module named 'arviz'
+Traceback (most recent call last):
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/fit_bayesian.py", line 45, in <module>
+    import arviz as az
+ModuleNotFoundError: No module named 'arviz'
+Traceback (most recent call last):
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/fit_bayesian.py", line 45, in <module>
+    import arviz as az
+ModuleNotFoundError: No module named 'arviz'
+Traceback (most recent call last):
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/fitting/fit_bayesian.py", line 45, in <module>
+    import arviz as az
+ModuleNotFoundError: No module named 'arviz'
