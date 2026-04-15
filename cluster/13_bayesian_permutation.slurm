@@ -112,3 +112,6 @@ else
     echo "ERROR: fit_bayesian.py exited with code $EXIT_CODE"
     exit $EXIT_CODE
 fi
+
+# Auto-push logs and results when job completes
+source cluster/autopush.sh

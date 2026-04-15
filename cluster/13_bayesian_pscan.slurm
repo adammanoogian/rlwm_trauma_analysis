@@ -348,3 +348,6 @@ if command -v nvidia-smi &>/dev/null; then
     nvidia-smi --query-gpu=name,memory.total,memory.used,memory.free \
         --format=csv,noheader 2>/dev/null
 fi
+
+# Auto-push logs and results when job completes
+source cluster/autopush.sh

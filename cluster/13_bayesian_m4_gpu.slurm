@@ -155,3 +155,6 @@ else
     echo "If wall-time was exceeded after warmup, resubmit to resume:"
     echo "  sbatch cluster/13_bayesian_m4_gpu.slurm"
 fi
+
+# Auto-push logs and results when job completes
+source cluster/autopush.sh

@@ -235,3 +235,6 @@ echo ""
 echo "For detailed stats after completion:"
 echo "  jobstats ${SLURM_JOB_ID}"
 echo "============================================================"
+
+# Auto-push logs and results when job completes
+source cluster/autopush.sh

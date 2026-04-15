@@ -263,3 +263,6 @@ else
     echo "OVERALL: FAIL (one or more models crashed during compilation or early pipeline)"
 fi
 echo "============================================================"
+
+# Auto-push logs and results when job completes
+source cluster/autopush.sh
