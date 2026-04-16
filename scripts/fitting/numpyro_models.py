@@ -1142,6 +1142,7 @@ def wmrl_m3_hierarchical_model(
     q_init: float = 0.5,
     wm_init: float = 1.0 / 3.0,
     use_pscan: bool = False,
+    stacked_arrays: dict | None = None,
 ) -> None:
     """Hierarchical Bayesian M3 (WM-RL+kappa) model with optional Level-2 regression.
 
@@ -1186,8 +1187,10 @@ def wmrl_m3_hierarchical_model(
       via ``sample_bounded_param`` from ``numpyro_helpers``.
     - Kappa is sampled manually with the optional L2 shift applied on the probit scale
       before the Phi_approx transform (OUTSIDE ``sample_bounded_param``).
-    - Likelihood is accumulated via ``numpyro.factor`` in a Python for-loop over
-      participants (matches existing qlearning/wmrl models; vmap not applicable here).
+    - Likelihood is accumulated via a single ``numpyro.factor("obs", ...)`` call
+      using ``wmrl_m3_fully_batched_likelihood`` (nested vmap over participants
+      and blocks). Blocks are independent per Senta 2025 (Q/WM/perseveration
+      reset at block boundaries).
     - Do NOT modify this function's API: ``fit_bayesian.py`` dispatches to it by name.
     """
     from scripts.fitting.numpyro_helpers import (
@@ -1246,37 +1249,42 @@ def wmrl_m3_hierarchical_model(
     sampled["kappa"] = kappa
 
     # ------------------------------------------------------------------
-    # Likelihood via numpyro.factor — Python for-loop over participants
-    # (vmap not applicable: stacked likelihood uses lax.fori_loop over
-    # variable-length block structures)
+    # Likelihood via single numpyro.factor("obs", ...) — fully-batched
+    # vmap over participants and blocks.
+    # use_pscan=True raises NotImplementedError (pscan + vmap composition
+    # is out of scope for quick-007).
     # ------------------------------------------------------------------
-    _m3_lik_fn = (
-        wmrl_m3_multiblock_likelihood_stacked_pscan
-        if use_pscan
-        else wmrl_m3_multiblock_likelihood_stacked
-    )
-    for idx, pid in enumerate(participant_ids):
-        pdata = participant_data_stacked[pid]
-        log_lik = _m3_lik_fn(
-            stimuli_stacked=pdata["stimuli_stacked"],
-            actions_stacked=pdata["actions_stacked"],
-            rewards_stacked=pdata["rewards_stacked"],
-            set_sizes_stacked=pdata["set_sizes_stacked"],
-            masks_stacked=pdata["masks_stacked"],
-            alpha_pos=sampled["alpha_pos"][idx],
-            alpha_neg=sampled["alpha_neg"][idx],
-            phi=sampled["phi"][idx],
-            rho=sampled["rho"][idx],
-            capacity=sampled["capacity"][idx],
-            kappa=sampled["kappa"][idx],
-            epsilon=sampled["epsilon"][idx],
-            num_stimuli=num_stimuli,
-            num_actions=num_actions,
-            q_init=q_init,
-            wm_init=wm_init,
-            return_pointwise=False,
+    if use_pscan:
+        raise NotImplementedError(
+            "wmrl_m3_hierarchical_model: use_pscan + fully-batched vmap "
+            "path is not implemented in quick-007. Use use_pscan=False, "
+            "or revert to the sequential for-loop model (not exposed)."
         )
-        numpyro.factor(f"obs_p{pid}", log_lik)
+
+    if stacked_arrays is None:
+        stacked_arrays = stack_across_participants(participant_data_stacked)
+
+    from scripts.fitting.jax_likelihoods import wmrl_m3_fully_batched_likelihood
+
+    per_participant_ll = wmrl_m3_fully_batched_likelihood(
+        stimuli=stacked_arrays["stimuli"],
+        actions=stacked_arrays["actions"],
+        rewards=stacked_arrays["rewards"],
+        set_sizes=stacked_arrays["set_sizes"],
+        masks=stacked_arrays["masks"],
+        alpha_pos=sampled["alpha_pos"],
+        alpha_neg=sampled["alpha_neg"],
+        phi=sampled["phi"],
+        rho=sampled["rho"],
+        capacity=sampled["capacity"],
+        kappa=sampled["kappa"],
+        epsilon=sampled["epsilon"],
+        num_stimuli=num_stimuli,
+        num_actions=num_actions,
+        q_init=q_init,
+        wm_init=wm_init,
+    )
+    numpyro.factor("obs", per_participant_ll.sum())
 
 
 def qlearning_hierarchical_model_stacked(

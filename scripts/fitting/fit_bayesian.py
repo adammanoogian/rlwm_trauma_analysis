@@ -56,6 +56,7 @@ from scripts.fitting.numpyro_models import (
     wmrl_m6b_hierarchical_model_subscale,
     prepare_data_for_numpyro,
     prepare_stacked_participant_data,
+    stack_across_participants,
     run_inference,
     run_inference_with_bump,
     samples_to_arviz,
@@ -373,11 +374,23 @@ def _fit_stacked_model(
                 "Level-2 regression (no natural L2 target parameter)."
             )
 
-        model_args = {
-            "participant_data_stacked": participant_data_stacked,
-            "covariate_lec": covariate_lec,
-            "use_pscan": use_pscan,
-        }
+        if model == "wmrl_m3":
+            # Pre-compute (N, B, T) stacked arrays once here so they are
+            # not recomputed inside every MCMC trace call. The wmrl_m3
+            # hierarchical model accepts them via the stacked_arrays kwarg.
+            stacked_arrays = stack_across_participants(participant_data_stacked)
+            model_args = {
+                "participant_data_stacked": participant_data_stacked,
+                "covariate_lec": covariate_lec,
+                "stacked_arrays": stacked_arrays,
+                "use_pscan": use_pscan,
+            }
+        else:
+            model_args = {
+                "participant_data_stacked": participant_data_stacked,
+                "covariate_lec": covariate_lec,
+                "use_pscan": use_pscan,
+            }
 
     print("\n>> Running MCMC inference (NUTS + convergence auto-bump)...")
     mcmc = run_inference_with_bump(
