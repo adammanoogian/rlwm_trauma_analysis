@@ -64,6 +64,36 @@ from scripts.fitting.jax_likelihoods import (
 )
 
 
+def _select_chain_method(num_chains: int) -> str:
+    """Select chain_method based on JAX backend and device count.
+
+    GPU: always "vectorized" unless multiple physical GPUs exist
+    (then "parallel" across GPUs via pmap).
+    CPU: "parallel" if set_host_device_count exposed enough devices,
+    else "sequential".
+
+    Parameters
+    ----------
+    num_chains : int
+        Number of MCMC chains requested.
+
+    Returns
+    -------
+    str
+        One of "parallel", "vectorized", or "sequential".
+    """
+    backend = jax.default_backend()
+    n_devices = jax.local_device_count()
+    if backend == "gpu":
+        if n_devices >= num_chains:
+            return "parallel"
+        return "vectorized"
+    if backend == "tpu":
+        return "parallel" if n_devices >= num_chains else "vectorized"
+    # cpu
+    return "parallel" if n_devices >= num_chains else "sequential"
+
+
 def qlearning_hierarchical_model(
     participant_data: dict[Any, dict[str, list]],
     num_stimuli: int = 6,
@@ -600,11 +630,9 @@ def run_inference(
     )
 
     # Create MCMC object
-    # Use parallel chains when multiple host devices are available (set via
-    # NUMPYRO_HOST_DEVICE_COUNT env var or numpyro.set_host_device_count).
-    _chain_method = (
-        "parallel" if jax.local_device_count() >= num_chains else "sequential"
-    )
+    # Use _select_chain_method to correctly handle GPU (vectorized), CPU
+    # (parallel if set_host_device_count exposed enough devices), and TPU.
+    _chain_method = _select_chain_method(num_chains)
     mcmc = MCMC(
         nuts_kernel,
         num_warmup=num_warmup,
@@ -613,6 +641,7 @@ def run_inference(
         chain_method=_chain_method,
         progress_bar=True,
     )
+    print(f"   Backend: {jax.default_backend()} | chain_method: {_chain_method}")
 
     # Run sampling
     rng_key = jax.random.PRNGKey(seed)
@@ -700,9 +729,7 @@ def run_inference_with_bump(
             target_accept_prob=tap,
             max_tree_depth=max_tree_depth,
         )
-        _chain_method = (
-            "parallel" if jax.local_device_count() >= num_chains else "sequential"
-        )
+        _chain_method = _select_chain_method(num_chains)
         mcmc = MCMC(
             nuts_kernel,
             num_warmup=num_warmup,
@@ -711,6 +738,7 @@ def run_inference_with_bump(
             chain_method=_chain_method,
             progress_bar=True,
         )
+        print(f"   Backend: {jax.default_backend()} | chain_method: {_chain_method}")
         rng_key = jax.random.PRNGKey(seed)
         mcmc.run(rng_key, **model_args)
 
