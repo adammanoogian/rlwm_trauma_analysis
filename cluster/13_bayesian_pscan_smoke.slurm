@@ -92,6 +92,30 @@ else:
 }
 echo ""
 
+# GPU config diagnostic block — printed before any MCMC call so log is
+# self-contained and chain_method decisions are visible.
+python -c "
+import os
+import jax
+print('=' * 60)
+print('SMOKE TEST: JAX / NumPyro environment snapshot')
+print('=' * 60)
+print('backend:', jax.default_backend())
+print('devices:', jax.devices())
+print('local_device_count:', jax.local_device_count())
+print('x64:', jax.config.jax_enable_x64)
+for v in [
+    'NUMPYRO_HOST_DEVICE_COUNT',
+    'XLA_PYTHON_CLIENT_PREALLOCATE',
+    'XLA_PYTHON_CLIENT_MEM_FRACTION',
+    'JAX_COMPILATION_CACHE_DIR',
+    'CUDA_VISIBLE_DEVICES',
+]:
+    print(f'{v:32s} = {os.environ.get(v, \"<unset>\")}')
+print('=' * 60)
+"
+echo ""
+
 # JAX compilation cache (separate from production fits)
 export NUMPYRO_HOST_DEVICE_COUNT=1
 _PROJECT="${PROJECT:-fc37}"

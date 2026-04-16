@@ -712,6 +712,9 @@ def run_inference_with_bump(
     if num_chains > 1:
         numpyro.set_host_device_count(num_chains)
 
+    import os
+    import time
+
     print(">> Starting MCMC sampling with convergence auto-bump...")
     print(f"   Chains: {num_chains}")
     print(f"   Host devices: {jax.local_device_count()}")
@@ -720,6 +723,30 @@ def run_inference_with_bump(
     print(f"   Max tree depth: {max_tree_depth}")
     print(f"   Total iterations per chain: {num_warmup + num_samples}")
     print(f"   Acceptance probability schedule: {target_accept_probs}")
+    print()
+
+    # ------------------------------------------------------------------
+    # GPU / NumPyro configuration banner — printed once per inference call
+    # so GPU regressions surface in a single log block.
+    # ------------------------------------------------------------------
+    print("=" * 60)
+    print(">> JAX / NumPyro configuration")
+    print(f"   backend            : {jax.default_backend()}")
+    print(f"   devices            : {jax.devices()}")
+    print(f"   local_device_count : {jax.local_device_count()}")
+    print(f"   x64 enabled        : {jax.config.jax_enable_x64}")
+    print(f"   chain_method       : {_select_chain_method(num_chains)}")
+    print(f"   num_chains         : {num_chains}")
+    for env_var in [
+        "NUMPYRO_HOST_DEVICE_COUNT",
+        "XLA_PYTHON_CLIENT_PREALLOCATE",
+        "XLA_PYTHON_CLIENT_MEM_FRACTION",
+        "JAX_COMPILATION_CACHE_DIR",
+        "JAX_PERSISTENT_CACHE_MIN_ENTRY_SIZE_BYTES",
+        "CUDA_VISIBLE_DEVICES",
+    ]:
+        print(f"   {env_var:32s} = {os.environ.get(env_var, '<unset>')}")
+    print("=" * 60)
     print()
 
     last_mcmc: MCMC | None = None
@@ -740,7 +767,10 @@ def run_inference_with_bump(
         )
         print(f"   Backend: {jax.default_backend()} | chain_method: {_chain_method}")
         rng_key = jax.random.PRNGKey(seed)
+        t0_compile = time.perf_counter()
         mcmc.run(rng_key, **model_args)
+        t1_run = time.perf_counter()
+        print(f"[timing] target_accept_prob={tap:.2f} wall={t1_run - t0_compile:.1f}s")
 
         extra = mcmc.get_extra_fields()
         n_div = int(extra["diverging"].sum()) if "diverging" in extra else 0
