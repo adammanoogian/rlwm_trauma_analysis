@@ -1,0 +1,337 @@
+============================================================
+PScan A/B Smoke Test — All 6 Choice-Only Models
+============================================================
+Job ID: 54845743
+Node: m3g100
+Project: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis
+Chains: 2 | Warmup: 50 | Samples: 50
+Max tree depth: 6
+Models: qlearning wmrl wmrl_m3 wmrl_m5 wmrl_m6a wmrl_m6b
+Start time: Thu Apr 16 01:45:54 AM AEST 2026
+============================================================
+Activated rlwm_gpu by name
+JAX version: 0.9.2, platforms: [CudaDevice(id=0)]
+GPU(s) available: [CudaDevice(id=0)]
+
+JAX cache: /scratch/fc37/aman0087/.jax_cache_pscan_smoke
+
+
+============================================================
+STAGE 1: Micro-benchmark (cold + warm JIT, all 6 models)
+Started: Thu Apr 16 01:46:06 AM AEST 2026
+============================================================
+========================================================================
+SEQUENTIAL vs VECTORIZED PSCAN LIKELIHOOD BENCHMARK
+(Phase 19 associative scan + Phase 20 vectorized policy)
+========================================================================
+Device:        NVIDIA L40S
+JAX version:   0.9.2
+Models:        qlearning, wmrl, wmrl_m3, wmrl_m5, wmrl_m6a, wmrl_m6b
+N repeats:     3
+N blocks:      17
+Trials/block:  100
+Timestamp:     2026-04-15T15:46:07.347138+00:00
+========================================================================
+
+Generating synthetic data...
+  Shape: (17, 100) (blocks x trials_per_block)
+
+────────────────────────────────────────────────────────────
+Benchmarking: qlearning
+────────────────────────────────────────────────────────────
+  Compiling sequential... 911ms
+  Compiling pscan... 650ms
+  NLL sequential: -4097.093262
+  NLL pscan:      -4097.092285
+  NLL agreement:  2.38e-07 (abs diff: 9.77e-04)
+  Timing sequential (3 repeats)... 165.76 +/- 0.99 ms
+  Timing pscan (3 repeats)... 597.13 +/- 1.86 ms
+  Speedup: 0.28x
+
+────────────────────────────────────────────────────────────
+Benchmarking: wmrl
+────────────────────────────────────────────────────────────
+  Compiling sequential... 245ms
+  Compiling pscan... 111ms
+  NLL sequential: -3100.329834
+  NLL pscan:      -3100.328613
+  NLL agreement:  3.94e-07 (abs diff: 1.22e-03)
+  Timing sequential (3 repeats)... 230.97 +/- 2.32 ms
+  Timing pscan (3 repeats)... 125.18 +/- 12.91 ms
+  Speedup: 1.85x
+
+────────────────────────────────────────────────────────────
+Benchmarking: wmrl_m3
+────────────────────────────────────────────────────────────
+  Compiling sequential... 258ms
+  Compiling pscan... 136ms
+  NLL sequential: -2852.244873
+  NLL pscan:      -2852.244629
+  NLL agreement:  8.56e-08 (abs diff: 2.44e-04)
+  Timing sequential (3 repeats)... 255.27 +/- 0.49 ms
+  Timing pscan (3 repeats)... 148.98 +/- 16.43 ms
+  Speedup: 1.71x
+
+────────────────────────────────────────────────────────────
+Benchmarking: wmrl_m5
+────────────────────────────────────────────────────────────
+  Compiling sequential... 258ms
+  Compiling pscan... 139ms
+  NLL sequential: -2942.468506
+  NLL pscan:      -2942.468018
+  NLL agreement:  1.66e-07 (abs diff: 4.88e-04)
+  Timing sequential (3 repeats)... 262.20 +/- 0.99 ms
+  Timing pscan (3 repeats)... 157.89 +/- 24.14 ms
+  Speedup: 1.66x
+
+────────────────────────────────────────────────────────────
+Benchmarking: wmrl_m6a
+────────────────────────────────────────────────────────────
+  Compiling sequential... 275ms
+  Compiling pscan... 143ms
+  NLL sequential: -2909.187500
+  NLL pscan:      -2909.187256
+  NLL agreement:  8.39e-08 (abs diff: 2.44e-04)
+  Timing sequential (3 repeats)... 281.08 +/- 3.97 ms
+  Timing pscan (3 repeats)... 163.96 +/- 31.88 ms
+  Speedup: 1.71x
+
+────────────────────────────────────────────────────────────
+Benchmarking: wmrl_m6b
+────────────────────────────────────────────────────────────
+  Compiling sequential... 293ms
+  Compiling pscan... 165ms
+  NLL sequential: -2763.764648
+  NLL pscan:      -2763.764160
+  NLL agreement:  1.77e-07 (abs diff: 4.88e-04)
+  Timing sequential (3 repeats)... 293.29 +/- 0.35 ms
+  Timing pscan (3 repeats)... 185.55 +/- 28.52 ms
+  Speedup: 1.58x
+
+========================================================================
+SUMMARY
+========================================================================
+Model         Sequential (ms)   PScan (ms)   Speedup    NLL Agree
+-----------------------------------------------------------------
+qlearning          165.76       597.13       0.28x    2.38e-07
+wmrl               230.97       125.18       1.84x    3.94e-07
+wmrl_m3            255.27       148.98       1.71x    8.56e-08
+wmrl_m5            262.20       157.89       1.66x    1.66e-07
+wmrl_m6a           281.07       163.96       1.71x    8.39e-08
+wmrl_m6b           293.29       185.55       1.58x    1.77e-07
+========================================================================
+GPU peak memory: 0.1 MB
+
+Results saved to: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/output/bayesian/pscan_benchmark_gpu.json
+
+Stage 1 exit code: 0
+
+============================================================
+STAGE 2: Sequential MCMC smoke test
+============================================================
+
+------------------------------------------------------------
+  Sequential: qlearning
+  Started: Thu Apr 16 01:46:26 AM AEST 2026
+------------------------------------------------------------
+================================================================================
+BAYESIAN QLEARNING FIT WITH JAX/NUMPYRO
+================================================================================
+
+Settings:
+  Model: qlearning
+  Data: output/task_trials_long.csv
+  Min block: 3 (excludes practice)
+  Chains: 2
+  Warmup: 50
+  Samples: 50
+  Max tree depth: 6
+  Output: output/smoke_test
+  Seed: 42
+  JAX devices: 1
+
+>> Loading data from: output/task_trials_long.csv
+  Loaded 111943 trials from 157 participants
+  Excluded 3 participants (insufficient data/duplicates)
+  Final sample: 154 participants
+  Filtered to blocks >= 3: 111943 trials remain
+  Dropped NaN values in critical columns: 111943 trials remain
+
+>> Data summary:
+  Participants: 154
+  Blocks: 21
+  Total trials: 111943
+  Trials per participant: 727
+    Participant 9187: 990 trials, 17 blocks
+    Participant 10000: 988 trials, 17 blocks
+    Participant 10002: 986 trials, 17 blocks
+    Participant 10003: 973 trials, 17 blocks
+    Participant 10004: 990 trials, 17 blocks
+    Participant 10005: 985 trials, 17 blocks
+    Participant 10006: 987 trials, 17 blocks
+    Participant 10007: 987 trials, 17 blocks
+    Participant 10016: 987 trials, 17 blocks
+    Participant 10017: 986 trials, 17 blocks
+    Participant 10018: 986 trials, 17 blocks
+    Participant 10024: 718 trials, 12 blocks
+    Participant 10025: 414 trials, 8 blocks
+    Participant 10027: 718 trials, 12 blocks
+    Participant 10028: 699 trials, 12 blocks
+    Participant 10029: 720 trials, 12 blocks
+    Participant 10030: 716 trials, 12 blocks
+    Participant 10031: 719 trials, 12 blocks
+    Participant 10035: 717 trials, 12 blocks
+    Participant 10036: 713 trials, 12 blocks
+    Participant 10039: 711 trials, 12 blocks
+    Participant 10041: 696 trials, 12 blocks
+    Participant 10043: 716 trials, 12 blocks
+    Participant 10047: 717 trials, 12 blocks
+    Participant 10048: 702 trials, 12 blocks
+    Participant 10050: 717 trials, 12 blocks
+    Participant 10051: 709 trials, 12 blocks
+    Participant 10052: 709 trials, 12 blocks
+    Participant 10055: 719 trials, 12 blocks
+    Participant 10057: 712 trials, 12 blocks
+    Participant 10058: 697 trials, 12 blocks
+    Participant 10059: 718 trials, 12 blocks
+    Participant 10062: 718 trials, 12 blocks
+    Participant 10063: 713 trials, 12 blocks
+    Participant 10064: 712 trials, 12 blocks
+    Participant 10065: 719 trials, 12 blocks
+    Participant 10066: 706 trials, 12 blocks
+    Participant 10067: 716 trials, 12 blocks
+    Participant 10071: 720 trials, 12 blocks
+    Participant 10072: 718 trials, 12 blocks
+    Participant 10074: 717 trials, 12 blocks
+    Participant 10075: 717 trials, 12 blocks
+    Participant 10076: 710 trials, 12 blocks
+    Participant 10077: 719 trials, 12 blocks
+    Participant 10078: 719 trials, 12 blocks
+    Participant 10079: 719 trials, 12 blocks
+    Participant 10081: 716 trials, 12 blocks
+    Participant 10083: 703 trials, 12 blocks
+    Participant 10084: 717 trials, 12 blocks
+    Participant 10086: 630 trials, 12 blocks
+    Participant 10087: 714 trials, 12 blocks
+    Participant 10088: 720 trials, 12 blocks
+    Participant 10089: 716 trials, 12 blocks
+    Participant 10090: 719 trials, 12 blocks
+    Participant 10092: 714 trials, 12 blocks
+    Participant 10093: 712 trials, 12 blocks
+    Participant 10094: 709 trials, 12 blocks
+    Participant 10095: 712 trials, 12 blocks
+    Participant 10097: 717 trials, 12 blocks
+    Participant 10098: 712 trials, 12 blocks
+    Participant 10099: 714 trials, 12 blocks
+    Participant 10101: 715 trials, 12 blocks
+    Participant 10102: 716 trials, 12 blocks
+    Participant 10103: 719 trials, 12 blocks
+    Participant 10104: 715 trials, 12 blocks
+    Participant 10106: 719 trials, 12 blocks
+    Participant 10107: 714 trials, 12 blocks
+    Participant 10109: 719 trials, 12 blocks
+    Participant 10110: 719 trials, 12 blocks
+    Participant 10111: 713 trials, 12 blocks
+    Participant 10112: 707 trials, 12 blocks
+    Participant 10113: 696 trials, 12 blocks
+    Participant 10114: 709 trials, 12 blocks
+    Participant 10115: 711 trials, 12 blocks
+    Participant 10116: 718 trials, 12 blocks
+    Participant 10117: 715 trials, 12 blocks
+    Participant 10119: 719 trials, 12 blocks
+    Participant 10120: 715 trials, 12 blocks
+    Participant 10121: 711 trials, 12 blocks
+    Participant 10125: 717 trials, 12 blocks
+    Participant 10126: 719 trials, 12 blocks
+    Participant 10128: 705 trials, 12 blocks
+    Participant 10130: 713 trials, 12 blocks
+    Participant 10134: 701 trials, 12 blocks
+    Participant 10135: 704 trials, 12 blocks
+    Participant 10137: 718 trials, 12 blocks
+    Participant 10139: 705 trials, 12 blocks
+    Participant 10140: 715 trials, 12 blocks
+    Participant 10141: 716 trials, 12 blocks
+    Participant 10142: 719 trials, 12 blocks
+    Participant 10143: 719 trials, 12 blocks
+    Participant 10145: 713 trials, 12 blocks
+    Participant 10147: 716 trials, 12 blocks
+    Participant 10148: 705 trials, 12 blocks
+    Participant 10149: 713 trials, 12 blocks
+    Participant 10150: 715 trials, 12 blocks
+    Participant 10151: 717 trials, 12 blocks
+    Participant 10152: 719 trials, 12 blocks
+    Participant 10154: 717 trials, 12 blocks
+    Participant 10155: 713 trials, 12 blocks
+    Participant 10156: 712 trials, 12 blocks
+    Participant 10157: 719 trials, 12 blocks
+    Participant 10158: 716 trials, 12 blocks
+    Participant 10159: 716 trials, 12 blocks
+    Participant 10160: 717 trials, 12 blocks
+    Participant 10162: 714 trials, 12 blocks
+    Participant 10163: 719 trials, 12 blocks
+    Participant 10164: 719 trials, 12 blocks
+    Participant 10165: 713 trials, 12 blocks
+    Participant 10166: 714 trials, 12 blocks
+    Participant 10168: 718 trials, 12 blocks
+    Participant 10169: 713 trials, 12 blocks
+    Participant 10170: 718 trials, 12 blocks
+    Participant 10171: 718 trials, 12 blocks
+    Participant 10172: 719 trials, 12 blocks
+    Participant 10173: 677 trials, 12 blocks
+    Participant 10174: 714 trials, 12 blocks
+    Participant 10175: 717 trials, 12 blocks
+    Participant 10176: 577 trials, 12 blocks
+    Participant 10177: 715 trials, 12 blocks
+    Participant 10178: 718 trials, 12 blocks
+    Participant 10179: 716 trials, 12 blocks
+    Participant 10180: 708 trials, 12 blocks
+    Participant 10181: 719 trials, 12 blocks
+    Participant 10182: 696 trials, 12 blocks
+    Participant 10183: 719 trials, 12 blocks
+    Participant 10184: 713 trials, 12 blocks
+    Participant 10185: 710 trials, 12 blocks
+    Participant 10186: 718 trials, 12 blocks
+    Participant 10190: 600 trials, 12 blocks
+    Participant 10191: 708 trials, 12 blocks
+    Participant 10192: 709 trials, 12 blocks
+    Participant 10195: 684 trials, 12 blocks
+    Participant 10196: 718 trials, 12 blocks
+    Participant 10197: 716 trials, 12 blocks
+    Participant 10198: 479 trials, 11 blocks
+    Participant 10199: 710 trials, 12 blocks
+    Participant 10200: 719 trials, 12 blocks
+    Participant 10201: 719 trials, 12 blocks
+    Participant 10202: 718 trials, 12 blocks
+    Participant 10203: 716 trials, 12 blocks
+    Participant 10204: 718 trials, 12 blocks
+    Participant 10206: 712 trials, 12 blocks
+    Participant 10208: 694 trials, 12 blocks
+    Participant 10209: 715 trials, 12 blocks
+    Participant 10210: 683 trials, 12 blocks
+    Participant 10211: 683 trials, 12 blocks
+    Participant 10212: 716 trials, 12 blocks
+    Participant 10215: 719 trials, 12 blocks
+    Participant 10216: 717 trials, 12 blocks
+    Participant 10217: 719 trials, 12 blocks
+    Participant 10218: 694 trials, 12 blocks
+    Participant 10219: 718 trials, 12 blocks
+    Participant 10220: 718 trials, 12 blocks
+
+================================================================================
+FITTING QLEARNING HIERARCHICAL MODEL
+================================================================================
+
+>> Preparing stacked participant data...
+  Prepared 154 participants (sorted by ID)
+  Skipping LEC covariate: model 'qlearning' does not support Level-2 regression (no natural L2 target parameter).
+
+>> Running MCMC inference (NUTS + convergence auto-bump)...
+>> Starting MCMC sampling with convergence auto-bump...
+   Chains: 2
+   Host devices: 1
+   Warmup: 50
+   Samples: 50
+   Max tree depth: 6
+   Total iterations per chain: 100
+   Acceptance probability schedule: (0.8, 0.95, 0.99)
+
