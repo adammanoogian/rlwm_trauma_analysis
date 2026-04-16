@@ -1052,6 +1052,88 @@ def prepare_stacked_participant_data(
     return participant_data
 
 
+def stack_across_participants(
+    participant_data_stacked: dict[Any, dict[str, jnp.ndarray]],
+) -> dict[str, Any]:
+    """Stack per-participant arrays into (N, max_n_blocks, max_trials) tensors.
+
+    Pads participants with fewer blocks to max_n_blocks by appending
+    zero-mask blocks. Because mask=0 contributes exactly 0.0 to the
+    block likelihood (both the log-prob term and the Q/WM updates are
+    gated on mask), padded blocks leave total_ll invariant.
+
+    Participant order follows sorted(participant_data_stacked.keys())
+    — same order used by covariate_lec downstream.
+
+    Parameters
+    ----------
+    participant_data_stacked : dict
+        Output of prepare_stacked_participant_data. Per-participant
+        arrays have shape (n_blocks_i, MAX_TRIALS_PER_BLOCK=100).
+
+    Returns
+    -------
+    dict
+        Keys (all shape (N, max_n_blocks, 100)):
+
+        * ``stimuli``           -- int32
+        * ``actions``           -- int32
+        * ``rewards``           -- float32
+        * ``set_sizes``         -- float32
+        * ``masks``             -- float32 (padded blocks are entirely 0.0)
+
+        Plus:
+
+        * ``participant_ids``   -- list, ordered
+        * ``n_blocks_per_ppt``  -- jnp.ndarray shape (N,) int32
+    """
+    ppt_ids = sorted(participant_data_stacked.keys())
+    max_n_blocks = max(
+        participant_data_stacked[pid]["stimuli_stacked"].shape[0]
+        for pid in ppt_ids
+    )
+    max_trials = MAX_TRIALS_PER_BLOCK  # 100
+
+    def _pad_blocks(arr: jnp.ndarray, fill_value: float) -> jnp.ndarray:
+        n_blocks_i = arr.shape[0]
+        pad_blocks = max_n_blocks - n_blocks_i
+        if pad_blocks == 0:
+            return arr
+        pad_shape = (pad_blocks, max_trials)
+        pad_arr = jnp.full(pad_shape, fill_value, dtype=arr.dtype)
+        return jnp.concatenate([arr, pad_arr], axis=0)
+
+    stacked: dict[str, Any] = {
+        "stimuli": jnp.stack([
+            _pad_blocks(participant_data_stacked[pid]["stimuli_stacked"], 0)
+            for pid in ppt_ids
+        ]),
+        "actions": jnp.stack([
+            _pad_blocks(participant_data_stacked[pid]["actions_stacked"], 0)
+            for pid in ppt_ids
+        ]),
+        "rewards": jnp.stack([
+            _pad_blocks(participant_data_stacked[pid]["rewards_stacked"], 0.0)
+            for pid in ppt_ids
+        ]),
+        "set_sizes": jnp.stack([
+            _pad_blocks(participant_data_stacked[pid]["set_sizes_stacked"], 6.0)
+            for pid in ppt_ids
+        ]),
+        "masks": jnp.stack([
+            _pad_blocks(participant_data_stacked[pid]["masks_stacked"], 0.0)
+            for pid in ppt_ids
+        ]),
+    }
+    stacked["participant_ids"] = ppt_ids
+    stacked["n_blocks_per_ppt"] = jnp.array(
+        [participant_data_stacked[pid]["stimuli_stacked"].shape[0]
+         for pid in ppt_ids],
+        dtype=jnp.int32,
+    )
+    return stacked
+
+
 def wmrl_m3_hierarchical_model(
     participant_data_stacked: dict,
     covariate_lec: jnp.ndarray | None = None,
