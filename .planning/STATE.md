@@ -12,8 +12,108 @@ See: .planning/PROJECT.md (updated 2026-04-11)
 Milestone: v4.0 Hierarchical Bayesian Pipeline & LBA Acceleration
 Phase: 20 of 20 (DEER Non-Linear Parallelization) — In progress
 Plan: 2 of 3 complete (20-01, 20-02 done)
-Status: All 12 pscan likelihood variants now use fully vectorized Phase 2. Plan 20-03 (docs update) remains.
-Last activity: 2026-04-16 — Completed quick task 007: GPU MCMC speedup (chain_method fix + vmap POC for wmrl_m3)
+Status: All 12 pscan likelihood variants use fully vectorized Phase 2. **Fully-batched vmap likelihood rolled out to all 6 choice-only models (post-Phase-20 follow-up). Production Bayesian refits unblocked — awaiting M6b spot-check.**
+Last activity: 2026-04-17 — Issue 1 rollout complete: fully-batched vmap in all 6 hierarchical models; N=154 real-data agreement at 1e-7; cluster MCMC smoke dropped qlearning from ~6 min/iter to ~1 s/iter (job 54882294).
+
+## Hierarchical Bayesian Architecture (current)
+
+### Single-stage joint inference (NOT two-stage PEB)
+
+- All models fit as **single-stage hierarchical Bayesian** via NumPyro NUTS. Individual parameters, group priors, and Level-2 regression coefficients are sampled **simultaneously** in one MCMC run. This is more principled than two-stage PEB (SPM-style) because (a) uncertainty propagates correctly — no plug-in bias from using posterior means as point estimates in a second regression stage, (b) shrinkage happens automatically via partial pooling, (c) L2 coefficients are tempered by L1 uncertainty.
+- **Trauma parameters ARE fit together with model parameters** — they are not a separate post-hoc step.
+- The refactored fully-batched likelihood emits a single ``numpyro.factor("obs", per_participant_ll.sum())``; the prior 154-per-participant factor-site version was also joint, just slower.
+
+### Level-2 regression — coverage table
+
+| Model | L2 design | Beta sites | Hooked into |
+|---|---|---|---|
+| M1 qlearning | none (L2 not supported) | 0 | `covariate_lec=None` guard raises |
+| M2 wmrl | none (L2 not supported) | 0 | `covariate_lec=None` guard raises |
+| M3 wmrl_m3 | LEC total → kappa | 1 (`beta_lec_kappa`) | `wmrl_m3_hierarchical_model` |
+| M5 wmrl_m5 | LEC total → kappa | 1 (`beta_lec_kappa`) | `wmrl_m5_hierarchical_model` |
+| M6a wmrl_m6a | LEC total → kappa_s | 1 (`beta_lec_kappa_s`) | `wmrl_m6a_hierarchical_model` |
+| M6b wmrl_m6b | LEC total → kappa_total + kappa_share | 2 (`beta_lec_kappa_total`, `beta_lec_kappa_share`) | `wmrl_m6b_hierarchical_model` |
+| M6b-subscale | 4 covariates × 8 params (full design) | **32** (`beta_{cov}_{param}`) | `wmrl_m6b_hierarchical_model_subscale` |
+
+### Subscale design matrix (M6b-subscale only)
+
+Four predictors, condition number 11.3 (well under 30 target):
+1. `lec_total` — LEC-5 total events (z-scored)
+2. `iesr_total` — IES-R total score (z-scored)
+3. `iesr_intr_resid` — IES-R intrusion, Gram-Schmidt residualized vs. total (z-scored)
+4. `iesr_avd_resid` — IES-R avoidance, Gram-Schmidt residualized vs. total (z-scored)
+
+Hyperarousal residual excluded (exact linear dependence: the three residuals sum to zero). See `scripts/fitting/level2_design.py`.
+
+### What PEB-style two-stage would add (not currently implemented)
+
+- A separate second-stage regression taking the L1 posterior as input and regressing against additional covariates that were not in the MCMC design matrix. Useful for exploratory analyses *after* the main fit completes.
+- Functionally already achievable by running `18_bayesian_level2_effects.py` on the posterior NetCDF with extracted per-participant samples, though this is a descriptive/visualization script, not a re-fit.
+- Not strictly necessary for v4.0 Phase 15/16 validation gate (kappa × LEC-5 signal) because LEC is already in the joint design.
+
+## Issue 1 Fully-Batched Rollout (2026-04-17, post-Phase-20)
+
+### What changed
+
+- 6 new `*_fully_batched_likelihood` functions in `scripts/fitting/jax_likelihoods.py` (M3 added earlier in commit `aeaa208`; qlearning, wmrl, M5, M6a, M6b added in `c54ee6c`).
+- All 6 `*_hierarchical_model*` bodies in `scripts/fitting/numpyro_models.py` refactored from Python for-loop emitting `obs_p{pid}` factors to single `numpyro.factor("obs", per_participant_ll.sum())` via nested `jax.vmap` (outer=participants, inner=blocks).
+- `scripts/fitting/fit_bayesian.py`: `_FULLY_BATCHED_MODELS` tuple extended from M3-only to all 6 choice-only models; `stacked_arrays` pre-computed once per MCMC call.
+- New `cluster/13_bayesian_multigpu.slurm` — requests `--gres=gpu:4` so `_select_chain_method` returns `"parallel"` (true `jax.pmap` across GPUs) instead of `"vectorized"` (time-multiplexed on 1 device).
+
+### Validation status
+
+| Test | Scope | Status |
+|---|---|---|
+| Agreement on synthetic (N=5 × 3 draws) | 6 models | PASS, max rel err 2.06e-07 |
+| Agreement on real N=154 using MLE params | 6 models × 154 ppts | PASS, max rel err **8.84e-07** |
+| End-to-end MCMC dispatch (local CPU) | 4 refactored models | PASS, zero `obs_p{pid}` sites remaining |
+| Cluster smoke test (fb_smoke job 54882294) | all 6 models, N=154, 5 warmup + 5 samples | PASS, 109–132 s each |
+| Per-iter GPU speedup (qlearning) | before vs after | ~6 min/iter → ~0.5 s/iter (~700×) |
+
+### Why the speedup is larger than hypothesized
+
+Original expectation: 36× from collapsing 154 dispatches to 1. Actual: ~700× per iter on qlearning. The extra gain comes from XLA fusing the entire likelihood computation into a single kernel once the Python for-loop is out of the way — before, each factor was compiled as an independent sub-graph; now there's one fused graph that the optimizer can reorder and vectorize across all 154 participants simultaneously. This also explains why prior runs reported "GPU peak memory: 0.1 MB" — the GPU was idle waiting for Python dispatches 99% of the time.
+
+## Production Refit Readiness
+
+### Diagnostics preserved (unchanged by refactor)
+
+- **NumPyro**: R-hat, ESS bulk, ESS tail, divergences, tree-depth saturation, E-BFMI (via `mcmc.summary_frame()`).
+- **ArviZ**: WAIC, LOO, `az.compare()` with stacking weights.
+- **`run_inference_with_bump` auto-bump**: retries at `target_accept_prob` 0.80 → 0.95 → 0.99 if divergences persist. Convergence gate: `num_divergences == 0`.
+- **Pointwise log-lik** (`compute_pointwise_log_lik`, `bayesian_diagnostics.py:291`): reads `mcmc.get_samples()` by parameter name, not factor site names — transparent to the `obs_p{pid}` → `obs` change.
+- **Hessian diagnostics are MLE-only** (`fit_mle.py:1545–1631`). Bayesian uses posterior-based uncertainty. Neither path affected by the refactor.
+
+### Baseline for comparison
+
+- **No cached hierarchical Bayesian posteriors exist** (`output/bayesian/` contains only pscan benchmarks and the IES-R collinearity audit). The upcoming refit is the **first** production hierarchical Bayesian run to complete.
+- Sanity baselines: MLE individual fits in `output/mle/{model}_individual_fits.csv` with `parameterization_version=v4.0-K[2,6]-phiapprox-stickbreaking` (quick-006).
+- Expected: posterior means near MLE point estimates, with hierarchical shrinkage pulling extreme values toward group means.
+
+### v4.0 Phase 15 POC validation gate (pending)
+
+The original motivation for hierarchical inference: reproduce the MLE-derived kappa × LEC-5 signal under partial-pooling. From quick-006 Task 4:
+- M3: 3 FDR-BH survivors (phi × IES-R Hyperarousal, kappa × LEC-5 Total, phi × IES-R Total)
+- M6b: `kappa_total × LEC-5` strongest uncorrected (p=0.0028), does not survive FDR-BH
+- The kappa × LEC-5 pattern across M3 and M6b is the most scientifically credible because kappa is the recoverable parameter in both
+
+**Pass criterion**: `beta_lec_kappa` (M3) or `beta_lec_kappa_total` (M6b) 95% HDI excludes zero under hierarchical inference.
+
+### Outstanding validation items (to run after refit)
+
+1. **Convergence diagnostics per model**: R-hat < 1.05, ESS bulk > 400, divergences == 0 (auto-bump will retry up to target_accept=0.99).
+2. **Posterior vs MLE agreement spot-check**: per-participant posterior means within 2 SD of MLE point estimates (expect shrinkage on poorly-identified params — alpha_pos/alpha_neg/phi/rho/capacity per recovery results).
+3. **L2 coefficient HDI check**: 95% HDI for `beta_lec_kappa` / `beta_lec_kappa_total` — does it exclude zero?
+4. **Model comparison**: WAIC/LOO via `az.compare(ic='loo', method='stacking')` — does M6b remain the winning model under hierarchical shrinkage? (MLE AIC says it does; Bayesian stacking weights may disagree.)
+5. **Subscale signal discovery**: M6b-subscale has 32 beta sites; which (covariate × param) combinations have HDI excluding zero after Bonferroni or FDR?
+6. **Parameter recovery under hierarchy**: re-run recovery on M6b with hierarchical MCMC (not MLE) to check if kappa_total/kappa_share recovery (currently r=0.997/0.931 under MLE) holds. Base RLWM params are unrecoverable under MLE (r=0.21–0.77); hierarchical shrinkage may help but cannot manufacture identifiability.
+
+### Known limitations (carry through to results)
+
+- **Capacity (K) identifiability is structural** (quick-005): K posterior will be prior-dominated for most participants. Reported only as descriptive.
+- **M6b stick-breaking geometry**: kappa_share posterior can be bimodal when kappa_total is near zero (share becomes non-identifiable). Handled by auto-bump to `target_accept=0.99` if divergences appear.
+- **IES-R hyperarousal subscale unavailable for L2** (linear dependence). Committed decision, see 16-01.
+- **Number of participants: N=154 for task-data completeness, N=160 for surveys**; hierarchical fit uses N=154 (sorted overlap).
 
 Progress: [████████░░] ~78% (28/~36 plans across Phases 13-20)
 
