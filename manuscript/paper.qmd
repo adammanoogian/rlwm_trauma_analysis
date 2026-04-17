@@ -212,7 +212,7 @@ Scale distributions and pairwise correlations are summarized in
 
 ::: {#fig-scale-distributions}
 
-![](figures/scale_distributions.png){width=100%}
+![](../figures/scale_distributions.png){width=100%}
 
 Distributions and pairwise correlations of the trauma predictors.
 **Left**: histograms of LEC-5 total events and IES-R total and
@@ -221,7 +221,7 @@ correlates only weakly with IES total ($r$ = 0.13), justifying
 inclusion of both predictors. IES subscales correlate strongly with
 IES total ($r$ = 0.91--0.93), requiring the Gram--Schmidt
 residualization described in Model Fitting. Figure rendered from
-`figures/scale_distributions.png`, produced by
+`../figures/scale_distributions.png`, produced by
 `scripts/analysis/trauma_scale_distributions.py` on pipeline rerun.
 :::
 

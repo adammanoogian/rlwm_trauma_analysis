@@ -187,8 +187,7 @@ def test_log_delta_recovery() -> None:
 def test_checkpoint_resume() -> None:
     """M4H-04: Warmup state can be pickled and used to resume sampling.
 
-    Tests the checkpoint-resume API directly (matching how
-    ``13_fit_bayesian_m4.py`` implements M4H-04):
+    Tests the checkpoint-resume API directly (implementing M4H-04):
 
     1. Run warmup-only phase with ``mcmc.warmup(...)``.
     2. Pickle ``jax.device_get(mcmc.post_warmup_state)`` to a temp file.

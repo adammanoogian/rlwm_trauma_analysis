@@ -55,12 +55,6 @@ python scripts/04_create_summary_csv.py      # Summary metrics per participant
 
 **Block structure:** Blocks 1-2 are practice, blocks 3-23 are main task. By default, `task_trials_long.csv` contains main task only.
 
-### Optional: Explore Survey Data
-
-```bash
-python scripts/04_1_explore_survey_data.py   # Distributions, correlations
-```
-
 ---
 
 ## Stage 2: Behavioral Analysis (Scripts 05-08)
@@ -72,13 +66,6 @@ python scripts/05_summarize_behavioral_data.py    # Behavioral summary stats
 python scripts/06_visualize_task_performance.py    # Learning curves, set-size effects
 python scripts/07_analyze_trauma_groups.py         # Trauma grouping + validation
 python scripts/08_run_statistical_analyses.py      # ANOVAs + descriptive tables
-```
-
-### Optional Visualizations
-
-```bash
-python scripts/06_1_plot_task_performance.py       # Additional performance plots
-python scripts/07_1_visualize_by_trauma_group.py   # Trauma group visualizations
 ```
 
 ### Trauma Group Methodology
@@ -107,7 +94,6 @@ Generate synthetic data and validate the fitting pipeline.
 
 ```bash
 python scripts/09_generate_synthetic_data.py       # Posterior predictive checks
-python scripts/09_1_simulate_model_predictions.py   # Model predictions
 python scripts/09_run_ppc.py                        # PPC analysis
 python scripts/10_run_parameter_sweep.py            # Systematic parameter exploration
 python scripts/11_run_model_recovery.py             # Parameter/model recovery
@@ -133,8 +119,23 @@ python scripts/12_fit_mle.py --model qlearning
 # WM-RL (M2): alpha_pos, alpha_neg, phi, rho, K, epsilon
 python scripts/12_fit_mle.py --model wmrl
 
-# WM-RL with perseveration (M3): adds stick parameter
+# WM-RL with perseveration (M3): alpha_pos, alpha_neg, phi, rho, K, kappa, epsilon
 python scripts/12_fit_mle.py --model wmrl_m3
+
+# WM-RL + RL forgetting (M5): alpha_pos, alpha_neg, phi, rho, K, kappa, phi_rl, epsilon
+python scripts/12_fit_mle.py --model wmrl_m5
+
+# WM-RL + stimulus-specific perseveration (M6a): alpha_pos, alpha_neg, phi, rho, K, kappa_s, epsilon
+python scripts/12_fit_mle.py --model wmrl_m6a
+
+# WM-RL + dual perseveration (M6b): alpha_pos, alpha_neg, phi, rho, K, kappa_total, kappa_share, epsilon
+# Current winning model (AIC rank 1, Akaike weight ~1.0 across N=154)
+python scripts/12_fit_mle.py --model wmrl_m6b
+
+# RLWM-LBA joint choice+RT (M4): alpha_pos, alpha_neg, phi, rho, K, kappa, v_scale, A, delta, t0
+# NOTE: M4 AIC is NOT comparable to choice-only models (M1-M3, M5, M6a, M6b).
+# M4 is the only model requiring GPU (float64 LBA likelihood).
+python scripts/12_fit_mle.py --model wmrl_m4
 ```
 
 **Speed options:**
@@ -208,10 +209,35 @@ python scripts/15_analyze_mle_by_trauma.py --model all
 
 # Continuous regression (parameters ~ LEC-5 + IES-R subscales)
 python scripts/16_regress_parameters_on_scales.py --model all
-
-# Bayesian regression (optional)
-python scripts/16b_bayesian_regression.py
 ```
+
+### Stage 5b: Winner Heterogeneity (Script 17)
+
+Analyze per-participant model-selection heterogeneity: what fraction of participants are best fit by each model, and how does this vary by trauma group.
+
+```bash
+python scripts/17_analyze_winner_heterogeneity.py
+```
+
+**Inputs:** `output/model_comparison/` (from script 14)
+**Outputs:** `output/model_comparison/winner_heterogeneity*.csv`, `figures/model_comparison/winner_heterogeneity_figure.png`
+
+---
+
+### Stage 5c: Bayesian Level-2 Effects (Script 18)
+
+Forest plots of Level-2 regression coefficients (trauma predictors × model parameters) from the hierarchical Bayesian posterior. Runs only after cluster Bayesian fit completes.
+
+```bash
+python scripts/18_bayesian_level2_effects.py
+```
+
+**Inputs:** `output/bayesian/{model}_posterior.nc` (generated after cluster Bayesian fit)
+**Outputs:** `output/bayesian/figures/m6b_forest_lec5.png` and related forest plots. Gracefully skips if posterior NetCDF files are missing.
+
+**Note:** Outputs marked as placeholder in `docs/04_results/README.md` until the cluster Bayesian fit completes.
+
+---
 
 ### Parameter Interpretation
 

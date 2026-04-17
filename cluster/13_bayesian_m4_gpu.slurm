@@ -120,13 +120,14 @@ echo "  chains=4, warmup=1000, samples=1500, seed=42"
 echo "  checkpoint-dir=output/bayesian"
 echo ""
 
-python scripts/13_fit_bayesian_m4.py \
-    --data output/task_trials_long.csv \
-    --chains 4 \
-    --warmup 1000 \
-    --samples 1500 \
-    --seed 42 \
-    --checkpoint-dir output/bayesian
+# NOTE (quick-008 cleanup): The M4 standalone runner script was removed.
+# The M4 hierarchical model (wmrl_m4_hierarchical_model) lives in
+# scripts/fitting/numpyro_models.py. A new runner script for Phase 17 SLURM
+# submission needs to be created before this batch job can be resubmitted.
+# See docs/02_pipeline_guide/ANALYSIS_PIPELINE.md Stage 4 for the current M4 plan.
+echo "ERROR: This SLURM script requires a runner script for M4 hierarchical fitting."
+echo "The standalone M4 runner was removed (quick-008). See Phase 17 plans for replacement."
+exit 1
 
 EXIT_CODE=$?
 
@@ -149,7 +150,7 @@ if [ $EXIT_CODE -eq 0 ]; then
         fi
     done
 else
-    echo "ERROR: 13_fit_bayesian_m4.py exited with code $EXIT_CODE"
+    echo "ERROR: M4 hierarchical fit exited with code $EXIT_CODE"
     echo "Check: logs/bayesian_m4_${SLURM_JOB_ID}.err"
     echo ""
     echo "If wall-time was exceeded after warmup, resubmit to resume:"
