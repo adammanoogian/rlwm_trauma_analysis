@@ -45,6 +45,13 @@ from scripts.fitting.jax_likelihoods import (
     wmrl_m5_multiblock_likelihood_stacked_pscan,
     wmrl_m6a_multiblock_likelihood_stacked_pscan,
     wmrl_m6b_multiblock_likelihood_stacked_pscan,
+    # Fully-batched (nested vmap) variants
+    q_learning_fully_batched_likelihood,
+    wmrl_fully_batched_likelihood,
+    wmrl_m3_fully_batched_likelihood,
+    wmrl_m5_fully_batched_likelihood,
+    wmrl_m6a_fully_batched_likelihood,
+    wmrl_m6b_fully_batched_likelihood,
 )
 
 # Path to project root (3 levels up from scripts/fitting/tests/)
@@ -1405,3 +1412,150 @@ class TestVectorizedPhase2:
         assert max_pw_err < 1e-4, (
             f"Per-trial log-prob max deviation: {max_pw_err:.2e} > 1e-4"
         )
+
+
+# =============================================================================
+# FULLY-BATCHED vs SEQUENTIAL: N=154 real-data agreement (Issue 1 validation)
+# =============================================================================
+
+
+def _call_fully_batched(model: str, stacked: dict, params_per_ppt: dict):
+    """Dispatch to the fully-batched likelihood for a given model.
+
+    Parameters
+    ----------
+    model : str
+        Model name.
+    stacked : dict
+        Output of ``stack_across_participants``: (N, B, T) tensors keyed by
+        "stimuli", "actions", "rewards", "set_sizes", "masks".
+    params_per_ppt : dict
+        Dict of (N,) parameter vectors keyed by parameter name.
+
+    Returns
+    -------
+    jnp.ndarray
+        Shape (N,) per-participant log-likelihoods.
+    """
+    stim = stacked["stimuli"]
+    act = stacked["actions"]
+    rew = stacked["rewards"]
+    mask = stacked["masks"]
+
+    if model == "qlearning":
+        return q_learning_fully_batched_likelihood(
+            stimuli=stim, actions=act, rewards=rew, masks=mask,
+            **params_per_ppt,
+        )
+
+    ss = stacked["set_sizes"]
+    batched_fn = {
+        "wmrl": wmrl_fully_batched_likelihood,
+        "wmrl_m3": wmrl_m3_fully_batched_likelihood,
+        "wmrl_m5": wmrl_m5_fully_batched_likelihood,
+        "wmrl_m6a": wmrl_m6a_fully_batched_likelihood,
+        "wmrl_m6b": wmrl_m6b_fully_batched_likelihood,
+    }[model]
+
+    return batched_fn(
+        stimuli=stim, actions=act, rewards=rew,
+        set_sizes=ss, masks=mask,
+        **params_per_ppt,
+    )
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize("model", [
+    "qlearning", "wmrl", "wmrl_m3", "wmrl_m5", "wmrl_m6a", "wmrl_m6b",
+])
+def test_fully_batched_full_n154_agreement(model):
+    """Fully-batched vmap likelihood must agree with sequential on ALL 154 real participants.
+
+    For each participant, loads their MLE-fit parameters from
+    ``output/mle/{model}_individual_fits.csv``, builds (N,) parameter vectors,
+    then computes:
+
+      - Fully-batched: one call returning (N,) per-participant log-likelihoods.
+      - Sequential:    per-participant loop over ``*_multiblock_likelihood_stacked``.
+
+    Asserts max relative error < 1e-4 across all 154 participants.  This is the
+    real-data correctness gate ensuring production Bayesian fits using the
+    refactored fully-batched path will produce numerically-identical posteriors
+    to the prior sequential-factor-loop path.
+
+    Skipped if the MLE CSV or trial data files are not available.
+    """
+    csv_path = _MLE_DIR / f"{model}_individual_fits.csv"
+    if not csv_path.exists():
+        pytest.skip(f"MLE CSV not found: {csv_path}")
+    if not _DATA_PATH.exists():
+        pytest.skip(f"Trial data not found: {_DATA_PATH}")
+
+    import pandas as pd
+    from scripts.fitting.numpyro_models import (
+        prepare_stacked_participant_data,
+        stack_across_participants,
+    )
+
+    data_df = pd.read_csv(_DATA_PATH)
+    participant_data = prepare_stacked_participant_data(data_df)
+    mle_df = pd.read_csv(csv_path)
+
+    mle_pids = set(mle_df["participant_id"].tolist())
+    data_pids = sorted(participant_data.keys())
+    participants = [p for p in data_pids if int(p) in mle_pids]
+    if not participants:
+        pytest.skip(f"No overlapping participants between data and {csv_path.name}")
+
+    # Restrict participant_data to the overlap set, preserving sort order
+    pdata_subset = {p: participant_data[p] for p in participants}
+    stacked = stack_across_participants(pdata_subset)
+
+    # Build (N,) parameter vectors in the same order as stacked["participant_ids"]
+    param_lists: dict[str, list[float]] = {}
+    for pid in stacked["participant_ids"]:
+        params_i = _load_mle_params(model, participant_id=int(pid))
+        for name, value in params_i.items():
+            param_lists.setdefault(name, []).append(value)
+
+    params_per_ppt = {
+        name: jnp.asarray(values, dtype=jnp.float32)
+        for name, values in param_lists.items()
+    }
+
+    # Fully-batched: one call -> (N,) vector
+    batched_ll = np.asarray(_call_fully_batched(model, stacked, params_per_ppt))
+    assert batched_ll.shape == (len(participants),)
+
+    # Sequential: per-participant loop
+    seq_lls = np.empty(len(participants), dtype=np.float32)
+    for idx, pid in enumerate(stacked["participant_ids"]):
+        pdata = pdata_subset[pid]
+        scalar_params = {k: float(v[idx]) for k, v in params_per_ppt.items()}
+        nll_seq, _ = _call_seq_and_pscan(model, pdata, scalar_params)
+        seq_lls[idx] = nll_seq
+
+    abs_err = np.abs(batched_ll - seq_lls)
+    max_nll = np.maximum(np.abs(seq_lls), 1e-8)
+    rel_err = abs_err / max_nll
+    max_rel_err = float(rel_err.max())
+
+    failures = [
+        (pid, seq_lls[i], batched_ll[i], rel_err[i])
+        for i, pid in enumerate(stacked["participant_ids"])
+        if rel_err[i] >= 1e-4
+    ]
+
+    print(
+        f"\n[{model}] fully-batched vs sequential N={len(participants)} "
+        f"max rel err: {max_rel_err:.2e} "
+        f"({'PASS' if not failures else 'FAIL'})"
+    )
+
+    assert not failures, (
+        f"[{model}] {len(failures)}/{len(participants)} participants exceeded 1e-4 "
+        f"rel err threshold.  Max rel_err={max_rel_err:.2e}.  "
+        f"First failure: participant={failures[0][0]}, "
+        f"seq={failures[0][1]:.4f}, batched={failures[0][2]:.4f}, "
+        f"rel_err={failures[0][3]:.2e}"
+    )
