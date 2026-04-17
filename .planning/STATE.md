@@ -418,7 +418,7 @@ Progress: [████████░░] ~78% (28/~36 plans across Phases 13-2
 | 006 | Post-refit verification: M6b winner, BIC + winner heterogeneity + FDR/Bonferroni + manuscript revision | 2026-04-10 | a01febd | [006-post-refit-verification-recovery-manuscript](./quick/006-post-refit-verification-recovery-manuscript/) |
 | 007 | GPU MCMC speedup: chain_method=vectorized on GPU + GPU config logging + vmap-over-participants refactor for wmrl_m3 (POC) | 2026-04-16 | 1ac963c | [007-gpu-mcmc-speedup-vmap-chain-method](./quick/007-gpu-mcmc-speedup-vmap-chain-method/) |
 | 008 | Cleanup pipeline + docs per 2026-04-17 audit: prune 7 orphaned scripts, move 3 superseded docs to legacy/, scaffold docs/04_methods + 04_results, fix scale_distributions.png path | 2026-04-17 | 2c4f12a | [008-cleanup-pipeline-and-docs](./quick/008-cleanup-pipeline-and-docs/) |
-| 009 | Integrate Burrows thesis content into paper.qmd: line-cited catalog (INTEGRATION_MAP.md), 28 reusable passages (~1,850 words), 9 divergence flags, no auto-edits applied | 2026-04-17 | (planning docs gitignored) | [009-integrate-burrows-thesis-into-paper](./quick/009-integrate-burrows-thesis-into-paper/) |
+| 009 | Integrate Burrows thesis content into paper.qmd: line-cited catalog (INTEGRATION_MAP.md), 28 reusable passages (~1,850 words), 9 divergence flags, no auto-edits applied | 2026-04-17 | 8ccdc4b | [009-integrate-burrows-thesis-into-paper](./quick/009-integrate-burrows-thesis-into-paper/) |
 
 ## Session Continuity
 
