@@ -13,7 +13,7 @@ Milestone: v4.0 Hierarchical Bayesian Pipeline & LBA Acceleration
 Phase: 20 of 20 (DEER Non-Linear Parallelization) — In progress
 Plan: 2 of 3 complete (20-01, 20-02 done)
 Status: All 12 pscan likelihood variants use fully vectorized Phase 2. **Fully-batched vmap likelihood rolled out to all 6 choice-only models (post-Phase-20 follow-up). Production Bayesian refits unblocked — awaiting M6b spot-check.**
-Last activity: 2026-04-17 — **v4.0 pre-refit checkpoint**: Issue 1 rollout complete (fully-batched vmap, ~1 s/iter on N=154). Added canonical `get_analysis_cohort()` (task + performance + scale gates → N=138). Moved kappa-family priors from MLE-calibrated `mu_prior_loc=-2.0` to principled `mu_prior_loc=0.0`. Added stick-breaking rationale + posterior-vs-MLE sanity check to paper.qmd. Ready for production refit.
+Last activity: 2026-04-17 — Completed quick task 009: Burrows thesis integration map (line-cited catalog at `.planning/quick/009-integrate-burrows-thesis-into-paper/INTEGRATION_MAP.md`, 28 reusable passages / ~1,850 words / 9 divergence flags; no auto-edits applied per user rule "do not change intro/discussion interpretation"). Prior same day: quick task 008 (pipeline + docs cleanup, commit `2c4f12a`); **v4.0 pre-refit** — Issue 1 rollout complete (fully-batched vmap, ~1 s/iter on N=154), canonical `get_analysis_cohort()` → N=138, principled `mu_prior_loc=0.0`, stick-breaking rationale + posterior-vs-MLE sanity check added to paper.qmd. Ready for production refit.
 
 ### v4.0 Decisions (pre-refit, 2026-04-17)
 
@@ -417,9 +417,11 @@ Progress: [████████░░] ~78% (28/~36 plans across Phases 13-2
 | 005 | Re-run pipeline (N=154), model overview + distribution figures in manuscript | 2026-04-08 | 6b045a4 | [005-rerun-pipeline-analyses-update-quarto-manuscript](./quick/005-rerun-pipeline-analyses-update-quarto-manuscript/) |
 | 006 | Post-refit verification: M6b winner, BIC + winner heterogeneity + FDR/Bonferroni + manuscript revision | 2026-04-10 | a01febd | [006-post-refit-verification-recovery-manuscript](./quick/006-post-refit-verification-recovery-manuscript/) |
 | 007 | GPU MCMC speedup: chain_method=vectorized on GPU + GPU config logging + vmap-over-participants refactor for wmrl_m3 (POC) | 2026-04-16 | 1ac963c | [007-gpu-mcmc-speedup-vmap-chain-method](./quick/007-gpu-mcmc-speedup-vmap-chain-method/) |
+| 008 | Cleanup pipeline + docs per 2026-04-17 audit: prune 7 orphaned scripts, move 3 superseded docs to legacy/, scaffold docs/04_methods + 04_results, fix scale_distributions.png path | 2026-04-17 | 2c4f12a | [008-cleanup-pipeline-and-docs](./quick/008-cleanup-pipeline-and-docs/) |
+| 009 | Integrate Burrows thesis content into paper.qmd: line-cited catalog (INTEGRATION_MAP.md), 28 reusable passages (~1,850 words), 9 divergence flags, no auto-edits applied | 2026-04-17 | (planning docs gitignored) | [009-integrate-burrows-thesis-into-paper](./quick/009-integrate-burrows-thesis-into-paper/) |
 
 ## Session Continuity
 
-Last session: 2026-04-14
-Stopped at: Phase 20 plan 02 complete. All 12 pscan likelihood variants now use vectorized Phase 2 (no sequential policy scan). 30 non-slow tests pass. Next: 20-03 (documentation update).
+Last session: 2026-04-17
+Stopped at: Quick task 009 complete. Burrows thesis integration map produced (INTEGRATION_MAP.md, ~1,850 reusable words catalogued, 9 divergence flags). No edits applied to paper.qmd. Highest priority gap identified: IES-R ≥24 cutoff and scale description absent from sec-participants.
 Resume file: None
