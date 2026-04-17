@@ -103,16 +103,8 @@ def main():
             "python scripts/06_visualize_task_performance.py",
         ),
         (
-            "06_1 — Plotting task performance details",
-            "python scripts/06_1_plot_task_performance.py",
-        ),
-        (
             "07 — Analyzing trauma groups",
             "python scripts/07_analyze_trauma_groups.py",
-        ),
-        (
-            "07_1 — Visualizing by trauma group",
-            "python scripts/07_1_visualize_by_trauma_group.py",
         ),
         (
             "08 — Running statistical analyses",

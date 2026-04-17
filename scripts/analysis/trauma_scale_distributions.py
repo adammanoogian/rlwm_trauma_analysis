@@ -37,6 +37,10 @@ FIGURES_DIR = Path('figures/trauma_scale_analysis')
 OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
 FIGURES_DIR.mkdir(exist_ok=True, parents=True)
 
+# Canonical path expected by manuscript/paper.qmd (resolves to manuscript/figures/ at render time
+# via the ../figures/scale_distributions.png include on the paper.qmd side).
+CANONICAL_FIGURE_PATH = Path('figures/scale_distributions.png')  # paper.qmd expects this location
+
 
 def load_data():
     """Load behavioral data with trauma scales."""
@@ -181,10 +185,11 @@ def analyze_scale_distributions(data):
     fig.delaxes(axes[5])
     
     plt.tight_layout()
-    plt.savefig(FIGURES_DIR / 'scale_distributions.png', dpi=300, bbox_inches='tight')
+    CANONICAL_FIGURE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    plt.savefig(CANONICAL_FIGURE_PATH, dpi=300, bbox_inches='tight')
     plt.close()
-    
-    print(f"\nSaved histogram figure to {FIGURES_DIR}/scale_distributions.png")
+
+    print(f"\nSaved histogram figure to {CANONICAL_FIGURE_PATH}")
     
     return stats_df, scales
 

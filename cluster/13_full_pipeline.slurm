@@ -122,14 +122,8 @@ if [[ "$SKIP_BEHAVIORAL" != "true" ]]; then
     run_step "06 — Visualize task performance" \
         python scripts/06_visualize_task_performance.py
 
-    run_step "06_1 — Plot task performance details" \
-        python scripts/06_1_plot_task_performance.py
-
     run_step "07 — Analyze trauma groups" \
         python scripts/07_analyze_trauma_groups.py
-
-    run_step "07_1 — Visualize by trauma group" \
-        python scripts/07_1_visualize_by_trauma_group.py
 
     run_step "08 — Run statistical analyses" \
         python scripts/08_run_statistical_analyses.py

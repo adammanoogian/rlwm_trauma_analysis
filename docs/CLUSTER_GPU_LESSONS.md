@@ -970,8 +970,8 @@ Retrospective from the v4.0 development:
 - `cluster/13_bayesian_*.slurm` — SLURM templates for CPU, single-GPU,
   multi-GPU
 - `docs/PARALLEL_SCAN_LIKELIHOOD.md` — pscan architecture deep-dive
-- `docs/JAX_GPU_BAYESIAN_FITTING.md` — earlier lessons, partial
-  overlap with this document
+- `docs/legacy/JAX_GPU_BAYESIAN_FITTING.md` — earlier lessons, partial
+  overlap with this document (archived; superseded by this file)
 - `docs/HIERARCHICAL_BAYESIAN.md` — Bayesian architecture and
   validation checklist
 - `.planning/STATE.md` — chronological decision records

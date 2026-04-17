@@ -29,6 +29,33 @@ python scripts/visualization/quick_arviz_plots.py \
 
 ---
 
+## All Visualization Scripts
+
+All scripts live in `scripts/visualization/`. Run from the repo root.
+
+| Script | Purpose | Primary input | Primary output |
+|---|---|---|---|
+| `create_modeling_figures.py` | Publication-quality MLE model figures (learning curves, set-size effects, parameter distributions) | `output/mle/` | `figures/modeling/` |
+| `create_modeling_tables.py` | LaTeX/CSV tables for model results (AIC/BIC, parameter means) | `output/mle/`, `output/model_comparison/` | `output/tables/` |
+| `create_parameter_behavior_heatmap.py` | Heatmap of parameter × behavioral correlations across models | `output/mle/`, `output/regressions/` | `figures/parameter_behavior_heatmap.png` |
+| `create_publication_figures.py` | Composite figure panels for the manuscript | `output/mle/`, `figures/` | `figures/publication/` |
+| `create_supplementary_materials.py` | Supplementary figures and tables (model recovery, parameter sweep) | `output/model_comparison/`, `output/mle/` | `figures/supplementary/`, `output/supplementary/` |
+| `create_supplementary_table_s3.py` | Supplementary Table S3 (regression coefficients for all models) | `output/regressions/` | `output/tables/table_s3.csv` |
+| `plot_group_parameters.py` | Forest plots of hierarchical group-level (mu) parameters | `output/bayesian/{model}_posterior.nc` | `figures/{prefix}_group_parameters_forest.png` |
+| `plot_model_comparison.py` | WAIC/LOO bar chart + Akaike model weights (Bayesian comparison) | Two `.nc` posterior files | `figures/{prefix}_model_comparison_bar.png` |
+| `plot_posterior_diagnostics.py` | Full MCMC diagnostic dashboard: trace, rank, energy, autocorr, pair | `output/bayesian/{model}_posterior.nc` | `figures/m6b_posterior_diagnostics.png` (or specified path) |
+| `plot_wmrl_forest.py` | Forest plot of all WM-RL parameters from a single posterior | `output/bayesian/{model}_posterior.nc` | `figures/{prefix}_wmrl_forest.png` |
+| `quick_arviz_plots.py` | 8+ diagnostic plots in one call (trace, posterior, forest, rank, autocorr, energy, pair, summary CSV) | Any `.nc` posterior file | `figures/{model}_{timestamp}_*.png` + summary CSV |
+
+**When to use each:**
+- **Before submitting results**: `create_publication_figures.py` + `create_modeling_tables.py`
+- **After cluster Bayesian fit**: `plot_posterior_diagnostics.py`, `plot_group_parameters.py`, `plot_wmrl_forest.py`
+- **For convergence check**: `quick_arviz_plots.py` (fastest, all diagnostics at once)
+- **For model comparison (Bayesian)**: `plot_model_comparison.py`
+- **For trauma-parameter signal**: `create_parameter_behavior_heatmap.py`
+
+---
+
 ## Visualization Tools Overview
 
 ### 1. Group-Level Parameters (`plot_group_parameters.py`)
