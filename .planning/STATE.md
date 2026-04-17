@@ -23,6 +23,7 @@ Last activity: 2026-04-17 — **v4.0 pre-refit checkpoint**: Issue 1 rollout com
 - **Stick-breaking rationale + identifiability paragraph added to paper.qmd (locked):** Methods §Model Fitting now explicitly argues for stick-breaking vs. inequality-constrained joint κ/κ_s sampling and names the three identifiability safeguards (uninformative κ_share prior, auto-bump, recovery validation).
 - **Posterior-vs-MLE figure referenced in paper.qmd (locked):** `@fig-posterior-vs-mle` points to `figures/m6b_posterior_vs_mle.png`, to be generated from the output of `validation/compare_posterior_to_mle.py` on pipeline rerun.
 - **Scale distributions figure referenced (locked):** `@fig-scale-distributions` points to `figures/scale_distributions.png`, produced by `scripts/analysis/trauma_scale_distributions.py` on pipeline rerun.
+- **Cluster/GPU lessons doc (locked):** `docs/CLUSTER_GPU_LESSONS.md` captures the full v4.0 operational writeup — fully-batched vmap pattern with code examples, chain_method decision tree, pscan tradeoffs (CPU 3.7× slower, qlearning 0.28×), JAX/NumPyro pitfalls with context, SLURM templates (CPU-4-chain, single-GPU, multi-GPU), JIT-optimal coding patterns, debugging checklist.  Cross-referenced from `docs/README.md`.
 
 ## Hierarchical Bayesian Architecture (current)
 
