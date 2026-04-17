@@ -1294,6 +1294,7 @@ def qlearning_hierarchical_model_stacked(
     num_actions: int = 3,
     q_init: float = 0.5,
     use_pscan: bool = False,
+    stacked_arrays: dict | None = None,
 ) -> None:
     """Hierarchical Bayesian M1 (Q-learning) model using stacked pre-padded arrays.
 
@@ -1303,10 +1304,14 @@ def qlearning_hierarchical_model_stacked(
     ``theta = lower + (upper - lower) * Phi_approx(theta_unc)``,
     where ``Phi_approx = jax.scipy.stats.norm.cdf``.
 
-    Implements HIER-02: ports M1 (Q-learning) to the canonical stacked format
-    introduced in Phase 15 for M3.  Three parameters (alpha_pos, alpha_neg,
-    epsilon) are sampled via :func:`sample_bounded_param` from
-    :mod:`scripts.fitting.numpyro_helpers`.
+    Three parameters (alpha_pos, alpha_neg, epsilon) are sampled via
+    :func:`sample_bounded_param` from :mod:`scripts.fitting.numpyro_helpers`.
+
+    Likelihood is accumulated via a single ``numpyro.factor("obs", ...)`` call
+    using ``q_learning_fully_batched_likelihood`` (nested vmap over participants
+    and blocks).  This mirrors the M3 refactor from commit 6403c72 and removes
+    the per-participant Python for-loop that was the main NUTS leapfrog
+    bottleneck.
 
     Parameters
     ----------
@@ -1327,11 +1332,16 @@ def qlearning_hierarchical_model_stacked(
         Number of possible actions.  Default 3.
     q_init : float
         Initial Q-value for all state-action pairs.  Default 0.5.
+    use_pscan : bool
+        Must be ``False``.  The fully-batched vmap path does not compose
+        with the O(log T) associative scan variants.
+    stacked_arrays : dict or None
+        Pre-computed output of ``stack_across_participants``.  If ``None``,
+        computed here.  ``fit_bayesian.py`` passes this to avoid recomputing
+        (N, B, T) tensors on every MCMC trace call.
 
     Notes
     -----
-    - Q-learning likelihood (``q_learning_multiblock_likelihood_stacked``) does
-      NOT accept ``set_sizes_stacked``; do NOT pass it.
     - Participant ordering follows ``sorted(participant_data_stacked.keys())``
       to align with covariate arrays prepared by downstream scripts.
     - Do NOT modify this function's API: ``fit_bayesian.py`` dispatches to it
@@ -1343,6 +1353,11 @@ def qlearning_hierarchical_model_stacked(
             "supported for Q-learning (no natural L2 target parameter). "
             "Pass covariate_lec=None."
         )
+    if use_pscan:
+        raise NotImplementedError(
+            "qlearning_hierarchical_model_stacked: use_pscan + fully-batched "
+            "vmap path is not implemented.  Pass use_pscan=False."
+        )
 
     from scripts.fitting.numpyro_helpers import (
         PARAM_PRIOR_DEFAULTS,
@@ -1350,7 +1365,6 @@ def qlearning_hierarchical_model_stacked(
     )
 
     n_participants = len(participant_data_stacked)
-    participant_ids = sorted(participant_data_stacked.keys())
 
     # ------------------------------------------------------------------
     # Group priors for 3 parameters via hBayesDM non-centered convention
@@ -1367,30 +1381,27 @@ def qlearning_hierarchical_model_stacked(
         )
 
     # ------------------------------------------------------------------
-    # Likelihood via numpyro.factor — Python for-loop over participants
-    # CRITICAL: do NOT pass set_sizes_stacked to Q-learning likelihood
+    # Likelihood via single numpyro.factor("obs", ...) — fully-batched
+    # vmap over participants and blocks.
     # ------------------------------------------------------------------
-    _ql_lik_fn = (
-        q_learning_multiblock_likelihood_stacked_pscan
-        if use_pscan
-        else q_learning_multiblock_likelihood_stacked
+    if stacked_arrays is None:
+        stacked_arrays = stack_across_participants(participant_data_stacked)
+
+    from scripts.fitting.jax_likelihoods import q_learning_fully_batched_likelihood
+
+    per_participant_ll = q_learning_fully_batched_likelihood(
+        stimuli=stacked_arrays["stimuli"],
+        actions=stacked_arrays["actions"],
+        rewards=stacked_arrays["rewards"],
+        masks=stacked_arrays["masks"],
+        alpha_pos=sampled["alpha_pos"],
+        alpha_neg=sampled["alpha_neg"],
+        epsilon=sampled["epsilon"],
+        num_stimuli=num_stimuli,
+        num_actions=num_actions,
+        q_init=q_init,
     )
-    for idx, pid in enumerate(participant_ids):
-        pdata = participant_data_stacked[pid]
-        log_lik = _ql_lik_fn(
-            stimuli_stacked=pdata["stimuli_stacked"],
-            actions_stacked=pdata["actions_stacked"],
-            rewards_stacked=pdata["rewards_stacked"],
-            masks_stacked=pdata["masks_stacked"],
-            alpha_pos=sampled["alpha_pos"][idx],
-            alpha_neg=sampled["alpha_neg"][idx],
-            epsilon=sampled["epsilon"][idx],
-            num_stimuli=num_stimuli,
-            num_actions=num_actions,
-            q_init=q_init,
-            return_pointwise=False,
-        )
-        numpyro.factor(f"obs_p{pid}", log_lik)
+    numpyro.factor("obs", per_participant_ll.sum())
 
 
 def wmrl_hierarchical_model_stacked(
@@ -1401,8 +1412,9 @@ def wmrl_hierarchical_model_stacked(
     q_init: float = 0.5,
     wm_init: float = 1.0 / 3.0,
     use_pscan: bool = False,
+    stacked_arrays: dict | None = None,
 ) -> None:
-    """Hierarchical Bayesian M2 (WM-RL) model using stacked pre-padded arrays.
+    """Hierarchical Bayesian M2 (WM-RL) model using fully-batched vmap likelihood.
 
     Uses the hBayesDM non-centered parameterization convention (Ahn, Haines,
     Zhang 2017):
@@ -1410,49 +1422,41 @@ def wmrl_hierarchical_model_stacked(
     ``theta = lower + (upper - lower) * Phi_approx(theta_unc)``,
     where ``Phi_approx = jax.scipy.stats.norm.cdf``.
 
-    Implements HIER-03: ports M2 (WM-RL base, no perseveration) to the
-    canonical stacked format introduced in Phase 15 for M3.  Six parameters
-    (alpha_pos, alpha_neg, phi, rho, capacity, epsilon) are sampled via
-    :func:`sample_bounded_param` from :mod:`scripts.fitting.numpyro_helpers`.
+    Six parameters (alpha_pos, alpha_neg, phi, rho, capacity, epsilon) are
+    sampled via :func:`sample_bounded_param` from
+    :mod:`scripts.fitting.numpyro_helpers`.
+
+    Likelihood is accumulated via a single ``numpyro.factor("obs", ...)`` call
+    using ``wmrl_fully_batched_likelihood`` (nested vmap over participants and
+    blocks).  This removes the 154-factor Python for-loop that was the main
+    NUTS leapfrog bottleneck.
 
     Parameters
     ----------
     participant_data_stacked : dict
-        Mapping from participant_id to stacked-format arrays (from
-        ``prepare_stacked_participant_data``).  Keys per participant:
-        ``stimuli_stacked``, ``actions_stacked``, ``rewards_stacked``,
-        ``set_sizes_stacked``, ``masks_stacked`` — each shape
-        ``(n_blocks, MAX_TRIALS_PER_BLOCK)``.
+        Mapping from participant_id to stacked-format arrays.
     covariate_lec : jnp.ndarray or None
-        Reserved for forward compatibility.  Must be ``None``; passing a
-        non-None value raises ``NotImplementedError`` because M2 has no
-        perseveration parameter to target for Level-2 regression in this
-        release.
-    num_stimuli : int
-        Number of distinct stimuli in the task.  Default 6.
-    num_actions : int
-        Number of possible actions.  Default 3.
-    q_init : float
-        Initial Q-value for all state-action pairs.  Default 0.5.
-    wm_init : float
-        Initial WM values (uniform baseline ``1/nA``).  Default ``1/3``.
-
-    Notes
-    -----
-    - WM-RL likelihood (``wmrl_multiblock_likelihood_stacked``) DOES require
-      ``set_sizes_stacked``; it is passed from ``pdata`` at each iteration.
-    - M2 has no kappa (perseveration) parameter; all 6 parameters go through
-      the standard ``sample_bounded_param`` loop.
-    - Participant ordering follows ``sorted(participant_data_stacked.keys())``
-      to align with covariate arrays prepared by downstream scripts.
-    - Do NOT modify this function's API: ``fit_bayesian.py`` dispatches to it
-      by name.
+        Must be ``None``; M2 has no perseveration parameter as L2 target.
+    num_stimuli, num_actions, q_init, wm_init : int / float
+        Static model parameters.
+    use_pscan : bool
+        Must be ``False``.  The fully-batched vmap path does not compose with
+        the O(log T) associative scan variants.
+    stacked_arrays : dict or None
+        Pre-computed output of ``stack_across_participants``.  If ``None``,
+        computed here.  ``fit_bayesian.py`` passes this to avoid recomputing
+        (N, B, T) tensors on every MCMC trace call.
     """
     if covariate_lec is not None:
         raise NotImplementedError(
             "wmrl_hierarchical_model_stacked: covariate_lec is not supported "
             "for M2 WM-RL (no perseveration parameter as L2 target). "
             "Pass covariate_lec=None."
+        )
+    if use_pscan:
+        raise NotImplementedError(
+            "wmrl_hierarchical_model_stacked: use_pscan + fully-batched vmap "
+            "path is not implemented.  Pass use_pscan=False."
         )
 
     from scripts.fitting.numpyro_helpers import (
@@ -1461,7 +1465,6 @@ def wmrl_hierarchical_model_stacked(
     )
 
     n_participants = len(participant_data_stacked)
-    participant_ids = sorted(participant_data_stacked.keys())
 
     # ------------------------------------------------------------------
     # Group priors for 6 parameters via hBayesDM non-centered convention
@@ -1478,35 +1481,32 @@ def wmrl_hierarchical_model_stacked(
         )
 
     # ------------------------------------------------------------------
-    # Likelihood via numpyro.factor — Python for-loop over participants
-    # WM-RL likelihood requires set_sizes_stacked (unlike Q-learning)
+    # Likelihood via single numpyro.factor("obs", ...) — fully-batched
+    # vmap over participants and blocks.
     # ------------------------------------------------------------------
-    _wmrl_lik_fn = (
-        wmrl_multiblock_likelihood_stacked_pscan
-        if use_pscan
-        else wmrl_multiblock_likelihood_stacked
+    if stacked_arrays is None:
+        stacked_arrays = stack_across_participants(participant_data_stacked)
+
+    from scripts.fitting.jax_likelihoods import wmrl_fully_batched_likelihood
+
+    per_participant_ll = wmrl_fully_batched_likelihood(
+        stimuli=stacked_arrays["stimuli"],
+        actions=stacked_arrays["actions"],
+        rewards=stacked_arrays["rewards"],
+        set_sizes=stacked_arrays["set_sizes"],
+        masks=stacked_arrays["masks"],
+        alpha_pos=sampled["alpha_pos"],
+        alpha_neg=sampled["alpha_neg"],
+        phi=sampled["phi"],
+        rho=sampled["rho"],
+        capacity=sampled["capacity"],
+        epsilon=sampled["epsilon"],
+        num_stimuli=num_stimuli,
+        num_actions=num_actions,
+        q_init=q_init,
+        wm_init=wm_init,
     )
-    for idx, pid in enumerate(participant_ids):
-        pdata = participant_data_stacked[pid]
-        log_lik = _wmrl_lik_fn(
-            stimuli_stacked=pdata["stimuli_stacked"],
-            actions_stacked=pdata["actions_stacked"],
-            rewards_stacked=pdata["rewards_stacked"],
-            set_sizes_stacked=pdata["set_sizes_stacked"],
-            masks_stacked=pdata["masks_stacked"],
-            alpha_pos=sampled["alpha_pos"][idx],
-            alpha_neg=sampled["alpha_neg"][idx],
-            phi=sampled["phi"][idx],
-            rho=sampled["rho"][idx],
-            capacity=sampled["capacity"][idx],
-            epsilon=sampled["epsilon"][idx],
-            num_stimuli=num_stimuli,
-            num_actions=num_actions,
-            q_init=q_init,
-            wm_init=wm_init,
-            return_pointwise=False,
-        )
-        numpyro.factor(f"obs_p{pid}", log_lik)
+    numpyro.factor("obs", per_participant_ll.sum())
 
 
 def wmrl_m5_hierarchical_model(
@@ -1517,6 +1517,7 @@ def wmrl_m5_hierarchical_model(
     q_init: float = 0.5,
     wm_init: float = 1.0 / 3.0,
     use_pscan: bool = False,
+    stacked_arrays: dict | None = None,
 ) -> None:
     """Hierarchical Bayesian M5 (WM-RL+phi_rl) model with optional Level-2 regression.
 
@@ -1578,8 +1579,13 @@ def wmrl_m5_hierarchical_model(
         sample_bounded_param,
     )
 
+    if use_pscan:
+        raise NotImplementedError(
+            "wmrl_m5_hierarchical_model: use_pscan + fully-batched vmap "
+            "path is not implemented.  Pass use_pscan=False."
+        )
+
     n_participants = len(participant_data_stacked)
-    participant_ids = sorted(participant_data_stacked.keys())
 
     # ------------------------------------------------------------------
     # Level-2: LEC-total -> kappa regression coefficient
@@ -1638,38 +1644,34 @@ def wmrl_m5_hierarchical_model(
     sampled["kappa"] = kappa
 
     # ------------------------------------------------------------------
-    # Likelihood via numpyro.factor — Python for-loop over participants
-    # (vmap not applicable: stacked likelihood uses lax.fori_loop over
-    # variable-length block structures)
+    # Likelihood via single numpyro.factor("obs", ...) — fully-batched
+    # vmap over participants and blocks.
     # ------------------------------------------------------------------
-    _m5_lik_fn = (
-        wmrl_m5_multiblock_likelihood_stacked_pscan
-        if use_pscan
-        else wmrl_m5_multiblock_likelihood_stacked
+    if stacked_arrays is None:
+        stacked_arrays = stack_across_participants(participant_data_stacked)
+
+    from scripts.fitting.jax_likelihoods import wmrl_m5_fully_batched_likelihood
+
+    per_participant_ll = wmrl_m5_fully_batched_likelihood(
+        stimuli=stacked_arrays["stimuli"],
+        actions=stacked_arrays["actions"],
+        rewards=stacked_arrays["rewards"],
+        set_sizes=stacked_arrays["set_sizes"],
+        masks=stacked_arrays["masks"],
+        alpha_pos=sampled["alpha_pos"],
+        alpha_neg=sampled["alpha_neg"],
+        phi=sampled["phi"],
+        rho=sampled["rho"],
+        capacity=sampled["capacity"],
+        kappa=sampled["kappa"],
+        phi_rl=sampled["phi_rl"],
+        epsilon=sampled["epsilon"],
+        num_stimuli=num_stimuli,
+        num_actions=num_actions,
+        q_init=q_init,
+        wm_init=wm_init,
     )
-    for idx, pid in enumerate(participant_ids):
-        pdata = participant_data_stacked[pid]
-        log_lik = _m5_lik_fn(
-            stimuli_stacked=pdata["stimuli_stacked"],
-            actions_stacked=pdata["actions_stacked"],
-            rewards_stacked=pdata["rewards_stacked"],
-            set_sizes_stacked=pdata["set_sizes_stacked"],
-            masks_stacked=pdata["masks_stacked"],
-            alpha_pos=sampled["alpha_pos"][idx],
-            alpha_neg=sampled["alpha_neg"][idx],
-            phi=sampled["phi"][idx],
-            rho=sampled["rho"][idx],
-            capacity=sampled["capacity"][idx],
-            kappa=sampled["kappa"][idx],
-            phi_rl=sampled["phi_rl"][idx],
-            epsilon=sampled["epsilon"][idx],
-            num_stimuli=num_stimuli,
-            num_actions=num_actions,
-            q_init=q_init,
-            wm_init=wm_init,
-            return_pointwise=False,
-        )
-        numpyro.factor(f"obs_p{pid}", log_lik)
+    numpyro.factor("obs", per_participant_ll.sum())
 
 
 def wmrl_m6a_hierarchical_model(
@@ -1680,6 +1682,7 @@ def wmrl_m6a_hierarchical_model(
     q_init: float = 0.5,
     wm_init: float = 1.0 / 3.0,
     use_pscan: bool = False,
+    stacked_arrays: dict | None = None,
 ) -> None:
     """Hierarchical Bayesian M6a (WM-RL+kappa_s) model with optional L2 regression.
 
@@ -1742,8 +1745,13 @@ def wmrl_m6a_hierarchical_model(
         sample_bounded_param,
     )
 
+    if use_pscan:
+        raise NotImplementedError(
+            "wmrl_m6a_hierarchical_model: use_pscan + fully-batched vmap "
+            "path is not implemented.  Pass use_pscan=False."
+        )
+
     n_participants = len(participant_data_stacked)
-    participant_ids = sorted(participant_data_stacked.keys())
 
     # ------------------------------------------------------------------
     # Level-2: LEC-total -> kappa_s regression coefficient
@@ -1796,35 +1804,33 @@ def wmrl_m6a_hierarchical_model(
     sampled["kappa_s"] = kappa_s
 
     # ------------------------------------------------------------------
-    # Likelihood via numpyro.factor — Python for-loop over participants
+    # Likelihood via single numpyro.factor("obs", ...) — fully-batched
+    # vmap over participants and blocks.
     # ------------------------------------------------------------------
-    _m6a_lik_fn = (
-        wmrl_m6a_multiblock_likelihood_stacked_pscan
-        if use_pscan
-        else wmrl_m6a_multiblock_likelihood_stacked
+    if stacked_arrays is None:
+        stacked_arrays = stack_across_participants(participant_data_stacked)
+
+    from scripts.fitting.jax_likelihoods import wmrl_m6a_fully_batched_likelihood
+
+    per_participant_ll = wmrl_m6a_fully_batched_likelihood(
+        stimuli=stacked_arrays["stimuli"],
+        actions=stacked_arrays["actions"],
+        rewards=stacked_arrays["rewards"],
+        set_sizes=stacked_arrays["set_sizes"],
+        masks=stacked_arrays["masks"],
+        alpha_pos=sampled["alpha_pos"],
+        alpha_neg=sampled["alpha_neg"],
+        phi=sampled["phi"],
+        rho=sampled["rho"],
+        capacity=sampled["capacity"],
+        kappa_s=sampled["kappa_s"],
+        epsilon=sampled["epsilon"],
+        num_stimuli=num_stimuli,
+        num_actions=num_actions,
+        q_init=q_init,
+        wm_init=wm_init,
     )
-    for idx, pid in enumerate(participant_ids):
-        pdata = participant_data_stacked[pid]
-        log_lik = _m6a_lik_fn(
-            stimuli_stacked=pdata["stimuli_stacked"],
-            actions_stacked=pdata["actions_stacked"],
-            rewards_stacked=pdata["rewards_stacked"],
-            set_sizes_stacked=pdata["set_sizes_stacked"],
-            masks_stacked=pdata["masks_stacked"],
-            alpha_pos=sampled["alpha_pos"][idx],
-            alpha_neg=sampled["alpha_neg"][idx],
-            phi=sampled["phi"][idx],
-            rho=sampled["rho"][idx],
-            capacity=sampled["capacity"][idx],
-            kappa_s=sampled["kappa_s"][idx],
-            epsilon=sampled["epsilon"][idx],
-            num_stimuli=num_stimuli,
-            num_actions=num_actions,
-            q_init=q_init,
-            wm_init=wm_init,
-            return_pointwise=False,
-        )
-        numpyro.factor(f"obs_p{pid}", log_lik)
+    numpyro.factor("obs", per_participant_ll.sum())
 
 
 def wmrl_m6b_hierarchical_model(
@@ -1835,6 +1841,7 @@ def wmrl_m6b_hierarchical_model(
     q_init: float = 0.5,
     wm_init: float = 1.0 / 3.0,
     use_pscan: bool = False,
+    stacked_arrays: dict | None = None,
 ) -> None:
     """Hierarchical Bayesian M6b (WM-RL+dual perseveration) model with optional L2 regression.
 
@@ -1907,8 +1914,13 @@ def wmrl_m6b_hierarchical_model(
         sample_bounded_param,
     )
 
+    if use_pscan:
+        raise NotImplementedError(
+            "wmrl_m6b_hierarchical_model: use_pscan + fully-batched vmap "
+            "path is not implemented.  Pass use_pscan=False."
+        )
+
     n_participants = len(participant_data_stacked)
-    participant_ids = sorted(participant_data_stacked.keys())
 
     # ------------------------------------------------------------------
     # Level-2: LEC-total -> kappa_total and kappa_share regression
@@ -2001,44 +2013,43 @@ def wmrl_m6b_hierarchical_model(
     sampled["kappa_share"] = kappa_share
 
     # ------------------------------------------------------------------
-    # Likelihood via numpyro.factor — Python for-loop over participants
-    # Decode kappa and kappa_s per-participant (STATE.md locked decision):
+    # Decode kappa and kappa_s on (N,) vectors BEFORE vmap (STATE.md locked):
     #   kappa   = kappa_total * kappa_share
     #   kappa_s = kappa_total * (1 - kappa_share)
-    # Pass decoded values to likelihood, NOT kappa_total/kappa_share directly.
+    # This preserves the stick-breaking invariant kappa + kappa_s = kappa_total.
     # ------------------------------------------------------------------
-    _m6b_lik_fn = (
-        wmrl_m6b_multiblock_likelihood_stacked_pscan
-        if use_pscan
-        else wmrl_m6b_multiblock_likelihood_stacked
+    kappa = sampled["kappa_total"] * sampled["kappa_share"]
+    kappa_s = sampled["kappa_total"] * (1.0 - sampled["kappa_share"])
+
+    # ------------------------------------------------------------------
+    # Likelihood via single numpyro.factor("obs", ...) — fully-batched
+    # vmap over participants and blocks.
+    # ------------------------------------------------------------------
+    if stacked_arrays is None:
+        stacked_arrays = stack_across_participants(participant_data_stacked)
+
+    from scripts.fitting.jax_likelihoods import wmrl_m6b_fully_batched_likelihood
+
+    per_participant_ll = wmrl_m6b_fully_batched_likelihood(
+        stimuli=stacked_arrays["stimuli"],
+        actions=stacked_arrays["actions"],
+        rewards=stacked_arrays["rewards"],
+        set_sizes=stacked_arrays["set_sizes"],
+        masks=stacked_arrays["masks"],
+        alpha_pos=sampled["alpha_pos"],
+        alpha_neg=sampled["alpha_neg"],
+        phi=sampled["phi"],
+        rho=sampled["rho"],
+        capacity=sampled["capacity"],
+        kappa=kappa,
+        kappa_s=kappa_s,
+        epsilon=sampled["epsilon"],
+        num_stimuli=num_stimuli,
+        num_actions=num_actions,
+        q_init=q_init,
+        wm_init=wm_init,
     )
-    for idx, pid in enumerate(participant_ids):
-        pdata = participant_data_stacked[pid]
-        kappa_total_i = sampled["kappa_total"][idx]
-        kappa_share_i = sampled["kappa_share"][idx]
-        kappa = kappa_total_i * kappa_share_i
-        kappa_s = kappa_total_i * (1.0 - kappa_share_i)
-        log_lik = _m6b_lik_fn(
-            stimuli_stacked=pdata["stimuli_stacked"],
-            actions_stacked=pdata["actions_stacked"],
-            rewards_stacked=pdata["rewards_stacked"],
-            set_sizes_stacked=pdata["set_sizes_stacked"],
-            masks_stacked=pdata["masks_stacked"],
-            alpha_pos=sampled["alpha_pos"][idx],
-            alpha_neg=sampled["alpha_neg"][idx],
-            phi=sampled["phi"][idx],
-            rho=sampled["rho"][idx],
-            capacity=sampled["capacity"][idx],
-            kappa=kappa,
-            kappa_s=kappa_s,
-            epsilon=sampled["epsilon"][idx],
-            num_stimuli=num_stimuli,
-            num_actions=num_actions,
-            q_init=q_init,
-            wm_init=wm_init,
-            return_pointwise=False,
-        )
-        numpyro.factor(f"obs_p{pid}", log_lik)
+    numpyro.factor("obs", per_participant_ll.sum())
 
 
 def wmrl_m6b_hierarchical_model_subscale(

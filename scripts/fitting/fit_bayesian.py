@@ -374,10 +374,19 @@ def _fit_stacked_model(
                 "Level-2 regression (no natural L2 target parameter)."
             )
 
-        if model == "wmrl_m3":
+        _FULLY_BATCHED_MODELS = (
+            "qlearning",
+            "wmrl",
+            "wmrl_m3",
+            "wmrl_m5",
+            "wmrl_m6a",
+            "wmrl_m6b",
+        )
+        if model in _FULLY_BATCHED_MODELS:
             # Pre-compute (N, B, T) stacked arrays once here so they are
-            # not recomputed inside every MCMC trace call. The wmrl_m3
-            # hierarchical model accepts them via the stacked_arrays kwarg.
+            # not recomputed inside every MCMC trace call.  All six
+            # choice-only hierarchical models use the fully-batched vmap
+            # path and accept these via the stacked_arrays kwarg.
             stacked_arrays = stack_across_participants(participant_data_stacked)
             model_args = {
                 "participant_data_stacked": participant_data_stacked,

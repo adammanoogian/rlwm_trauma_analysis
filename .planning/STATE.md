@@ -13,7 +13,7 @@ Milestone: v4.0 Hierarchical Bayesian Pipeline & LBA Acceleration
 Phase: 20 of 20 (DEER Non-Linear Parallelization) — In progress
 Plan: 2 of 3 complete (20-01, 20-02 done)
 Status: All 12 pscan likelihood variants now use fully vectorized Phase 2. Plan 20-03 (docs update) remains.
-Last activity: 2026-04-14 — Completed 20-02-PLAN.md (vectorized Phase 2 in pscan likelihoods)
+Last activity: 2026-04-16 — Completed quick task 007: GPU MCMC speedup (chain_method fix + vmap POC for wmrl_m3)
 
 Progress: [████████░░] ~78% (28/~36 plans across Phases 13-20)
 
@@ -306,6 +306,7 @@ Progress: [████████░░] ~78% (28/~36 plans across Phases 13-2
 | 004 | Pipeline sync: survey data fix (scripts 15/16), uncorrected p-values in manuscript, Bayesian MODEL_REGISTRY | 2026-04-07 | 4df1340 | [004-pipeline-sync-uncorrected-peb-config](./quick/004-pipeline-sync-uncorrected-peb-config/) |
 | 005 | Re-run pipeline (N=154), model overview + distribution figures in manuscript | 2026-04-08 | 6b045a4 | [005-rerun-pipeline-analyses-update-quarto-manuscript](./quick/005-rerun-pipeline-analyses-update-quarto-manuscript/) |
 | 006 | Post-refit verification: M6b winner, BIC + winner heterogeneity + FDR/Bonferroni + manuscript revision | 2026-04-10 | a01febd | [006-post-refit-verification-recovery-manuscript](./quick/006-post-refit-verification-recovery-manuscript/) |
+| 007 | GPU MCMC speedup: chain_method=vectorized on GPU + GPU config logging + vmap-over-participants refactor for wmrl_m3 (POC) | 2026-04-16 | 1ac963c | [007-gpu-mcmc-speedup-vmap-chain-method](./quick/007-gpu-mcmc-speedup-vmap-chain-method/) |
 
 ## Session Continuity
 

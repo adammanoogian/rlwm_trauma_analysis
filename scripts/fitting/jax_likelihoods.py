@@ -2316,6 +2316,465 @@ def wmrl_m3_fully_batched_likelihood(
     )
 
 
+def q_learning_fully_batched_likelihood(
+    stimuli: jnp.ndarray,
+    actions: jnp.ndarray,
+    rewards: jnp.ndarray,
+    masks: jnp.ndarray,
+    alpha_pos: jnp.ndarray,
+    alpha_neg: jnp.ndarray,
+    epsilon: jnp.ndarray,
+    num_stimuli: int = 6,
+    num_actions: int = 3,
+    q_init: float = 0.5,
+    use_pscan: bool = False,
+) -> jnp.ndarray:
+    """Fully-batched Q-learning log-likelihood via nested vmap.
+
+    Pattern::
+
+        outer vmap over participants (axis 0 of every input)
+          -> inner vmap over blocks (axis 0 of per-participant data)
+            -> q_learning_block_likelihood on (T,) slices and scalar params
+          -> sum over blocks -> scalar per participant
+        -> (N,) vector returned
+
+    CRITICAL: this uses the SAME block likelihood as the sequential
+    path (``q_learning_block_likelihood``). Q resets at block entry,
+    so blocks are independent and vmap is correct per Senta 2025
+    (MODEL_REFERENCE.md §2.2, §3.1).
+
+    Padded blocks (mask entirely 0.0) contribute 0.0 because the
+    inner scan gates every likelihood and Q update on mask[t].
+
+    Parameters
+    ----------
+    stimuli : jnp.ndarray
+        Shape (N, B, T) int32.  Dimension 0 is participant, 1 is block,
+        2 is trial.  B = max_n_blocks (padded to uniform size).
+    actions : jnp.ndarray
+        Shape (N, B, T) int32.
+    rewards : jnp.ndarray
+        Shape (N, B, T) float32.
+    masks : jnp.ndarray
+        Shape (N, B, T) float32.  Padded blocks have mask entirely 0.0.
+    alpha_pos : jnp.ndarray
+        Shape (N,) float32 per-participant positive learning rates.
+    alpha_neg : jnp.ndarray
+        Shape (N,) float32 per-participant negative learning rates.
+    epsilon : jnp.ndarray
+        Shape (N,) float32 per-participant random-response rates.
+    num_stimuli : int
+        Number of distinct stimuli.  Default 6.
+    num_actions : int
+        Number of possible actions.  Default 3.
+    q_init : float
+        Initial Q-value.  Default 0.5.
+    use_pscan : bool
+        Must be False.  Raises NotImplementedError if True (pscan + vmap
+        composition is out of scope for Issue 1 rollout).
+
+    Returns
+    -------
+    jnp.ndarray
+        Shape (N,) float — total log-likelihood per participant.
+
+    Raises
+    ------
+    NotImplementedError
+        If ``use_pscan=True``.
+    """
+    if use_pscan:
+        raise NotImplementedError(
+            "q_learning_fully_batched_likelihood: use_pscan=True is not "
+            "supported.  pscan + vmap composition is out of scope for the "
+            "Issue 1 rollout.  Pass use_pscan=False."
+        )
+
+    def _block_ll(stim, act, rew, mask, ap, an, e):
+        # Scalar log-lik for a single (participant, block).
+        return q_learning_block_likelihood(
+            stimuli=stim,
+            actions=act,
+            rewards=rew,
+            alpha_pos=ap,
+            alpha_neg=an,
+            epsilon=e,
+            num_stimuli=num_stimuli,
+            num_actions=num_actions,
+            q_init=q_init,
+            mask=mask,
+            return_pointwise=False,
+        )
+
+    # Inner vmap: over blocks.  Data args on axis 0, params broadcast (None).
+    _over_blocks = jax.vmap(
+        _block_ll,
+        in_axes=(0, 0, 0, 0, None, None, None),
+        out_axes=0,
+    )
+
+    def _participant_ll(stim, act, rew, mask, ap, an, e):
+        block_lls = _over_blocks(stim, act, rew, mask, ap, an, e)
+        return block_lls.sum()
+
+    # Outer vmap: over participants.  Everything on axis 0.
+    _over_participants = jax.vmap(
+        _participant_ll,
+        in_axes=(0, 0, 0, 0, 0, 0, 0),
+        out_axes=0,
+    )
+    return _over_participants(
+        stimuli, actions, rewards, masks,
+        alpha_pos, alpha_neg, epsilon,
+    )
+
+
+def wmrl_fully_batched_likelihood(
+    stimuli: jnp.ndarray,
+    actions: jnp.ndarray,
+    rewards: jnp.ndarray,
+    set_sizes: jnp.ndarray,
+    masks: jnp.ndarray,
+    alpha_pos: jnp.ndarray,
+    alpha_neg: jnp.ndarray,
+    phi: jnp.ndarray,
+    rho: jnp.ndarray,
+    capacity: jnp.ndarray,
+    epsilon: jnp.ndarray,
+    num_stimuli: int = 6,
+    num_actions: int = 3,
+    q_init: float = 0.5,
+    wm_init: float = 1.0 / 3.0,
+    use_pscan: bool = False,
+) -> jnp.ndarray:
+    """Fully-batched WM-RL (M2) log-likelihood via nested vmap.
+
+    Participants and blocks are independent (Q, WM reset at block entry per
+    Senta 2025), so outer=participants × inner=blocks vmap is correct.
+    Padded blocks (mask entirely 0.0) contribute 0.0.
+
+    Parameters
+    ----------
+    stimuli, actions, rewards, set_sizes, masks : jnp.ndarray
+        Shape (N, B, T).  Participants × blocks × trials.
+    alpha_pos, alpha_neg, phi, rho, capacity, epsilon : jnp.ndarray
+        Shape (N,) per-participant parameter vectors.
+    num_stimuli, num_actions, q_init, wm_init : int / float
+        Static parameters.
+    use_pscan : bool
+        Must be False (pscan + vmap composition out of scope).
+
+    Returns
+    -------
+    jnp.ndarray
+        Shape (N,) — total log-likelihood per participant.
+    """
+    if use_pscan:
+        raise NotImplementedError(
+            "wmrl_fully_batched_likelihood: use_pscan=True is not supported."
+        )
+
+    def _block_ll(stim, act, rew, ss, mask, ap, an, ph, rh, cap, e):
+        return wmrl_block_likelihood(
+            stimuli=stim,
+            actions=act,
+            rewards=rew,
+            set_sizes=ss,
+            alpha_pos=ap,
+            alpha_neg=an,
+            phi=ph,
+            rho=rh,
+            capacity=cap,
+            epsilon=e,
+            num_stimuli=num_stimuli,
+            num_actions=num_actions,
+            q_init=q_init,
+            wm_init=wm_init,
+            mask=mask,
+            return_pointwise=False,
+        )
+
+    _over_blocks = jax.vmap(
+        _block_ll,
+        in_axes=(0, 0, 0, 0, 0, None, None, None, None, None, None),
+        out_axes=0,
+    )
+
+    def _participant_ll(stim, act, rew, ss, mask, ap, an, ph, rh, cap, e):
+        return _over_blocks(stim, act, rew, ss, mask, ap, an, ph, rh, cap, e).sum()
+
+    _over_participants = jax.vmap(
+        _participant_ll,
+        in_axes=(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+        out_axes=0,
+    )
+    return _over_participants(
+        stimuli, actions, rewards, set_sizes, masks,
+        alpha_pos, alpha_neg, phi, rho, capacity, epsilon,
+    )
+
+
+def wmrl_m5_fully_batched_likelihood(
+    stimuli: jnp.ndarray,
+    actions: jnp.ndarray,
+    rewards: jnp.ndarray,
+    set_sizes: jnp.ndarray,
+    masks: jnp.ndarray,
+    alpha_pos: jnp.ndarray,
+    alpha_neg: jnp.ndarray,
+    phi: jnp.ndarray,
+    rho: jnp.ndarray,
+    capacity: jnp.ndarray,
+    kappa: jnp.ndarray,
+    phi_rl: jnp.ndarray,
+    epsilon: jnp.ndarray,
+    num_stimuli: int = 6,
+    num_actions: int = 3,
+    q_init: float = 0.5,
+    wm_init: float = 1.0 / 3.0,
+    use_pscan: bool = False,
+) -> jnp.ndarray:
+    """Fully-batched WM-RL+phi_rl (M5) log-likelihood via nested vmap.
+
+    Extends M3 by adding phi_rl (RL forgetting rate) as an additional
+    per-participant parameter.  When phi_rl=0, reduces to M3.  See
+    ``wmrl_m5_block_likelihood`` for details.
+
+    Parameters
+    ----------
+    stimuli, actions, rewards, set_sizes, masks : jnp.ndarray
+        Shape (N, B, T).
+    alpha_pos, alpha_neg, phi, rho, capacity, kappa, phi_rl, epsilon : jnp.ndarray
+        Shape (N,) per-participant parameter vectors.
+
+    Returns
+    -------
+    jnp.ndarray
+        Shape (N,) — total log-likelihood per participant.
+    """
+    if use_pscan:
+        raise NotImplementedError(
+            "wmrl_m5_fully_batched_likelihood: use_pscan=True is not supported."
+        )
+
+    def _block_ll(stim, act, rew, ss, mask, ap, an, ph, rh, cap, k, prl, e):
+        return wmrl_m5_block_likelihood(
+            stimuli=stim,
+            actions=act,
+            rewards=rew,
+            set_sizes=ss,
+            alpha_pos=ap,
+            alpha_neg=an,
+            phi=ph,
+            rho=rh,
+            capacity=cap,
+            kappa=k,
+            phi_rl=prl,
+            epsilon=e,
+            num_stimuli=num_stimuli,
+            num_actions=num_actions,
+            q_init=q_init,
+            wm_init=wm_init,
+            mask=mask,
+            return_pointwise=False,
+        )
+
+    _over_blocks = jax.vmap(
+        _block_ll,
+        in_axes=(0, 0, 0, 0, 0, None, None, None, None, None, None, None, None),
+        out_axes=0,
+    )
+
+    def _participant_ll(stim, act, rew, ss, mask, ap, an, ph, rh, cap, k, prl, e):
+        return _over_blocks(
+            stim, act, rew, ss, mask, ap, an, ph, rh, cap, k, prl, e,
+        ).sum()
+
+    _over_participants = jax.vmap(
+        _participant_ll,
+        in_axes=(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+        out_axes=0,
+    )
+    return _over_participants(
+        stimuli, actions, rewards, set_sizes, masks,
+        alpha_pos, alpha_neg, phi, rho, capacity, kappa, phi_rl, epsilon,
+    )
+
+
+def wmrl_m6a_fully_batched_likelihood(
+    stimuli: jnp.ndarray,
+    actions: jnp.ndarray,
+    rewards: jnp.ndarray,
+    set_sizes: jnp.ndarray,
+    masks: jnp.ndarray,
+    alpha_pos: jnp.ndarray,
+    alpha_neg: jnp.ndarray,
+    phi: jnp.ndarray,
+    rho: jnp.ndarray,
+    capacity: jnp.ndarray,
+    kappa_s: jnp.ndarray,
+    epsilon: jnp.ndarray,
+    num_stimuli: int = 6,
+    num_actions: int = 3,
+    q_init: float = 0.5,
+    wm_init: float = 1.0 / 3.0,
+    use_pscan: bool = False,
+) -> jnp.ndarray:
+    """Fully-batched WM-RL+kappa_s (M6a) log-likelihood via nested vmap.
+
+    Replaces M3's global kappa with stimulus-specific kappa_s.  See
+    ``wmrl_m6a_block_likelihood`` for the per-stimulus last-action carry.
+
+    Parameters
+    ----------
+    stimuli, actions, rewards, set_sizes, masks : jnp.ndarray
+        Shape (N, B, T).
+    alpha_pos, alpha_neg, phi, rho, capacity, kappa_s, epsilon : jnp.ndarray
+        Shape (N,) per-participant parameter vectors.
+
+    Returns
+    -------
+    jnp.ndarray
+        Shape (N,) — total log-likelihood per participant.
+    """
+    if use_pscan:
+        raise NotImplementedError(
+            "wmrl_m6a_fully_batched_likelihood: use_pscan=True is not supported."
+        )
+
+    def _block_ll(stim, act, rew, ss, mask, ap, an, ph, rh, cap, ks, e):
+        return wmrl_m6a_block_likelihood(
+            stimuli=stim,
+            actions=act,
+            rewards=rew,
+            set_sizes=ss,
+            alpha_pos=ap,
+            alpha_neg=an,
+            phi=ph,
+            rho=rh,
+            capacity=cap,
+            kappa_s=ks,
+            epsilon=e,
+            num_stimuli=num_stimuli,
+            num_actions=num_actions,
+            q_init=q_init,
+            wm_init=wm_init,
+            mask=mask,
+            return_pointwise=False,
+        )
+
+    _over_blocks = jax.vmap(
+        _block_ll,
+        in_axes=(0, 0, 0, 0, 0, None, None, None, None, None, None, None),
+        out_axes=0,
+    )
+
+    def _participant_ll(stim, act, rew, ss, mask, ap, an, ph, rh, cap, ks, e):
+        return _over_blocks(
+            stim, act, rew, ss, mask, ap, an, ph, rh, cap, ks, e,
+        ).sum()
+
+    _over_participants = jax.vmap(
+        _participant_ll,
+        in_axes=(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+        out_axes=0,
+    )
+    return _over_participants(
+        stimuli, actions, rewards, set_sizes, masks,
+        alpha_pos, alpha_neg, phi, rho, capacity, kappa_s, epsilon,
+    )
+
+
+def wmrl_m6b_fully_batched_likelihood(
+    stimuli: jnp.ndarray,
+    actions: jnp.ndarray,
+    rewards: jnp.ndarray,
+    set_sizes: jnp.ndarray,
+    masks: jnp.ndarray,
+    alpha_pos: jnp.ndarray,
+    alpha_neg: jnp.ndarray,
+    phi: jnp.ndarray,
+    rho: jnp.ndarray,
+    capacity: jnp.ndarray,
+    kappa: jnp.ndarray,
+    kappa_s: jnp.ndarray,
+    epsilon: jnp.ndarray,
+    num_stimuli: int = 6,
+    num_actions: int = 3,
+    q_init: float = 0.5,
+    wm_init: float = 1.0 / 3.0,
+    use_pscan: bool = False,
+) -> jnp.ndarray:
+    """Fully-batched WM-RL+dual-perseveration (M6b) log-likelihood via nested vmap.
+
+    Takes DECODED ``kappa`` and ``kappa_s`` (shape (N,) each).  Stick-breaking
+    reparameterization (kappa = kappa_total * kappa_share,
+    kappa_s = kappa_total * (1 - kappa_share)) must happen in the caller,
+    matching the block-likelihood convention.
+
+    Parameters
+    ----------
+    stimuli, actions, rewards, set_sizes, masks : jnp.ndarray
+        Shape (N, B, T).
+    alpha_pos, alpha_neg, phi, rho, capacity, kappa, kappa_s, epsilon : jnp.ndarray
+        Shape (N,) per-participant parameter vectors.  ``kappa`` and
+        ``kappa_s`` are already decoded from the stick-breaking variables.
+
+    Returns
+    -------
+    jnp.ndarray
+        Shape (N,) — total log-likelihood per participant.
+    """
+    if use_pscan:
+        raise NotImplementedError(
+            "wmrl_m6b_fully_batched_likelihood: use_pscan=True is not supported."
+        )
+
+    def _block_ll(stim, act, rew, ss, mask, ap, an, ph, rh, cap, k, ks, e):
+        return wmrl_m6b_block_likelihood(
+            stimuli=stim,
+            actions=act,
+            rewards=rew,
+            set_sizes=ss,
+            alpha_pos=ap,
+            alpha_neg=an,
+            phi=ph,
+            rho=rh,
+            capacity=cap,
+            kappa=k,
+            kappa_s=ks,
+            epsilon=e,
+            num_stimuli=num_stimuli,
+            num_actions=num_actions,
+            q_init=q_init,
+            wm_init=wm_init,
+            mask=mask,
+            return_pointwise=False,
+        )
+
+    _over_blocks = jax.vmap(
+        _block_ll,
+        in_axes=(0, 0, 0, 0, 0, None, None, None, None, None, None, None, None),
+        out_axes=0,
+    )
+
+    def _participant_ll(stim, act, rew, ss, mask, ap, an, ph, rh, cap, k, ks, e):
+        return _over_blocks(
+            stim, act, rew, ss, mask, ap, an, ph, rh, cap, k, ks, e,
+        ).sum()
+
+    _over_participants = jax.vmap(
+        _participant_ll,
+        in_axes=(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+        out_axes=0,
+    )
+    return _over_participants(
+        stimuli, actions, rewards, set_sizes, masks,
+        alpha_pos, alpha_neg, phi, rho, capacity, kappa, kappa_s, epsilon,
+    )
+
+
 # JIT-compile WM-RL for performance
 wmrl_block_likelihood_jit = jax.jit(
     wmrl_block_likelihood,
