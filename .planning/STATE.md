@@ -13,7 +13,16 @@ Milestone: v4.0 Hierarchical Bayesian Pipeline & LBA Acceleration
 Phase: 20 of 20 (DEER Non-Linear Parallelization) — In progress
 Plan: 2 of 3 complete (20-01, 20-02 done)
 Status: All 12 pscan likelihood variants use fully vectorized Phase 2. **Fully-batched vmap likelihood rolled out to all 6 choice-only models (post-Phase-20 follow-up). Production Bayesian refits unblocked — awaiting M6b spot-check.**
-Last activity: 2026-04-17 — Issue 1 rollout complete: fully-batched vmap in all 6 hierarchical models; N=154 real-data agreement at 1e-7; cluster MCMC smoke dropped qlearning from ~6 min/iter to ~1 s/iter (job 54882294).
+Last activity: 2026-04-17 — **v4.0 pre-refit checkpoint**: Issue 1 rollout complete (fully-batched vmap, ~1 s/iter on N=154). Added canonical `get_analysis_cohort()` (task + performance + scale gates → N=138). Moved kappa-family priors from MLE-calibrated `mu_prior_loc=-2.0` to principled `mu_prior_loc=0.0`. Added stick-breaking rationale + posterior-vs-MLE sanity check to paper.qmd. Ready for production refit.
+
+### v4.0 Decisions (pre-refit, 2026-04-17)
+
+- **Canonical analysis cohort (locked):** `config.get_analysis_cohort()` implements the intersection of three gates: (a) task completeness ≥ `MIN_TRIALS_THRESHOLD=400` trials and `MIN_BLOCKS=8` main-task blocks; (b) performance check — overall accuracy ≥ `MIN_OVERALL_ACCURACY=0.40` AND mean accuracy over last `LATE_BLOCK_N=5` main-task blocks ≥ `MIN_LATE_BLOCK_ACCURACY=0.50`; (c) scale completeness — non-NA for every column in `REQUIRED_SURVEY_COLUMNS` (lec_total, ies_total, ies_intrusion, ies_avoidance, ies_hyperarousal). Current cohort size: **N=138** (vs N=154 task-only, N=160 scale-only). 16 participants dropped by late-block learning check.
+- **Principled priors (locked):** All `mu_prior_loc` in `PARAM_PRIOR_DEFAULTS` now 0.0 (prior mean = Φ(0) = 0.5 on bounded scale; 95% prior interval ~[0.02, 0.98] given `sigma_pr ~ HalfNormal(0.2)`). Motivation: previous MLE-calibrated values (e.g. kappa=-2.0 implying prior mean 0.023) were empirical-Bayes informative and conservative for L2 null-testing. Legacy values retained in `_PRIOR_LEGACY_MLE_CALIBRATED` dict for sensitivity analyses. See `docs/SCALES_AND_FITTING_AUDIT.md` §3.
+- **Cohort filter wired into `fit_bayesian.load_and_prepare_data` (locked):** `use_cohort=True` default. `--no-cohort` CLI flag available for diagnostic/legacy runs. Printed cohort breakdown at load time.
+- **Stick-breaking rationale + identifiability paragraph added to paper.qmd (locked):** Methods §Model Fitting now explicitly argues for stick-breaking vs. inequality-constrained joint κ/κ_s sampling and names the three identifiability safeguards (uninformative κ_share prior, auto-bump, recovery validation).
+- **Posterior-vs-MLE figure referenced in paper.qmd (locked):** `@fig-posterior-vs-mle` points to `figures/m6b_posterior_vs_mle.png`, to be generated from the output of `validation/compare_posterior_to_mle.py` on pipeline rerun.
+- **Scale distributions figure referenced (locked):** `@fig-scale-distributions` points to `figures/scale_distributions.png`, produced by `scripts/analysis/trauma_scale_distributions.py` on pipeline rerun.
 
 ## Hierarchical Bayesian Architecture (current)
 

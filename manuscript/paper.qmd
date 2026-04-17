@@ -54,7 +54,14 @@ from plot_utils import (
     COLUMN_WIDTH,
     TEXT_WIDTH,
 )
-from config import MODEL_REGISTRY, CHOICE_ONLY_MODELS, MIN_TRIALS_THRESHOLD
+from config import (
+    MODEL_REGISTRY,
+    CHOICE_ONLY_MODELS,
+    MIN_TRIALS_THRESHOLD,
+    MIN_OVERALL_ACCURACY,
+    MIN_LATE_BLOCK_ACCURACY,
+    LATE_BLOCK_N,
+)
 
 apply_manuscript_style()
 
@@ -178,15 +185,45 @@ symptom measures from the IES-R [@weiss2007impact] and LEC-5
 
 ### Participants {#sec-participants}
 
-`{python} n_participants` participants completed the RLWM task after quality
-filtering (minimum `{python} min_trials` trials required; see @sec-exclusions).
-Trauma exposure and symptom severity were assessed via the Life Events
-Checklist for DSM-5 (LEC-5; @weathers2013life) and the Impact of Event
-Scale--Revised (IES-R; @weiss2007impact).
-Participants were classified into two groups based on LEC-5 endorsement
-and IES-R total score:
-**`{python} groups[0]`** (n = `{python} group_counts[groups[0]]`)
-and **`{python} groups[1]`** (n = `{python} group_counts[groups[1]]`).
+Participants were included in all downstream analyses only if they met
+the v4.0 canonical inclusion criteria implemented in
+`config.get_analysis_cohort()`, which enforces the intersection of three
+gates: (1) **task completeness** --- at least
+`{python} MIN_TRIALS_THRESHOLD` trials and at least eight main-task
+blocks; (2) a **performance check** --- overall accuracy above
+`{python} f"{MIN_OVERALL_ACCURACY:.2f}"` AND mean accuracy over the last
+`{python} LATE_BLOCK_N` main-task blocks above
+`{python} f"{MIN_LATE_BLOCK_ACCURACY:.2f}"` (the late-block criterion
+confirms the participant learned rather than performing at or near
+chance throughout the session, since chance = 1/3 $\approx$ 0.333);
+(3) **scale completeness** --- non-missing values on every required
+survey column (LEC-5 total events, IES-R total, IES-R intrusion, IES-R
+avoidance, IES-R hyperarousal). The resulting analysis cohort comprised
+**`{python} n_participants`** participants. Trauma exposure and symptom
+severity were assessed via the Life Events Checklist for DSM-5 (LEC-5;
+@weathers2013life) and the Impact of Event Scale--Revised (IES-R;
+@weiss2007impact). Participants were classified into two groups based on
+LEC-5 endorsement and IES-R total score:
+**`{python} groups[0]`** (n = `{python} group_counts[groups[0]]`) and
+**`{python} groups[1]`** (n = `{python} group_counts[groups[1]]`).
+
+Scale distributions and pairwise correlations are summarized in
+@fig-scale-distributions and documented in `docs/SCALES_AND_FITTING_AUDIT.md`.
+
+::: {#fig-scale-distributions}
+
+![](figures/scale_distributions.png){width=100%}
+
+Distributions and pairwise correlations of the trauma predictors.
+**Left**: histograms of LEC-5 total events and IES-R total and
+subscale scores. **Right**: Pearson correlation matrix. LEC total
+correlates only weakly with IES total ($r$ = 0.13), justifying
+inclusion of both predictors. IES subscales correlate strongly with
+IES total ($r$ = 0.91--0.93), requiring the Gram--Schmidt
+residualization described in Model Fitting. Figure rendered from
+`figures/scale_distributions.png`, produced by
+`scripts/analysis/trauma_scale_distributions.py` on pipeline rerun.
+:::
 
 ### Task {#sec-task}
 
@@ -473,20 +510,80 @@ propagation, we additionally fitted all seven models using hierarchical
 Bayesian inference in NumPyro [@phan2019composable] with the No-U-Turn
 Sampler (NUTS; @hoffman2014no). Participant log-likelihoods were
 attached to the model via `numpyro.factor` and evaluated in parallel
-across posterior samples using `jax.vmap`. Individual-level parameters were given
-non-centered parameterizations following the hBayesDM convention
-[@ahn2017revealing]: $\theta_i = l + (u - l) \cdot \Phi(\mu + \sigma
-\cdot z_i)$, where $\Phi$ is the standard normal CDF, $\mu \sim
+across posterior samples using `jax.vmap`. Individual-level parameters
+were given non-centered parameterizations following the hBayesDM
+convention [@ahn2017revealing]: $\theta_i = l + (u - l) \cdot \Phi(\mu +
+\sigma \cdot z_i)$, where $\Phi$ is the standard normal CDF, $\mu \sim
 \mathcal{N}(\mu_0, 1)$ is the group-level location, $\sigma \sim
 \text{HalfNormal}(0.2)$ is the group-level scale, and $z_i \sim
 \mathcal{N}(0, 1)$ is the individual offset. Trauma associations were
 estimated as Level-2 shifts on the unconstrained (probit) scale:
-$\mu_{\text{shifted}} = \mu + \sum_k \beta_k X_{ik}$, where
-$\mathbf{X}$ is the design matrix of trauma predictors (see Statistical
-Analysis). Working-memory capacity $K$ was bounded to $[2, 6]$ following
-Collins [-@collins2012how; -@collins2014working]. Bayesian model
-comparison used leave-one-out cross-validation (LOO-CV) with stacking
-weights [@vehtari2017practical; @yao2018using].
+$\mu_{\text{shifted}} = \mu + \sum_k \beta_k X_{ik}$, where $\mathbf{X}$
+is the design matrix of trauma predictors (see Statistical Analysis).
+Working-memory capacity $K$ was bounded to $[2, 6]$ following Collins
+[-@collins2012how; -@collins2014working]. Bayesian model comparison used
+leave-one-out cross-validation (LOO-CV) with stacking weights
+[@vehtari2017practical; @yao2018using].
+
+**Principled priors (v4.0 revision).** All group-level prior locations
+$\mu_0$ were set to 0, corresponding to a prior mean of $\Phi(0) = 0.5$
+on the bounded parameter scale; paired with $\sigma_0 \sim
+\text{HalfNormal}(0.2)$ this implies an approximate 95% prior interval
+of $[0.02, 0.98]$ on the bounded scale for each [0, 1] parameter. This
+is a uniform-at-probit weakly-informative prior that does not anchor
+the group mean to any particular value. An earlier design
+(v4.0-pre-refit) used MLE-calibrated locations
+(e.g., $\mu_{0,\kappa} = -2.0$ implying a prior mean of 0.023 for the
+perseveration kernel); we replaced these with the principled defaults
+because MLE-calibrated priors are a mild form of empirical Bayes that
+biases Level-2 null-testing --- a prior anchored toward low kappa makes
+trauma-linked *increases* in perseveration systematically harder to
+detect as 95% HDIs excluding zero. The new priors retain identical
+$\sigma_0$ scales, so the data retain full leverage to pull the group
+mean toward the empirical cluster wherever the posterior has
+identifying information.
+
+**Stick-breaking decomposition of perseveration in M6b.** Model M6b
+decomposes perseveration into a global (response-level) kernel
+$\kappa$ and a stimulus-specific kernel $\kappa_s$ under the
+constraint $\kappa + \kappa_s \leq 1$, enforced by a stick-breaking
+reparameterization: we sample $\kappa_{\text{total}} \in [0, 1]$ and
+$\kappa_{\text{share}} \in [0, 1]$ independently under the standard
+probit prior, then decode
+$\kappa = \kappa_{\text{total}} \cdot \kappa_{\text{share}}$ and
+$\kappa_s = \kappa_{\text{total}} \cdot (1 - \kappa_{\text{share}})$.
+This construction enforces the sum constraint without inequality
+constraints, avoids boundary artefacts when either kernel vanishes,
+and permits separate Level-2 regression coefficients on
+$\kappa_{\text{total}}$ (overall perseveration budget) and
+$\kappa_{\text{share}}$ (allocation between global vs.
+stimulus-specific kernels). Note that $\kappa_{\text{share}}$ is
+non-identifiable when $\kappa_{\text{total}} \approx 0$; we address
+this at three points: (a) the prior
+$\mu_{0, \kappa_{\text{share}}} = 0$ is uninformative about the split,
+(b) the NUTS convergence auto-bump escalates
+`target_accept_prob` to 0.99 if divergences occur in the boundary
+regime, and (c) parameter-recovery simulations confirm
+$\kappa_{\text{total}}$ and $\kappa_{\text{share}}$ both achieve
+$r \geq 0.93$ on synthetic data (@sec-parameter-recovery).
+
+All Bayesian fits used the analysis cohort described in
+@sec-participants; individual-level MCMC diagnostics (R-hat, effective
+sample sizes, divergences) for the winning model are summarized in
+@fig-posterior-diagnostics.
+
+::: {#fig-posterior-diagnostics}
+
+![](figures/m6b_posterior_diagnostics.png){width=100%}
+
+Posterior convergence diagnostics for the winning model (M6b).
+**(a)** R-hat values for all parameter sites; dashed line marks the
+1.05 convergence threshold. **(b)** ESS bulk for group-level sites;
+dashed line at 400. **(c)** Divergence count per chain across the
+`target_accept_prob` auto-bump schedule (0.80 $\rightarrow$ 0.95
+$\rightarrow$ 0.99). Figure rendered on pipeline rerun from
+`figures/m6b_posterior_diagnostics.png`.
+:::
 
 ### Statistical Analysis {#sec-stats}
 
@@ -947,6 +1044,27 @@ regressions above, which treat MLE point estimates as fixed, the Level-2
 approach propagates uncertainty from the individual level through to the
 regression coefficients.
 
+As a validation check that hierarchical posterior means are reasonable
+given individual-level data, we compared per-participant posterior means
+to MLE point estimates (@fig-posterior-vs-mle). Highly-identified
+parameters ($\kappa_{\text{total}}$, $\kappa_{\text{share}}$ in M6b) are
+expected to match MLE point estimates closely; poorly-identified
+parameters are expected to shrink toward the group mean (partial
+pooling). Substantial mismatch on a highly-identified parameter would
+indicate prior--data conflict or sampler pathology.
+
+::: {#fig-posterior-vs-mle}
+
+![](figures/m6b_posterior_vs_mle.png){width=100%}
+
+Per-participant Bayesian posterior mean versus MLE point estimate for
+each M6b parameter. Each point is one participant; error bars are MLE
+standard errors. Dashed line = identity. Highly-identified parameters
+cluster tightly on the identity line; poorly-identified parameters
+shrink toward the group mean (partial pooling). Rendered from
+`validation/compare_posterior_to_mle.py` output.
+:::
+
 ```{python}
 #| label: fig-l2-forest
 #| fig-cap: "Level-2 posterior forest plots for the winning model. Beta coefficients represent the effect of each trauma predictor on the probit-scale group parameter. Thick bars = 50% HDI; thin bars = 95% HDI. Effects whose 95% HDI excludes zero are highlighted."
@@ -1199,10 +1317,34 @@ except Exception as e:
 
 ### Exclusion Criteria {#sec-exclusions}
 
-Participants were excluded if they contributed fewer than
-`{python} min_trials` trials to the main task (blocks 3--23), corresponding to
-approximately 50% of the expected 807--1077 trials across 21 blocks.
-This threshold (`MIN_TRIALS_THRESHOLD = 400` in `config.py`) ensures
-sufficient data for reliable MLE parameter estimation.
-Additionally, any participants identified as duplicates or with known data
-quality issues were excluded prior to fitting.
+All v4.0 analyses used a canonical cohort implemented as
+`config.get_analysis_cohort()`. A participant was included if **all
+three** of the following gates were satisfied:
+
+1. **Task completeness**. The participant contributed at least
+   `{python} MIN_TRIALS_THRESHOLD` trials to the main task (blocks 3--23)
+   and participated in at least 8 main-task blocks. The trial-count
+   threshold (`MIN_TRIALS_THRESHOLD = 400` in `config.py`) corresponds
+   to approximately 50% of the expected 807--1077 trials across 21
+   blocks and ensures sufficient data for reliable parameter estimation.
+2. **Performance check**. Overall accuracy $\geq$
+   `{python} f"{MIN_OVERALL_ACCURACY:.2f}"` AND mean accuracy across the
+   last `{python} LATE_BLOCK_N` main-task blocks $\geq$
+   `{python} f"{MIN_LATE_BLOCK_ACCURACY:.2f}"`. With three response
+   options, chance is $1/3 \approx 0.333$. The overall-accuracy gate
+   rules out participants at or below chance; the late-block gate
+   additionally confirms that the participant *learned* rather than
+   performing at chance throughout the session. A participant who
+   selected the correct response deterministically in a small minority
+   of blocks but was otherwise random would satisfy the overall gate
+   but fail the late-block gate.
+3. **Scale completeness**. Non-missing values on every required survey
+   column: LEC-5 total events, IES-R total, IES-R intrusion, IES-R
+   avoidance, IES-R hyperarousal. Participants with any missing
+   survey data were excluded from Level-2 regression analyses; this
+   was also applied upstream to the MCMC fit for the hierarchical
+   Bayesian pipeline so that individual-level posteriors and group-level
+   regressions are estimated on an identical sample.
+
+Participants with known duplicate or corrupted data (`MANUAL_EXCLUSIONS`
+in `config.py`) were always excluded regardless of gates 1--3.

@@ -182,23 +182,46 @@ Only two of the three residuals carry independent information.
 
 ### Non-standard choices (flagged for discussion)
 
-#### Informative prior on κ-family parameters
+#### Informative-vs-principled priors on κ-family parameters
 
+**History (pre-v4.0-refit, quick-006 era):**
 `PARAM_PRIOR_DEFAULTS["kappa"]["mu_prior_loc"] = −2.0`, giving a prior
-mean on the bounded scale of `Phi(−2.0) ≈ 0.023`.  This pulls the group
-mean strongly toward very-low perseveration.
+mean on the bounded scale of `Phi(−2.0) ≈ 0.023`.  Calibrated from
+MLE point estimates in quick-006 showing most participants had κ in
+[0.02, 0.20].
 
-- **Rationale**: MLE fits (quick-006) showed most participants have
-  kappa in [0.02, 0.20].  The prior is weakly data-informed.
-- **Concern**: An informative prior shifts the L2 signal.  If
-  `beta_lec_kappa > 0` reflects trauma-related *increase* in
-  perseveration, the prior pulling κ down makes the signal harder to
-  detect.  In practice this is conservative — less likely to produce
-  false positives — but could produce false negatives.
-- **Sensitivity analysis suggestion**: re-fit M3 or M6b with
-  `mu_prior_loc=0.0` (bounded mean 0.5, uninformative).  If the
-  `beta_lec_kappa` HDI changes dramatically, the prior is driving
-  inference more than the data.
+**Decision (2026-04-17, locked):** All `mu_prior_loc` values in
+`PARAM_PRIOR_DEFAULTS` switched to `0.0`, corresponding to a prior
+mean of `Phi(0) = 0.5` on the bounded scale with 95% prior interval
+≈ [0.02, 0.98] given `sigma_pr ~ HalfNormal(0.2)`.  Rationale:
+
+- MLE-calibrated priors are a mild form of empirical Bayes that
+  creates a subtle circularity — the MLE fit already shrinks
+  parameters toward their modal values for under-identified
+  participants, and we were then telling the hierarchical model "these
+  parameters are usually small" on the basis of those MLE results.
+- The informative prior toward zero perseveration was **conservative
+  for L2 null testing**: if trauma is associated with *increased*
+  perseveration, the prior pulling κ down reduces the chance of the
+  HDI excluding zero.  This was acceptable for exploratory quick-006
+  work but not for the v4.0 primary analysis.
+- Principled priors make L2 HDIs interpretable as "data-driven"
+  rather than "prior-shifted" conclusions.
+
+**Implementation:** Legacy MLE-calibrated values are retained in
+`scripts/fitting/numpyro_helpers.py::_PRIOR_LEGACY_MLE_CALIBRATED`
+for sensitivity runs.  To reproduce a pre-refit fit, pass those
+values explicitly to `sample_bounded_param`.
+
+**Sensitivity analysis check** (run after primary v4.0 refit):
+1. Refit M6b once with `mu_prior_loc=0.0` (primary) and once with
+   `mu_prior_loc=-2.0` for κ-family (legacy).
+2. Compare 95% HDI on `beta_lec_kappa_total` and
+   `beta_lec_kappa_share` across the two runs.
+3. If HDI boundaries shift by more than ~20% between the two,
+   interpret the primary result cautiously — the prior is driving
+   inference meaningfully.  If they agree, the principled prior is
+   adequate.
 
 #### Stick-breaking for M6b κ_total / κ_share
 

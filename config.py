@@ -400,6 +400,182 @@ EXCLUDED_PARTICIPANTS = get_excluded_participants()
 
 
 # ============================================================================
+# ANALYSIS COHORT (canonical inclusion criteria)
+# ============================================================================
+
+# Above-chance accuracy thresholds.  Chance = 1 / TaskParams.NUM_ACTIONS = 0.333.
+# Overall accuracy >= MIN_OVERALL_ACCURACY AND late-block accuracy
+# >= MIN_LATE_BLOCK_ACCURACY.  The late-block criterion confirms learning
+# happened, not just chance performance across the whole session.
+MIN_OVERALL_ACCURACY: float = 0.40      # ~20% above chance
+MIN_LATE_BLOCK_ACCURACY: float = 0.50   # ~50% above chance in terminal blocks
+LATE_BLOCK_N: int = 5                   # evaluate accuracy on last 5 blocks
+
+# Columns treated as required for the trauma-scale regression.
+REQUIRED_SURVEY_COLUMNS: tuple[str, ...] = (
+    "less_total_events",   # LEC-5 exposure count
+    "ies_total",           # IES-R symptom total
+    "ies_intrusion",
+    "ies_avoidance",
+    "ies_hyperarousal",
+)
+
+
+def get_analysis_cohort(
+    data_path: Path | None = None,
+    surveys_path: Path | None = None,
+    *,
+    min_trials: int | None = None,
+    min_blocks: int | None = None,
+    min_overall_accuracy: float = MIN_OVERALL_ACCURACY,
+    min_late_block_accuracy: float = MIN_LATE_BLOCK_ACCURACY,
+    late_block_n: int = LATE_BLOCK_N,
+    require_scales: bool = True,
+    verbose: bool = False,
+) -> list[int]:
+    """Canonical analysis cohort for v4.0+.
+
+    Returns the intersection of three inclusion criteria:
+
+    1. **Task completeness** — at least ``min_trials`` trials
+       (default ``MIN_TRIALS_THRESHOLD = 400``) and at least ``min_blocks``
+       main-task blocks (default ``DataParams.MIN_BLOCKS = 8``).
+    2. **Performance check** — overall accuracy >= ``min_overall_accuracy``
+       AND mean accuracy over the last ``late_block_n`` main-task blocks
+       >= ``min_late_block_accuracy``.  The late-block criterion confirms
+       the participant learned rather than merely performed above chance
+       by luck across the whole session.
+    3. **Scale completeness** (if ``require_scales=True``) — non-NA values
+       for every column in :data:`REQUIRED_SURVEY_COLUMNS`.
+
+    Participants in ``MANUAL_EXCLUSIONS`` are always excluded.
+
+    Parameters
+    ----------
+    data_path : Path, optional
+        Path to ``task_trials_long.csv``.  Defaults to
+        ``OUTPUT_DIR / 'task_trials_long.csv'``.
+    surveys_path : Path, optional
+        Path to ``summary_participant_metrics.csv``.  Defaults to
+        ``DataParams.SUMMARY_METRICS``.
+    min_trials, min_blocks : int, optional
+        Override the task-completeness thresholds.
+    min_overall_accuracy, min_late_block_accuracy, late_block_n : numeric
+        Override the performance-check thresholds.
+    require_scales : bool
+        If True, require non-NA values for every column listed in
+        :data:`REQUIRED_SURVEY_COLUMNS`.  Set False for diagnostic runs
+        that don't need trauma regression.
+    verbose : bool
+        If True, print the exclusion breakdown (how many participants
+        fail each criterion).
+
+    Returns
+    -------
+    list[int]
+        Sorted list of participant IDs that pass all enabled criteria.
+        Returns an empty list if the required data files are missing.
+
+    Notes
+    -----
+    This is the single source of truth for the v4.0 analysis cohort.
+    All downstream scripts (fitting, regression, paper.qmd) should call
+    this function rather than maintaining their own filter logic.
+    """
+    if data_path is None:
+        data_path = OUTPUT_DIR / "task_trials_long.csv"
+    if surveys_path is None:
+        surveys_path = DataParams.SUMMARY_METRICS
+    if min_trials is None:
+        min_trials = MIN_TRIALS_THRESHOLD
+    if min_blocks is None:
+        min_blocks = DataParams.MIN_BLOCKS
+
+    if not data_path.exists():
+        if verbose:
+            print(f"get_analysis_cohort: task data not found at {data_path}")
+        return []
+
+    import pandas as pd
+
+    # ------------------------------------------------------------------
+    # 1. Task-completeness: trial count + block count
+    # ------------------------------------------------------------------
+    df = pd.read_csv(data_path, usecols=["sona_id", "block", "correct"])
+    df = df.dropna(subset=["sona_id"]).copy()
+    df["sona_id"] = df["sona_id"].astype(int)
+
+    trial_counts = df.groupby("sona_id").size()
+    block_counts = df.groupby("sona_id")["block"].nunique()
+
+    task_pass = set(trial_counts[trial_counts >= min_trials].index) & set(
+        block_counts[block_counts >= min_blocks].index
+    )
+
+    # ------------------------------------------------------------------
+    # 2. Performance check: overall + late-block accuracy above chance
+    # ------------------------------------------------------------------
+    overall_acc = df.groupby("sona_id")["correct"].mean()
+    overall_pass = set(overall_acc[overall_acc >= min_overall_accuracy].index)
+
+    # Late-block accuracy: per-participant max block, then select the last
+    # `late_block_n` blocks for each participant.
+    def _late_block_mean(group: "pd.DataFrame") -> float:
+        max_b = int(group["block"].max())
+        min_b = max_b - late_block_n + 1
+        return float(group.loc[group["block"] >= min_b, "correct"].mean())
+
+    late_acc = df.groupby("sona_id").apply(_late_block_mean, include_groups=False) \
+        if "include_groups" in getattr(df.groupby("sona_id").apply, "__kwdefaults__", {}) or True \
+        else df.groupby("sona_id").apply(_late_block_mean)
+    # Robustness: pandas warns about include_groups; fall back cleanly.
+    try:
+        late_acc = df.groupby("sona_id").apply(_late_block_mean, include_groups=False)
+    except TypeError:
+        late_acc = df.groupby("sona_id").apply(_late_block_mean)
+    late_pass = set(late_acc[late_acc >= min_late_block_accuracy].index)
+
+    perf_pass = overall_pass & late_pass
+
+    # ------------------------------------------------------------------
+    # 3. Scale-completeness: non-NA for every required survey column
+    # ------------------------------------------------------------------
+    if require_scales and surveys_path.exists():
+        surveys_df = pd.read_csv(surveys_path)
+        surveys_df = surveys_df.dropna(subset=["sona_id"]).copy()
+        surveys_df["sona_id"] = surveys_df["sona_id"].astype(int)
+        complete_mask = surveys_df[list(REQUIRED_SURVEY_COLUMNS)].notna().all(
+            axis=1
+        )
+        scales_pass = set(surveys_df.loc[complete_mask, "sona_id"].tolist())
+    elif require_scales:
+        if verbose:
+            print(
+                f"get_analysis_cohort: surveys file missing at {surveys_path}; "
+                "treating no participants as scale-complete."
+            )
+        scales_pass = set()
+    else:
+        scales_pass = set(task_pass)  # effectively disables the gate
+
+    cohort = task_pass & perf_pass & scales_pass
+    cohort -= set(MANUAL_EXCLUSIONS)
+
+    if verbose:
+        all_ids = set(df["sona_id"].unique().tolist())
+        print(f"Analysis cohort breakdown (total observed N={len(all_ids)}):")
+        print(f"  Task-complete (>= {min_trials} trials, >= {min_blocks} blocks): {len(task_pass)}")
+        print(f"  Overall accuracy >= {min_overall_accuracy}: {len(overall_pass)}")
+        print(f"  Late-block accuracy >= {min_late_block_accuracy} (last {late_block_n}): {len(late_pass)}")
+        print(f"  Both performance gates: {len(perf_pass)}")
+        if require_scales:
+            print(f"  Scale-complete ({len(REQUIRED_SURVEY_COLUMNS)} cols): {len(scales_pass)}")
+        print(f"  Final cohort (intersection − manual exclusions): {len(cohort)}")
+
+    return sorted(cohort)
+
+
+# ============================================================================
 # UTILITY FUNCTIONS
 # ============================================================================
 

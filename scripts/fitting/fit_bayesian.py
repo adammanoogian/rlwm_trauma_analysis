@@ -92,11 +92,14 @@ _L2_LEC_SUPPORTED: frozenset[str] = frozenset(
 def load_and_prepare_data(
     data_path: Path,
     min_block: int = 3,
+    use_cohort: bool = True,
 ) -> pd.DataFrame:
     """Load and prepare human behavioral data.
 
-    Handles both 'response' and 'key_press' column names.
-    Excludes participants based on data quality criteria.
+    Handles both 'response' and 'key_press' column names.  Excludes
+    participants based on the canonical v4.0 analysis cohort (task
+    completeness + performance check + scale completeness) when
+    ``use_cohort=True`` (default).
 
     Parameters
     ----------
@@ -104,6 +107,9 @@ def load_and_prepare_data(
         Path to CSV file with trial data.
     min_block : int
         Minimum block number to include (default: 3, excludes practice).
+    use_cohort : bool
+        If True (default), apply ``config.get_analysis_cohort()``.  Pass
+        False for diagnostic runs or legacy reproducibility.
 
     Returns
     -------
@@ -121,15 +127,35 @@ def load_and_prepare_data(
     # Remove rows with NaN participant IDs
     df = df.dropna(subset=["sona_id"]).copy()
 
-    # Exclude participants based on data quality
     initial_n = df["sona_id"].nunique()
-    df = df[~df["sona_id"].isin(EXCLUDED_PARTICIPANTS)].copy()
-    n_excluded = initial_n - df["sona_id"].nunique()
 
-    print(f"  Loaded {len(df)} trials from {initial_n} participants")
-    if n_excluded > 0:
-        print(f"  Excluded {n_excluded} participants (insufficient data/duplicates)")
+    if use_cohort:
+        from config import get_analysis_cohort
+
+        cohort_ids = set(get_analysis_cohort(data_path=data_path, verbose=True))
+        if not cohort_ids:
+            raise RuntimeError(
+                "get_analysis_cohort() returned an empty cohort — check that "
+                "task_trials_long.csv and summary_participant_metrics.csv exist."
+            )
+        df = df[df["sona_id"].astype(int).isin(cohort_ids)].copy()
+        n_excluded = initial_n - df["sona_id"].nunique()
+        print(
+            f"  Analysis cohort (v4.0): "
+            f"task-complete + performance-check + scale-complete"
+        )
+        print(f"  Loaded {len(df)} trials from {initial_n} participants")
+        print(f"  Excluded {n_excluded} participants outside cohort")
         print(f"  Final sample: {df['sona_id'].nunique()} participants")
+    else:
+        # Legacy path: only apply EXCLUDED_PARTICIPANTS (task-completeness
+        # + manual exclusions) without performance/scale gates.
+        df = df[~df["sona_id"].isin(EXCLUDED_PARTICIPANTS)].copy()
+        n_excluded = initial_n - df["sona_id"].nunique()
+        print(f"  Loaded {len(df)} trials from {initial_n} participants")
+        if n_excluded > 0:
+            print(f"  Excluded {n_excluded} participants (legacy gate: insufficient data/duplicates)")
+            print(f"  Final sample: {df['sona_id'].nunique()} participants")
 
     # Filter blocks
     if min_block is not None:
@@ -986,6 +1012,18 @@ def main() -> None:
             "Default: use sequential lax.scan."
         ),
     )
+    parser.add_argument(
+        "--no-cohort",
+        action="store_true",
+        default=False,
+        help=(
+            "Disable the canonical v4.0 analysis cohort "
+            "(config.get_analysis_cohort) and fall back to the legacy "
+            "EXCLUDED_PARTICIPANTS (task-completeness + manual exclusions "
+            "only, no performance or scale gates).  Use for diagnostic "
+            "runs or legacy reproducibility."
+        ),
+    )
 
     args = parser.parse_args()
 
@@ -1041,7 +1079,11 @@ def main() -> None:
     print(f"  JAX devices: {num_devices}")
 
     # Load data
-    data = load_and_prepare_data(Path(args.data), min_block=min_block)
+    data = load_and_prepare_data(
+        Path(args.data),
+        min_block=min_block,
+        use_cohort=not args.no_cohort,
+    )
 
     # ------------------------------------------------------------------
     # PERMUTATION NULL TEST PATH

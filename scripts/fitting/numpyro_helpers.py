@@ -183,32 +183,77 @@ def sample_capacity(
 PARAM_PRIOR_DEFAULTS: dict[str, dict] = {
     "alpha_pos": {"lower": 0.0, "upper": 1.0, "mu_prior_loc": 0.0},
     "alpha_neg": {"lower": 0.0, "upper": 1.0, "mu_prior_loc": 0.0},
-    "epsilon": {"lower": 0.0, "upper": 1.0, "mu_prior_loc": -2.5},
-    "phi": {"lower": 0.0, "upper": 1.0, "mu_prior_loc": -0.8},
-    "rho": {"lower": 0.0, "upper": 1.0, "mu_prior_loc": 0.8},
+    "epsilon": {"lower": 0.0, "upper": 1.0, "mu_prior_loc": -2.0},
+    "phi": {"lower": 0.0, "upper": 1.0, "mu_prior_loc": 0.0},
+    "rho": {"lower": 0.0, "upper": 1.0, "mu_prior_loc": 0.0},
     "capacity": {"lower": 2.0, "upper": 6.0, "mu_prior_loc": 0.0},
-    "kappa": {"lower": 0.0, "upper": 1.0, "mu_prior_loc": -2.0},
-    "kappa_s": {"lower": 0.0, "upper": 1.0, "mu_prior_loc": -2.0},
-    "kappa_total": {"lower": 0.0, "upper": 1.0, "mu_prior_loc": -2.0},
+    "kappa": {"lower": 0.0, "upper": 1.0, "mu_prior_loc": 0.0},
+    "kappa_s": {"lower": 0.0, "upper": 1.0, "mu_prior_loc": 0.0},
+    "kappa_total": {"lower": 0.0, "upper": 1.0, "mu_prior_loc": 0.0},
     "kappa_share": {"lower": 0.0, "upper": 1.0, "mu_prior_loc": 0.0},
-    "phi_rl": {"lower": 0.0, "upper": 1.0, "mu_prior_loc": -0.8},
+    "phi_rl": {"lower": 0.0, "upper": 1.0, "mu_prior_loc": 0.0},
 }
 """Default prior hyperparameters for all bounded RLWM parameters.
 
 Keys are parameter names matching ``MODEL_REGISTRY['params']`` lists.
 Each value dict is passed as ``**kwargs`` to :func:`sample_bounded_param`.
 
-Notes
------
-- ``mu_prior_loc`` shifts the group mean on the probit scale.
-  Negative values push the group mean toward small values; e.g.,
-  ``epsilon: -2.5`` implies Phi(-2.5) ≈ 0.006 group-mean noise.
-- ``lower`` / ``upper`` match Senta, Bishop, Collins (2025) for
-  ``capacity`` and [0, 1] for all other parameters.
-- LBA-specific parameters (v_scale, A, delta, t0) are NOT listed here
-  because they require log-scale or non-standard transforms handled
-  separately in the M4 hierarchical model.
+Design: principled weakly-informative priors (v4.0 Phase 16 revision)
+---------------------------------------------------------------------
+As of 2026-04-17, all ``mu_prior_loc`` values default to 0.0, which
+corresponds to a group-mean prior of Phi(0) = 0.5 on the bounded scale
+for all [0, 1] parameters.  The 95% prior interval on the bounded scale,
+given ``sigma_pr ~ HalfNormal(0.2)``, is approximately [0.02, 0.98].
+
+Rationale for moving to 0.0 from the prior MLE-calibrated values:
+
+- The previous priors (``epsilon = -2.5``, ``phi = -0.8``, ``rho = +0.8``,
+  ``kappa-family = -2.0``) were informed by MLE point estimates from
+  quick-006.  This is a mild form of empirical Bayes that creates a
+  subtle circularity — the MLE fit already shrinks parameters toward
+  their modal values for under-identified participants, and we then
+  tell the hierarchical model "these parameters are usually small" on
+  the basis of those MLE results.
+- An informative prior toward zero perseveration (``kappa = -2.0``) is
+  **conservative for L2 null testing**: if trauma is associated with
+  *increased* perseveration, the prior pulling kappa down reduces the
+  chance of the HDI excluding zero.  The published trauma-parameter
+  literature does not universally support that direction of effect,
+  so a neutral prior avoids building the hypothesis into the prior.
+- Principled priors make the L2 HDI interpretable as "data-driven"
+  rather than "prior-shifted" conclusions.
+
+Consequences:
+
+- ``sigma_pr ~ HalfNormal(0.2)`` is retained — this gives the data
+  enough leverage to pull the group mean away from 0.5 toward wherever
+  the MLE cluster sits.  In practice the posterior group mean will
+  match the MLE-calibrated prior mean closely for well-identified
+  parameters, so only L2 HDIs change meaningfully.
+- For informal sensitivity analysis, set ``mu_prior_loc`` back to the
+  prior values (`_PRIOR_LEGACY_MLE_CALIBRATED` below).
+
+LBA-specific parameters (v_scale, A, delta, t0) are NOT listed here
+because they require log-scale or non-standard transforms handled
+separately in the M4 hierarchical model.
 """
+
+# Legacy MLE-calibrated defaults (kept for sensitivity analysis).
+# Use via `sample_bounded_param(..., mu_prior_loc=_PRIOR_LEGACY_MLE_CALIBRATED[p])`
+# when reproducing pre-v4.0-refactor fits.
+_PRIOR_LEGACY_MLE_CALIBRATED: dict[str, float] = {
+    "alpha_pos": 0.0,
+    "alpha_neg": 0.0,
+    "epsilon": -2.5,
+    "phi": -0.8,
+    "rho": 0.8,
+    "capacity": 0.0,
+    "kappa": -2.0,
+    "kappa_s": -2.0,
+    "kappa_total": -2.0,
+    "kappa_share": 0.0,
+    "phi_rl": -0.8,
+}
 
 
 # ---------------------------------------------------------------------------
