@@ -642,6 +642,7 @@ def run_posterior_predictive_check(
     q_init: float = 0.5,
     n_ppc_samples: int = 200,
     output_dir: Path | None = None,
+    ppc_output_dir: Path | None = None,
 ) -> dict:
     """Compute group-stratified posterior predictive checks for block accuracy.
 
@@ -681,7 +682,16 @@ def run_posterior_predictive_check(
         Number of posterior draws to use for the PPC (subsampled from the full
         posterior for efficiency).
     output_dir : Path or None
-        If provided, saves ``output_dir / "bayesian" / "{model_name}_ppc_results.csv"``.
+        If provided (and ``ppc_output_dir`` is None), saves
+        ``output_dir / "bayesian" / "{model_name}_ppc_results.csv"``. Legacy
+        path — Phase 16 callers still work.
+    ppc_output_dir : Path or None
+        If provided, saves ``ppc_output_dir / "{model_name}_ppc_results.csv"``
+        verbatim (no ``"bayesian"`` prefix appended). Takes precedence over
+        ``output_dir``. Used by Phase 21 (``save_results`` with
+        ``output_subdir``) so the PPC CSV lands in the same subdirectory as the
+        posterior NetCDF (e.g. ``output/bayesian/21_baseline/``) and does NOT
+        leak into the legacy ``output/bayesian/`` root.
 
     Returns
     -------
@@ -875,7 +885,13 @@ def run_posterior_predictive_check(
         f"by 95% PPC envelope"
     )
 
-    if output_dir is not None:
+    if ppc_output_dir is not None:
+        bayesian_out = Path(ppc_output_dir)
+        bayesian_out.mkdir(parents=True, exist_ok=True)
+        ppc_csv = bayesian_out / f"{model_name}_ppc_results.csv"
+        ppc_df.to_csv(ppc_csv, index=False)
+        print(f"[PPC] Results saved: {ppc_csv}")
+    elif output_dir is not None:
         bayesian_out = Path(output_dir) / "bayesian"
         bayesian_out.mkdir(parents=True, exist_ok=True)
         ppc_csv = bayesian_out / f"{model_name}_ppc_results.csv"

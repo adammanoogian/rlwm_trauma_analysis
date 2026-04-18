@@ -573,6 +573,8 @@ def save_results(
     save_plots: bool = True,
     participant_data_stacked: dict | None = None,
     use_pscan: bool = False,
+    *,
+    output_subdir: str | None = None,
 ) -> object:
     """Save fitting results to disk.
 
@@ -607,6 +609,16 @@ def save_results(
     use_pscan : bool
         If ``True``, append ``_pscan`` to the output NetCDF filename stem.
         Default ``False``.
+    output_subdir : str or None, keyword-only
+        Optional subdirectory under ``bayesian/`` (e.g. ``'21_baseline'``,
+        ``'21_l2'``). When None, writes to ``output_dir/bayesian/`` as before
+        (Phase 16 layout). When set, writes all artefacts — posterior NetCDF,
+        schema-parity CSV (``write_bayesian_summary``), shrinkage report, and
+        posterior predictive check CSV — to ``output_dir/bayesian/<subdir>/``.
+        Threaded through to ``write_bayesian_summary`` and
+        ``run_posterior_predictive_check`` so no writes escape to the legacy
+        ``output/bayesian/`` root.  Default None preserves backward
+        compatibility with all Phase 16 SLURM scripts.
 
     Returns
     -------
@@ -688,7 +700,10 @@ def save_results(
         # ------------------------------------------------------------------
         # Write outputs (only reached if gate passes)
         # ------------------------------------------------------------------
-        bayesian_dir = output_dir / "bayesian"
+        if output_subdir:
+            bayesian_dir = output_dir / "bayesian" / output_subdir
+        else:
+            bayesian_dir = output_dir / "bayesian"
         bayesian_dir.mkdir(parents=True, exist_ok=True)
 
         # Schema-parity CSV
@@ -708,6 +723,7 @@ def save_results(
                 model, "v4.0-K[2,6]-phiapprox"
             ),
             n_trials_per_participant=n_trials_per_ppt,
+            output_subdir=output_subdir,
         )
         print(f"  Saved: {csv_path}")
 
@@ -745,13 +761,19 @@ def save_results(
         print(f"  Saved: {shrinkage_path}")
 
         # Posterior predictive check (HIER-09)
+        # Pass `ppc_output_dir=bayesian_dir` so the PPC CSV lands in the same
+        # subdir-aware location as the posterior NetCDF (e.g.
+        # `output/bayesian/21_baseline/` when `output_subdir='21_baseline'`).
+        # When `output_subdir` is None, `bayesian_dir` is
+        # `output_dir/bayesian` — same target as the legacy `output_dir=...`
+        # path (backward compatible with all Phase 16 callers).
         print("\n>> Running posterior predictive check...")
         ppc_result = run_posterior_predictive_check(
             mcmc,
             pdata_stacked,
             model,
             data,
-            output_dir=output_dir,
+            ppc_output_dir=bayesian_dir,
         )
         covered = ppc_result["covered_count"]
         total_b = ppc_result["total_blocks"]
@@ -1024,6 +1046,20 @@ def main() -> None:
             "runs or legacy reproducibility."
         ),
     )
+    parser.add_argument(
+        "--output-subdir",
+        type=str,
+        default=None,
+        help=(
+            "Optional subdirectory under output/bayesian/ for all write "
+            "artefacts (posterior NetCDF, individual_fits.csv, "
+            "shrinkage_report.md, ppc_results.csv). Used by Phase 21 to "
+            "route baseline fits to output/bayesian/21_baseline/ without "
+            "overwriting Phase 16 posteriors at output/bayesian/. When "
+            "unset (default), writes to output/bayesian/ root (backward "
+            "compatible with Phase 16 SLURM scripts)."
+        ),
+    )
 
     args = parser.parse_args()
 
@@ -1058,6 +1094,8 @@ def main() -> None:
         print(f"  Subscale: True (wmrl_m6b_hierarchical_model_subscale, 32 beta sites)")
     if args.permutation_shuffle is not None:
         print(f"  Permutation shuffle: {args.permutation_shuffle}")
+    if args.output_subdir:
+        print(f"  Output subdir: bayesian/{args.output_subdir}/ (Phase 21 layout)")
 
     # Validate --subscale
     if args.subscale and args.model != "wmrl_m6b":
@@ -1124,6 +1162,7 @@ def main() -> None:
         args.save_plots,
         participant_data_stacked=extra if args.model in STACKED_MODEL_DISPATCH else None,
         use_pscan=args.use_pscan,
+        output_subdir=args.output_subdir,
     )
 
     print("\n" + "=" * 80)
