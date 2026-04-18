@@ -1137,6 +1137,7 @@ def stack_across_participants(
 def wmrl_m3_hierarchical_model(
     participant_data_stacked: dict,
     covariate_lec: jnp.ndarray | None = None,
+    covariate_iesr: jnp.ndarray | None = None,
     num_stimuli: int = 6,
     num_actions: int = 3,
     q_init: float = 0.5,
@@ -1153,10 +1154,18 @@ def wmrl_m3_hierarchical_model(
 
     K (capacity) is parameterized in [2, 6] following Senta, Bishop, Collins (2025).
 
-    Level-2 regression: if ``covariate_lec`` is provided (standardized LEC-total score),
-    a coefficient ``beta_lec_kappa`` is sampled and added as a per-participant shift on
-    the unconstrained kappa scale before the Phi_approx transform:
+    Level-2 regression (single-covariate legacy Phase 16 mode): if
+    ``covariate_lec`` is provided (standardized LEC-total score), a coefficient
+    ``beta_lec_kappa`` is sampled and added as a per-participant shift on the
+    unconstrained kappa scale before the Phi_approx transform:
     ``kappa_unc_i = kappa_mu_pr + kappa_sigma_pr * z_i + beta_lec_kappa * lec_i``.
+
+    Level-2 regression (2-covariate Phase 21 Option C mode): if BOTH
+    ``covariate_lec`` and ``covariate_iesr`` are provided, an additional
+    coefficient ``beta_iesr_kappa`` is sampled with the same Normal(0, 1)
+    prior and both shifts are summed on the probit scale:
+    ``kappa_unc_i = kappa_mu_pr + kappa_sigma_pr * z_i
+                   + beta_lec_kappa * lec_i + beta_iesr_kappa * iesr_i``.
 
     Parameters
     ----------
@@ -1172,6 +1181,13 @@ def wmrl_m3_hierarchical_model(
         ``sorted(participant_data_stacked.keys())``.  If ``None``,
         no Level-2 regression is applied and ``beta_lec_kappa`` is
         not sampled.
+    covariate_iesr : jnp.ndarray or None
+        Shape ``(n_participants,)`` standardized IES-R total covariate.
+        When both ``covariate_lec`` and ``covariate_iesr`` are provided, the
+        2-covariate L2 design is applied: both beta sites are sampled with
+        ``Normal(0, 1)`` priors and their contributions are summed on the
+        probit scale before the Phi_approx transform. ``covariate_iesr``
+        must not be passed without ``covariate_lec`` (ValueError otherwise).
     num_stimuli : int
         Number of distinct stimuli in the task.  Default 6.
     num_actions : int
@@ -1199,16 +1215,36 @@ def wmrl_m3_hierarchical_model(
         sample_bounded_param,
     )
 
+    # ------------------------------------------------------------------
+    # Phase 21 Option C guard: IES-R covariate requires LEC covariate.
+    # Prevents silently dropping LEC when only IES-R is passed.
+    # ------------------------------------------------------------------
+    if covariate_iesr is not None and covariate_lec is None:
+        raise ValueError(
+            "covariate_iesr provided without covariate_lec. To use 2-covariate "
+            "L2 design, pass both covariate_lec and covariate_iesr. Expected: "
+            "both None (no L2), or both vectors (2-cov L2), or covariate_lec "
+            "only (single-cov L2 — legacy Phase 16 mode)."
+        )
+
     n_participants = len(participant_data_stacked)
     participant_ids = sorted(participant_data_stacked.keys())
 
     # ------------------------------------------------------------------
-    # Level-2: LEC-total -> kappa regression coefficient
+    # Level-2: LEC-total + IES-R-total -> kappa regression coefficients
+    # (2-covariate design, Phase 21 Option C)
     # ------------------------------------------------------------------
     if covariate_lec is not None:
         beta_lec_kappa = numpyro.sample("beta_lec_kappa", dist.Normal(0.0, 1.0))
     else:
         beta_lec_kappa = 0.0
+
+    if covariate_iesr is not None:
+        beta_iesr_kappa = numpyro.sample(
+            "beta_iesr_kappa", dist.Normal(0.0, 1.0)
+        )
+    else:
+        beta_iesr_kappa = 0.0
 
     # ------------------------------------------------------------------
     # Group priors for 6 parameters (all except kappa)
@@ -1227,7 +1263,7 @@ def wmrl_m3_hierarchical_model(
 
     # ------------------------------------------------------------------
     # Kappa with optional L2 shift on the probit scale
-    # Sampled manually to allow per-participant LEC offset.
+    # Sampled manually to allow per-participant LEC + IES-R offset.
     # ------------------------------------------------------------------
     kappa_defaults = PARAM_PRIOR_DEFAULTS["kappa"]
     kappa_mu_pr = numpyro.sample(
@@ -1240,7 +1276,10 @@ def wmrl_m3_hierarchical_model(
         dist.Normal(0, 1).expand([n_participants]),
     )
     lec_shift = beta_lec_kappa * covariate_lec if covariate_lec is not None else 0.0
-    kappa_unc = kappa_mu_pr + kappa_sigma_pr * kappa_z + lec_shift
+    iesr_shift = (
+        beta_iesr_kappa * covariate_iesr if covariate_iesr is not None else 0.0
+    )
+    kappa_unc = kappa_mu_pr + kappa_sigma_pr * kappa_z + lec_shift + iesr_shift
     kappa = numpyro.deterministic(
         "kappa",
         kappa_defaults["lower"]
@@ -1512,6 +1551,7 @@ def wmrl_hierarchical_model_stacked(
 def wmrl_m5_hierarchical_model(
     participant_data_stacked: dict,
     covariate_lec: jnp.ndarray | None = None,
+    covariate_iesr: jnp.ndarray | None = None,
     num_stimuli: int = 6,
     num_actions: int = 3,
     q_init: float = 0.5,
@@ -1528,11 +1568,18 @@ def wmrl_m5_hierarchical_model(
 
     K (capacity) is parameterized in [2, 6] following Senta, Bishop, Collins (2025).
 
-    Level-2 regression: if ``covariate_lec`` is provided (standardized LEC-total
-    score), a coefficient ``beta_lec_kappa`` is sampled and added as a
-    per-participant shift on the unconstrained kappa scale before the Phi_approx
-    transform:
+    Level-2 regression (single-covariate legacy Phase 16 mode): if
+    ``covariate_lec`` is provided (standardized LEC-total score), a coefficient
+    ``beta_lec_kappa`` is sampled and added as a per-participant shift on the
+    unconstrained kappa scale before the Phi_approx transform:
     ``kappa_unc_i = kappa_mu_pr + kappa_sigma_pr * z_i + beta_lec_kappa * lec_i``.
+
+    Level-2 regression (2-covariate Phase 21 Option C mode): if BOTH
+    ``covariate_lec`` and ``covariate_iesr`` are provided, an additional
+    coefficient ``beta_iesr_kappa`` is sampled with the same Normal(0, 1)
+    prior and both shifts are summed on the probit scale:
+    ``kappa_unc_i = kappa_mu_pr + kappa_sigma_pr * z_i
+                   + beta_lec_kappa * lec_i + beta_iesr_kappa * iesr_i``.
 
     M5 adds ``phi_rl`` (RL forgetting rate) relative to M3.  The 8 model parameters
     are: alpha_pos, alpha_neg, phi, rho, capacity, epsilon, phi_rl (7, sampled via
@@ -1552,6 +1599,13 @@ def wmrl_m5_hierarchical_model(
         ``sorted(participant_data_stacked.keys())``.  If ``None``,
         no Level-2 regression is applied and ``beta_lec_kappa`` is
         not sampled.
+    covariate_iesr : jnp.ndarray or None
+        Shape ``(n_participants,)`` standardized IES-R total covariate.
+        When both ``covariate_lec`` and ``covariate_iesr`` are provided, the
+        2-covariate L2 design is applied: both beta sites are sampled with
+        ``Normal(0, 1)`` priors and their contributions are summed on the
+        probit scale before the Phi_approx transform. ``covariate_iesr``
+        must not be passed without ``covariate_lec`` (ValueError otherwise).
     num_stimuli : int
         Number of distinct stimuli in the task.  Default 6.
     num_actions : int
@@ -1585,15 +1639,35 @@ def wmrl_m5_hierarchical_model(
             "path is not implemented.  Pass use_pscan=False."
         )
 
+    # ------------------------------------------------------------------
+    # Phase 21 Option C guard: IES-R covariate requires LEC covariate.
+    # Prevents silently dropping LEC when only IES-R is passed.
+    # ------------------------------------------------------------------
+    if covariate_iesr is not None and covariate_lec is None:
+        raise ValueError(
+            "covariate_iesr provided without covariate_lec. To use 2-covariate "
+            "L2 design, pass both covariate_lec and covariate_iesr. Expected: "
+            "both None (no L2), or both vectors (2-cov L2), or covariate_lec "
+            "only (single-cov L2 — legacy Phase 16 mode)."
+        )
+
     n_participants = len(participant_data_stacked)
 
     # ------------------------------------------------------------------
-    # Level-2: LEC-total -> kappa regression coefficient
+    # Level-2: LEC-total + IES-R-total -> kappa regression coefficients
+    # (2-covariate design, Phase 21 Option C)
     # ------------------------------------------------------------------
     if covariate_lec is not None:
         beta_lec_kappa = numpyro.sample("beta_lec_kappa", dist.Normal(0.0, 1.0))
     else:
         beta_lec_kappa = 0.0
+
+    if covariate_iesr is not None:
+        beta_iesr_kappa = numpyro.sample(
+            "beta_iesr_kappa", dist.Normal(0.0, 1.0)
+        )
+    else:
+        beta_iesr_kappa = 0.0
 
     # ------------------------------------------------------------------
     # Group priors for 7 parameters (all except kappa)
@@ -1621,7 +1695,7 @@ def wmrl_m5_hierarchical_model(
 
     # ------------------------------------------------------------------
     # Kappa with optional L2 shift on the probit scale
-    # Sampled manually to allow per-participant LEC offset.
+    # Sampled manually to allow per-participant LEC + IES-R offset.
     # ------------------------------------------------------------------
     kappa_defaults = PARAM_PRIOR_DEFAULTS["kappa"]
     kappa_mu_pr = numpyro.sample(
@@ -1634,7 +1708,10 @@ def wmrl_m5_hierarchical_model(
         dist.Normal(0, 1).expand([n_participants]),
     )
     lec_shift = beta_lec_kappa * covariate_lec if covariate_lec is not None else 0.0
-    kappa_unc = kappa_mu_pr + kappa_sigma_pr * kappa_z + lec_shift
+    iesr_shift = (
+        beta_iesr_kappa * covariate_iesr if covariate_iesr is not None else 0.0
+    )
+    kappa_unc = kappa_mu_pr + kappa_sigma_pr * kappa_z + lec_shift + iesr_shift
     kappa = numpyro.deterministic(
         "kappa",
         kappa_defaults["lower"]
@@ -1677,6 +1754,7 @@ def wmrl_m5_hierarchical_model(
 def wmrl_m6a_hierarchical_model(
     participant_data_stacked: dict,
     covariate_lec: jnp.ndarray | None = None,
+    covariate_iesr: jnp.ndarray | None = None,
     num_stimuli: int = 6,
     num_actions: int = 3,
     q_init: float = 0.5,
@@ -1699,9 +1777,17 @@ def wmrl_m6a_hierarchical_model(
     ``sample_bounded_param``), and kappa_s (1, sampled manually with optional
     L2 shift using the same pattern as M3's kappa).
 
-    Level-2 regression: if ``covariate_lec`` is provided, a coefficient
-    ``beta_lec_kappa_s`` is sampled and shifts ``kappa_s`` on the probit scale:
+    Level-2 regression (single-covariate legacy Phase 16 mode): if
+    ``covariate_lec`` is provided, a coefficient ``beta_lec_kappa_s`` is
+    sampled and shifts ``kappa_s`` on the probit scale:
     ``kappa_s_unc_i = kappa_s_mu_pr + kappa_s_sigma_pr * z_i + beta_lec_kappa_s * lec_i``.
+
+    Level-2 regression (2-covariate Phase 21 Option C mode): if BOTH
+    ``covariate_lec`` and ``covariate_iesr`` are provided, an additional
+    coefficient ``beta_iesr_kappa_s`` is sampled with the same Normal(0, 1)
+    prior and both shifts are summed on the probit scale:
+    ``kappa_s_unc_i = kappa_s_mu_pr + kappa_s_sigma_pr * z_i
+                     + beta_lec_kappa_s * lec_i + beta_iesr_kappa_s * iesr_i``.
 
     Parameters
     ----------
@@ -1717,6 +1803,13 @@ def wmrl_m6a_hierarchical_model(
         ``sorted(participant_data_stacked.keys())``.  If ``None``,
         no Level-2 regression is applied and ``beta_lec_kappa_s`` is
         not sampled.
+    covariate_iesr : jnp.ndarray or None
+        Shape ``(n_participants,)`` standardized IES-R total covariate.
+        When both ``covariate_lec`` and ``covariate_iesr`` are provided, the
+        2-covariate L2 design is applied: both beta sites are sampled with
+        ``Normal(0, 1)`` priors and their contributions are summed on the
+        probit scale before the Phi_approx transform. ``covariate_iesr``
+        must not be passed without ``covariate_lec`` (ValueError otherwise).
     num_stimuli : int
         Number of distinct stimuli in the task.  Default 6.
     num_actions : int
@@ -1751,15 +1844,35 @@ def wmrl_m6a_hierarchical_model(
             "path is not implemented.  Pass use_pscan=False."
         )
 
+    # ------------------------------------------------------------------
+    # Phase 21 Option C guard: IES-R covariate requires LEC covariate.
+    # Prevents silently dropping LEC when only IES-R is passed.
+    # ------------------------------------------------------------------
+    if covariate_iesr is not None and covariate_lec is None:
+        raise ValueError(
+            "covariate_iesr provided without covariate_lec. To use 2-covariate "
+            "L2 design, pass both covariate_lec and covariate_iesr. Expected: "
+            "both None (no L2), or both vectors (2-cov L2), or covariate_lec "
+            "only (single-cov L2 — legacy Phase 16 mode)."
+        )
+
     n_participants = len(participant_data_stacked)
 
     # ------------------------------------------------------------------
-    # Level-2: LEC-total -> kappa_s regression coefficient
+    # Level-2: LEC-total + IES-R-total -> kappa_s regression coefficients
+    # (2-covariate design, Phase 21 Option C)
     # ------------------------------------------------------------------
     if covariate_lec is not None:
         beta_lec_kappa_s = numpyro.sample("beta_lec_kappa_s", dist.Normal(0.0, 1.0))
     else:
         beta_lec_kappa_s = 0.0
+
+    if covariate_iesr is not None:
+        beta_iesr_kappa_s = numpyro.sample(
+            "beta_iesr_kappa_s", dist.Normal(0.0, 1.0)
+        )
+    else:
+        beta_iesr_kappa_s = 0.0
 
     # ------------------------------------------------------------------
     # Group priors for 6 parameters (all except kappa_s)
@@ -1778,7 +1891,7 @@ def wmrl_m6a_hierarchical_model(
 
     # ------------------------------------------------------------------
     # kappa_s with optional L2 shift on the probit scale
-    # Sampled manually to allow per-participant LEC offset.
+    # Sampled manually to allow per-participant LEC + IES-R offset.
     # Same bounds and prior as M3's kappa (both in PARAM_PRIOR_DEFAULTS).
     # ------------------------------------------------------------------
     kappa_s_defaults = PARAM_PRIOR_DEFAULTS["kappa_s"]
@@ -1794,7 +1907,12 @@ def wmrl_m6a_hierarchical_model(
     lec_shift = (
         beta_lec_kappa_s * covariate_lec if covariate_lec is not None else 0.0
     )
-    kappa_s_unc = kappa_s_mu_pr + kappa_s_sigma_pr * kappa_s_z + lec_shift
+    iesr_shift = (
+        beta_iesr_kappa_s * covariate_iesr if covariate_iesr is not None else 0.0
+    )
+    kappa_s_unc = (
+        kappa_s_mu_pr + kappa_s_sigma_pr * kappa_s_z + lec_shift + iesr_shift
+    )
     kappa_s = numpyro.deterministic(
         "kappa_s",
         kappa_s_defaults["lower"]

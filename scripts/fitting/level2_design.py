@@ -271,6 +271,87 @@ def build_level2_design_matrix(
     return X, COVARIATE_NAMES
 
 
+#: Expected covariate names for the Phase 21 2-predictor design matrix.
+COVARIATE_NAMES_2COV: list[str] = ["lec_total", "iesr_total"]
+
+
+def build_level2_design_matrix_2cov(
+    metrics: pd.DataFrame,
+    participant_ids: list[int | str],
+) -> tuple[np.ndarray, list[str]]:
+    """Build the 2-covariate L2 design matrix for M3/M5/M6a Phase 21 winners.
+
+    Returns columns ``['lec_total', 'iesr_total']``, both z-scored across
+    participants. Used by plan 21-07 when a Phase 21 winner is M3, M5, or
+    M6a; M6b winners use ``build_level2_design_matrix`` (4 covariates)
+    instead. M1/M2 bypass L2 entirely.
+
+    Unlike the 4-covariate builder, this variant does NOT residualize the
+    IES-R total against any subscale — it uses raw (z-scored) totals
+    because only 2 covariates are present and collinearity between
+    ``less_total_events`` and ``ies_total`` is moderate (r ~ 0.3 in the
+    canonical N=138 cohort, well below the multicollinearity threshold).
+
+    Parameters
+    ----------
+    metrics : pd.DataFrame
+        Per-participant metric CSV (``output/summary_participant_metrics.csv``).
+        Must contain columns ``sona_id``, ``less_total_events``, ``ies_total``.
+    participant_ids : list of int or str
+        Ordered participant ids; determines row order of the returned matrix.
+        Must match the order produced by
+        ``prepare_stacked_participant_data`` (i.e.,
+        ``sorted(data_df[participant_col].unique())``).
+
+    Returns
+    -------
+    design : np.ndarray, shape ``(n_participants, 2)``
+        Column 0 = z-scored ``lec_total``; column 1 = z-scored ``iesr_total``.
+        Both columns have mean ~0 and std ~1 across participants.
+    names : list of str
+        ``['lec_total', 'iesr_total']``.
+
+    Raises
+    ------
+    ValueError
+        If ``metrics`` is missing any of ``sona_id``, ``less_total_events``,
+        ``ies_total``, or if any participant_id is absent from ``metrics``
+        after reindexing.
+    """
+    required = ["sona_id", "less_total_events", "ies_total"]
+    missing = [c for c in required if c not in metrics.columns]
+    if missing:
+        raise ValueError(
+            f"build_level2_design_matrix_2cov: metrics is missing required "
+            f"columns {missing}. Expected: {required}. Available columns: "
+            f"{list(metrics.columns)}"
+        )
+
+    aligned = metrics.set_index("sona_id").reindex(participant_ids)
+
+    missing_mask = (
+        aligned["less_total_events"].isna() | aligned["ies_total"].isna()
+    )
+    missing_pids = aligned.index[missing_mask].tolist()
+    if missing_pids:
+        raise ValueError(
+            f"build_level2_design_matrix_2cov: expected {len(participant_ids)} "
+            f"participants with complete lec_total + iesr_total, got "
+            f"{len(participant_ids) - len(missing_pids)} complete. Missing "
+            f"data for participant ids (first 5): {missing_pids[:5]}"
+        )
+
+    lec_total_raw = aligned["less_total_events"].to_numpy(dtype=float)
+    iesr_total_raw = aligned["ies_total"].to_numpy(dtype=float)
+
+    design = np.column_stack([
+        _zscore(lec_total_raw),
+        _zscore(iesr_total_raw),
+    ])  # shape (n_participants, 2)
+
+    return design, list(COVARIATE_NAMES_2COV)
+
+
 # ---------------------------------------------------------------------------
 # Collinearity audit
 # ---------------------------------------------------------------------------
