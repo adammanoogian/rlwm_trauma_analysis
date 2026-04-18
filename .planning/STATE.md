@@ -11,12 +11,14 @@ See: .planning/PROJECT.md (updated 2026-04-11)
 
 Milestone: v4.0 Hierarchical Bayesian Pipeline & LBA Acceleration
 Phase: 21 of 21 (Principled Bayesian Model Selection Pipeline) — In progress
-Plan: 2 of 11 complete (21-01, 21-02 done 2026-04-18); Phase 20 also still has plan 20-03 outstanding
-Status: Step 21.1 prior-predictive gate runner (`scripts/21_run_prior_predictive.py` + cluster SLURM) live for all 6 choice-only models. Local qlearning smoke test (num_draws=20) produces NetCDF + CSV + gate.md in ~31 s; pytest `test_prior_predictive.py` 2/2 pass. RFX-BMS infrastructure from 21-02 also ready. Pipeline can now be dispatched in parallel (6 × 21-01 cluster jobs) before MCMC begins.
-Last activity: 2026-04-18 — Plan 21-01 complete: `scripts/21_run_prior_predictive.py` (648 lines) + `cluster/21_1_prior_predictive.slurm` (129 lines) + `scripts/fitting/tests/test_prior_predictive.py` (138 lines, 2 passing tests). Runner uses NumPyro `Predictive` on `STACKED_MODEL_DISPATCH` with `covariate_lec=None, use_pscan=False`, samples 500 draws from the v4.0 locked `PARAM_PRIOR_DEFAULTS`, simulates one (draw, participant) trial sequence per draw via a plain-NumPy policy that mirrors the six `*_block_likelihood` equations (M6b stick-breaking decode applied at extraction time). Three-part Baribault & Collins (2023) gate: median in [0.4, 0.9], <10% sub-chance, <5% at-ceiling; verdict drives exit code for SLURM short-circuit. Simulator uses `NUM_STIMULI=7` to accommodate the 1-indexed stimulus values in `task_trials_long.csv` (the JAX likelihoods silently clip via out-of-bounds edge semantics; plain NumPy needs the explicit row). Duration: ~32 min. Commits: 6a0fdad (feat runner + test), 8fa1ebd (feat slurm). Prior plan 21-02: `scripts/fitting/bms.py` (335 lines) + `scripts/fitting/tests/test_bms.py` (158 lines, 5 passing tests). Public `rfx_bms(log_evidence, ...) -> {alpha, r, xp, bor, pxp}` implements Stephan 2009 RFX-BMS + Rigoux 2014 BOR/PXP. Fixed two pre-existing bugs in plan spec during test implementation (Rule 1): Dirichlet KL sign flip in `_vb_free_energy`, and null-model free-energy formulation — the plan's Dirichlet-posterior F0 pins BOR at 0.5 under uniform evidence (F1 == F0); replaced with Rigoux 2014 eq. A1 fixed-r form `F0 = Σ_n logsumexp(lme_n) - N*log(K)`. Commits: 0cef164 (feat), 10ca205 (fix), 9c0f5b1 (tests).
+Plan: 3 of 11 complete (21-01, 21-02, 21-11 done 2026-04-18); Phase 20 also still has plan 20-03 outstanding
+Status: M3/M5/M6a hierarchical models now accept optional `covariate_iesr` alongside `covariate_lec` (Approach A additive kwarg, backward-compat with Phase 16 callers). `build_level2_design_matrix_2cov` helper returns (N, 2) z-scored lec+iesr design. 9-parametrization fast test suite passes in 12 s; recovery smoke test (@pytest.mark.slow) validates `beta_lec_kappa` + `beta_iesr_kappa` identifiability on N=40 synthetic. Phase 21 Option C infrastructure locked: plan 21-07 can now dispatch M3/M5/M6a winners to 2-cov L2 refits without further model-level changes. Prior: Step 21.1 prior-predictive gate runner live; RFX-BMS infrastructure from 21-02 ready.
+Last activity: 2026-04-18 — Plan 21-11 complete: `scripts/fitting/numpyro_models.py` (wmrl_m3/m5/m6a_hierarchical_model extended with `covariate_iesr` kwarg + guard + `beta_iesr_{target}` Normal(0,1) site + probit shift sum), `scripts/fitting/level2_design.py` (+ `build_level2_design_matrix_2cov` + `COVARIATE_NAMES_2COV`), `scripts/fitting/tests/test_numpyro_models_2cov.py` (635 lines, 4 test gates × 10 parametrizations). Task 1 commit `7503316`, Task 2 commit `49a84ff`. Grep counts: covariate_iesr=30, beta_iesr=19, build_level2_design_matrix_2cov=3. Plan 21-01 (prior) previously complete: `scripts/21_run_prior_predictive.py` (648 lines) + `cluster/21_1_prior_predictive.slurm` (129 lines); commits 6a0fdad, 8fa1ebd. Plan 21-02 (prior): `scripts/fitting/bms.py` (335 lines) + `scripts/fitting/tests/test_bms.py` (158 lines); commits 0cef164, 10ca205, 9c0f5b1.
 
 ### Phase 21 Decisions (2026-04-18)
 
+- **Plan 21-11 (2-cov L2 hook for M3/M5/M6a):** Approach A additive kwarg `covariate_iesr: jnp.ndarray | None = None` chosen over Approach B generic-matrix replacement — keeps blast radius to the three model functions + `level2_design.py` + test file; zero changes to `fit_bayesian._fit_stacked_model` or any other caller. `beta_iesr_{target}` uses same `Normal(0, 1)` prior as `beta_lec_{target}` for symmetry. Guard raises `ValueError` if `covariate_iesr` passed without `covariate_lec` (prevents silent LEC drop). 2-cov design does NOT residualize — raw z-scored totals only (LEC/IES-R r ~ 0.3 in N=138 is well below collinearity threshold; orthogonalization only principled when design cond# > 30, as in Phase 16's 4-cov subscale case). Phase 21 Option C pattern locked: **code all model variants upfront; pipeline dispatches the one the winner needs** — M3/M5/M6a 2-cov path now ready; M6b already has 4-cov subscale; M1/M2 bypass L2 entirely.
+- **Plan 21-11 recovery test fallback (locked):** Unified simulator `simulate_agent_fixed` does not expose `kappa` as an Agent constructor parameter, so the recovery test uses a manual NumPy forward-sim of the M3 block (mirrors `wmrl_m3_block_likelihood` semantics: hybrid WM/RL + epsilon + probability-mixing perseveration against one-hot choice kernel of `last_action`). Pre-approved as fallback in plan 21-11 Task 2 action text; documented in test module docstring.
 - **Plan 21-01 (prior-predictive gate):** Use NumPyro `Predictive` (not manual sampling) so the full hierarchical structure (`mu_pr`, `sigma_pr`, `z`, transformed `theta`) is honored. One `(draw, participant)` pair per draw (not cartesian 500 × 138) to keep wall-clock under 2 min per model. Reuse real participant trial templates (stimuli, set_sizes, block structure) per Baribault. Exit 1 on FAIL so the SLURM pipeline short-circuits before MCMC.
 - **Plan 21-01 simulator quirk:** `NUM_STIMULI=7` in the NumPy simulator accommodates the 1-indexed stimulus values in `task_trials_long.csv` — the JAX likelihoods silently clip out-of-bounds reads (stimulus=6 aliases to row 5), but plain NumPy needs the explicit row. Tracked as a known follow-up for when `prepare_stacked_participant_data` ever explicitly zero-indexes stimuli.
 
@@ -44,11 +46,13 @@ Last activity: 2026-04-18 — Plan 21-01 complete: `scripts/21_run_prior_predict
 |---|---|---|---|
 | M1 qlearning | none (L2 not supported) | 0 | `covariate_lec=None` guard raises |
 | M2 wmrl | none (L2 not supported) | 0 | `covariate_lec=None` guard raises |
-| M3 wmrl_m3 | LEC total → kappa | 1 (`beta_lec_kappa`) | `wmrl_m3_hierarchical_model` |
-| M5 wmrl_m5 | LEC total → kappa | 1 (`beta_lec_kappa`) | `wmrl_m5_hierarchical_model` |
-| M6a wmrl_m6a | LEC total → kappa_s | 1 (`beta_lec_kappa_s`) | `wmrl_m6a_hierarchical_model` |
+| M3 wmrl_m3 | LEC total → kappa **[+ optional IES-R total, Phase 21]** | 1 (`beta_lec_kappa`) **or 2 (`beta_lec_kappa` + `beta_iesr_kappa`)** | `wmrl_m3_hierarchical_model` |
+| M5 wmrl_m5 | LEC total → kappa **[+ optional IES-R total, Phase 21]** | 1 (`beta_lec_kappa`) **or 2 (`beta_lec_kappa` + `beta_iesr_kappa`)** | `wmrl_m5_hierarchical_model` |
+| M6a wmrl_m6a | LEC total → kappa_s **[+ optional IES-R total, Phase 21]** | 1 (`beta_lec_kappa_s`) **or 2 (`beta_lec_kappa_s` + `beta_iesr_kappa_s`)** | `wmrl_m6a_hierarchical_model` |
 | M6b wmrl_m6b | LEC total → kappa_total + kappa_share | 2 (`beta_lec_kappa_total`, `beta_lec_kappa_share`) | `wmrl_m6b_hierarchical_model` |
 | M6b-subscale | 4 covariates × 8 params (full design) | **32** (`beta_{cov}_{param}`) | `wmrl_m6b_hierarchical_model_subscale` |
+
+**Plan 21-11 Option C note:** M3/M5/M6a now accept an optional second covariate `covariate_iesr: jnp.ndarray | None = None` alongside `covariate_lec`. When both are provided, `beta_iesr_{target}` is sampled with `Normal(0, 1)` prior and both shifts are summed on the probit scale. Guard raises `ValueError` if `covariate_iesr` is passed without `covariate_lec`. Design-matrix builder: `build_level2_design_matrix_2cov(metrics, participant_ids)` returns `(N, 2)` z-scored `[lec_total, iesr_total]`. Test coverage: `scripts/fitting/tests/test_numpyro_models_2cov.py` (9 fast tests + 1 slow recovery smoke test).
 
 ### Subscale design matrix (M6b-subscale only)
 
@@ -184,6 +188,15 @@ Progress: [████████░░] ~78% (28/~36 plans across Phases 13-2
 - Total execution time: ongoing
 
 ## Accumulated Context
+
+### v4.0 Decisions (21-11 completed 2026-04-18)
+
+- **Phase 21 Option C infrastructure for M3/M5/M6a 2-cov L2 locked:** Approach A additive kwarg `covariate_iesr: jnp.ndarray | None = None` added to `wmrl_m3_hierarchical_model`, `wmrl_m5_hierarchical_model`, `wmrl_m6a_hierarchical_model` alongside existing `covariate_lec`. Approach B (generic `covariate_matrix` + `names` kwargs) rejected — would have required rewrites of `fit_bayesian._fit_stacked_model`, `21_run_prior_predictive.py`, `21_run_bayesian_recovery.py`, `21_fit_baseline.py` and any notebook callers. Approach A preserves zero changes outside the three model functions and `level2_design.py`.
+- **`beta_iesr_{target}` prior (locked):** `Normal(0, 1)` — identical to `beta_lec_{target}` for prior symmetry across covariates. No directional bias injected through the prior. Target parameter: `kappa` for M3/M5, `kappa_s` for M6a.
+- **Guard semantics (locked):** `covariate_iesr is not None and covariate_lec is None` raises `ValueError("covariate_iesr provided without covariate_lec. …")` with explicit message listing all three valid configurations (both None, both provided, LEC-only). Placed at function top before any `numpyro.sample` calls.
+- **2-cov design does NOT residualize (locked):** `build_level2_design_matrix_2cov` returns raw z-scored `[less_total_events, ies_total]`. LEC/IES-R Pearson r is ~0.3 in the canonical N=138 cohort — well below the multicollinearity threshold. Orthogonalization is only principled for the 4-cov subscale design where condition number matters (Phase 16 logic).
+- **Recovery test uses manual NumPy forward-sim (locked):** The unified simulator framework (`scripts/simulations/unified_simulator.py`) does not expose `kappa` as an Agent constructor parameter or support per-participant kappa shifts. Test uses `_simulate_m3_block_numpy` that mirrors `wmrl_m3_block_likelihood` semantics exactly (hybrid WM/RL + epsilon + probability-mixing perseveration against one-hot choice kernel of `last_action`). Pre-approved as fallback in plan 21-11 Task 2 action text.
+- **Backward-compat preserved:** Phase 16 callers passing only `covariate_lec=<v>` (including `fit_bayesian._fit_stacked_model`, `21_run_bayesian_recovery.py`, all existing tests) are 100% unchanged. `beta_iesr_*` sample sites only appear in the trace when `covariate_iesr` is explicitly passed.
 
 ### v4.0 Decisions (21-02 completed 2026-04-18)
 
@@ -436,6 +449,6 @@ Progress: [████████░░] ~78% (28/~36 plans across Phases 13-2
 
 ## Session Continuity
 
-Last session: 2026-04-18T14:28Z
-Stopped at: Plan 21-02 complete — `scripts/fitting/bms.py` + `tests/test_bms.py` (5/5 passing). Two test-driven bug fixes to plan spec documented in SUMMARY.md deviations. Ready for Plan 21-03 or later.
+Last session: 2026-04-18T14:34Z
+Stopped at: Plan 21-11 complete — 2-cov L2 hook (covariate_iesr) for M3/M5/M6a hierarchical models + `build_level2_design_matrix_2cov` helper + 9-parametrization pytest suite (fast tests pass 12 s). Phase 21 Option C infrastructure unblocked for plan 21-07 winner dispatch. Ready for Plan 21-03 or any in-parallel Phase 21 plan.
 Resume file: None
