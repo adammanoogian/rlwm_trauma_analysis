@@ -1,0 +1,232 @@
+============================================================
+M6b (WM-RL+dual perseveration) Hierarchical Bayesian Fit
+============================================================
+Job ID: 54883068
+Node: m3j001
+Project: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis
+Start time: Fri Apr 17 10:10:53 PM AEST 2026
+============================================================
+Activated ds_env by name
+JAX version: 0.4.31, platforms: [CpuDevice(id=0)]
+
+JAX cache: /scratch/fc37/aman0087/.jax_cache_bayesian
+
+[Fri Apr 17 10:11:15 PM AEST 2026] Starting M6b (WM-RL+dual) hierarchical Bayesian fit
+================================================================================
+BAYESIAN WMRL_M6B FIT WITH JAX/NUMPYRO
+================================================================================
+
+Settings:
+  Model: wmrl_m6b
+  Data: output/task_trials_long.csv
+  Min block: 3 (excludes practice)
+  Chains: 4
+  Warmup: 1000
+  Samples: 2000
+  Max tree depth: 8
+  Output: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/output/v1
+  Seed: 42
+  JAX devices: 1
+
+>> Loading data from: output/task_trials_long.csv
+  Loaded 111943 trials from 157 participants
+  Excluded 3 participants (insufficient data/duplicates)
+  Final sample: 154 participants
+  Filtered to blocks >= 3: 111943 trials remain
+  Dropped NaN values in critical columns: 111943 trials remain
+
+>> Data summary:
+  Participants: 154
+  Blocks: 21
+  Total trials: 111943
+  Trials per participant: 727
+    Participant 9187: 990 trials, 17 blocks
+    Participant 10000: 988 trials, 17 blocks
+    Participant 10002: 986 trials, 17 blocks
+    Participant 10003: 973 trials, 17 blocks
+    Participant 10004: 990 trials, 17 blocks
+    Participant 10005: 985 trials, 17 blocks
+    Participant 10006: 987 trials, 17 blocks
+    Participant 10007: 987 trials, 17 blocks
+    Participant 10016: 987 trials, 17 blocks
+    Participant 10017: 986 trials, 17 blocks
+    Participant 10018: 986 trials, 17 blocks
+    Participant 10024: 718 trials, 12 blocks
+    Participant 10025: 414 trials, 8 blocks
+    Participant 10027: 718 trials, 12 blocks
+    Participant 10028: 699 trials, 12 blocks
+    Participant 10029: 720 trials, 12 blocks
+    Participant 10030: 716 trials, 12 blocks
+    Participant 10031: 719 trials, 12 blocks
+    Participant 10035: 717 trials, 12 blocks
+    Participant 10036: 713 trials, 12 blocks
+    Participant 10039: 711 trials, 12 blocks
+    Participant 10041: 696 trials, 12 blocks
+    Participant 10043: 716 trials, 12 blocks
+    Participant 10047: 717 trials, 12 blocks
+    Participant 10048: 702 trials, 12 blocks
+    Participant 10050: 717 trials, 12 blocks
+    Participant 10051: 709 trials, 12 blocks
+    Participant 10052: 709 trials, 12 blocks
+    Participant 10055: 719 trials, 12 blocks
+    Participant 10057: 712 trials, 12 blocks
+    Participant 10058: 697 trials, 12 blocks
+    Participant 10059: 718 trials, 12 blocks
+    Participant 10062: 718 trials, 12 blocks
+    Participant 10063: 713 trials, 12 blocks
+    Participant 10064: 712 trials, 12 blocks
+    Participant 10065: 719 trials, 12 blocks
+    Participant 10066: 706 trials, 12 blocks
+    Participant 10067: 716 trials, 12 blocks
+    Participant 10071: 720 trials, 12 blocks
+    Participant 10072: 718 trials, 12 blocks
+    Participant 10074: 717 trials, 12 blocks
+    Participant 10075: 717 trials, 12 blocks
+    Participant 10076: 710 trials, 12 blocks
+    Participant 10077: 719 trials, 12 blocks
+    Participant 10078: 719 trials, 12 blocks
+    Participant 10079: 719 trials, 12 blocks
+    Participant 10081: 716 trials, 12 blocks
+    Participant 10083: 703 trials, 12 blocks
+    Participant 10084: 717 trials, 12 blocks
+    Participant 10086: 630 trials, 12 blocks
+    Participant 10087: 714 trials, 12 blocks
+    Participant 10088: 720 trials, 12 blocks
+    Participant 10089: 716 trials, 12 blocks
+    Participant 10090: 719 trials, 12 blocks
+    Participant 10092: 714 trials, 12 blocks
+    Participant 10093: 712 trials, 12 blocks
+    Participant 10094: 709 trials, 12 blocks
+    Participant 10095: 712 trials, 12 blocks
+    Participant 10097: 717 trials, 12 blocks
+    Participant 10098: 712 trials, 12 blocks
+    Participant 10099: 714 trials, 12 blocks
+    Participant 10101: 715 trials, 12 blocks
+    Participant 10102: 716 trials, 12 blocks
+    Participant 10103: 719 trials, 12 blocks
+    Participant 10104: 715 trials, 12 blocks
+    Participant 10106: 719 trials, 12 blocks
+    Participant 10107: 714 trials, 12 blocks
+    Participant 10109: 719 trials, 12 blocks
+    Participant 10110: 719 trials, 12 blocks
+    Participant 10111: 713 trials, 12 blocks
+    Participant 10112: 707 trials, 12 blocks
+    Participant 10113: 696 trials, 12 blocks
+    Participant 10114: 709 trials, 12 blocks
+    Participant 10115: 711 trials, 12 blocks
+    Participant 10116: 718 trials, 12 blocks
+    Participant 10117: 715 trials, 12 blocks
+    Participant 10119: 719 trials, 12 blocks
+    Participant 10120: 715 trials, 12 blocks
+    Participant 10121: 711 trials, 12 blocks
+    Participant 10125: 717 trials, 12 blocks
+    Participant 10126: 719 trials, 12 blocks
+    Participant 10128: 705 trials, 12 blocks
+    Participant 10130: 713 trials, 12 blocks
+    Participant 10134: 701 trials, 12 blocks
+    Participant 10135: 704 trials, 12 blocks
+    Participant 10137: 718 trials, 12 blocks
+    Participant 10139: 705 trials, 12 blocks
+    Participant 10140: 715 trials, 12 blocks
+    Participant 10141: 716 trials, 12 blocks
+    Participant 10142: 719 trials, 12 blocks
+    Participant 10143: 719 trials, 12 blocks
+    Participant 10145: 713 trials, 12 blocks
+    Participant 10147: 716 trials, 12 blocks
+    Participant 10148: 705 trials, 12 blocks
+    Participant 10149: 713 trials, 12 blocks
+    Participant 10150: 715 trials, 12 blocks
+    Participant 10151: 717 trials, 12 blocks
+    Participant 10152: 719 trials, 12 blocks
+    Participant 10154: 717 trials, 12 blocks
+    Participant 10155: 713 trials, 12 blocks
+    Participant 10156: 712 trials, 12 blocks
+    Participant 10157: 719 trials, 12 blocks
+    Participant 10158: 716 trials, 12 blocks
+    Participant 10159: 716 trials, 12 blocks
+    Participant 10160: 717 trials, 12 blocks
+    Participant 10162: 714 trials, 12 blocks
+    Participant 10163: 719 trials, 12 blocks
+    Participant 10164: 719 trials, 12 blocks
+    Participant 10165: 713 trials, 12 blocks
+    Participant 10166: 714 trials, 12 blocks
+    Participant 10168: 718 trials, 12 blocks
+    Participant 10169: 713 trials, 12 blocks
+    Participant 10170: 718 trials, 12 blocks
+    Participant 10171: 718 trials, 12 blocks
+    Participant 10172: 719 trials, 12 blocks
+    Participant 10173: 677 trials, 12 blocks
+    Participant 10174: 714 trials, 12 blocks
+    Participant 10175: 717 trials, 12 blocks
+    Participant 10176: 577 trials, 12 blocks
+    Participant 10177: 715 trials, 12 blocks
+    Participant 10178: 718 trials, 12 blocks
+    Participant 10179: 716 trials, 12 blocks
+    Participant 10180: 708 trials, 12 blocks
+    Participant 10181: 719 trials, 12 blocks
+    Participant 10182: 696 trials, 12 blocks
+    Participant 10183: 719 trials, 12 blocks
+    Participant 10184: 713 trials, 12 blocks
+    Participant 10185: 710 trials, 12 blocks
+    Participant 10186: 718 trials, 12 blocks
+    Participant 10190: 600 trials, 12 blocks
+    Participant 10191: 708 trials, 12 blocks
+    Participant 10192: 709 trials, 12 blocks
+    Participant 10195: 684 trials, 12 blocks
+    Participant 10196: 718 trials, 12 blocks
+    Participant 10197: 716 trials, 12 blocks
+    Participant 10198: 479 trials, 11 blocks
+    Participant 10199: 710 trials, 12 blocks
+    Participant 10200: 719 trials, 12 blocks
+    Participant 10201: 719 trials, 12 blocks
+    Participant 10202: 718 trials, 12 blocks
+    Participant 10203: 716 trials, 12 blocks
+    Participant 10204: 718 trials, 12 blocks
+    Participant 10206: 712 trials, 12 blocks
+    Participant 10208: 694 trials, 12 blocks
+    Participant 10209: 715 trials, 12 blocks
+    Participant 10210: 683 trials, 12 blocks
+    Participant 10211: 683 trials, 12 blocks
+    Participant 10212: 716 trials, 12 blocks
+    Participant 10215: 719 trials, 12 blocks
+    Participant 10216: 717 trials, 12 blocks
+    Participant 10217: 719 trials, 12 blocks
+    Participant 10218: 694 trials, 12 blocks
+    Participant 10219: 718 trials, 12 blocks
+    Participant 10220: 718 trials, 12 blocks
+
+================================================================================
+FITTING WMRL-M6B HIERARCHICAL MODEL
+================================================================================
+
+>> Preparing stacked participant data...
+  Prepared 154 participants (sorted by ID)
+  LEC covariate loaded: mean=9.89, std=3.54, n=154
+
+>> Running MCMC inference (NUTS + convergence auto-bump)...
+>> Starting MCMC sampling with convergence auto-bump...
+   Chains: 4
+   Host devices: 1
+   Warmup: 1000
+   Samples: 2000
+   Max tree depth: 8
+   Total iterations per chain: 3000
+   Acceptance probability schedule: (0.8, 0.95, 0.99)
+
+============================================================
+>> JAX / NumPyro configuration
+   backend            : cpu
+   devices            : [CpuDevice(id=0)]
+   local_device_count : 1
+   x64 enabled        : False
+   chain_method       : sequential
+   num_chains         : 4
+   NUMPYRO_HOST_DEVICE_COUNT        = 4
+   XLA_PYTHON_CLIENT_PREALLOCATE    = <unset>
+   XLA_PYTHON_CLIENT_MEM_FRACTION   = <unset>
+   JAX_COMPILATION_CACHE_DIR        = /scratch/fc37/aman0087/.jax_cache_bayesian
+   JAX_PERSISTENT_CACHE_MIN_ENTRY_SIZE_BYTES = 0
+   CUDA_VISIBLE_DEVICES             = <unset>
+============================================================
+
+   Backend: cpu | chain_method: sequential
