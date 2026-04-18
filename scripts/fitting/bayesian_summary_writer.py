@@ -152,6 +152,7 @@ def write_bayesian_summary(
     parameterization_version: str,
     n_trials_per_participant: list[int] | None = None,
     hdi_prob: float = 0.95,
+    output_subdir: str | None = None,
 ) -> Path:
     """Write schema-parity CSV for a Bayesian hierarchical fit.
 
@@ -169,7 +170,8 @@ def write_bayesian_summary(
     model_name : str
         Model identifier (e.g. ``'wmrl_m3'``).
     output_dir : Path
-        Root output directory. CSV is written to ``output_dir/bayesian/``.
+        Root output directory. CSV is written to ``output_dir/bayesian/``
+        (or ``output_dir/bayesian/<output_subdir>/`` when provided).
     param_names : list[str], optional
         Override the default parameter list for the model. Useful for partial
         fits. Defaults to the canonical list from ``_MODEL_PARAMS``.
@@ -184,6 +186,12 @@ def write_bayesian_summary(
         computation. If None, n_trials is set to NaN.
     hdi_prob : float, optional
         HDI probability mass. Default 0.95 (95% HDI).
+    output_subdir : str or None, optional
+        Optional subdirectory under ``bayesian/`` (e.g. ``'21_baseline'``).
+        When None, writes to ``output_dir/bayesian/`` (Phase 16 layout).
+        When set, writes to ``output_dir/bayesian/<output_subdir>/`` so Phase
+        21 outputs never overwrite Phase 16 artefacts. Default None preserves
+        backward compatibility.
 
     Returns
     -------
@@ -196,7 +204,10 @@ def write_bayesian_summary(
         param_names = _get_param_names(model_name)
 
     n_participants = len(participant_ids)
-    out_subdir = Path(output_dir) / "bayesian"
+    if output_subdir:
+        out_subdir = Path(output_dir) / "bayesian" / output_subdir
+    else:
+        out_subdir = Path(output_dir) / "bayesian"
     out_subdir.mkdir(parents=True, exist_ok=True)
     out_path = out_subdir / f"{model_name}_individual_fits.csv"
 
