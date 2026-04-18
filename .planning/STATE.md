@@ -5,15 +5,20 @@
 See: .planning/PROJECT.md (updated 2026-04-11)
 
 **Core value:** Correctly dissociate perseverative responding from learning-rate effects (alpha-) to accurately identify whether post-reversal failures reflect motor perseveration or outcome insensitivity
-**Current focus:** v4.0 — Hierarchical Bayesian Pipeline & LBA Acceleration (Phase 20 in progress, 2/3 plans done)
+**Current focus:** v4.0 — Hierarchical Bayesian Pipeline & LBA Acceleration (Phase 20 in progress, 2/3 plans done). **Phase 21 added 2026-04-18** — Principled Bayesian Model Selection Pipeline (linear 9-step workflow, PSIS-LOO + stacking + RFX-BMS/PXP, replaces MLE-preselected winner approach).
 
 ## Current Position
 
 Milestone: v4.0 Hierarchical Bayesian Pipeline & LBA Acceleration
-Phase: 20 of 20 (DEER Non-Linear Parallelization) — In progress
-Plan: 2 of 3 complete (20-01, 20-02 done)
-Status: All 12 pscan likelihood variants use fully vectorized Phase 2. **Fully-batched vmap likelihood rolled out to all 6 choice-only models (post-Phase-20 follow-up). Production Bayesian refits unblocked — awaiting M6b spot-check.**
-Last activity: 2026-04-17 — Completed quick task 009: Burrows thesis integration map (line-cited catalog at `.planning/quick/009-integrate-burrows-thesis-into-paper/INTEGRATION_MAP.md`, 28 reusable passages / ~1,850 words / 9 divergence flags; no auto-edits applied per user rule "do not change intro/discussion interpretation"). Prior same day: quick task 008 (pipeline + docs cleanup, commit `2c4f12a`); **v4.0 pre-refit** — Issue 1 rollout complete (fully-batched vmap, ~1 s/iter on N=154), canonical `get_analysis_cohort()` → N=138, principled `mu_prior_loc=0.0`, stick-breaking rationale + posterior-vs-MLE sanity check added to paper.qmd. Ready for production refit.
+Phase: 21 of 21 (Principled Bayesian Model Selection Pipeline) — In progress
+Plan: 2 of 11 complete (21-01, 21-02 done 2026-04-18); Phase 20 also still has plan 20-03 outstanding
+Status: Step 21.1 prior-predictive gate runner (`scripts/21_run_prior_predictive.py` + cluster SLURM) live for all 6 choice-only models. Local qlearning smoke test (num_draws=20) produces NetCDF + CSV + gate.md in ~31 s; pytest `test_prior_predictive.py` 2/2 pass. RFX-BMS infrastructure from 21-02 also ready. Pipeline can now be dispatched in parallel (6 × 21-01 cluster jobs) before MCMC begins.
+Last activity: 2026-04-18 — Plan 21-01 complete: `scripts/21_run_prior_predictive.py` (648 lines) + `cluster/21_1_prior_predictive.slurm` (129 lines) + `scripts/fitting/tests/test_prior_predictive.py` (138 lines, 2 passing tests). Runner uses NumPyro `Predictive` on `STACKED_MODEL_DISPATCH` with `covariate_lec=None, use_pscan=False`, samples 500 draws from the v4.0 locked `PARAM_PRIOR_DEFAULTS`, simulates one (draw, participant) trial sequence per draw via a plain-NumPy policy that mirrors the six `*_block_likelihood` equations (M6b stick-breaking decode applied at extraction time). Three-part Baribault & Collins (2023) gate: median in [0.4, 0.9], <10% sub-chance, <5% at-ceiling; verdict drives exit code for SLURM short-circuit. Simulator uses `NUM_STIMULI=7` to accommodate the 1-indexed stimulus values in `task_trials_long.csv` (the JAX likelihoods silently clip via out-of-bounds edge semantics; plain NumPy needs the explicit row). Duration: ~32 min. Commits: 6a0fdad (feat runner + test), 8fa1ebd (feat slurm). Prior plan 21-02: `scripts/fitting/bms.py` (335 lines) + `scripts/fitting/tests/test_bms.py` (158 lines, 5 passing tests). Public `rfx_bms(log_evidence, ...) -> {alpha, r, xp, bor, pxp}` implements Stephan 2009 RFX-BMS + Rigoux 2014 BOR/PXP. Fixed two pre-existing bugs in plan spec during test implementation (Rule 1): Dirichlet KL sign flip in `_vb_free_energy`, and null-model free-energy formulation — the plan's Dirichlet-posterior F0 pins BOR at 0.5 under uniform evidence (F1 == F0); replaced with Rigoux 2014 eq. A1 fixed-r form `F0 = Σ_n logsumexp(lme_n) - N*log(K)`. Commits: 0cef164 (feat), 10ca205 (fix), 9c0f5b1 (tests).
+
+### Phase 21 Decisions (2026-04-18)
+
+- **Plan 21-01 (prior-predictive gate):** Use NumPyro `Predictive` (not manual sampling) so the full hierarchical structure (`mu_pr`, `sigma_pr`, `z`, transformed `theta`) is honored. One `(draw, participant)` pair per draw (not cartesian 500 × 138) to keep wall-clock under 2 min per model. Reuse real participant trial templates (stimuli, set_sizes, block structure) per Baribault. Exit 1 on FAIL so the SLURM pipeline short-circuits before MCMC.
+- **Plan 21-01 simulator quirk:** `NUM_STIMULI=7` in the NumPy simulator accommodates the 1-indexed stimulus values in `task_trials_long.csv` — the JAX likelihoods silently clip out-of-bounds reads (stimulus=6 aliases to row 5), but plain NumPy needs the explicit row. Tracked as a known follow-up for when `prepare_stacked_participant_data` ever explicitly zero-indexes stimuli.
 
 ### v4.0 Decisions (pre-refit, 2026-04-17)
 
@@ -179,6 +184,14 @@ Progress: [████████░░] ~78% (28/~36 plans across Phases 13-2
 - Total execution time: ongoing
 
 ## Accumulated Context
+
+### v4.0 Decisions (21-02 completed 2026-04-18)
+
+- **RFX-BMS + PXP module locked (`scripts/fitting/bms.py`):** Public signature `rfx_bms(log_evidence, alpha0=1.0, max_iter=1000, tol=1e-4, n_xp_samples=1_000_000, seed=42) -> {alpha, r, xp, bor, pxp}`. Strict `(n_subjects, n_models)` 2-D input contract (ValueError on ndim!=2 or non-finite). Faithful port of mfit/bms.m with Dirichlet-categorical VB E-step + 1 M Monte-Carlo XP sampling.
+- **Null-model free energy formulation (locked, deviates from plan 21-02 spec):** The plan described F0 as a Dirichlet-posterior VB free energy with `alpha_null = alpha0 + n/K` per component. Under uniform log-evidence the heterogeneous posterior converges to the same concentrations, pinning BOR at 0.5 and losing the "null supported" signal. Replaced with Rigoux 2014 eq. A1 fixed-r form: `F0 = Σ_n logsumexp(log_evidence[n]) - N*log(K)`, which is the data log-likelihood under a delta-posterior at `r = 1/K` (no Dirichlet KL because r is not inferred). Canonical Phase 21 formulation — documented in `_bor` docstring. Produces BOR ~ 1 on uniform data (null supported), BOR ~ 0 on dominant/heterogeneous data (null rejected), matching published behaviour.
+- **Dirichlet KL in `_vb_free_energy` now uses standard closed form:** `KL(Dir(α) || Dir(α0)) = gammaln(sum α) - Σ gammaln(α) - gammaln(sum α0) + Σ gammaln(α0) + Σ(α-α0)(ψ(α) - ψ(sum α))`. Earlier version had inverted signs on the `gammaln` terms; test-driven discovery.
+- **PXP formula verified numerically to 1e-12:** `pxp = (1 - bor) * xp + bor / K` (Rigoux 2014). XP and PXP algebraically sum to 1 within 1e-10 on every call.
+- **No import-time side effects:** `python -c "import scripts.fitting.bms"` silent. Module ready to be imported by Plan 21-05 (LOO+stacking+BMS orchestrator).
 
 ### v4.0 Decisions (16-01 completed 2026-04-13)
 
@@ -398,6 +411,7 @@ Progress: [████████░░] ~78% (28/~36 plans across Phases 13-2
 
 - **Phases 19-20 added (2026-04-12):** GPU-accelerated likelihood via associative scan (Phase 19) and DEER non-linear parallelization research (Phase 20). Motivated by analysis of why naive vmap-over-participants was 7-13x slower (memory-bandwidth bottleneck, not compute-bound). The real opportunity is parallelizing the TIME dimension via O(log T) associative scan, not the participant dimension. Phases 15-16 must log CPU wall-clock timing as baseline for Phase 19 benchmarking. Key references: PaMoRL (NeurIPS 2024), DEER (ICLR 2024), S4/Mamba, Unifying Framework (TMLR 2025).
 - **CPU confirmed correct for Phases 15-18:** RLWM Q-value/WM updates have arithmetic intensity ~0.3 FLOP/byte (GPU needs >50 to saturate). CPU L1 cache (~1ns) beats GPU global memory (~200-400 cycles) for 18-float Q-tables. Associative scan changes the algorithm, not the hardware access pattern.
+- **Phase 21 added (2026-04-18):** Principled Bayesian Model Selection Pipeline. Replaces the MLE-preselected "M6b is the winner" flow with a linear 9-step Bayesian workflow: prior predictive (21.1) → Bayesian parameter recovery (21.2) → hierarchical fit no-scales baseline (21.3) → convergence+PPC audit (21.4) → PSIS-LOO + stacking weights + RFX-BMS/PXP ranking (21.5) → winner(s) refit with L2 scales (21.6) → scale-fit audit (21.7) → model-averaged scale effects and exploratory M6b-subscale arm (21.8) → manuscript tables (21.9). Each step = separate SLURM submission, re-runnable from cold start. Anchored to Baribault & Collins (2023, *Psychological Methods*, DOI 10.1037/met0000554) and Hess et al. (2025, *Computational Psychiatry* 9(1):76–99, DOI 10.5334/cpsy.116). AIC/BIC deprecated for hierarchical-Bayesian comparison. ~70% of existing infrastructure (simulator, generate_data, jax_likelihoods, numpyro_models, fit_bayesian, compute_pointwise_log_lik, recovery structure) is directly reusable; ~30% new (orchestrators `scripts/21_*.py`, SLURM scripts `cluster/21_*.slurm`, RFX-BMS implementation in `scripts/fitting/bms.py`). `validation/compare_posterior_to_mle.py` retained as sanity check only, not selection criterion. Motivated by user flagging that (a) MLE AIC pre-selection of M6b is circular for the subsequent Bayesian test of κ×LEC, (b) step-4 PPC anchored to MLE is MLE-anchored, (c) choice-fit comparison and scale-effect inference were entangled and need separation.
 
 ### Blockers/Concerns
 
@@ -422,6 +436,6 @@ Progress: [████████░░] ~78% (28/~36 plans across Phases 13-2
 
 ## Session Continuity
 
-Last session: 2026-04-17
-Stopped at: Quick task 009 complete. Burrows thesis integration map produced (INTEGRATION_MAP.md, ~1,850 reusable words catalogued, 9 divergence flags). No edits applied to paper.qmd. Highest priority gap identified: IES-R ≥24 cutoff and scale description absent from sec-participants.
+Last session: 2026-04-18T14:28Z
+Stopped at: Plan 21-02 complete — `scripts/fitting/bms.py` + `tests/test_bms.py` (5/5 passing). Two test-driven bug fixes to plan spec documented in SUMMARY.md deviations. Ready for Plan 21-03 or later.
 Resume file: None
