@@ -93,12 +93,17 @@ def _vb_free_energy(
     marginalising the per-participant model responsibilities analytically:
 
     ``F = sum_n logsumexp_k( lme[n,k] + psi(alpha_k) - psi(sum alpha) )
-          - sum_k (alpha_k - alpha0_k) * (psi(alpha_k) - psi(sum alpha))
-          + gammaln(sum alpha) - gammaln(sum alpha0)
-          - sum_k ( gammaln(alpha_k) - gammaln(alpha0_k) )``
+          - KL[Dir(alpha) || Dir(alpha0)]``
 
-    The first term is the expected complete-data log-evidence; the remaining
-    terms form the negative Dirichlet KL divergence from prior to posterior.
+    where the Dirichlet KL is the standard closed form
+
+    ``KL = gammaln(sum alpha) - sum_k gammaln(alpha_k)
+           - gammaln(sum alpha0) + sum_k gammaln(alpha0_k)
+           + sum_k (alpha_k - alpha0_k) * (psi(alpha_k) - psi(sum alpha))``
+
+    The first term is the expected complete-data log-evidence under the
+    Dirichlet-mean factorised variational posterior; the second term penalises
+    departure of the Dirichlet posterior from the prior.
 
     Parameters
     ----------
@@ -116,11 +121,13 @@ def _vb_free_energy(
     """
     psi_alpha = psi(alpha) - psi(alpha.sum())
     expected_ll = logsumexp(log_evidence + psi_alpha[None, :], axis=1).sum()
+    # KL(Dir(alpha) || Dir(alpha0)) — standard closed form.
     kl_dirichlet = (
-        np.sum((alpha - alpha0_vec) * psi_alpha)
-        - gammaln(alpha.sum())
-        + gammaln(alpha0_vec.sum())
-        + np.sum(gammaln(alpha) - gammaln(alpha0_vec))
+        gammaln(alpha.sum())
+        - np.sum(gammaln(alpha))
+        - gammaln(alpha0_vec.sum())
+        + np.sum(gammaln(alpha0_vec))
+        + np.sum((alpha - alpha0_vec) * psi_alpha)
     )
     return float(expected_ll - kl_dirichlet)
 
@@ -169,12 +176,20 @@ def _bor(
 
     ``BOR = 1 / (1 + exp(F1 - F0))``
 
-    where ``F1`` is the free energy of the full (heterogeneous) model and
-    ``F0`` is the free energy under the null with equal frequencies. ``F0`` is
-    evaluated at a degenerate Dirichlet posterior whose concentrations are all
-    equal, so the expected frequencies under both prior and posterior are
-    uniform; the only remaining contribution to ``F0`` is the participant-wise
-    log-evidence summed over the uniform distribution.
+    where ``F1`` is the free energy of the full (heterogeneous, random-effects)
+    model and ``F0`` is the free energy of the null model with **fixed**
+    uniform frequencies ``r = 1/K``. Under the null the Dirichlet posterior is
+    a degenerate delta at the uniform vector (not a posterior to be inferred),
+    so the null free energy carries no KL penalty and reduces to
+
+    ``F0 = sum_n logsumexp_k( log_evidence[n, k] ) - N * log(K)``
+
+    which is exactly the log-likelihood of the data under a uniform mixture
+    per Rigoux et al. (2014) eq. A1 with ``r`` fixed. The planner spec's
+    alternative formulation (null as a Dirichlet posterior with concentration
+    ``alpha0 + n/K``) yields F1 == F0 exactly when the data are uninformative
+    (BOR = 0.5), which does not match the published "null strongly supported"
+    behaviour for uniform evidence; we use the fixed-``r`` form instead.
 
     Parameters
     ----------
@@ -183,22 +198,24 @@ def _bor(
     alpha : np.ndarray, shape (n_models,)
         Dirichlet posterior parameters from the full (heterogeneous) model.
     alpha0_vec : np.ndarray, shape (n_models,)
-        Dirichlet prior parameters.
+        Dirichlet prior parameters (used for F1's KL term).
 
     Returns
     -------
     float
         BOR in ``[0, 1]``. Values near 1 indicate the null is likely.
     """
-    n_subjects = log_evidence.shape[0]
-    n_models = alpha.shape[0]
-    # Null posterior: equal concentrations so expected frequencies are uniform.
-    alpha_null = np.ones_like(alpha) * (alpha0_vec.sum() + n_subjects) / n_models
+    n_subjects, n_models = log_evidence.shape
 
+    # F1: full random-effects model (Dirichlet posterior inferred).
     f1 = _vb_free_energy(log_evidence, alpha, alpha0_vec)
-    f0 = _vb_free_energy(log_evidence, alpha_null, alpha0_vec)
 
-    # Numerically stable logistic of (F0 - F1) via log1p(exp(.)).
+    # F0: null with fixed uniform r = 1/K. The Dirichlet KL vanishes because
+    # r is fixed (no posterior inferred); only the data-likelihood term
+    # remains, evaluated at the uniform categorical.
+    f0 = logsumexp(log_evidence, axis=1).sum() - n_subjects * np.log(n_models)
+
+    # Numerically stable 1 / (1 + exp(F1 - F0)).
     delta = f1 - f0
     if delta > 500.0:
         return 0.0
