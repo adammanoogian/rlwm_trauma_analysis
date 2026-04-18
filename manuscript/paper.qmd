@@ -704,8 +704,7 @@ respectively.
 See @sec-model-table for the complete parameter listings.
 
 Bayesian model comparison via leave-one-out cross-validation with stacking
-weights confirmed the AIC ranking (@tbl-stacking-weights). M6b received the
-highest stacking weight among the six choice-only models.
+weights confirmed the AIC ranking (@tbl-stacking-weights). The stacking-weight winner is reported as `{python} winner_display` (see @tbl-loo-stacking).
 
 ```{python}
 #| label: tbl-stacking-weights
@@ -1028,6 +1027,10 @@ predicted any model parameter in the multivariate regression
 Univariate regressions of individual parameters on LEC-5 total events and
 IES-R total score similarly yielded no significant associations (all
 $p > .05$; FDR-corrected q-values confirmed, all $q > .05$).
+
+### Bayesian Model Selection Pipeline {#sec-bayesian-selection}
+
+Following the staged Bayesian workflow of Hess et al. (2025; DOI 10.5334/cpsy.116) and the troubleshooting protocol of Baribault & Collins (2023; DOI 10.1037/met0000554), we replaced AIC/BIC model comparison with a hierarchical-Bayesian pipeline comprising nine steps: (1) prior predictive checks on all six choice-only models; (2) Bayesian parameter recovery on N=50 synthetic datasets per model; (3) baseline hierarchical fits without trauma covariates; (4) convergence and fit-quality audit (R-hat $\leq$ 1.05, ESS_bulk $\geq$ 400, 0 divergences); (5) PSIS-LOO + stacking weights (Yao et al. 2018; DOI 10.1214/17-BA1091) as primary model ranking, with random-effects BMS + PXP (Stephan et al. 2009; Rigoux et al. 2014) as secondary; (6) refit of the stacking winner(s) with a Level-2 covariate design whose structure depends on the winning model --- M3, M5, and M6a use a 2-covariate design (lec_total and iesr_total, both z-scored), while M6b additionally includes the residualized IES-R intrusion and avoidance subscales as two further covariates (yielding 4 $\times$ 8 = 32 beta sites for its stick-breaking parameterization); (7) scale-fit audit (FDR-BH adjusted HDI exclusion); (8) stacking-weighted model averaging of $\beta$ coefficients, with the averaging applied only over the subset of $\beta$ sites shared between winners (i.e., `beta_lec_{target}` and `beta_iesr_{target}`); subscale-exclusive $\beta$s are reported from M6b alone; and (9) manuscript tables. AIC/BIC are reported for legacy comparability only; PSIS-LOO stacking is the primary selection criterion. The complete winner Level-2 beta coefficients with 95% HDI and FDR-BH flag are reported in @tbl-winner-betas; the LOO + stacking ranking is in @tbl-loo-stacking; the random-effects BMS PXP is in @tbl-rfx-bms; and the winner forest plots are in @fig-forest-21. The M6b subscale exploratory arm runs fire-and-forget — the resulting subscale beta table may be added via a post-phase quick task if the arm completes after the main manuscript build.
 
 ### Hierarchical Level-2 Trauma Associations {#sec-bayesian-regression}
 
