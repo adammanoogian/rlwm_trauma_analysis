@@ -13,7 +13,7 @@ A computational modeling pipeline for analyzing reinforcement learning and worki
 - M6a: WM-RL + κ_s stimulus-specific perseveration (replaces κ; 7 params)
 - M6b: WM-RL + κ + κ_s dual perseveration (global + stimulus-specific; 8 params)
 
-**Shipped:** v1 M3 Infrastructure (2026-01-30), v2 Validation (2026-02-06), v3 Model Extensions M4-M6 (2026-04-03)
+**Shipped:** v1 M3 Infrastructure (2026-01-30), v2 Validation (2026-02-06), v3 Model Extensions M4-M6 (2026-04-03), v4.0 Hierarchical Bayesian Pipeline & LBA Acceleration (2026-04-19)
 
 ## Core Value
 
@@ -21,21 +21,39 @@ The model must correctly dissociate perseverative responding from learning-rate 
 
 ## Current State
 
-**v3.0 shipped.** All 7 models (M1-M6b, M4) have JAX likelihoods, MLE fitting, parameter recovery infrastructure, and downstream analysis integration. Seven candidate RL/WM/LBA models are implemented and compared via AIC/BIC. M4 is in a separate choice+RT comparison track because its joint choice+RT likelihood is not commensurable with choice-only information criteria.
+**v4.0 shipped 2026-04-19** (tag: `v4.0`, archive: [milestones/v4.0-ROADMAP.md](milestones/v4.0-ROADMAP.md)). All 7 models (M1-M6b, M4) now have both MLE point estimates AND full hierarchical Bayesian posteriors with non-centered parameterization. Trauma subscales enter as Level-2 predictors joint with the MCMC fit. Principled Bayesian model comparison via PSIS-LOO + stacking weights (Yao 2018) is primary; RFX-BMS + PXP (Stephan 2009 / Rigoux 2014) is secondary. M4 stays in a separate choice+RT track with Pareto-k-gated fallback to choice-only marginal. A 9-step cluster-reproducible selection pipeline (Baribault & Collins 2023; Hess 2025) is driven by a single master orchestrator `cluster/21_submit_pipeline.sh`. A deterministic closure guard `validation/check_v4_closure.py` enforces state invariants via pytest.
 
-**Tech stack:** Python, JAX (float32 + float64 for M4), NumPy, SciPy, pytest
+**Tech stack:** Python 3.10+, JAX (float32 + float64 for M4), NumPyro (hierarchical MCMC), ArviZ (InferenceData + az.compare + az.loo), NumPy, SciPy, pandas, matplotlib, statsmodels (FDR-BH), pytest; Quarto for the manuscript. PyMC dropped entirely in v4.0 (Phase 13 INFRA-07).
 
 **Infrastructure scope:**
-- 7 computational models (M1-M6b, M4) with JAX likelihoods
-- MLE fitting pipeline with Latin Hypercube multi-start optimization, per-participant information criteria, Hessian diagnostics
-- Parameter recovery infrastructure with r >= 0.80 criterion
-- Multi-model comparison (AIC, BIC, Akaike weights) via 14_compare_models.py
-- Per-participant heterogeneity diagnostics via 17_analyze_winner_heterogeneity.py
-- Trauma-parameter regression pipeline with uncorrected, FDR-BH, and Bonferroni reporting
+- 7 computational models (M1-M6b, M4) with JAX likelihoods AND hierarchical NumPyro variants with fully-batched vmap (single `numpyro.factor("obs", …)` per model)
+- MLE fitting pipeline (Latin Hypercube multi-start, Hessian diagnostics, Collins K bounds [2,6])
+- Hierarchical Bayesian pipeline (NUTS with `target_accept_prob` auto-bump 0.8 → 0.95 → 0.99; convergence gate R-hat ≤ 1.05, ESS_bulk ≥ 400, 0 divergences)
+- Parameter recovery infrastructure (MLE r ≥ 0.80 floor; Bayesian recovery with 95% HDI coverage calibration)
+- Bayesian model comparison (PSIS-LOO + stacking; RFX-BMS + PXP; WAIC/LOO via `az.compare`) via `14_compare_models.py --bayesian-comparison` + `21_compute_loo_stacking.py`
+- Trauma-parameter Level-2 regression (joint with MCMC): LEC total + IES-R total + Gram-Schmidt residualized IES-R subscales; M6b subscale model carries 32 beta coefficients
+- Associative scan likelihood parallelization (O(log T) Q-value + WM updates) via `--use-pscan` flag; DEER non-linear research concluded no-go
+- 9-step principled Bayesian selection pipeline: prior predictive → recovery → baseline → convergence audit → LOO+stacking+BMS → L2 refit → scale audit → averaging → manuscript tables, orchestrated via `afterok`-chained SLURM + pre-flight pytest gate
+- Closure reproducibility guard: `validation/check_v4_closure.py` + `scripts/fitting/tests/test_v4_closure.py` (deterministic, 8 invariants, pytest regression)
 
-## Current Milestone: v4.0 Hierarchical Bayesian Pipeline & LBA Acceleration
+## Current Milestone: Next milestone not yet started
 
-**Goal:** Move the inference pipeline from MLE point estimates to full hierarchical Bayesian posteriors with trauma subscales as Level-2 predictors, principled Bayesian model comparison (WAIC/LOO), and GPU-accelerated LBA sampling for M4.
+Run `/gsd:new-milestone` to scope v5.0 (questioning → research → requirements → roadmap).
+
+**Candidate v5.0 themes** (from v4.0 audit + v2 deferred):
+- Cluster-execution runs for v4.0 deferred items (K-refit, M4 GPU wall-time verification, BMS 9-step full pipeline cold-start)
+- Tech debt cleanup: delete legacy `wmrl_hierarchical_model` with [1,7] K bounds; wire `config.load_fits_with_validation` into scripts 15/16/17 read paths
+- ArviZ 1.0 migration (`InferenceData` → `xarray.DataTree`)
+- Simulation-based calibration (SBC) as standard pre-fit validation
+- New candidate models: M7 (split `phi_WM` / `phi_RL`), M8-ASYMBIAS (Senta 2025 winning mechanism), M9-SPLIT-RHO (conditional ρ on capacity-exceedance)
+- Full PMwG-equivalent hierarchical LBA (if reviewers demand)
+- Regularized horseshoe as default on all Level-2 families
+
+---
+
+## Prior Milestone: v4.0 Hierarchical Bayesian Pipeline & LBA Acceleration (SHIPPED 2026-04-19)
+
+**Goal:** Move the inference pipeline from MLE point estimates to full hierarchical Bayesian posteriors with trauma subscales as Level-2 predictors, principled Bayesian model comparison (PSIS-LOO + stacking + RFX-BMS/PXP), and GPU-accelerated LBA sampling for M4.
 
 **Motivation (from quick-006 verification):**
 - Base RLWM parameters (alpha+/alpha-/phi/rho/K/epsilon) fail r>=0.80 recovery across every model. Capacity K recovery is worst (r=0.21). Without shrinkage, individual-differences claims on these parameters are unreliable.
@@ -219,4 +237,4 @@ These have different theoretical implications for trauma populations.
 | Dict-based N-model comparison | Enables flexible comparison without hardcoding | ✓ Good |
 
 ---
-*Last updated: 2026-04-19 — v4.0 closure audit*
+*Last updated: 2026-04-19 — v4.0 shipped and archived*

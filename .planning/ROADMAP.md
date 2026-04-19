@@ -5,7 +5,7 @@
 - ✅ **v1.0 M3 Infrastructure** - Phases 1-3 (shipped 2026-01-30)
 - ✅ **v2.0 Post-Fitting Validation & Publication Readiness** - Phases 4-7 (shipped 2026-02-06, Phases 6-7 deferred)
 - ✅ **v3.0 Model Extensions (M4-M6)** - Phases 8-12 (shipped 2026-04-03)
-- 🚧 **v4.0 Hierarchical Bayesian Pipeline & LBA Acceleration** - Phases 13-22 (in progress, defined 2026-04-11, extended 2026-04-12 Phase 21, closure phase 22 added 2026-04-19)
+- ✅ **v4.0 Hierarchical Bayesian Pipeline & LBA Acceleration** - Phases 13-22 (shipped 2026-04-19; archive: [milestones/v4.0-ROADMAP.md](milestones/v4.0-ROADMAP.md))
 
 ## Phases
 
@@ -87,9 +87,15 @@ Plans:
 
 </details>
 
-### 🚧 v4.0 Hierarchical Bayesian Pipeline & LBA Acceleration (In Progress)
+<details>
+<summary>✅ v4.0 Hierarchical Bayesian Pipeline & LBA Acceleration (Phases 13-22) — SHIPPED 2026-04-19</summary>
 
-**Milestone Goal:** Move the inference pipeline from MLE point estimates to full hierarchical Bayesian posteriors with trauma subscales as Level-2 predictors, principled Bayesian model comparison (WAIC/LOO), and GPU-accelerated LBA sampling for M4. Replaces post-hoc FDR correction (48-test M6b family) with a single joint posterior and replaces r<0.80 MLE recovery with shrinkage-regularized individual-level posteriors. Phases 19-20 extend with GPU-accelerated likelihood via associative scan and DEER non-linear parallelization research.
+**Milestone Goal:** Move the inference pipeline from MLE point estimates to full hierarchical Bayesian posteriors with trauma subscales as Level-2 predictors, principled Bayesian model comparison (PSIS-LOO + stacking + RFX-BMS/PXP), and GPU-accelerated LBA sampling for M4. Replaces post-hoc FDR correction (48-test M6b family) with a single joint posterior and replaces r < 0.80 MLE recovery with shrinkage-regularized individual-level posteriors. Phases 19-20 extend with GPU-accelerated likelihood via associative scan and DEER non-linear parallelization research. Phase 21 (added 2026-04-12) replaces MLE-preselected-winner workflow with 9-step principled Bayesian selection pipeline anchored to Baribault & Collins 2023 + Hess 2025. Phase 22 (added 2026-04-19) closes verification/traceability/reproducibility debt.
+
+**Full milestone archive:** [milestones/v4.0-ROADMAP.md](milestones/v4.0-ROADMAP.md)
+**Requirements archive:** [milestones/v4.0-REQUIREMENTS.md](milestones/v4.0-REQUIREMENTS.md)
+**Milestone audit:** [milestones/v4.0-MILESTONE-AUDIT.md](milestones/v4.0-MILESTONE-AUDIT.md)
+**Git range:** `81c3570` → `71e063d` (172 commits, 9 days)
 
 **Execution Order:** Phase 13 → Phase 14 → Phase 15 → Phase 16 → Phase 17 → Phase 18 → Phase 19 → Phase 20 → Phase 21 → Phase 22
 
@@ -320,7 +326,9 @@ Plans:
 - [ ] 22-01-PLAN.md (Wave 1) — Status-doc refresh (commit STATE.md update; refresh ROADMAP progress table; move PROJECT.md Active→Validated)
 - [ ] 22-02-PLAN.md (Wave 1, parallel with 22-01) — Backfill 14/15/21 VERIFICATION.md with cluster-freshness framing + close 15-03 gap + gitignore thesis doc
 - [ ] 22-03-PLAN.md (Wave 2, after 22-01 & 22-02) — Extend REQUIREMENTS.md with DEER + BMS requirement families; update traceability table
-- [ ] 22-04-PLAN.md (Wave 3, after 22-02 & 22-03) — Reproducibility guard script + pytest + grep invariants (enforces SC#7 + SC#8 + SC#9)
+- [x] 22-04-PLAN.md (Wave 3, after 22-02 & 22-03) — Reproducibility guard script + pytest + grep invariants (enforces SC#7 + SC#8 + SC#9)
+
+</details>
 
 ## Progress
 
