@@ -84,6 +84,7 @@ from utils.plotting_utils import (
     get_color_palette,
 )
 
+from config import load_fits_with_validation
 from plotting_config import PlotConfig
 
 # Paths
@@ -163,33 +164,55 @@ def load_data(fits_dir: Path = OUTPUT_DIR) -> tuple:
     # are always expected in fits_dir and no fallback is applied.
     is_mle_source = fits_dir == OUTPUT_DIR
 
-    qlearning = pd.read_csv(fits_dir / "qlearning_individual_fits.csv")
-    wmrl = pd.read_csv(fits_dir / "wmrl_individual_fits.csv")
-    wmrl_m3 = pd.read_csv(fits_dir / "wmrl_m3_individual_fits.csv")
+    qlearning = load_fits_with_validation(
+        fits_dir / "qlearning_individual_fits.csv", "qlearning"
+    )
+    wmrl = load_fits_with_validation(
+        fits_dir / "wmrl_individual_fits.csv", "wmrl"
+    )
+    wmrl_m3 = load_fits_with_validation(
+        fits_dir / "wmrl_m3_individual_fits.csv", "wmrl_m3"
+    )
 
     # M5: load defensively (file may not exist)
     wmrl_m5_path = fits_dir / "wmrl_m5_individual_fits.csv"
     if is_mle_source and not wmrl_m5_path.exists():
         wmrl_m5_path = PROJECT_ROOT / "output" / "wmrl_m5_individual_fits.csv"
-    wmrl_m5 = pd.read_csv(wmrl_m5_path) if wmrl_m5_path.exists() else None
+    wmrl_m5 = (
+        load_fits_with_validation(wmrl_m5_path, "wmrl_m5")
+        if wmrl_m5_path.exists()
+        else None
+    )
 
     # M6a: load defensively (file may not exist)
     wmrl_m6a_path = fits_dir / "wmrl_m6a_individual_fits.csv"
     if is_mle_source and not wmrl_m6a_path.exists():
         wmrl_m6a_path = PROJECT_ROOT / "output" / "wmrl_m6a_individual_fits.csv"
-    wmrl_m6a = pd.read_csv(wmrl_m6a_path) if wmrl_m6a_path.exists() else None
+    wmrl_m6a = (
+        load_fits_with_validation(wmrl_m6a_path, "wmrl_m6a")
+        if wmrl_m6a_path.exists()
+        else None
+    )
 
     # M6b: load defensively (file may not exist)
     wmrl_m6b_path = fits_dir / "wmrl_m6b_individual_fits.csv"
     if is_mle_source and not wmrl_m6b_path.exists():
         wmrl_m6b_path = PROJECT_ROOT / "output" / "wmrl_m6b_individual_fits.csv"
-    wmrl_m6b = pd.read_csv(wmrl_m6b_path) if wmrl_m6b_path.exists() else None
+    wmrl_m6b = (
+        load_fits_with_validation(wmrl_m6b_path, "wmrl_m6b")
+        if wmrl_m6b_path.exists()
+        else None
+    )
 
     # M4: load defensively (file may not exist)
     wmrl_m4_path = fits_dir / "wmrl_m4_individual_fits.csv"
     if is_mle_source and not wmrl_m4_path.exists():
         wmrl_m4_path = PROJECT_ROOT / "output" / "wmrl_m4_individual_fits.csv"
-    wmrl_m4 = pd.read_csv(wmrl_m4_path) if wmrl_m4_path.exists() else None
+    wmrl_m4 = (
+        load_fits_with_validation(wmrl_m4_path, "wmrl_m4")
+        if wmrl_m4_path.exists()
+        else None
+    )
 
     # Convert participant_id to string for consistent merging
     qlearning['participant_id'] = qlearning['participant_id'].astype(str)

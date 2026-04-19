@@ -86,7 +86,7 @@ from scipy import stats
 
 # Add parent directory for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from config import EXCLUDED_PARTICIPANTS
+from config import EXCLUDED_PARTICIPANTS, load_fits_with_validation
 
 # Import plotting utilities for color-by functionality
 sys.path.insert(0, str(Path(__file__).parent))
@@ -127,9 +127,11 @@ def load_integrated_data(params_path: Path, model_type: str = 'qlearning',
         model_type: 'qlearning' or 'wmrl'
         min_accuracy: Optional minimum accuracy threshold (0-1) for inclusion
     """
-    # Load parameters directly from the provided path
+    # Load parameters directly from the provided path. Pass model_type as
+    # the EXPECTED_PARAMETERIZATION key so stale v3.0 fits (K[1,7]) are
+    # rejected at load time rather than silently producing wrong inferences.
     print(f"Loading fitted parameters from: {params_path}")
-    params_df = pd.read_csv(params_path)
+    params_df = load_fits_with_validation(params_path, model_type)
 
     # Standardize participant ID column name
     if 'participant_id' in params_df.columns:

@@ -55,7 +55,7 @@ from scipy import stats as scipy_stats
 project_root = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(project_root))
 
-from config import FIGURES_DIR, MODEL_REGISTRY
+from config import FIGURES_DIR, MODEL_REGISTRY, load_fits_with_validation
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -119,7 +119,7 @@ def load_per_participant_aic(mle_dir: Path) -> pd.DataFrame:
                 f"Missing fit CSV for {model}: expected {path}. "
                 f"Run `python scripts/12_fit_mle.py --model {model}` first."
             )
-        fits = pd.read_csv(path)
+        fits = load_fits_with_validation(path, model)
         short = SHORT_NAME_BY_MODEL[model]
         subset = fits[["participant_id", "aic"]].rename(
             columns={"aic": f"aic_{short}"}
@@ -142,7 +142,7 @@ def attach_m6b_parameters(
 ) -> pd.DataFrame:
     """Merge per-participant M6b parameter estimates onto the winners table."""
     m6b_path = mle_dir / MODEL_REGISTRY["wmrl_m6b"]["csv_filename"]
-    m6b_fits = pd.read_csv(m6b_path)
+    m6b_fits = load_fits_with_validation(m6b_path, "wmrl_m6b")
     columns_to_keep = ["participant_id", "nll", "aic", "n_trials"] + M6B_PARAMETER_COLUMNS
     m6b_subset = m6b_fits[columns_to_keep].rename(
         columns={col: f"m6b_{col}" for col in M6B_PARAMETER_COLUMNS}
