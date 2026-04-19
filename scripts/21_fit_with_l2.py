@@ -76,6 +76,8 @@ _PROJECT_ROOT = _THIS_FILE.parent.parent
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
+from config import load_netcdf_with_validation  # noqa: E402
+
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
@@ -370,12 +372,10 @@ def _verify_two_covariate_sites(model: str, expected: Path) -> int:
         If either ``beta_lec_{target}`` or ``beta_iesr_{target}`` is missing
         from the posterior group.
     """
-    import arviz as az  # noqa: PLC0415
-
     target = _BETA_TARGET[model]
     required_sites = {f"beta_lec_{target}", f"beta_iesr_{target}"}
 
-    idata = az.from_netcdf(str(expected))
+    idata = load_netcdf_with_validation(expected, model)
     posterior_vars = set(idata.posterior.data_vars)
     missing = required_sites - posterior_vars
     if missing:

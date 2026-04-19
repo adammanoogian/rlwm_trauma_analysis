@@ -147,6 +147,8 @@ except ImportError as exc:  # pragma: no cover — env-level failure
     )
     sys.exit(1)
 
+from config import load_netcdf_with_validation  # noqa: E402
+
 # Display-name <-> internal-id mappings (must match
 # scripts/21_fit_with_l2.py::DISPLAY_TO_INTERNAL and
 # scripts/21_compute_loo_stacking.py::MODEL_TO_DISPLAY).
@@ -408,7 +410,7 @@ def _audit_one_winner(
         return audit
 
     try:
-        l2_idata = az.from_netcdf(l2_nc)
+        l2_idata = load_netcdf_with_validation(l2_nc, winner)
     except Exception as exc:  # noqa: BLE001 — corrupt NetCDF is an audit error
         raise RuntimeError(
             f"Failed to load L2 NetCDF at {l2_nc}: "
@@ -496,7 +498,7 @@ def _audit_one_winner(
     audit.min_ess_shared_l2 = _min_ess_on_non_beta(l2_idata)
     if baseline_nc.exists():
         try:
-            baseline_idata = az.from_netcdf(baseline_nc)
+            baseline_idata = load_netcdf_with_validation(baseline_nc, winner)
             audit.min_ess_shared_baseline = _min_ess_on_non_beta(baseline_idata)
             if (
                 np.isfinite(audit.min_ess_shared_baseline)

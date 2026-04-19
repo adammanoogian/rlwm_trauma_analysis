@@ -5,21 +5,44 @@ Plot model comparison metrics (WAIC, LOO, AIC, BIC) and goodness of fit.
 Creates visualizations comparing Q-learning and WM-RL models.
 """
 
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+import argparse
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import arviz as az
-from pathlib import Path
-import argparse
 from typing import Dict, List, Tuple
 from scipy import stats
 
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
 
-def load_posterior_samples(netcdf_path: Path) -> az.InferenceData:
-    """Load posterior samples from NetCDF file."""
+from config import load_netcdf_with_validation  # noqa: E402
+
+
+def load_posterior_samples(netcdf_path: Path, model: str) -> az.InferenceData:
+    """Load posterior samples from NetCDF file.
+
+    Parameters
+    ----------
+    netcdf_path : Path
+        Path to the NetCDF posterior file.
+    model : str
+        Internal model key (e.g. ``"qlearning"``, ``"wmrl"``).
+
+    Returns
+    -------
+    az.InferenceData
+        The loaded posterior, validated.
+    """
     print(f"Loading posterior from: {netcdf_path}")
-    idata = az.from_netcdf(netcdf_path)
+    idata = load_netcdf_with_validation(netcdf_path, model)
     return idata
 
 
@@ -348,8 +371,8 @@ def main():
 
     # Load both models
     print("\n>> Loading models...")
-    idata_ql = load_posterior_samples(Path(args.qlearning))
-    idata_wmrl = load_posterior_samples(Path(args.wmrl))
+    idata_ql = load_posterior_samples(Path(args.qlearning), "qlearning")
+    idata_wmrl = load_posterior_samples(Path(args.wmrl), "wmrl")
 
     # Compute comparison metrics
     print("\n>> Computing comparison metrics...")

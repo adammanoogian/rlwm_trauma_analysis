@@ -38,10 +38,17 @@ Usage
 from __future__ import annotations
 
 import argparse
+import sys
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+
+_PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
+
+from config import load_netcdf_with_validation  # noqa: E402
 
 
 _MODEL_PARAM_KEYS: dict[str, list[str]] = {
@@ -67,11 +74,10 @@ _MODEL_PARAM_KEYS: dict[str, list[str]] = {
 def _posterior_means(
     posterior_nc_path: Path,
     param_keys: list[str],
+    model: str,
 ) -> tuple[pd.DataFrame, list]:
     """Load posterior and return (participants, n_params) DataFrame of means."""
-    import arviz as az
-
-    idata = az.from_netcdf(str(posterior_nc_path))
+    idata = load_netcdf_with_validation(posterior_nc_path, model)
     post = idata.posterior
 
     # Per-participant posterior means for each param site.  Participant
@@ -149,7 +155,7 @@ def compare(
     print(f"Posterior: {posterior_nc}")
     print(f"MLE CSV:   {mle_csv}")
 
-    post_means, participants = _posterior_means(posterior_nc, param_keys)
+    post_means, participants = _posterior_means(posterior_nc, param_keys, model)
     mle_point, mle_se = _mle_point_and_se(mle_csv, param_keys, participants)
 
     # Align to intersection

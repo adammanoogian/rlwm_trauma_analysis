@@ -33,7 +33,7 @@ from typing import Dict, List, Optional
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from config import TaskParams, ModelParams, OUTPUT_VERSION_DIR, AnalysisParams
+from config import TaskParams, ModelParams, OUTPUT_VERSION_DIR, AnalysisParams, load_netcdf_with_validation
 
 from environments.rlwm_env import create_rlwm_env
 from environments.task_config import TaskConfigGenerator
@@ -74,7 +74,7 @@ def sample_parameters_from_posterior(
         raise ImportError("arviz required. Install with: pip install arviz")
 
     print(f"Loading posterior from: {posterior_path}")
-    trace = az.from_netcdf(posterior_path)
+    trace = load_netcdf_with_validation(posterior_path, model_type)
 
     # Get posterior samples
     posterior = trace.posterior

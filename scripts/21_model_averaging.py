@@ -127,6 +127,8 @@ _PROJECT_ROOT = _THIS_FILE.parent.parent
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
+from config import load_netcdf_with_validation  # noqa: E402
+
 # Display-name <-> internal-id mappings (must match
 # scripts/21_scale_audit.py and scripts/21_compute_loo_stacking.py).
 DISPLAY_TO_INTERNAL: dict[str, str] = {
@@ -523,7 +525,7 @@ def _build_key_contributions(
             continue
 
         try:
-            idata = az.from_netcdf(nc_path)
+            idata = load_netcdf_with_validation(nc_path, winner)
         except Exception as exc:  # noqa: BLE001 — corrupt NetCDF is fatal
             raise RuntimeError(
                 f"Failed to load {nc_path}: {type(exc).__name__}: {exc}"

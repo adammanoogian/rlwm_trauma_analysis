@@ -67,6 +67,8 @@ import pandas as pd
 project_root = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(project_root))
 
+from config import load_netcdf_with_validation  # noqa: E402
+
 # Lazy/conditional arviz import — may not be in all environments
 try:
     import arviz as az
@@ -322,7 +324,7 @@ def main() -> None:
         return
 
     print(f"Loading posterior from {posterior_path} ...")
-    idata = az.from_netcdf(str(posterior_path))
+    idata = load_netcdf_with_validation(posterior_path, args.model)
     print("  Loaded successfully.")
 
     # ------------------------------------------------------------------ #

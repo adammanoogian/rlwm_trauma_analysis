@@ -130,6 +130,7 @@ _PROJECT_ROOT = _THIS_FILE.parent.parent
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
+from config import load_netcdf_with_validation  # noqa: E402
 from scripts.fitting.bms import rfx_bms  # noqa: E402
 
 # ---------------------------------------------------------------------------
@@ -765,7 +766,7 @@ def _load_compare_dict(
             )
             continue
         display_name = MODEL_TO_DISPLAY.get(model, model)
-        compare_dict[display_name] = az.from_netcdf(nc_path)
+        compare_dict[display_name] = load_netcdf_with_validation(nc_path, model)
     return compare_dict
 
 

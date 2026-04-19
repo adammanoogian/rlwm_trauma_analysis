@@ -8,10 +8,20 @@ Usage:
         --output-dir output/v1/figures
 """
 
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+import argparse
 import arviz as az
 import matplotlib.pyplot as plt
-from pathlib import Path
-import argparse
+
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
+
+from config import load_netcdf_with_validation  # noqa: E402
 
 
 def create_all_diagnostic_plots(posterior_path: Path, output_dir: Path):
@@ -20,10 +30,9 @@ def create_all_diagnostic_plots(posterior_path: Path, output_dir: Path):
     output_dir.mkdir(parents=True, exist_ok=True)
 
     print(f"\n>> Loading posterior from: {posterior_path}")
-    idata = az.from_netcdf(posterior_path)
-
-    # Get model name from filename
+    # Get model name from filename (used for wrapper + plot labels)
     model_name = posterior_path.stem.replace('_posterior', '').replace('_jax', '')
+    idata = load_netcdf_with_validation(posterior_path, model_name)
 
     print(f"\n>> Creating diagnostic plots for: {model_name}")
     print("="*80)

@@ -82,7 +82,12 @@ from scipy import stats as scipy_stats
 project_root = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(project_root))
 
-from config import EXCLUDED_PARTICIPANTS, FIGURES_DIR, MODEL_REGISTRY
+from config import (
+    EXCLUDED_PARTICIPANTS,
+    FIGURES_DIR,
+    MODEL_REGISTRY,
+    load_netcdf_with_validation,
+)
 
 # Lazy/conditional arviz import — may not be in all environments
 try:
@@ -596,7 +601,8 @@ def _load_bayesian_compare_dict(
         if not path.exists():
             print(f"  WARNING: {path} not found, skipping {name}")
             continue
-        idata = az.from_netcdf(str(path))
+        _model_key = Path(path_str).stem.replace("_posterior", "")
+        idata = load_netcdf_with_validation(path, _model_key)
         if not hasattr(idata, "log_likelihood"):
             print(
                 f"  WARNING: {name} posterior missing log_likelihood group, "
@@ -795,7 +801,7 @@ def run_bayesian_comparison(output_dir: Path) -> None:
     m4_section_lines: list[str] = []
     if m4_path.exists():
         print("\n--- M4 Separate Track (Joint Choice+RT) ---")
-        idata_m4 = az.from_netcdf(str(m4_path))
+        idata_m4 = load_netcdf_with_validation(m4_path, "wmrl_m4")
 
         if hasattr(idata_m4, "log_likelihood"):
             loo_m4 = az.loo(idata_m4, pointwise=True)

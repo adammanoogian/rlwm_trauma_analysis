@@ -90,7 +90,7 @@ _PROJECT_ROOT = _THIS_FILE.parent.parent
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
-from config import MODEL_REGISTRY  # noqa: E402
+from config import MODEL_REGISTRY, load_netcdf_with_validation  # noqa: E402
 
 # The 6 choice-only models produced by step 21.3. Must match
 # ``scripts/21_fit_baseline.py::BASELINE_MODELS`` and ``MODEL_REGISTRY``.
@@ -215,7 +215,7 @@ def _audit_one_model(
     # ------------------------------------------------------------------
     # Load posterior + compute R-hat / ESS over named params only.
     # ------------------------------------------------------------------
-    idata = az.from_netcdf(nc_path)
+    idata = load_netcdf_with_validation(nc_path, model)
     params = MODEL_REGISTRY[model]["params"]
 
     # Some samples may have theta_* wrappers; we use the raw parameter

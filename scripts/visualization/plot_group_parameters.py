@@ -6,20 +6,43 @@ Creates forest plots showing posterior distributions of group-level parameters
 (mu parameters) with credible intervals and parameter bounds.
 """
 
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+import argparse
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import arviz as az
-from pathlib import Path
-import argparse
 from typing import Dict, List, Tuple
 
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
 
-def load_posterior_samples(netcdf_path: Path) -> az.InferenceData:
-    """Load posterior samples from NetCDF file."""
+from config import load_netcdf_with_validation  # noqa: E402
+
+
+def load_posterior_samples(netcdf_path: Path, model: str) -> az.InferenceData:
+    """Load posterior samples from NetCDF file.
+
+    Parameters
+    ----------
+    netcdf_path : Path
+        Path to the NetCDF posterior file.
+    model : str
+        Internal model key (e.g. ``"qlearning"``, ``"wmrl"``).
+
+    Returns
+    -------
+    az.InferenceData
+        The loaded posterior, validated.
+    """
     print(f"Loading posterior from: {netcdf_path}")
-    idata = az.from_netcdf(netcdf_path)
+    idata = load_netcdf_with_validation(netcdf_path, model)
     return idata
 
 
@@ -311,7 +334,7 @@ def main():
 
     if args.qlearning:
         print("\n>> Loading Q-Learning model...")
-        idata_ql = load_posterior_samples(Path(args.qlearning))
+        idata_ql = load_posterior_samples(Path(args.qlearning), "qlearning")
         df_ql = extract_group_parameters(idata_ql, 'Q-Learning')
         print(f"  ✓ Extracted {len(df_ql)} group-level parameters")
         print(df_ql)
@@ -319,7 +342,7 @@ def main():
 
     if args.wmrl:
         print("\n>> Loading WM-RL model...")
-        idata_wmrl = load_posterior_samples(Path(args.wmrl))
+        idata_wmrl = load_posterior_samples(Path(args.wmrl), "wmrl")
         df_wmrl = extract_group_parameters(idata_wmrl, 'WM-RL')
         print(f"  ✓ Extracted {len(df_wmrl)} group-level parameters")
         print(df_wmrl)
