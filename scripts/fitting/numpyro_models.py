@@ -237,6 +237,17 @@ def wmrl_hierarchical_model(
     wm_init: float = 1.0 / 3.0,  # WM baseline = 1/nA (uniform)
 ) -> None:
     """
+    .. deprecated:: v4.0
+
+        Uses pre-Collins K bounds [1, 7] and Python for-loop per-participant
+        factor sites. Superseded by :func:`wmrl_hierarchical_model_stacked`
+        (line 1446) which uses Collins K bounds [2, 6] via
+        ``numpyro_helpers.sample_bounded_param`` and fully-batched ``jax.vmap``.
+        This legacy function is NOT wired into ``STACKED_MODEL_DISPATCH`` and
+        is retained only as a regression-test target for
+        ``scripts/fitting/tests/test_wmrl_model.py`` (compilation smoke test).
+        Any production fit must go through the stacked variant.
+
     Hierarchical Bayesian WM-RL hybrid model for multiple participants.
 
     Following Senta et al. (2025):

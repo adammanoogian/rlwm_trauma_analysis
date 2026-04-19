@@ -46,7 +46,6 @@ import arviz as az
 
 from scripts.fitting.numpyro_models import (
     qlearning_hierarchical_model,
-    wmrl_hierarchical_model,
     wmrl_m3_hierarchical_model,
     qlearning_hierarchical_model_stacked,
     wmrl_hierarchical_model_stacked,
