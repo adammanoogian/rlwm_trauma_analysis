@@ -86,3 +86,7 @@ manuscript/.jupyter_cache/
 
 # Backup files
 *.bak
+
+# Personal / external documents (not part of the codebase)
+Burrows_J_GDPA_Thesis.*
+
