@@ -381,11 +381,11 @@ Plans:
   3. `output/bayesian/21_execution_log.md` logs SLURM JobID, wall-clock, CPU-hours, GPU-hours, max memory per step; total GPU-hours documented.
   4. `convergence_table.csv` shows ≥ 2 models meeting Baribault & Collins (2023) gate (R-hat ≤ 1.05 AND ESS_bulk ≥ 400 AND divergences = 0 AND BFMI ≥ 0.2); step 21.5 winner determination is `DOMINANT_SINGLE` or `TOP_TWO` (not `FORCED`, not `INCONCLUSIVE_MULTIPLE`).
 
-**Plans:** 2 plans (draft; planner will finalize)
+**Plans:** 2 plans
 
 Plans:
-- [ ] 24-01-PLAN.md (Wave 1) — Pre-flight checks (pytest gate, clean working tree, SLURM queue healthy) + cold-start submission of bash cluster/21_submit_pipeline.sh + per-step artifact monitoring
-- [ ] 24-02-PLAN.md (Wave 2, after pipeline completes) — Post-run artifact audit + `output/bayesian/21_execution_log.md` writeup + convergence-gate verification + winner-determination recording
+- [ ] 24-01-PLAN.md (Wave 1) — Pre-flight checks (pytest gate + clean autopush-paths assertion + Monash M3 submit-host verification) + cold-start submission of `bash cluster/21_submit_pipeline.sh` + JobID inventory capture + operator failure-mode briefing
+- [ ] 24-02-PLAN.md (Wave 2, after pipeline terminus at step 21.9) — `validation/check_phase24_artifacts.py` deterministic audit (file existence + NetCDF integrity + EXEC-04 convergence gate + winner-type assertion + manuscript table cross-check) + `output/bayesian/21_execution_log.md` from sacct + 24-02-SUMMARY VERIFICATION-ready handoff
 
 #### Phase 25: Reproducibility Regression & Closure-Guard Extension
 
