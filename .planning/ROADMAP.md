@@ -359,13 +359,13 @@ Plans:
   4. Every `az.from_netcdf` and `xr.open_dataset` call in `scripts/{15,16,17,18}.py`, `scripts/21_*.py`, and `validation/*.py` uses `config.load_fits_with_validation` wrapper; enforced via new `scripts/fitting/tests/test_load_side_validation.py` grep invariant test that fails CI if a bare NetCDF load is reintroduced.
   5. `python validation/check_v4_closure.py --milestone v4.0` still exits 0 on Phase-23-complete HEAD — cleanup did not break any v4.0 closure invariant.
 
-**Plans:** 4 plans (draft; planner will finalize)
+**Plans:** 4 plans
 
 Plans:
-- [ ] 23-01-PLAN.md (Wave 1) — Delete legacy qlearning import path + grep invariant test
-- [ ] 23-02-PLAN.md (Wave 1, parallel with 23-01) — Remove legacy M2 K-bounds [1,7] branch from mle_utils.py + vocabulary update
-- [ ] 23-03-PLAN.md (Wave 1, parallel with 23-01/23-02) — Delete scripts/16b_bayesian_regression.py + doc cross-reference update
-- [ ] 23-04-PLAN.md (Wave 2, after 23-01/02/03) — Load-side validation audit: wire config.load_fits_with_validation into every downstream NetCDF consumer + grep invariant test
+- [ ] 23-01-PLAN.md (Wave 1) — Delete `scripts/fitting/legacy/` directory (4 files, ~2,073 lines) + install `test_no_legacy_imports.py` grep invariant guard
+- [ ] 23-02-PLAN.md (Wave 1, parallel with 23-01) — Install `test_mle_k_bounds_invariant.py` guard (mle_utils.py already clean — verification + lock-in) + tighten `config.EXPECTED_PARAMETERIZATION` vocabulary
+- [ ] 23-03-PLAN.md (Wave 1, parallel with 23-01/23-02) — Delete residual `16b_bayesian_regression.cpython-313.pyc`, scrub `docs/03_methods_reference/MODEL_REFERENCE.md` cross-reference, install `test_no_16b_references.py` grep invariant guard (source .py already deleted pre-Phase-23)
+- [ ] 23-04-PLAN.md (Wave 2, after 23-01/02/03) — Add `config.load_netcdf_with_validation` + rewire 14 `az.from_netcdf` call sites across 13 files + install `test_load_side_validation.py` grep invariant guard
 
 #### Phase 24: Cold-Start Pipeline Execution
 
