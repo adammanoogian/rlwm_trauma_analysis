@@ -28,10 +28,10 @@
 
 ### CLEAN — Dead-Code Sweep
 
-- [ ] **CLEAN-01**: Legacy qlearning hierarchical import path removed — if `scripts/fitting/legacy/qlearning_hierarchical_model.py` (or similar) exists, it is deleted; grep `from scripts.fitting.legacy` across `scripts/` returns zero live imports; pytest passes with the removal
-- [ ] **CLEAN-02**: Legacy M2 K-bounds [1,7] branch removed from `scripts/fitting/mle_utils.py`; only Collins [2,6] path remains; `parameterization_version` column vocabulary no longer accepts "legacy" value; affected tests updated
-- [ ] **CLEAN-03**: `scripts/16b_bayesian_regression.py` deleted entirely (superseded by Phase 18 schema-parity pipeline + Phase 21 hierarchical refits); `docs/MODEL_REFERENCE.md` cross-reference updated; cluster SLURM files referencing 16b removed or updated
-- [ ] **CLEAN-04**: Full load-side validation audit — every `az.from_netcdf` and `xr.open_dataset` call in `scripts/{15,16,17,18,21_*}.py` and `validation/*.py` uses `config.load_fits_with_validation` wrapper; enforced via `scripts/fitting/tests/test_load_side_validation.py` grep invariant; no silent NetCDF corruption pathway remains
+- [x] **CLEAN-01**: Legacy qlearning hierarchical import path removed — if `scripts/fitting/legacy/qlearning_hierarchical_model.py` (or similar) exists, it is deleted; grep `from scripts.fitting.legacy` across `scripts/` returns zero live imports; pytest passes with the removal
+- [x] **CLEAN-02**: Legacy M2 K-bounds [1,7] branch removed from `scripts/fitting/mle_utils.py`; only Collins [2,6] path remains; `parameterization_version` column vocabulary no longer accepts "legacy" value; affected tests updated
+- [x] **CLEAN-03**: `scripts/16b_bayesian_regression.py` deleted entirely (superseded by Phase 18 schema-parity pipeline + Phase 21 hierarchical refits); `docs/MODEL_REFERENCE.md` cross-reference updated; cluster SLURM files referencing 16b removed or updated
+- [x] **CLEAN-04**: Full load-side validation audit — every `az.from_netcdf` and `xr.open_dataset` call in `scripts/{15,16,17,18,21_*}.py` and `validation/*.py` uses `config.load_netcdf_with_validation` (new NetCDF companion to the existing CSV-only `config.load_fits_with_validation`); enforced via `scripts/fitting/tests/test_load_side_validation.py` grep invariant; no silent NetCDF corruption pathway remains. Phase 23 planning grep-audit identified that the existing `load_fits_with_validation` is CSV-only (validates `parameterization_version` column in DataFrame); the new NetCDF companion follows the same validate-then-return pattern for ArviZ `InferenceData` objects.
 
 ### MANU — Manuscript Finalization
 
@@ -103,10 +103,10 @@ Each requirement maps to exactly one phase. Populated by `gsd-roadmapper` during
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CLEAN-01 | Phase 23 | Pending |
-| CLEAN-02 | Phase 23 | Pending |
-| CLEAN-03 | Phase 23 | Pending |
-| CLEAN-04 | Phase 23 | Pending |
+| CLEAN-01 | Phase 23 | Complete |
+| CLEAN-02 | Phase 23 | Complete |
+| CLEAN-03 | Phase 23 | Complete |
+| CLEAN-04 | Phase 23 | Complete |
 | EXEC-01 | Phase 24 | Pending |
 | EXEC-02 | Phase 24 | Pending |
 | EXEC-03 | Phase 24 | Pending |
