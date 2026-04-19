@@ -44,6 +44,11 @@ _LEGACY_PATTERNS: list[re.Pattern[str]] = [
 # Directories to skip entirely during the walk.
 _SKIP_DIR_NAMES: frozenset[str] = frozenset({"__pycache__", "legacy"})
 
+# This file itself is exempt — its docstrings deliberately contain the
+# forbidden pattern strings as documentation.  Exclude by resolved path so
+# the skip is unconditional regardless of invocation directory.
+_SELF_PATH: Path = Path(__file__).resolve()
+
 
 # ---------------------------------------------------------------------------
 # Helper
@@ -116,6 +121,10 @@ def test_no_legacy_imports() -> None:
     violations: list[tuple[Path, int, str]] = []
 
     for py_file in py_files:
+        # Skip the guard file itself — its docstrings legitimately contain
+        # the pattern strings as documentation text.
+        if py_file.resolve() == _SELF_PATH:
+            continue
         try:
             source = py_file.read_text(encoding="utf-8")
         except OSError:
