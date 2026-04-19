@@ -681,11 +681,16 @@ EXPECTED_PARAMETERIZATION: dict[str, str] = {
 }
 """Expected parameterization_version string for each model's fit CSV.
 
-Downstream scripts must call :func:`load_fits_with_validation` when
-loading individual-level fit CSVs so that stale v3.0 fits (which used
-K in [1, 7] and a non-standard non-centered parameterization) are
-rejected with an informative error rather than silently producing
-wrong inferences.
+v4.0+ invariant: every fit CSV produced by this project MUST carry a
+``parameterization_version`` column whose value matches the string above
+for its model. :func:`load_fits_with_validation` enforces this on the
+read side; :mod:`scripts.fitting.fit_mle` and :mod:`scripts.fitting.fit_bayesian`
+enforce it on the write side.
+
+Mismatched or absent values are rejected with an informative error
+(expected vs. actual) rather than silently producing wrong inferences.
+The v3.0 K ∈ [1, 7] parameterization is no longer an accepted vocabulary
+entry — only Collins K ∈ [2, 6] CSVs validate.
 """
 
 
@@ -729,7 +734,7 @@ def load_fits_with_validation(
         expected = EXPECTED_PARAMETERIZATION.get(model, "unknown")
         raise ValueError(
             f"{path} lacks 'parameterization_version' column — "
-            f"likely a v3.0 legacy fit. "
+            f"(pre-v4.0 CSVs without this column are rejected). "
             f"Expected: {expected}"
         )
     expected = EXPECTED_PARAMETERIZATION[model]
