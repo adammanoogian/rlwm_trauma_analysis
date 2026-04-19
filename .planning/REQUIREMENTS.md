@@ -275,6 +275,20 @@ Each v4.0 requirement maps to exactly one phase. Phases 13-18 continue from v3.0
 | PSCAN-04 | Phase 19 | Complete |
 | PSCAN-05 | Phase 19 | Complete |
 | PSCAN-06 | Phase 19 | Complete |
+| DEER-01 | Phase 20 | Complete (evidence: 20-VERIFICATION.md Observable Truth #1; docs/PARALLEL_SCAN_LIKELIHOOD.md §DEER) |
+| DEER-02 | Phase 20 | Complete — no-go outcome (evidence: 20-VERIFICATION.md §Gaps Summary; 20-03-SUMMARY.md) |
+| DEER-03 | Phase 20 | Complete (evidence: 20-VERIFICATION.md Observable Truth on empirical evidence; validation/benchmark_parallel_scan.py) |
+| DEER-04 | Phase 20 | Complete (evidence: 20-03-SUMMARY.md §Accomplishments; validation/benchmark_parallel_scan.py exists) |
+| BMS-01 | Phase 21 | Complete (evidence: 21-01-SUMMARY.md; 21-VERIFICATION.md SC#1 row) |
+| BMS-02 | Phase 21 | Complete (evidence: 21-02-SUMMARY.md; scripts/fitting/tests/test_bms.py passes) |
+| BMS-03 | Phase 21 | Complete (evidence: 21-03-SUMMARY.md; 21-VERIFICATION.md SC#5 row) |
+| BMS-04 | Phase 21 | Complete (evidence: 21-04-SUMMARY.md; scripts/21_fit_baseline.py expected.exists() shim) |
+| BMS-05 | Phase 21 | Complete (evidence: 21-05-SUMMARY.md; 21-VERIFICATION.md SC#2 row) |
+| BMS-06 | Phase 21 | Complete (evidence: 21-06-SUMMARY.md; 21-VERIFICATION.md SC#3 row) |
+| BMS-07 | Phase 21 | Complete (evidence: 21-07-SUMMARY.md; 21-VERIFICATION.md SC#4 row) |
+| BMS-08 | Phase 21 | Complete (evidence: 21-08-SUMMARY.md; 21-VERIFICATION.md SC#4 row) |
+| BMS-09 | Phase 21 | Complete (evidence: 21-09-SUMMARY.md; averaged_scale_effects.csv schema) |
+| BMS-10 | Phase 21 | Complete — cluster execution pending (evidence: 21-10-SUMMARY.md; 21-VERIFICATION.md SC#1 cluster_execution_pending block; master orchestrator at cluster/21_submit_pipeline.sh) |
 
 **Coverage summary:**
 
@@ -287,15 +301,18 @@ Each v4.0 requirement maps to exactly one phase. Phases 13-18 continue from v3.0
 | Phase 17 — M4 Hierarchical LBA | M4H-01..06 | 6 |
 | Phase 18 — Integration, Comparison, and Manuscript | CMP-01..04, MIG-01..05, DOC-01..04 | 13 |
 | Phase 19 — Associative Scan Likelihood Parallelization | PSCAN-01..06 | 6 |
-| **Total** | | **57** |
+| Phase 20 — DEER Non-Linear Parallelization Research | DEER-01..04 | 4 |
+| Phase 21 — Principled Bayesian Model Selection Pipeline | BMS-01..10 | 10 |
+| **Total** | | **71** |
 
-- v1 requirements: 57 unique REQ-IDs (INFRA 8 + K 3 + GPU 3 + HIER 10 + L2 8 + M4H 6 + CMP 4 + MIG 5 + DOC 4 + PSCAN 6). L2-08 is the P2-optional member of the 8-requirement L2 family.
-- Mapped to phases: 57
+- v1 requirements: 71 unique REQ-IDs (INFRA 8 + K 3 + GPU 3 + HIER 10 + L2 8 + M4H 6 + CMP 4 + MIG 5 + DOC 4 + PSCAN 6 + DEER 4 + BMS 10). L2-08 is the P2-optional member of the L2 family; DEER-02 is satisfied by the documented no-go outcome per 20-VERIFICATION.md.
+- Mapped to phases: 71
 - Unmapped: 0 ✓
 - Each requirement appears in exactly one phase (no duplicates verified).
 
 ---
 
-*Requirements defined: 2026-04-11*
+*Requirements defined: 2026-04-11 (v1 catalog)*
+*Extended: 2026-04-19 (DEER + BMS families added during Phase 22 closure audit)*
 *Roadmap created: 2026-04-11*
 *Source research: .planning/research/SUMMARY.md*
