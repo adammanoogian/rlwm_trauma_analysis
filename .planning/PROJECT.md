@@ -36,17 +36,22 @@ The model must correctly dissociate perseverative responding from learning-rate 
 - 9-step principled Bayesian selection pipeline: prior predictive → recovery → baseline → convergence audit → LOO+stacking+BMS → L2 refit → scale audit → averaging → manuscript tables, orchestrated via `afterok`-chained SLURM + pre-flight pytest gate
 - Closure reproducibility guard: `validation/check_v4_closure.py` + `scripts/fitting/tests/test_v4_closure.py` (deterministic, 8 invariants, pytest regression)
 
-## Current Milestone: Next milestone not yet started
+## Current Milestone: v5.0 Empirical Artifacts & Manuscript Finalization (Started 2026-04-19)
 
-Run `/gsd:new-milestone` to scope v5.0 (questioning → research → requirements → roadmap).
+**Goal:** Execute the Phase 21 Bayesian selection pipeline cold-start on the cluster to produce the full empirical artifacts (LOO/stacking/BMS/forest plots/winner-beta HDIs), sweep residual tech debt, cross-verify reproducibility against v4.0 baseline, and finalize the manuscript so `quarto render paper.qmd` compiles paper.pdf with real winner names, real Pareto-k-informed limitations, and real Level-2 effect estimates.
 
-**Candidate v5.0 themes** (from v4.0 audit + v2 deferred):
-- Cluster-execution runs for v4.0 deferred items (K-refit, M4 GPU wall-time verification, BMS 9-step full pipeline cold-start)
-- Tech debt cleanup: delete legacy `wmrl_hierarchical_model` with [1,7] K bounds; wire `config.load_fits_with_validation` into scripts 15/16/17 read paths
+**Target features:**
+- Cold-start execution of `bash cluster/21_submit_pipeline.sh` end-to-end — 9 steps, afterok-chained, producing the full empirical result set for the thesis/paper
+- Tech-debt sweep: legacy qlearning import path removed; legacy M2 K-bounds [1,7] branch removed; 16b_bayesian_regression.py fully removed (was frozen with deprecation docstring in v4.0); full load-side validation audit wiring `config.load_fits_with_validation` into every downstream NetCDF consumer
+- Reproducibility regression: prior-predictive (step 21.1) + Bayesian recovery (step 21.2) artifacts compared against v4.0 baseline via checksum/seeded regression test; `validation/check_v4_closure.py` remains green (or extended to `check_v5_closure.py`)
+- Manuscript finalization: paper.qmd auto-patched with real winner names + LOO + stacking weights + PXP; limitations rewritten with actual Pareto-k percentages from step 21.5; `quarto render` succeeds producing paper.pdf + paper.html
+
+**Deferred to v5.1 (post-v5.0):**
+- Phase 14 cluster-execution items (K-02, K-03, GPU-01, GPU-02, GPU-03) — MLE K-refit with Collins bounds [2,6] + M4 GPU wall-time verification. Not needed for the manuscript's primary Bayesian narrative; becomes supplementary MLE-vs-Bayesian reliability scatterplot input in v5.1.
 - ArviZ 1.0 migration (`InferenceData` → `xarray.DataTree`)
 - Simulation-based calibration (SBC) as standard pre-fit validation
-- New candidate models: M7 (split `phi_WM` / `phi_RL`), M8-ASYMBIAS (Senta 2025 winning mechanism), M9-SPLIT-RHO (conditional ρ on capacity-exceedance)
-- Full PMwG-equivalent hierarchical LBA (if reviewers demand)
+- New candidate models: M7 (split `phi_WM` / `phi_RL`), M8-ASYMBIAS (Senta 2025 winning mechanism), M9-SPLIT-RHO
+- Full PMwG-equivalent hierarchical LBA
 - Regularized horseshoe as default on all Level-2 families
 
 ---
@@ -96,6 +101,12 @@ Run `/gsd:new-milestone` to scope v5.0 (questioning → research → requirement
 - ✓ M4 RLWM-LBA joint choice+RT (LBA decision, float64, separate track) — v3
 - ✓ Cross-model recovery infrastructure (confusion matrix, 6 choice-only models) — v3
 - ✓ MODEL_REFERENCE.md with complete M1-M6b mathematics — v3
+- ✓ M3 hierarchical NumPyro model (HIER-01) — v4.0 (absorbed into Phases 16/18/21 per 15-VERIFICATION.md)
+- ✓ Convergence gate R-hat/ESS/divergences (HIER-07) — v4.0 (absorbed into Phases 16/18/21 per 15-VERIFICATION.md)
+- ✓ Shrinkage diagnostic report (HIER-08) — v4.0 (absorbed into Phases 16/18/21 per 15-VERIFICATION.md)
+- ✓ Posterior predictive check infrastructure (HIER-09) — v4.0 (absorbed into Phase 18 per 15-VERIFICATION.md)
+- ✓ Parametric dispatch smoke test (HIER-10) — v4.0 (absorbed into Phases 16/18/21 per 15-VERIFICATION.md)
+- ✓ M3 POC Level-2 regression LEC → kappa (L2-01) — v4.0 (absorbed into Phase 21 per 15-VERIFICATION.md)
 
 #### v4.0 (milestone)
 
@@ -163,19 +174,23 @@ Run `/gsd:new-milestone` to scope v5.0 (questioning → research → requirement
 - PSCAN-05 (Phase 19 — 19-03-SUMMARY.md) — GPU benchmark output/bayesian/pscan_benchmark.json
 - PSCAN-06 (Phase 19 — 19-03-SUMMARY.md) — A/B comparison sequential vs pscan posteriors
 
-### Active (v4.0)
+### Active (v5.0)
 
-- [ ] **K-02** — Implement constrained K bounds in mle_utils.py (cluster refit via `bash cluster/21_submit_pipeline.sh` — cold start)
-- [ ] **K-03** — Refit all 7 models via MLE with constrained K (cluster refit via `bash cluster/21_submit_pipeline.sh` — cold start)
-- [ ] **GPU-01** — fit_all_gpu_m4 function for M4 synthetic path (cluster refit via `bash cluster/21_submit_pipeline.sh` — cold start)
-- [ ] **GPU-02** — fit_all_gpu_m4 for real-data M4 fitting (cluster refit via `bash cluster/21_submit_pipeline.sh` — cold start)
-- [ ] **GPU-03** — Verify GPU speedup for M4 recovery < 12h on A100 (cluster refit via `bash cluster/21_submit_pipeline.sh` — cold start)
-- [ ] **HIER-01** — M3 hierarchical NumPyro model (absorbed into Phases 16/18/21 — see 15-VERIFICATION.md once plan 22-02 lands)
-- [ ] **HIER-07** — Convergence gate R-hat/ESS/divergences (absorbed into Phases 16/18/21 — see 15-VERIFICATION.md once plan 22-02 lands)
-- [ ] **HIER-08** — Shrinkage diagnostic report (absorbed into Phases 16/18/21 — see 15-VERIFICATION.md once plan 22-02 lands)
-- [ ] **HIER-09** — Posterior predictive check infrastructure (absorbed into Phases 16/18/21 — see 15-VERIFICATION.md once plan 22-02 lands)
-- [ ] **HIER-10** — Parametric dispatch smoke test (absorbed into Phases 16/18/21 — see 15-VERIFICATION.md once plan 22-02 lands)
-- [ ] **L2-01** — M3 POC Level-2 regression LEC → kappa (absorbed into Phases 16/18/21 — see 15-VERIFICATION.md once plan 22-02 lands)
+See `.planning/REQUIREMENTS.md` for the full v5.0 requirement set (EXEC, REPRO, CLEAN, MANU, CLOSE). High-level summary:
+
+- [ ] **EXEC** family — Cold-start `bash cluster/21_submit_pipeline.sh` produces full Phase 21 empirical artifacts on real N=138 cohort
+- [ ] **REPRO** family — Prior-predictive + Bayesian recovery artifacts match v4.0 baseline via seeded regression test; v4.0 closure guard remains green
+- [ ] **CLEAN** family — Tech-debt sweep: remove legacy qlearning import, legacy M2 K-bounds [1,7] branch, deprecated `scripts/16b_bayesian_regression.py`; complete load-side validation audit across every NetCDF consumer
+- [ ] **MANU** family — paper.qmd auto-patched with real winner/LOO/stacking/PXP numbers; limitations rewritten from actual Pareto-k diagnostics; `quarto render paper.qmd` produces paper.pdf + paper.html without errors
+- [ ] **CLOSE** family — v5.0 archived to `.planning/milestones/`, MILESTONES.md updated, `/gsd:audit-milestone` passes, reproducibility guard extended to v5.0 invariants
+
+### Deferred to v5.1 (pending v4.0 cluster execution + future enhancements)
+
+- [ ] **K-02** — Implement constrained K bounds in mle_utils.py (cluster refit via `bash cluster/12_submit_all_gpu.sh` — cold start; v4.0 Phase 14 code-complete, execution pending)
+- [ ] **K-03** — Refit all 7 models via MLE with constrained K (cluster refit via `bash cluster/12_submit_all_gpu.sh` — cold start)
+- [ ] **GPU-01** — fit_all_gpu_m4 function for M4 synthetic path (cluster refit via `bash cluster/12_submit_all_gpu.sh` — cold start)
+- [ ] **GPU-02** — fit_all_gpu_m4 for real-data M4 fitting (cluster refit via `bash cluster/12_submit_all_gpu.sh` — cold start)
+- [ ] **GPU-03** — Verify GPU speedup for M4 recovery < 12h on A100 (cluster refit via `bash cluster/12_submit_all_gpu.sh` — cold start)
 
 ### Out of Scope
 
@@ -237,4 +252,4 @@ These have different theoretical implications for trauma populations.
 | Dict-based N-model comparison | Enables flexible comparison without hardcoding | ✓ Good |
 
 ---
-*Last updated: 2026-04-19 — v4.0 shipped and archived*
+*Last updated: 2026-04-19 — v5.0 milestone started (Empirical Artifacts & Manuscript Finalization)*

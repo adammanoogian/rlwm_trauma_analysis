@@ -6,6 +6,7 @@
 - ✅ **v2.0 Post-Fitting Validation & Publication Readiness** - Phases 4-7 (shipped 2026-02-06, Phases 6-7 deferred)
 - ✅ **v3.0 Model Extensions (M4-M6)** - Phases 8-12 (shipped 2026-04-03)
 - ✅ **v4.0 Hierarchical Bayesian Pipeline & LBA Acceleration** - Phases 13-22 (shipped 2026-04-19; archive: [milestones/v4.0-ROADMAP.md](milestones/v4.0-ROADMAP.md))
+- 🔄 **v5.0 Empirical Artifacts & Manuscript Finalization** - Phases 23-27 (started 2026-04-19)
 
 ## Phases
 
@@ -330,10 +331,131 @@ Plans:
 
 </details>
 
+<details open>
+<summary>🔄 v5.0 Empirical Artifacts & Manuscript Finalization (Phases 23-27) — STARTED 2026-04-19</summary>
+
+**Milestone Goal:** Execute the Phase 21 Bayesian selection pipeline cold-start on the cluster to produce the full empirical artifact set (LOO/stacking/BMS/forest plots/winner-beta HDIs), sweep residual v4.0 tech debt (legacy qlearning import, legacy M2 K-bounds [1,7], `scripts/16b_bayesian_regression.py`, full load-side validation audit), cross-verify reproducibility against the v4.0 baseline via a seeded regression test (prior-predictive + Bayesian recovery only; stacking-weight / PXP stability checks descoped to save cluster cost), and finalize `paper.qmd` so `quarto render` compiles `paper.pdf` with real winner names, real Pareto-k-informed limitations, and real Level-2 effect estimates. Phase 14 cluster-execution items (K-02, K-03, GPU-01..03) explicitly deferred to v5.1 per /gsd:new-milestone scope decision.
+
+**Scope locked via /gsd:new-milestone questioning (2026-04-19):**
+- Endpoint: Manuscript-ready (paper.qmd auto-patched + forest plots/tables + limitations rewrite + `quarto render` passes)
+- Orchestrator: Phase 21 only; Phase 14 deferred to v5.1
+- Dead-code sweep: all 4 items (legacy qlearning, legacy M2 K-bounds, 16b, load-side validation)
+- Cross-verify: prior-predictive + Bayesian recovery regression vs. v4.0 baseline only
+
+**Execution Order:** Phase 23 (cleanup, pre-flight) → Phase 24 (cold-start cluster run — the main event) → Phase 25 (reproducibility regression against v4.0) → Phase 26 (manuscript finalization) → Phase 27 (milestone closure).
+
+#### Phase 23: Tech-Debt Sweep & Pre-Flight Cleanup
+
+**Goal:** Remove residual v4.0 tech debt before the Phase 24 cold-start run so the empirical artifacts are produced against a clean codebase. Four atomic code removals + one audit: (a) delete legacy qlearning hierarchical import path; (b) remove legacy M2 K-bounds [1,7] branch from `mle_utils.py`; (c) delete deprecated `scripts/16b_bayesian_regression.py`; (d) wire `config.load_fits_with_validation` into every downstream NetCDF consumer in scripts 15/16/17/18/21_*. Each removal lands as its own commit with pytest passing. No new scientific functionality — strictly cleanup.
+
+**Depends on:** Phase 22 (v4.0 shipped; v4.0 closure guard green)
+
+**Requirements:** CLEAN-01, CLEAN-02, CLEAN-03, CLEAN-04
+
+**Success Criteria (what must be TRUE):**
+  1. `grep -rn "from scripts.fitting.legacy" scripts/` returns zero live imports; any legacy qlearning file has been deleted (or the directory is empty); `pytest scripts/fitting/tests/ -v` passes.
+  2. `grep -n "1, 7\|\[1,7\]\|K_BOUNDS_LEGACY" scripts/fitting/mle_utils.py` returns no matches; only Collins [2,6] K-bounds path remains; `parameterization_version` vocabulary no longer accepts "legacy"; affected unit tests updated and passing.
+  3. `scripts/16b_bayesian_regression.py` deleted; `find . -name "16b*"` returns nothing; `docs/MODEL_REFERENCE.md` cross-reference updated to remove 16b mention; any cluster SLURM referencing 16b is deleted or updated.
+  4. Every `az.from_netcdf` and `xr.open_dataset` call in `scripts/{15,16,17,18}.py`, `scripts/21_*.py`, and `validation/*.py` uses `config.load_fits_with_validation` wrapper; enforced via new `scripts/fitting/tests/test_load_side_validation.py` grep invariant test that fails CI if a bare NetCDF load is reintroduced.
+  5. `python validation/check_v4_closure.py --milestone v4.0` still exits 0 on Phase-23-complete HEAD — cleanup did not break any v4.0 closure invariant.
+
+**Plans:** 4 plans (draft; planner will finalize)
+
+Plans:
+- [ ] 23-01-PLAN.md (Wave 1) — Delete legacy qlearning import path + grep invariant test
+- [ ] 23-02-PLAN.md (Wave 1, parallel with 23-01) — Remove legacy M2 K-bounds [1,7] branch from mle_utils.py + vocabulary update
+- [ ] 23-03-PLAN.md (Wave 1, parallel with 23-01/23-02) — Delete scripts/16b_bayesian_regression.py + doc cross-reference update
+- [ ] 23-04-PLAN.md (Wave 2, after 23-01/02/03) — Load-side validation audit: wire config.load_fits_with_validation into every downstream NetCDF consumer + grep invariant test
+
+#### Phase 24: Cold-Start Pipeline Execution
+
+**Goal:** Run `bash cluster/21_submit_pipeline.sh` end-to-end from a clean checkout — the main scientific event of v5.0. The 9-step `afterok`-chained pipeline produces prior-predictive → Bayesian recovery → baseline hierarchical fits (6 models) → convergence audit → PSIS-LOO + stacking + RFX-BMS → winner L2 refit → scale audit → model averaging → manuscript tables. Wall-clock expectation: ~50-96 GPU-hours total. Phase output is the full empirical artifact set that Phase 25/26 verify and Phase 26 manuscript-assembles.
+
+**Depends on:** Phase 23 (clean codebase — no tech-debt pollution in cold-start outputs)
+
+**Requirements:** EXEC-01, EXEC-02, EXEC-03, EXEC-04
+
+**Success Criteria (what must be TRUE):**
+  1. `bash cluster/21_submit_pipeline.sh` invoked from project root with a clean working tree completes the 9-step afterok chain with zero SLURM job failures; pre-flight pytest gate (`test_numpyro_models_2cov.py`) passes before any `sbatch` call.
+  2. Every expected artifact exists: `output/bayesian/21_prior_predictive/{model}_prior_sim.nc` × 6, `21_recovery/{model}_recovery.csv` × 6, `21_baseline/{model}_posterior.nc` × 6 + `convergence_table.csv` + `convergence_report.md`, `21_l2/{winner}_posterior.nc` + `{winner}_beta_hdi_table.csv` for each winner, `21_l2/scale_audit_report.md` + `averaged_scale_effects.csv`, `output/bayesian/manuscript/{loo_stacking,rfx_bms,winner_betas}.{csv,md,tex}`, winner-specific forest plot PNGs.
+  3. `output/bayesian/21_execution_log.md` logs SLURM JobID, wall-clock, CPU-hours, GPU-hours, max memory per step; total GPU-hours documented.
+  4. `convergence_table.csv` shows ≥ 2 models meeting Baribault & Collins (2023) gate (R-hat ≤ 1.05 AND ESS_bulk ≥ 400 AND divergences = 0 AND BFMI ≥ 0.2); step 21.5 winner determination is `DOMINANT_SINGLE` or `TOP_TWO` (not `FORCED`, not `INCONCLUSIVE_MULTIPLE`).
+
+**Plans:** 2 plans (draft; planner will finalize)
+
+Plans:
+- [ ] 24-01-PLAN.md (Wave 1) — Pre-flight checks (pytest gate, clean working tree, SLURM queue healthy) + cold-start submission of bash cluster/21_submit_pipeline.sh + per-step artifact monitoring
+- [ ] 24-02-PLAN.md (Wave 2, after pipeline completes) — Post-run artifact audit + `output/bayesian/21_execution_log.md` writeup + convergence-gate verification + winner-determination recording
+
+#### Phase 25: Reproducibility Regression & Closure-Guard Extension
+
+**Goal:** Verify the Phase 24 cold-start outputs reproduce v4.0 baseline artifacts to within seeded-MCMC tolerance, catching any silent regression from the Phase 23 tech-debt sweep. Two regression tests: (a) seeded prior-predictive output byte-identical vs. v4.0 when same seed; within 3 SE when different seed; (b) Bayesian recovery Pearson r ≥ 0.80 for identifiable parameters matches v4.0 baseline; 95% HDI coverage within 5 pp of v4.0. Extends `check_v4_closure.py` with a new `check_v5_closure.py` enforcing v5.0 invariants (phase VERIFICATION files, REQUIREMENTS row count, v5.0 MILESTONES entry, manuscript artifacts exist).
+
+**Depends on:** Phase 24 (needs Phase 21 artifacts for comparison)
+
+**Requirements:** REPRO-01, REPRO-02, REPRO-03, REPRO-04
+
+**Success Criteria (what must be TRUE):**
+  1. `scripts/fitting/tests/test_v5_reproducibility.py` exists and passes; seeded prior-predictive regression against v4.0 baseline NetCDF produces byte-identical samples under same seed, posterior means within 3 SE under different seed.
+  2. Bayesian recovery regression: Pearson r for kappa / kappa_total / kappa_share ≥ 0.80 matches v4.0 thresholds; 95% HDI coverage within 5 pp of v4.0 baseline; regression failure triggers exit 1 in pytest.
+  3. `python validation/check_v4_closure.py --milestone v4.0` exits 0 on Phase-25 HEAD — no v4.0 invariants broken.
+  4. `validation/check_v5_closure.py` exists with ≥ 10 invariants (phase VERIFICATION.md files for 23-27, REQUIREMENTS.md row count grows from 71 to ≥ 92, v5.0 entry in MILESTONES.md, EXEC artifacts exist on disk, `paper.pdf` exists); deterministic (byte-identical double-run diff empty); pytest `test_v5_closure.py` passes 3/3 (happy path, determinism, rejects-wrong-milestone).
+
+**Plans:** 2 plans (draft; planner will finalize)
+
+Plans:
+- [ ] 25-01-PLAN.md (Wave 1) — test_v5_reproducibility.py with prior-predictive + Bayesian recovery regressions against v4.0 baseline
+- [ ] 25-02-PLAN.md (Wave 2, after 25-01) — validation/check_v5_closure.py + scripts/fitting/tests/test_v5_closure.py (3/3 pytest pattern)
+
+#### Phase 26: Manuscript Finalization
+
+**Goal:** Finalize `paper.qmd` with real Phase 24 empirical data — winner names from `loo_stacking_results.csv`, real Pareto-k percentages in limitations, forest plots from real Phase 21.5 winners, and `quarto render` producing `paper.pdf` + `paper.html` without errors. Phase 21's plan 21-10 already auto-patches the Methods section with Quarto `{python}` inline refs; this phase verifies that patch landed with real data, rewrites the limitations section (replacing projected-from-research/PITFALLS.md text with actual Pareto-k diagnostics), regenerates forest plots for the true winner set, and runs `quarto render`.
+
+**Depends on:** Phase 24 (needs real winners and Pareto-k from cold-start) + Phase 25 (trust artifacts are correct)
+
+**Requirements:** MANU-01, MANU-02, MANU-03, MANU-04, MANU-05
+
+**Success Criteria (what must be TRUE):**
+  1. `paper.qmd` Methods `### Bayesian Model Selection Pipeline {#sec-bayesian-selection}` cites real stacking weights via `{python} winner_display` inline ref; `grep -n "M6b received the highest" paper.qmd` returns zero matches (placeholder replaced).
+  2. Forest plots generated via `scripts/18_bayesian_level2_effects.py` for every model in the cold-start winner set; PNGs in `output/bayesian/figures/`; referenced in `paper.qmd` Results via `@fig-forest-{winner}` cross-refs that all resolve in Quarto render.
+  3. Manuscript table artefacts `loo_stacking.{csv,md,tex}`, `rfx_bms.{csv,md,tex}`, `winner_betas.{csv,md,tex}` exist under `output/bayesian/manuscript/`; Quarto cross-refs `@tbl-loo-stacking`, `@tbl-rfx-bms`, `@tbl-winner-betas` resolve in render.
+  4. Limitations section references real `pct_high_pareto_k` values from `loo_stacking_results.csv`; projected-from-PITFALLS.md placeholder text removed.
+  5. `quarto render paper.qmd` exits 0 from project root with no errors; `_output/paper.pdf` and `_output/paper.html` exist and have non-zero size; `validation/check_v5_closure.py` verifies this via subprocess wrapper.
+
+**Plans:** 3 plans (draft; planner will finalize)
+
+Plans:
+- [ ] 26-01-PLAN.md (Wave 1) — paper.qmd Methods + Results verification: winner names, Quarto inline refs, stacking table cross-refs all resolve with real data
+- [ ] 26-02-PLAN.md (Wave 1, parallel with 26-01) — Forest plots for every winner + limitations rewrite with real Pareto-k diagnostics
+- [ ] 26-03-PLAN.md (Wave 2, after 26-01 & 26-02) — `quarto render paper.qmd` + paper.pdf/paper.html existence check + any last-mile Quarto fixes
+
+#### Phase 27: Milestone v5.0 Closure
+
+**Goal:** Archive v5.0, update MILESTONES.md, extend the reproducibility guard, run `/gsd:audit-milestone`, and close. Mirrors the Phase 22 closure pattern from v4.0 — no new functional code, strictly documentation + verification artifacts.
+
+**Depends on:** Phase 23, 24, 25, 26 (all shipped)
+
+**Requirements:** CLOSE-01, CLOSE-02, CLOSE-03, CLOSE-04
+
+**Success Criteria (what must be TRUE):**
+  1. `.planning/MILESTONES.md` has a new "v5.0 Empirical Artifacts & Manuscript Finalization" entry matching v4.0 format (ship date, phase range 23-27, plan count, git range, accomplishments summary).
+  2. Archives at `.planning/milestones/v5.0-ROADMAP.md`, `v5.0-REQUIREMENTS.md`, `v5.0-MILESTONE-AUDIT.md`; top-level ROADMAP.md v5.0 section collapsed into `<details>` block matching v4.0 pattern.
+  3. `/gsd:audit-milestone` re-run on ship-commit produces `status: passed`, no critical gaps, empty `tech_debt` list (or explicit v5.1 deferral references to Phase 14 items, ArviZ 1.0, SBC workflow).
+  4. `validation/check_v5_closure.py` exits 0 on ship-commit; byte-identical double-run diff confirms determinism; `scripts/fitting/tests/test_v5_closure.py` passes 3/3.
+
+**Plans:** 3 plans (draft; planner will finalize)
+
+Plans:
+- [ ] 27-01-PLAN.md (Wave 1) — Status-doc refresh (STATE.md, PROJECT.md Active→Validated, MILESTONES.md v5.0 entry)
+- [ ] 27-02-PLAN.md (Wave 2, after 27-01) — Archive v5.0-ROADMAP.md + v5.0-REQUIREMENTS.md + v5.0-MILESTONE-AUDIT.md; collapse top-level ROADMAP.md v5.0 section
+- [ ] 27-03-PLAN.md (Wave 3, after 27-02) — `/gsd:audit-milestone` run + final closure-guard verification + ship-commit
+
+</details>
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 13 → 14 → 15 → 16 → 17 → 18 → 19 → 20 → 21 → 22
+Phases execute in numeric order: 13 → 14 → 15 → 16 → 17 → 18 → 19 → 20 → 21 → 22 → 23 → 24 → 25 → 26 → 27
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -359,3 +481,8 @@ Phases execute in numeric order: 13 → 14 → 15 → 16 → 17 → 18 → 19 �
 | 20. DEER Non-Linear Parallelization (Research) | v4.0 | 3/3 | Complete | 2026-04-14 |
 | 21. Principled Bayesian Model Selection Pipeline | v4.0 | 11/11 | Complete | 2026-04-18 |
 | 22. Milestone v4.0 Closure | v4.0 | 4/4 | Complete | 2026-04-19 |
+| 23. Tech-Debt Sweep & Pre-Flight Cleanup | v5.0 | 0/4 | Not started | — |
+| 24. Cold-Start Pipeline Execution | v5.0 | 0/2 | Not started | — |
+| 25. Reproducibility Regression & Closure-Guard Extension | v5.0 | 0/2 | Not started | — |
+| 26. Manuscript Finalization | v5.0 | 0/3 | Not started | — |
+| 27. Milestone v5.0 Closure | v5.0 | 0/3 | Not started | — |
