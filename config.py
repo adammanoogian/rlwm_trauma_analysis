@@ -8,8 +8,12 @@ and analysis settings to ensure consistency across all scripts.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import numpy as np
+
+if TYPE_CHECKING:
+    import arviz as az
 
 # ============================================================================
 # PROJECT STRUCTURE
@@ -745,6 +749,100 @@ def load_fits_with_validation(
             f"expected='{expected}', actual={list(actual)}"
         )
     return df
+
+
+def load_netcdf_with_validation(
+    path: "Path",
+    model: str,
+) -> "az.InferenceData":
+    """Load a Bayesian posterior NetCDF and validate basic invariants.
+
+    Companion to :func:`load_fits_with_validation` (which validates CSV
+    fits). This wrapper handles the NetCDF load path and is the
+    single entry point for every downstream Bayesian consumer script.
+
+    Validation contract (v5.0 Phase 23 CLEAN-04):
+
+    1. ``path.exists()`` is True and file size > 0.
+    2. ``az.from_netcdf(path)`` returns a valid ``InferenceData`` with
+       a ``posterior`` group.
+    3. If ``idata.attrs`` contains a ``parameterization_version`` key,
+       it must match ``EXPECTED_PARAMETERIZATION[model]``; mismatch
+       raises :class:`ValueError` with expected vs. actual values.
+    4. If the attr is absent (current v4.0 NetCDF write-side behaviour),
+       emit a :class:`DeprecationWarning` — do NOT raise. Write-side
+       attr retrofit is a v5.1 item tracked in ROADMAP.
+
+    Parameters
+    ----------
+    path : Path
+        Path to the NetCDF file (e.g. ``output/bayesian/wmrl_m3_posterior.nc``).
+    model : str
+        Model name key into :data:`EXPECTED_PARAMETERIZATION`
+        (e.g. ``"wmrl_m3"``). Used for attr validation when present.
+
+    Returns
+    -------
+    az.InferenceData
+        The loaded InferenceData object, validated.
+
+    Raises
+    ------
+    FileNotFoundError
+        If ``path`` does not exist or is empty.
+    ValueError
+        If the file loads but has no ``posterior`` group, or the
+        embedded ``parameterization_version`` attr mismatches.
+    """
+    import warnings
+
+    import arviz as az
+
+    if not path.exists():
+        raise FileNotFoundError(
+            f"NetCDF posterior not found: {path} "
+            f"(expected for model '{model}')"
+        )
+    if path.stat().st_size == 0:
+        raise ValueError(
+            f"NetCDF posterior is empty (0 bytes): {path} "
+            f"(expected for model '{model}')"
+        )
+
+    idata = az.from_netcdf(str(path))
+
+    if not hasattr(idata, "posterior"):
+        raise ValueError(
+            f"{path} loaded but has no 'posterior' group — "
+            f"not a valid Bayesian posterior InferenceData"
+        )
+
+    attrs = getattr(idata, "attrs", {}) or {}
+    actual_version = attrs.get("parameterization_version")
+
+    if actual_version is not None:
+        expected = EXPECTED_PARAMETERIZATION.get(model)
+        if expected is None:
+            raise ValueError(
+                f"Unknown model '{model}' — not in "
+                f"EXPECTED_PARAMETERIZATION registry"
+            )
+        if actual_version != expected:
+            raise ValueError(
+                f"{path} parameterization_version mismatch: "
+                f"expected='{expected}', actual='{actual_version}'"
+            )
+    else:
+        warnings.warn(
+            f"{path} has no 'parameterization_version' attr — "
+            f"cannot hard-validate against EXPECTED_PARAMETERIZATION. "
+            f"v4.0 NetCDF write sites do not emit this attr; retrofit "
+            f"tracked as a v5.1 item. Model: '{model}'.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
+    return idata
 
 
 if __name__ == "__main__":
