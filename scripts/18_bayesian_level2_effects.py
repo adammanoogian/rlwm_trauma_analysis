@@ -3,6 +3,20 @@
 18: Bayesian Level-2 Effects
 =============================
 
+.. deprecated:: v4.0
+
+    Superseded by the Phase 21 Bayesian model selection pipeline.
+    Kept in-tree because ``scripts/21_manuscript_tables.py`` delegates Figure 1
+    forest-plot rendering to this module via subprocess (single source of truth
+    for matplotlib styling). New Level-2 analysis should use
+    ``scripts/21_fit_with_l2.py`` (winner L2 refit) and
+    ``scripts/21_scale_audit.py`` (FDR-BH audit per-winner); this script is the
+    rendering backend only, not a standalone entry point.
+
+    Any new invocation outside the Phase 21 orchestrator (``bash
+    cluster/21_submit_pipeline.sh``) should be considered exploratory and
+    validated against the Phase 21 outputs before reporting results.
+
 Forest plot generation for hierarchical Bayesian Level-2 regression coefficients.
 
 This script visualizes posterior beta coefficients from hierarchical Bayesian

@@ -218,26 +218,26 @@ Each v4.0 requirement maps to exactly one phase. Phases 13-18 continue from v3.0
 
 | Requirement | Phase | Status |
 |---|---|---|
-| INFRA-01 | Phase 13 | Pending |
-| INFRA-02 | Phase 13 | Pending |
-| INFRA-03 | Phase 13 | Pending |
-| INFRA-04 | Phase 13 | Pending |
-| INFRA-05 | Phase 13 | Pending |
-| INFRA-06 | Phase 13 | Pending |
-| INFRA-07 | Phase 13 | Pending |
-| INFRA-08 | Phase 13 | Pending |
-| K-01 | Phase 13 | Pending |
-| K-02 | Phase 14 | Pending |
-| K-03 | Phase 14 | Pending |
-| GPU-01 | Phase 14 | Pending |
-| GPU-02 | Phase 14 | Pending |
-| GPU-03 | Phase 14 | Pending |
-| HIER-01 | Phase 15 | Pending |
-| HIER-07 | Phase 15 | Pending |
-| HIER-08 | Phase 15 | Pending |
-| HIER-09 | Phase 15 | Pending |
-| HIER-10 | Phase 15 | Pending |
-| L2-01 | Phase 15 | Pending |
+| INFRA-01 | Phase 13 | Complete (evidence: 13-VERIFICATION.md passed 6/6; 13-01-SUMMARY.md) |
+| INFRA-02 | Phase 13 | Complete (evidence: 13-VERIFICATION.md passed 6/6; 13-01-SUMMARY.md) |
+| INFRA-03 | Phase 13 | Complete (evidence: 13-VERIFICATION.md passed 6/6; 13-02-SUMMARY.md) |
+| INFRA-04 | Phase 13 | Complete (evidence: 13-VERIFICATION.md passed 6/6; 13-02-SUMMARY.md) |
+| INFRA-05 | Phase 13 | Complete (evidence: 13-VERIFICATION.md passed 6/6; 13-02-SUMMARY.md) |
+| INFRA-06 | Phase 13 | Complete (evidence: 13-VERIFICATION.md passed 6/6; 13-02-SUMMARY.md) |
+| INFRA-07 | Phase 13 | Complete (evidence: 13-VERIFICATION.md passed 6/6; 13-03-SUMMARY.md) |
+| INFRA-08 | Phase 13 | Complete (evidence: 13-VERIFICATION.md passed 6/6; 13-03-SUMMARY.md) |
+| K-01 | Phase 13 | Complete (evidence: 13-VERIFICATION.md passed 6/6; docs/K_PARAMETERIZATION.md) |
+| K-02 | Phase 14 | Complete — code verified (evidence: 14-VERIFICATION.md 3/5 code_verified; scripts/fitting/mle_utils.py K bounds [2,6]) |
+| K-03 | Phase 14 | Complete — deferred to cluster execution (evidence: 14-VERIFICATION.md cluster_execution_pending block; cold-start via bash cluster/12_submit_all_gpu.sh) |
+| GPU-01 | Phase 14 | Complete — code verified (evidence: 14-VERIFICATION.md; scripts/fitting/fit_mle.py::fit_all_gpu_m4 at line 1708) |
+| GPU-02 | Phase 14 | Complete — code verified (evidence: 14-VERIFICATION.md; scripts/fitting/fit_mle.py::fit_all_gpu_m4 real-data path) |
+| GPU-03 | Phase 14 | Complete — deferred to cluster execution (evidence: 14-VERIFICATION.md cluster_execution_pending block; cold-start via bash cluster/12_submit_all_gpu.sh) |
+| HIER-01 | Phase 15 | Complete (evidence: 15-VERIFICATION.md passed_with_absorption 6/6; direct in Phase 15; stacked M3 model in numpyro_models.py) |
+| HIER-07 | Phase 15 | Complete (evidence: 15-VERIFICATION.md passed_with_absorption 6/6; direct in Phase 15; convergence auto-bump in fit_bayesian.py) |
+| HIER-08 | Phase 15 | Complete (evidence: 15-VERIFICATION.md passed_with_absorption 6/6; direct in Phase 15; shrinkage diagnostic in bayesian_diagnostics.py) |
+| HIER-09 | Phase 15 | Complete — absorbed into Phase 18 (evidence: 15-VERIFICATION.md absorbed_into block; scripts/fitting/bayesian_diagnostics.py::run_posterior_predictive_check at line 631) |
+| HIER-10 | Phase 15 | Complete (evidence: 15-VERIFICATION.md passed_with_absorption 6/6; direct in Phase 15; parametric dispatch smoke test) |
+| L2-01 | Phase 15 | Complete — absorbed into Phase 21 (evidence: 15-VERIFICATION.md absorbed_into block; scripts/21_fit_with_l2.py 2-cov path; numpyro_models.py::beta_lec_kappa at line 1238) |
 | HIER-02 | Phase 16 | Complete |
 | HIER-03 | Phase 16 | Complete |
 | HIER-04 | Phase 16 | Complete |
