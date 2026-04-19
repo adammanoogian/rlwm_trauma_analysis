@@ -90,3 +90,6 @@ manuscript/.jupyter_cache/
 # Personal / external documents (not part of the codebase)
 Burrows_J_GDPA_Thesis.*
 
+# Pre-v5 cold-start stash (untracked outputs moved aside before fresh pipeline run)
+_stash_pre_v5_cold_start_*/
+
