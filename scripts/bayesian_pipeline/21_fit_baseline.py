@@ -48,7 +48,7 @@ from pathlib import Path
 # -- Path bootstrap so this script runs both interactively and under SLURM.
 # Mirrors the pattern in scripts/21_run_bayesian_recovery.py line 73-77.
 _THIS_FILE = Path(__file__).resolve()
-_PROJECT_ROOT = _THIS_FILE.parent.parent
+_PROJECT_ROOT = _THIS_FILE.parent.parent.parent
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
