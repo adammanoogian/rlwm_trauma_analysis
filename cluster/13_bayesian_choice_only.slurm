@@ -1,27 +1,40 @@
 #!/bin/bash
 # =============================================================================
-# SLURM Batch Script: M2 Hierarchical Bayesian Fit (Monash M3)
+# SLURM Batch Script: Choice-Only Hierarchical Bayesian Fit (Monash M3)
 # =============================================================================
-# Runs M2 (WM-RL) hierarchical NumPyro fit.
+# Parameterized template for all 6 choice-only models (M1/M2/M3/M5/M6a/M6b).
+# Replaces the 6 per-model templates (13_bayesian_m{1,2,3,5,6a,6b}.slurm).
 # CPU-only (no GPU needed for choice-only models).
 #
 # Usage:
-#   sbatch cluster/13_bayesian_m2.slurm
+#   sbatch --export=ALL,MODEL=wmrl_m3 cluster/13_bayesian_choice_only.slurm
+#   sbatch --export=ALL,MODEL=qlearning cluster/13_bayesian_choice_only.slurm
+#   sbatch --export=ALL,MODEL=wmrl cluster/13_bayesian_choice_only.slurm
+#   sbatch --export=ALL,MODEL=wmrl_m5 cluster/13_bayesian_choice_only.slurm
+#   sbatch --export=ALL,MODEL=wmrl_m6a cluster/13_bayesian_choice_only.slurm
+#
+# M6b requires 36h wall-time due to stick-breaking decode in the 8-parameter
+# model. Submit M6b with an explicit time override:
+#   sbatch --time=36:00:00 --export=ALL,MODEL=wmrl_m6b \
+#     cluster/13_bayesian_choice_only.slurm
 #
 # Outputs saved to:
-#   - output/bayesian/wmrl_individual_fits.csv
-#   - output/bayesian/wmrl_posterior.nc
-#   - output/bayesian/wmrl_shrinkage_report.md
-#   - output/bayesian/wmrl_ppc_results.csv
+#   - output/bayesian/${MODEL}_individual_fits.csv
+#   - output/bayesian/${MODEL}_posterior.nc
+#   - output/bayesian/${MODEL}_shrinkage_report.md
+#   - output/bayesian/${MODEL}_ppc_results.csv
 # =============================================================================
 
-#SBATCH --job-name=bayesian_m2
-#SBATCH --output=logs/bayesian_m2_%j.out
-#SBATCH --error=logs/bayesian_m2_%j.err
+#SBATCH --job-name=bayesian_choice_only
+#SBATCH --output=logs/bayesian_choice_only_%j.out
+#SBATCH --error=logs/bayesian_choice_only_%j.err
 #SBATCH --time=24:00:00
 #SBATCH --mem=64G
 #SBATCH --cpus-per-task=4
 #SBATCH --partition=comp
+
+# --- Model selection (override via --export=ALL,MODEL=<name>) ---
+MODEL="${MODEL:-wmrl_m3}"
 
 # --- Environment Setup (matches 12_mle_gpu.slurm pattern) ---
 module load miniforge3
@@ -31,11 +44,12 @@ cd "${SLURM_SUBMIT_DIR:-$(dirname "$0")/..}"
 PROJECT_ROOT="$(pwd)"
 
 echo "============================================================"
-echo "M2 (WM-RL) Hierarchical Bayesian Fit"
+echo "Choice-Only Hierarchical Bayesian Fit"
 echo "============================================================"
 echo "Job ID: ${SLURM_JOB_ID:-local}"
 echo "Node: ${SLURMD_NODENAME:-$(hostname)}"
 echo "Project: $PROJECT_ROOT"
+echo "Model: $MODEL"
 echo "Start time: $(date)"
 echo "============================================================"
 
@@ -77,12 +91,12 @@ echo "JAX cache: ${JAX_COMPILATION_CACHE_DIR:-disabled}"
 mkdir -p logs
 mkdir -p output/bayesian
 
-# --- Run M2 hierarchical fit ---
+# --- Run hierarchical fit ---
 echo ""
-echo "[$(date)] Starting M2 (WM-RL) hierarchical Bayesian fit"
+echo "[$(date)] Starting ${MODEL} hierarchical Bayesian fit"
 
 python scripts/fitting/fit_bayesian.py \
-    --model wmrl \
+    --model "$MODEL" \
     --data output/task_trials_long.csv \
     --chains 4 \
     --warmup 1000 \
@@ -93,18 +107,18 @@ python scripts/fitting/fit_bayesian.py \
 EXIT_CODE=$?
 
 echo ""
-echo "[$(date)] M2 hierarchical fit finished (exit code: $EXIT_CODE)"
+echo "[$(date)] ${MODEL} hierarchical fit finished (exit code: $EXIT_CODE)"
 
 if [ $EXIT_CODE -eq 0 ]; then
     echo "Expected outputs:"
-    for f in output/bayesian/wmrl_individual_fits.csv \
-             output/bayesian/wmrl_posterior.nc \
-             output/bayesian/wmrl_shrinkage_report.md \
-             output/bayesian/wmrl_ppc_results.csv; do
+    for f in "output/bayesian/${MODEL}_individual_fits.csv" \
+             "output/bayesian/${MODEL}_posterior.nc" \
+             "output/bayesian/${MODEL}_shrinkage_report.md" \
+             "output/bayesian/${MODEL}_ppc_results.csv"; do
         if [ -f "$f" ]; then
-            echo "  ✓ $f ($(du -h "$f" | cut -f1))"
+            echo "  [OK] $f ($(du -h "$f" | cut -f1))"
         else
-            echo "  ✗ $f (MISSING — convergence gate may have blocked writes)"
+            echo "  [MISSING] $f (convergence gate may have blocked writes)"
         fi
     done
 else
