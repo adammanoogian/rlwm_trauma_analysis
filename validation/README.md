@@ -218,3 +218,14 @@ open htmlcov/index.html
 - [pytest.ini](../pytest.ini) - Test configuration
 - [requirements-dev.txt](../requirements-dev.txt) - Development dependencies
 - [docs/ANALYSIS_PIPELINE.md](../docs/ANALYSIS_PIPELINE.md) - Full workflow including testing
+
+## Legacy Files
+
+Files moved to `validation/legacy/` (superseded, retained for git history only):
+
+- `validation/legacy/check_phase_23_1_smoke.py` — Phase 23.1 smoke guard; Phase 23.1 is complete, no active caller.
+- `validation/legacy/diagnose_gpu.py` — pre-Phase-21 GPU diagnostic; superseded by cluster-integrated diagnostics.
+
+Deleted (was a self-skipping placeholder with zero test value):
+
+- `validation/test_fitting_quick.py` — legacy fitting test, deleted in Phase 28 cleanup.
