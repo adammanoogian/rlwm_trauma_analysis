@@ -107,7 +107,7 @@ mkdir -p logs
 echo ""
 echo "[$(date)] Starting Step 21.9 manuscript tables"
 
-python scripts/21_manuscript_tables.py \
+python scripts/bayesian_pipeline/21_manuscript_tables.py \
     --baseline-dir "$BASELINE_DIR" \
     --l2-dir "$L2_DIR" \
     --figures-dir "$FIGURES_DIR" \

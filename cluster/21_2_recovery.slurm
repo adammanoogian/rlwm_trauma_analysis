@@ -43,7 +43,7 @@ MODEL="${MODEL:-wmrl_m3}"
 N_SUBJECTS="${N_SUBJECTS:-50}"
 SEED_BASE="${SEED_BASE:-1000}"
 
-# --- Environment Setup (matches 13_bayesian_m6b.slurm pattern) ---
+# --- Environment Setup (matches Bayesian choice-only template pattern) ---
 module load miniforge3
 
 # Navigate to project directory
@@ -111,7 +111,7 @@ echo "[$(date)] Starting single-subject recovery fit"
 echo "  SUBJECT_IDX=$SUBJECT_IDX"
 echo "  SUBJECT_SEED=$SUBJECT_SEED"
 
-python scripts/21_run_bayesian_recovery.py \
+python scripts/bayesian_pipeline/21_run_bayesian_recovery.py \
     --mode single-subject \
     --model "$MODEL" \
     --subject-idx "$SUBJECT_IDX" \

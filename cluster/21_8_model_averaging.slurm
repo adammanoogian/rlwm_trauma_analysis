@@ -124,7 +124,7 @@ mkdir -p logs
 echo ""
 echo "[$(date)] Starting Step 21.8 model averaging"
 
-python scripts/21_model_averaging.py \
+python scripts/bayesian_pipeline/21_model_averaging.py \
     --l2-dir "$L2_DIR" \
     --stacking-results "$STACKING_RESULTS" \
     --winners-file "$WINNERS_FILE" \

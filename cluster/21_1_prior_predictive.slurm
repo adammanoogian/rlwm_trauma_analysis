@@ -33,7 +33,7 @@ MODEL="${MODEL:-wmrl_m3}"
 NUM_DRAWS="${NUM_DRAWS:-500}"
 SEED="${SEED:-42}"
 
-# --- Environment Setup (matches 13_bayesian_m6b.slurm pattern) ---
+# --- Environment Setup (matches Bayesian choice-only template pattern) ---
 module load miniforge3
 
 # Navigate to project directory
@@ -93,7 +93,7 @@ mkdir -p output/bayesian/21_prior_predictive
 echo ""
 echo "[$(date)] Starting step 21.1 prior-predictive gate for MODEL=${MODEL}"
 
-python scripts/21_run_prior_predictive.py \
+python scripts/bayesian_pipeline/21_run_prior_predictive.py \
     --model "$MODEL" \
     --data output/task_trials_long.csv \
     --num-draws "$NUM_DRAWS" \

@@ -51,7 +51,7 @@ CHAINS="${CHAINS:-4}"
 SEED="${SEED:-42}"
 MAX_TREE_DEPTH="${MAX_TREE_DEPTH:-10}"
 
-# --- Environment Setup (matches cluster/13_bayesian_m6b.slurm pattern) ---
+# --- Environment Setup (matches Bayesian choice-only template pattern) ---
 module load miniforge3
 
 # Navigate to project directory
@@ -119,7 +119,7 @@ mkdir -p logs
 echo ""
 echo "[$(date)] Starting Step 21.3 baseline hierarchical Bayesian fit for $MODEL"
 
-python scripts/21_fit_baseline.py \
+python scripts/bayesian_pipeline/21_fit_baseline.py \
     --model "$MODEL" \
     --data output/task_trials_long.csv \
     --chains "$CHAINS" \

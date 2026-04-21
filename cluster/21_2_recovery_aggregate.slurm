@@ -38,7 +38,7 @@
 MODEL="${MODEL:-wmrl_m3}"
 N_SUBJECTS="${N_SUBJECTS:-50}"
 
-# --- Environment Setup (matches 13_bayesian_m6b.slurm pattern) ---
+# --- Environment Setup (matches Bayesian choice-only template pattern) ---
 module load miniforge3
 
 # Navigate to project directory
@@ -85,7 +85,7 @@ mkdir -p output/bayesian/21_recovery
 echo ""
 echo "[$(date)] Running aggregation for MODEL=$MODEL (n_subjects=$N_SUBJECTS)"
 
-python scripts/21_run_bayesian_recovery.py \
+python scripts/bayesian_pipeline/21_run_bayesian_recovery.py \
     --mode aggregate \
     --model "$MODEL" \
     --n-subjects "$N_SUBJECTS" \

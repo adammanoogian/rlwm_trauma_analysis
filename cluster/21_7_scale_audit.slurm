@@ -116,7 +116,7 @@ mkdir -p logs
 echo ""
 echo "[$(date)] Starting Step 21.7 scale-fit audit"
 
-python scripts/21_scale_audit.py \
+python scripts/bayesian_pipeline/21_scale_audit.py \
     --l2-dir "$L2_DIR" \
     --baseline-dir "$BASELINE_DIR" \
     --winners-file "$WINNERS_FILE" \
