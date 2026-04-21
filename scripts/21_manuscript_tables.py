@@ -743,7 +743,7 @@ def generate_figure1_forest(
         out_png = figures_dir / f"forest_{internal}.png"
         cmd = [
             sys.executable,
-            "scripts/18_bayesian_level2_effects.py",
+            "scripts/post_mle/18_bayesian_level2_effects.py",
             "--posterior-path",
             str(posterior),
         ]

@@ -17,7 +17,7 @@ import pandas as pd
 import numpy as np
 
 # Add utils to path
-sys.path.append(os.path.join(os.path.dirname(__file__), 'utils'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'utils'))
 
 from scoring_functions import calculate_all_task_metrics
 

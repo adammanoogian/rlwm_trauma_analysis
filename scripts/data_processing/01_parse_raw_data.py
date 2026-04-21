@@ -29,10 +29,10 @@ import pandas as pd
 from tqdm import tqdm
 
 # Add project root to path for imports
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 # Add utils to path
-sys.path.append(str(Path(__file__).resolve().parent / 'utils'))
+sys.path.append(str(Path(__file__).resolve().parents[1] / 'utils'))
 from data_cleaning import (
     extract_demographics,
     extract_survey1_data,

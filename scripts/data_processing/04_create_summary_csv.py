@@ -22,12 +22,12 @@ import sys
 import pandas as pd
 
 # Add project root to path for config import
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from config import EXCLUDED_PARTICIPANTS, DataParams
 
 # Add utils to path
-sys.path.append(os.path.join(os.path.dirname(__file__), 'utils'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'utils'))
 
 from scoring_functions import calculate_all_task_metrics, score_ies_r, score_less
 
