@@ -11,9 +11,9 @@ See: .planning/PROJECT.md (updated 2026-04-19 — v5.0 Empirical Artifacts & Man
 
 Milestone: v5.0 Empirical Artifacts & Manuscript Finalization (started 2026-04-19)
 Phase: 28 of 28 (28-bayesian-first-restructure-repo-cleanup) — IN PROGRESS 2026-04-21
-Plan: 04 of 11 in phase 28 (Wave 2 in progress; 28-04 COMPLETE — atomic commit 0f15fcf)
-Status: Phase 28 Wave 2 in progress; 28-04 done. Awaiting 28-02, 28-03, 28-05, 28-07, 28-09.
-Next: Wave 2 parallel plans 28-02, 28-03, 28-05, 28-07, 28-09 completing concurrently. Wave 3 (28-06) unblocks after Wave 2.
+Plan: 05 of 11 in phase 28 (Wave 2 in progress; 28-05 COMPLETE — moves in 0f15fcf/5ada618, SUMMARY docs commit pending)
+Status: Phase 28 Wave 2 in progress; 28-04 and 28-05 done. Awaiting 28-02, 28-03, 28-07, 28-09.
+Next: Wave 2 parallel plans 28-02, 28-03, 28-07, 28-09 completing concurrently. Wave 3 (28-06) unblocks after Wave 2.
 
 Last activity: 2026-04-21 — **Plan 28-04 complete (simulations/recovery grouping atomic commit 0f15fcf).** Four scripts (09 x2, 10, 11) moved to scripts/simulations_recovery/ via git mv; scripts/simulations_recovery/__init__.py created; cluster/09_ppc_gpu.slurm invocation updated. Smoke tests 3/3, pytest closure guard 3/3 PASS. cluster/13_full_pipeline.slurm stale refs deferred to Wave 4 (plans 28-06/28-08). SUMMARY: .planning/phases/28-bayesian-first-restructure-repo-cleanup/28-04-simulations-recovery-group-SUMMARY.md. Prior: 2026-04-21 — **Plan 28-01 complete (src/ consolidation atomic commit 1f06ee7).** Deleted environments/ and models/ shim packages, git-moved 3 JAX/NumPyro math modules to src/rlwm/fitting/, updated 44 call sites to canonical rlwm.* imports. All grep invariants zero, v4 closure guard 3/3 PASS, test collection clean. Wave 2 unblocked. SUMMARY: .planning/phases/28-bayesian-first-restructure-repo-cleanup/28-01-src-consolidation-SUMMARY.md. Prior: 2026-04-19 — **Phase 23 complete (4/4 plans, all CLEAN-01..04 closed).** 23-VERIFICATION.md: status=passed, score=4/4 must-haves verified, 7/7 guard tests green, v4.0 closure guard 5/5 exit 0. 12 atomic commits landed on main (4 plans × 3: guard-red → code-green → docs). Pre-existing Windows CPU JAX M4-integration fatal and GPU-marked M4 tests confirmed environmental (not Phase 23 regressions) — v4.0 milestone-audit cluster-pending items cover them. Prior: Completed 23-04-PLAN.md (NetCDF load-side validation CLEAN-04: load_netcdf_with_validation added to config.py; 15 az.from_netcdf call sites rewired across 13 files; grep invariant guard installed; CLEAN-04 closed)
 
