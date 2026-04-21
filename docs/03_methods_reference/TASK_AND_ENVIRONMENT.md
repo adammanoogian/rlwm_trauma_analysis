@@ -119,7 +119,7 @@ The RLWM task is a probabilistic stimulus-response learning paradigm that probes
 
 ### 3.1 File Location
 
-`environments/rlwm_env.py`
+`src/rlwm/envs/rlwm_env.py`
 
 ### 3.2 Class: RLWMEnv
 
@@ -219,7 +219,7 @@ Returns:
 ### 3.6 Factory Function
 
 ```python
-from environments.rlwm_env import create_rlwm_env
+from rlwm.envs.rlwm_env import create_rlwm_env
 
 env = create_rlwm_env(
     set_size: Optional[int] = None,
@@ -236,7 +236,7 @@ env = create_rlwm_env(
 ### 4.1 Basic Usage
 
 ```python
-from environments.rlwm_env import create_rlwm_env
+from rlwm.envs.rlwm_env import create_rlwm_env
 
 # Create environment with set size 3
 env = create_rlwm_env(set_size=3, phase_type='main_task', seed=42)
@@ -284,8 +284,8 @@ for block_idx, set_size in enumerate(set_sizes):
 ### 4.3 With RL Agent
 
 ```python
-from environments.rlwm_env import create_rlwm_env
-from models.q_learning import create_q_learning_agent
+from rlwm.envs.rlwm_env import create_rlwm_env
+from rlwm.models.q_learning import create_q_learning_agent
 
 # Create environment and agent
 env = create_rlwm_env(set_size=3, seed=42)
@@ -315,7 +315,7 @@ print(f"Final accuracy: {info['accuracy']:.3f}")
 ### 4.4 Using Actual Task Sequences
 
 ```python
-from environments.task_config import TaskSequenceLoader
+from rlwm.envs.task_config import TaskSequenceLoader
 
 # Load sequence 0
 loader = TaskSequenceLoader()
@@ -401,7 +401,7 @@ TaskParams.FEEDBACK_DURATION    # 500
 Run the built-in environment test:
 
 ```bash
-python environments/rlwm_env.py
+python src/rlwm/envs/rlwm_env.py
 ```
 
 This will create an environment, run 20 trials with random actions, and display trial-by-trial output including reversals.

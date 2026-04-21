@@ -36,10 +36,10 @@ For GPU-accelerated model fitting, see [cluster execution](#cluster-execution).
 Parse raw jsPsych JSON exports into analysis-ready CSV files.
 
 ```bash
-python scripts/01_parse_raw_data.py         # Parse raw jsPsych data
-python scripts/02_create_collated_csv.py     # Collate all participants (wide format)
-python scripts/03_create_task_trials_csv.py  # Trial-level data (long format)
-python scripts/04_create_summary_csv.py      # Summary metrics per participant
+python scripts/data_processing/01_parse_raw_data.py         # Parse raw jsPsych data
+python scripts/data_processing/02_create_collated_csv.py     # Collate all participants (wide format)
+python scripts/data_processing/03_create_task_trials_csv.py  # Trial-level data (long format)
+python scripts/data_processing/04_create_summary_csv.py      # Summary metrics per participant
 ```
 
 **Outputs:**
@@ -62,10 +62,10 @@ python scripts/04_create_summary_csv.py      # Summary metrics per participant
 Generate descriptive statistics, visualizations, trauma group classifications, and statistical tests.
 
 ```bash
-python scripts/05_summarize_behavioral_data.py    # Behavioral summary stats
-python scripts/06_visualize_task_performance.py    # Learning curves, set-size effects
-python scripts/07_analyze_trauma_groups.py         # Trauma grouping + validation
-python scripts/08_run_statistical_analyses.py      # ANOVAs + descriptive tables
+python scripts/behavioral/05_summarize_behavioral_data.py    # Behavioral summary stats
+python scripts/behavioral/06_visualize_task_performance.py    # Learning curves, set-size effects
+python scripts/behavioral/07_analyze_trauma_groups.py         # Trauma grouping + validation
+python scripts/behavioral/08_run_statistical_analyses.py      # ANOVAs + descriptive tables
 ```
 
 ### Trauma Group Methodology
@@ -93,10 +93,10 @@ The script also runs hierarchical clustering (Ward linkage) as a data-driven val
 Generate synthetic data and validate the fitting pipeline.
 
 ```bash
-python scripts/09_generate_synthetic_data.py       # Posterior predictive checks
-python scripts/09_run_ppc.py                        # PPC analysis
-python scripts/10_run_parameter_sweep.py            # Systematic parameter exploration
-python scripts/11_run_model_recovery.py             # Parameter/model recovery
+python scripts/simulations_recovery/09_generate_synthetic_data.py  # Synthetic data generation
+python scripts/simulations_recovery/09_run_ppc.py                   # PPC analysis
+python scripts/simulations_recovery/10_run_parameter_sweep.py       # Systematic parameter exploration
+python scripts/simulations_recovery/11_run_model_recovery.py        # Parameter/model recovery
 ```
 
 **Use cases:**
@@ -205,10 +205,10 @@ Relate fitted model parameters to trauma measures.
 
 ```bash
 # Parameter group comparisons (trauma groups × fitted parameters)
-python scripts/15_analyze_mle_by_trauma.py --model all
+python scripts/post_mle/15_analyze_mle_by_trauma.py --model all
 
 # Continuous regression (parameters ~ LEC-5 + IES-R subscales)
-python scripts/16_regress_parameters_on_scales.py --model all
+python scripts/post_mle/16_regress_parameters_on_scales.py --model all
 ```
 
 ### Stage 5b: Winner Heterogeneity (Script 17)
@@ -216,7 +216,7 @@ python scripts/16_regress_parameters_on_scales.py --model all
 Analyze per-participant model-selection heterogeneity: what fraction of participants are best fit by each model, and how does this vary by trauma group.
 
 ```bash
-python scripts/17_analyze_winner_heterogeneity.py
+python scripts/post_mle/17_analyze_winner_heterogeneity.py
 ```
 
 **Inputs:** `output/model_comparison/` (from script 14)
@@ -229,7 +229,7 @@ python scripts/17_analyze_winner_heterogeneity.py
 Forest plots of Level-2 regression coefficients (trauma predictors × model parameters) from the hierarchical Bayesian posterior. Runs only after cluster Bayesian fit completes.
 
 ```bash
-python scripts/18_bayesian_level2_effects.py
+python scripts/post_mle/18_bayesian_level2_effects.py
 ```
 
 **Inputs:** `output/bayesian/{model}_posterior.nc` (generated after cluster Bayesian fit)

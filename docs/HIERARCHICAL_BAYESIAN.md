@@ -33,7 +33,7 @@ model parameters**, not as a post-hoc step.
 
 A second-stage regression against covariates NOT in the MCMC design matrix.
 Already partially achievable by running
-`scripts/18_bayesian_level2_effects.py` on the posterior NetCDF (descriptive
+`scripts/post_mle/18_bayesian_level2_effects.py` on the posterior NetCDF (descriptive
 output, not re-fit).  Not necessary for v4.0 validation because LEC is
 already in the joint design.
 

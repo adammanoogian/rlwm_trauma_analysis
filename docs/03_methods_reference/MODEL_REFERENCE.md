@@ -1435,9 +1435,9 @@ column names identical to the MLE CSVs plus:
 - `max_rhat`, `min_ess_bulk`, `num_divergences`
 - `converged` (bool), `parameterization_version`
 
-This schema parity enables `scripts/15_analyze_mle_by_trauma.py`,
-`scripts/16_regress_parameters_on_scales.py`, and
-`scripts/17_analyze_winner_heterogeneity.py` to operate on either MLE or
+This schema parity enables `scripts/post_mle/15_analyze_mle_by_trauma.py`,
+`scripts/post_mle/16_regress_parameters_on_scales.py`, and
+`scripts/post_mle/17_analyze_winner_heterogeneity.py` to operate on either MLE or
 Bayesian fits via a `--source mle|bayesian` flag with zero analysis-logic
 changes.
 
@@ -1447,5 +1447,5 @@ changes.
 
 - **Task/Environment**: `docs/TASK_AND_ENVIRONMENT.md`
 - **Configuration**: `config.py`
-- **Agent Classes**: `models/q_learning.py`, `models/wm_rl_hybrid.py`
+- **Agent Classes**: `src/rlwm/models/q_learning.py`, `src/rlwm/models/wm_rl_hybrid.py`
 - **K Bounds Rationale**: `docs/K_PARAMETERIZATION.md`

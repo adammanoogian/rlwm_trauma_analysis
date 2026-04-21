@@ -65,63 +65,83 @@ This file contains project-specific instructions for Claude Code when working on
 
 ### Numbered Pipeline Scripts
 
-The analysis pipeline uses numbered scripts (01-16) for sequential processing:
+The analysis pipeline uses numbered scripts grouped by stage:
 
 ```
 scripts/
-├── 01-04: Data Processing
+├── data_processing/          # Stage 01-04: Data Processing
 │   ├── 01_parse_raw_data.py         # Parse raw jsPsych JSON files
 │   ├── 02_create_collated_csv.py    # Collate all participants
 │   ├── 03_create_task_trials_csv.py # Create trial-level data
 │   └── 04_create_summary_csv.py     # Create participant summaries
 │
-├── 05-08: Behavioral Analysis
+├── behavioral/               # Stage 05-08: Behavioral Analysis
 │   ├── 05_summarize_behavioral_data.py    # Behavioral summary stats
 │   ├── 06_visualize_task_performance.py   # Task performance plots
 │   ├── 07_analyze_trauma_groups.py        # Trauma grouping + validation
 │   └── 08_run_statistical_analyses.py     # ANOVAs + descriptive tables
 │
-├── 09-11: Simulations & Model Validation
-│   ├── 09_generate_synthetic_data.py      # Posterior predictive checks
+├── simulations_recovery/     # Stage 09-11: Simulations & Model Validation
+│   ├── 09_generate_synthetic_data.py      # Synthetic data generation
+│   ├── 09_run_ppc.py                      # Posterior predictive checks
 │   ├── 10_run_parameter_sweep.py          # Systematic parameter exploration
-│   └── 11_run_model_recovery.py           # Parameter recovery validation
+│   └── 11_run_model_recovery.py           # Parameter/model recovery
 │
-├── 12-14: Model Fitting
-│   ├── 12_fit_mle.py                      # MLE fitting (main CLI)
-│   ├── 13_fit_bayesian.py                 # Bayesian fitting (optional)
-│   └── 14_compare_models.py               # Model comparison + winning model
+├── 12_fit_mle.py             # Stage 12: MLE fitting (top-level entry point)
+├── 13_fit_bayesian.py        # Stage 13: Bayesian fitting (top-level entry point)
+├── 14_compare_models.py      # Stage 14: Model comparison (top-level entry point)
 │
-├── 15-16: Results Analysis
+├── post_mle/                 # Stage 15-18: Post-MLE + Rendering Backend
 │   ├── 15_analyze_mle_by_trauma.py        # Parameter-trauma relationships
-│   └── 16_regress_parameters_on_scales.py # Continuous scale regressions
+│   ├── 16_regress_parameters_on_scales.py # Continuous scale regressions
+│   ├── 17_analyze_winner_heterogeneity.py # Per-participant winner analysis
+│   └── 18_bayesian_level2_effects.py      # Level-2 rendering backend
 │
-├── analysis/    # Library module (imported by numbered scripts)
-├── fitting/     # Library module (JAX likelihoods, MLE/Bayesian fitting)
-├── simulations/ # Library module (synthetic data generation)
-└── utils/       # Library module (data loading, plotting)
+├── bayesian_pipeline/        # Stage 21: Bayesian Pipeline (9 steps)
+│   ├── 21_run_prior_predictive.py   # Prior predictive checks
+│   ├── 21_run_bayesian_recovery.py  # Parameter recovery
+│   ├── 21_fit_baseline.py           # Baseline MCMC fit
+│   ├── 21_baseline_audit.py         # Convergence + diagnostics
+│   ├── 21_compute_loo_stacking.py   # LOO-PSIS stacking weights
+│   ├── 21_fit_with_l2.py            # Level-2 trauma regression
+│   ├── 21_scale_audit.py            # Scale orthogonalization audit
+│   ├── 21_model_averaging.py        # Posterior model averaging
+│   └── 21_manuscript_tables.py      # Manuscript table rendering
+│
+└── fitting/                  # Orchestrators + utilities
+    ├── fit_mle.py            # MLE fitting implementation
+    ├── fit_bayesian.py       # Bayesian fitting implementation
+    ├── mle_utils.py          # MLE utilities (transforms, info criteria)
+    ├── bms.py                # Bayesian model selection
+    └── tests/                # Test suite
+        ├── conftest.py       # Shared fixtures
+        ├── test_v4_closure.py        # Closure invariant tests
+        └── test_load_side_validation.py  # Load-side validation
 ```
 
-### Fitting Library Module
+### Library (src/rlwm/)
 
 ```
-scripts/fitting/
-├── jax_likelihoods.py    # Core likelihood functions (JAX)
-├── numpyro_models.py     # Hierarchical Bayesian models
-├── mle_utils.py          # MLE utilities (transforms, info criteria)
-├── fit_mle.py            # MLE fitting implementation
-├── fit_bayesian.py       # Bayesian fitting implementation
-└── tests/                # Test suite
-    ├── conftest.py       # Shared fixtures (synthetic data)
-    ├── test_mle_quick.py # MLE parameter recovery tests
-    └── test_wmrl_model.py # Bayesian model compilation tests
+src/rlwm/
+├── fitting/
+│   ├── jax_likelihoods.py    # Core JAX likelihood functions (authoritative)
+│   ├── numpyro_models.py     # Hierarchical Bayesian models (authoritative)
+│   └── numpyro_helpers.py    # NumPyro sampling utilities
+├── envs/
+│   └── rlwm_env.py           # Gym environment
+└── models/
+    ├── q_learning.py         # Q-learning agent class
+    └── wm_rl_hybrid.py       # WM-RL hybrid agent class
 ```
+
+Install with `pip install -e .` (required to import `rlwm`).
 
 ### Key Files
 
 - `config.py` - Central configuration (task params, model defaults)
-- `environments/rlwm_env.py` - Gym environment
-- `models/q_learning.py` - Agent class for Q-learning
-- `models/wm_rl_hybrid.py` - Agent class for WM-RL
+- `src/rlwm/envs/rlwm_env.py` - Gym environment
+- `src/rlwm/models/q_learning.py` - Agent class for Q-learning
+- `src/rlwm/models/wm_rl_hybrid.py` - Agent class for WM-RL
 
 ### Data Pipeline
 
@@ -140,10 +160,10 @@ scripts/fitting/
 **Fitting with Practice Data:**
 ```bash
 # MLE fitting with practice blocks
-python scripts/fitting/fit_mle.py --model qlearning --data output/task_trials_long_all.csv --include-practice
+python scripts/12_fit_mle.py --model qlearning --data output/task_trials_long_all.csv --include-practice
 
 # Bayesian fitting with practice blocks
-python scripts/fitting/fit_bayesian.py --model qlearning --data output/task_trials_long_all.csv --include-practice
+python scripts/13_fit_bayesian.py --model qlearning --data output/task_trials_long_all.csv --include-practice
 ```
 
 ---
@@ -169,18 +189,18 @@ python scripts/fitting/fit_bayesian.py --model qlearning --data output/task_tria
 
 ```bash
 # Data Processing (01-04)
-python scripts/01_parse_raw_data.py
-python scripts/02_create_collated_csv.py
-python scripts/03_create_task_trials_csv.py
-python scripts/04_create_summary_csv.py
+python scripts/data_processing/01_parse_raw_data.py
+python scripts/data_processing/02_create_collated_csv.py
+python scripts/data_processing/03_create_task_trials_csv.py
+python scripts/data_processing/04_create_summary_csv.py
 
 # Behavioral Analysis (05-08)
-python scripts/05_summarize_behavioral_data.py
-python scripts/06_visualize_task_performance.py
-python scripts/07_analyze_trauma_groups.py
-python scripts/08_run_statistical_analyses.py
+python scripts/behavioral/05_summarize_behavioral_data.py
+python scripts/behavioral/06_visualize_task_performance.py
+python scripts/behavioral/07_analyze_trauma_groups.py
+python scripts/behavioral/08_run_statistical_analyses.py
 
-# Model Fitting (12-14)
+# Model Fitting (12-14; unchanged location)
 python scripts/12_fit_mle.py --model qlearning
 python scripts/12_fit_mle.py --model wmrl
 python scripts/12_fit_mle.py --model wmrl_m3
@@ -190,9 +210,10 @@ python scripts/12_fit_mle.py --model wmrl_m6b
 python scripts/12_fit_mle.py --model wmrl_m4
 python scripts/14_compare_models.py
 
-# Results Analysis (15-16)
-python scripts/15_analyze_mle_by_trauma.py --model all   # all 7 models
-python scripts/16_regress_parameters_on_scales.py --model all  # all 7 models
+# Post-MLE Results Analysis (15-17)
+python scripts/post_mle/15_analyze_mle_by_trauma.py --model all
+python scripts/post_mle/16_regress_parameters_on_scales.py --model all
+python scripts/post_mle/17_analyze_winner_heterogeneity.py
 ```
 
 ### Run MLE Fitting (Fast, Point Estimates)
@@ -226,20 +247,46 @@ python scripts/12_fit_mle.py --model wmrl_m5 --data output/task_trials_long.csv 
 python scripts/12_fit_mle.py --model wmrl_m5 --data output/task_trials_long.csv --use-gpu
 ```
 
+### Run Bayesian Pipeline (Full Hierarchical Fit)
+
+```bash
+# Full 9-step afterok chain (recommended; runs on cluster)
+bash cluster/21_submit_pipeline.sh
+
+# Individual steps (scripts/bayesian_pipeline/)
+python scripts/bayesian_pipeline/21_run_prior_predictive.py
+python scripts/bayesian_pipeline/21_run_bayesian_recovery.py
+python scripts/bayesian_pipeline/21_fit_baseline.py
+python scripts/bayesian_pipeline/21_baseline_audit.py
+python scripts/bayesian_pipeline/21_compute_loo_stacking.py
+python scripts/bayesian_pipeline/21_fit_with_l2.py
+python scripts/bayesian_pipeline/21_scale_audit.py
+python scripts/bayesian_pipeline/21_model_averaging.py
+python scripts/bayesian_pipeline/21_manuscript_tables.py
+```
+
 ### Cluster Execution (Monash M3)
 
 ```bash
-# CPU parallel (16 cores, ~3 min per model)
+# MLE: CPU parallel (16 cores, ~3 min per model)
 sbatch cluster/12_mle.slurm
 
-# GPU-accelerated (requires rlwm_gpu env)
+# MLE: GPU-accelerated (requires rlwm_gpu env)
 sbatch cluster/12_mle_gpu.slurm
 
-# All 3 models as independent GPU jobs (recommended)
+# MLE: all models as independent GPU jobs (recommended)
 bash cluster/12_submit_all_gpu.sh
 
-# Single model with custom settings
+# MLE: single model with custom settings
 sbatch --export=MODEL=wmrl_m3,NJOBS=8 cluster/12_mle.slurm
+
+# Bayesian: consolidated template (choice-only models)
+sbatch --export=ALL,MODEL=wmrl_m3 cluster/13_bayesian_choice_only.slurm
+sbatch --export=ALL,MODEL=wmrl_m5 cluster/13_bayesian_choice_only.slurm
+sbatch --time=36:00:00 --export=ALL,MODEL=wmrl_m6b cluster/13_bayesian_choice_only.slurm
+
+# Bayesian: GPU template (M4 LBA only)
+sbatch cluster/13_bayesian_gpu.slurm
 ```
 
 ### Run Bayesian Fitting (Hierarchical, Posterior Distributions)
@@ -275,7 +322,7 @@ python scripts/14_compare_models.py --use-waic
 
 ```bash
 # Validate all choice-only models are distinguishable by AIC
-python scripts/11_run_model_recovery.py --mode cross-model --model all --n-subjects 50 --n-datasets 10 --n-jobs 8
+python scripts/simulations_recovery/11_run_model_recovery.py --mode cross-model --model all --n-subjects 50 --n-datasets 10 --n-jobs 8
 ```
 
 ### Run Tests

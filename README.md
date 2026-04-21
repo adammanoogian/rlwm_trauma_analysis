@@ -19,32 +19,32 @@ Scripts are numbered by stage; each depends on the previous.
 
 ```bash
 # Data processing (01-04)
-python scripts/01_parse_raw_data.py
-python scripts/02_create_collated_csv.py
-python scripts/03_create_task_trials_csv.py
-python scripts/04_create_summary_csv.py
+python scripts/data_processing/01_parse_raw_data.py
+python scripts/data_processing/02_create_collated_csv.py
+python scripts/data_processing/03_create_task_trials_csv.py
+python scripts/data_processing/04_create_summary_csv.py
 
 # Behavioral analysis (05-08)
-python scripts/05_summarize_behavioral_data.py
-python scripts/06_visualize_task_performance.py
-python scripts/07_analyze_trauma_groups.py
-python scripts/08_run_statistical_analyses.py
+python scripts/behavioral/05_summarize_behavioral_data.py
+python scripts/behavioral/06_visualize_task_performance.py
+python scripts/behavioral/07_analyze_trauma_groups.py
+python scripts/behavioral/08_run_statistical_analyses.py
 
 # Simulations & recovery (09-11)
-python scripts/09_run_ppc.py
-python scripts/10_run_parameter_sweep.py
-python scripts/11_run_model_recovery.py --mode cross-model --model all
+python scripts/simulations_recovery/09_run_ppc.py
+python scripts/simulations_recovery/10_run_parameter_sweep.py
+python scripts/simulations_recovery/11_run_model_recovery.py --mode cross-model --model all
 
-# MLE fitting + frequentist comparison (12, 14)
+# MLE fitting + frequentist comparison (12, 14; unchanged location)
 for m in qlearning wmrl wmrl_m3 wmrl_m5 wmrl_m6a wmrl_m6b wmrl_m4; do
   python scripts/12_fit_mle.py --model $m --n-jobs 16
 done
 python scripts/14_compare_models.py
 
 # Parameter-trauma associations (15-17)
-python scripts/15_analyze_mle_by_trauma.py --model all
-python scripts/16_regress_parameters_on_scales.py --model all
-python scripts/17_analyze_winner_heterogeneity.py
+python scripts/post_mle/15_analyze_mle_by_trauma.py --model all
+python scripts/post_mle/16_regress_parameters_on_scales.py --model all
+python scripts/post_mle/17_analyze_winner_heterogeneity.py
 
 # Hierarchical Bayesian pipeline (cluster; 9-step afterok chain)
 bash cluster/21_submit_pipeline.sh
