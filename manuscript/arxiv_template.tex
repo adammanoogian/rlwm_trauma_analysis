@@ -15,18 +15,32 @@
 \DeclareUnicodeCharacter{03B3}{\ensuremath{\gamma}}
 \DeclareUnicodeCharacter{03B4}{\ensuremath{\delta}}
 \DeclareUnicodeCharacter{03B5}{\ensuremath{\varepsilon}}
+\DeclareUnicodeCharacter{03B7}{\ensuremath{\eta}}
 \DeclareUnicodeCharacter{03BA}{\ensuremath{\kappa}}
+\DeclareUnicodeCharacter{03BC}{\ensuremath{\mu}}
 \DeclareUnicodeCharacter{03C1}{\ensuremath{\rho}}
+\DeclareUnicodeCharacter{03C3}{\ensuremath{\sigma}}
+\DeclareUnicodeCharacter{03C4}{\ensuremath{\tau}}
 \DeclareUnicodeCharacter{03C6}{\ensuremath{\phi}}
-\DeclareUnicodeCharacter{2212}{\ensuremath{-}}
+\DeclareUnicodeCharacter{2212}{\ensuremath{-}}   % U+2212 MINUS SIGN
 \DeclareUnicodeCharacter{2264}{\ensuremath{\leq}}
 \DeclareUnicodeCharacter{2265}{\ensuremath{\geq}}
 \usepackage{amsmath, amssymb, amsfonts}
 \usepackage{bm}
 \usepackage{graphicx}
+% Constrain all figures to fit within the text column.
+% Fixes "Overfull \hbox" warnings from wide PNG/raster figures.
+% Quarto 3.x's \pandocbounded{} is a no-op; this rule does the actual work.
+\setkeys{Gin}{width=\linewidth,totalheight=\textheight,keepaspectratio}
 \usepackage{booktabs}
 \usepackage{longtable}
 \usepackage{array}
+% calc + xfp are required for Pandoc's proportional column-width formula:
+%   p{(\linewidth - N\tabcolsep) * \real{0.25}}
+% Without them, any multi-column auto-width table triggers a
+% "Missing number, treated as zero" fatal LaTeX error.
+\usepackage{calc}
+\usepackage{xfp}
 \usepackage{multirow}
 \usepackage{float}
 \usepackage{caption}
@@ -72,6 +86,18 @@ $endif$
 \setlength{\intextsep}{8pt plus 2pt minus 2pt}
 \setlength{\floatsep}{8pt plus 2pt minus 2pt}
 \setlength{\textfloatsep}{10pt plus 2pt minus 2pt}
+
+% ── Pandoc parskip fix ────────────────────────────────────────────────────────
+% arxiv.sty sets \parskip=5.5pt (sized for hand-written LaTeX with few blank
+% lines). Pandoc/Quarto emits blank lines around every equation, figure, and
+% section, and each one becomes a \par that adds 5.5pt of spurious vertical
+% space — producing visible "gaps" above/below equations and floats.
+% Override to a small stretch-only value so structural LaTeX spacing
+% (\intextsep, \floatsep, amsmath's \abovedisplayskip) controls layout.
+\usepackage{etoolbox}
+\setlength{\parskip}{0pt plus 1pt}
+\AtBeginEnvironment{figure}{\setlength{\parskip}{0pt}}
+\AtBeginEnvironment{figure*}{\setlength{\parskip}{0pt}}
 
 % ── Author block ──────────────────────────────────────────────────────────────
 \usepackage{authblk}

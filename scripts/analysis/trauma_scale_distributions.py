@@ -75,7 +75,7 @@ def analyze_scale_distributions(data):
     
     # Define scales
     scales = {
-        'LESS Total': 'less_total_events',
+        'LEC-5 Total Events': 'lec_total_events',
         'IES-R Total': 'ies_total',
         'IES-R Intrusion': 'ies_intrusion',
         'IES-R Avoidance': 'ies_avoidance',
@@ -254,16 +254,16 @@ def analyze_scale_covariation(data, scales):
     print("KEY COVARIATION PATTERNS:")
     print("-"*80)
     
-    # LESS vs IES-R
-    less_iesr_corr = corr_spearman.loc['LESS Total', 'IES-R Total']
-    less_iesr_p = pvals.loc['LESS Total', 'IES-R Total']
-    print(f"\n1. LESS Total ↔ IES-R Total: r={less_iesr_corr:.3f}, p={less_iesr_p:.4f}")
-    if abs(less_iesr_corr) < 0.3:
-        print("   → LESS and IES-R are largely INDEPENDENT")
-    elif abs(less_iesr_corr) > 0.6:
-        print("   → LESS and IES-R are highly correlated")
+    # LEC-5 vs IES-R
+    lec_iesr_corr = corr_spearman.loc['LEC-5 Total Events', 'IES-R Total']
+    lec_iesr_p = pvals.loc['LEC-5 Total Events', 'IES-R Total']
+    print(f"\n1. LEC-5 Total Events ↔ IES-R Total: r={lec_iesr_corr:.3f}, p={lec_iesr_p:.4f}")
+    if abs(lec_iesr_corr) < 0.3:
+        print("   → LEC-5 and IES-R are largely INDEPENDENT")
+    elif abs(lec_iesr_corr) > 0.6:
+        print("   → LEC-5 and IES-R are highly correlated")
     else:
-        print("   → LESS and IES-R show moderate correlation")
+        print("   → LEC-5 and IES-R show moderate correlation")
     
     # IES-R total vs subscales
     print("\n2. IES-R Total driven by:")

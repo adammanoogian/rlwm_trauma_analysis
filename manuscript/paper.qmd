@@ -212,7 +212,7 @@ Scale distributions and pairwise correlations are summarized in
 
 ::: {#fig-scale-distributions}
 
-![](../figures/scale_distributions.png){width=100%}
+![](figures/scale_distributions.png){width=100%}
 
 Distributions and pairwise correlations of the trauma predictors.
 **Left**: histograms of LEC-5 total events and IES-R total and
@@ -220,9 +220,9 @@ subscale scores. **Right**: Pearson correlation matrix. LEC total
 correlates only weakly with IES total ($r$ = 0.13), justifying
 inclusion of both predictors. IES subscales correlate strongly with
 IES total ($r$ = 0.91--0.93), requiring the Gram--Schmidt
-residualization described in Model Fitting. Figure rendered from
-`../figures/scale_distributions.png`, produced by
-`scripts/analysis/trauma_scale_distributions.py` on pipeline rerun.
+residualization described in Model Fitting. Figure produced by
+`scripts/analysis/trauma_scale_distributions.py` and copied into
+`manuscript/figures/` on pipeline rerun.
 :::
 
 ### Task {#sec-task}
@@ -325,99 +325,47 @@ M4 (RLWM-LBA) uses a joint choice-plus-RT likelihood and cannot be compared
 by AIC with choice-only models; it is evaluated on a separate track.
 
 ```{python}
-#| label: fig-model-architecture
-#| fig-cap: "Model parameter overview. Each column shows the free parameters for one model. Models are ordered by complexity within the choice-only family (M1--M6b); M4 (joint choice+RT, dashed separator) includes additional LBA accumulator parameters."
-#| fig-width: 7.0
-#| fig-height: 4.5
+#| label: tbl-model-architecture
+#| tbl-cap: "Free parameters across the seven computational models. A checkmark indicates the parameter is estimated in that model; empty cells indicate the parameter is not included. Rows are grouped by functional role (learning rates, working memory, perseveration, RL forgetting, noise, LBA dynamics). The inverse temperature $\\beta = 50$ is fixed across all models for identifiability. M1--M6b are choice-only and compared by AIC/BIC; M4 (joint choice-plus-RT) uses a Linear Ballistic Accumulator likelihood and is evaluated on a separate track."
 
-try:
-    import matplotlib.patches as mpatches
+# Canonical parameter order, grouped by category
+param_order = [
+    ("alpha_pos",    r"$\alpha_{+}$",                 "Learning rates"),
+    ("alpha_neg",    r"$\alpha_{-}$",                 "Learning rates"),
+    ("phi",          r"$\phi$",                       "Working memory"),
+    ("rho",          r"$\rho$",                       "Working memory"),
+    ("capacity",     r"$K$",                          "Working memory"),
+    ("kappa",        r"$\kappa$",                     "Perseveration"),
+    ("kappa_s",      r"$\kappa_{s}$",                 "Perseveration"),
+    ("kappa_total",  r"$\kappa_{\mathrm{total}}$",    "Perseveration"),
+    ("kappa_share",  r"$\kappa_{\mathrm{share}}$",    "Perseveration"),
+    ("phi_rl",       r"$\phi_{\mathrm{RL}}$",         "RL forgetting"),
+    ("epsilon",      r"$\varepsilon$",                "Noise"),
+    ("v_scale",      r"$v_{\mathrm{scale}}$",         "LBA (M4 only)"),
+    ("A",            r"$A$",                          "LBA (M4 only)"),
+    ("delta",        r"$\delta$",                     "LBA (M4 only)"),
+    ("t0",           r"$t_{0}$",                      "LBA (M4 only)"),
+]
+model_order = ["qlearning", "wmrl", "wmrl_m3", "wmrl_m5", "wmrl_m6a", "wmrl_m6b", "wmrl_m4"]
+model_labels = [MODEL_REGISTRY[k]["short_name"] for k in model_order]
 
-    # Build parameter-model matrix programmatically from MODEL_REGISTRY
-    model_order = ["qlearning", "wmrl", "wmrl_m3", "wmrl_m5", "wmrl_m6a", "wmrl_m6b", "wmrl_m4"]
-    model_labels = [MODEL_REGISTRY[k]["short_name"] for k in model_order]
+# Build rows: parameter name + group + one column per model (check vs. blank)
+check = r"$\checkmark$"
+rows: list[dict[str, str]] = []
+for pkey, plabel, pgroup in param_order:
+    row = {"Group": pgroup, "Parameter": plabel}
+    for mkey, mlabel in zip(model_order, model_labels):
+        row[mlabel] = check if pkey in MODEL_REGISTRY[mkey]["params"] else ""
+    rows.append(row)
 
-    # Canonical parameter order, grouped by category
-    param_order = [
-        "alpha_pos", "alpha_neg",           # Learning rates
-        "phi", "rho", "capacity",           # WM
-        "kappa", "kappa_s",                 # Perseveration (single)
-        "kappa_total", "kappa_share",       # Perseveration (dual)
-        "phi_rl",                           # RL forgetting
-        "epsilon",                          # Noise
-        "v_scale", "A", "delta", "t0",     # LBA (M4 only)
-    ]
+# Total-parameters footer row
+footer = {"Group": "", "Parameter": r"$k$ (total)"}
+for mkey, mlabel in zip(model_order, model_labels):
+    footer[mlabel] = str(MODEL_REGISTRY[mkey]["n_params"])
+rows.append(footer)
 
-    # LBA display names not in PARAM_DISPLAY_NAMES -- add them locally
-    local_display = {**PARAM_DISPLAY_NAMES, "v_scale": r"$v_{\mathrm{scale}}$",
-                     "A": r"$A$", "delta": r"$\delta$", "t0": r"$t_0$"}
-
-    # Build binary matrix
-    matrix = np.zeros((len(param_order), len(model_order)))
-    for j, mkey in enumerate(model_order):
-        for p in MODEL_REGISTRY[mkey]["params"]:
-            if p in param_order:
-                matrix[param_order.index(p), j] = 1
-
-    # Category groupings (row indices)
-    categories = [
-        ("Learning rates", 0, 2),
-        ("Working memory", 2, 5),
-        ("Perseveration", 5, 9),
-        ("RL forgetting", 9, 10),
-        ("Noise", 10, 11),
-        ("LBA (M4)", 11, 15),
-    ]
-    cat_colors = ["#E8F4FD", "#FFF3E0", "#F3E5F5", "#E8F5E9", "#FFFDE7", "#FCE4EC"]
-
-    fig, ax = plt.subplots(figsize=(TEXT_WIDTH, 4.5))
-
-    # Draw category background bands
-    for (cat_name, r_start, r_end), color in zip(categories, cat_colors):
-        ax.axhspan(r_start - 0.5, r_end - 0.5, color=color, alpha=0.35, zorder=0)
-        ax.text(-1.05, (r_start + r_end) / 2 - 0.5, cat_name,
-                ha="right", va="center", fontsize=7, fontstyle="italic", color="#555555")
-
-    # Draw filled cells
-    for i in range(len(param_order)):
-        for j in range(len(model_order)):
-            if matrix[i, j] == 1:
-                ax.add_patch(mpatches.FancyBboxPatch(
-                    (j - 0.38, i - 0.38), 0.76, 0.76,
-                    boxstyle="round,pad=0.05", facecolor="#4A90D9", alpha=0.85,
-                    edgecolor="white", linewidth=0.5, zorder=2))
-                ax.text(j, i, r"$\checkmark$", ha="center", va="center",
-                        fontsize=9, color="white", zorder=3)
-
-    # M4 separator (dashed vertical line before M4 column, index 6)
-    ax.axvline(x=5.5, color="#666666", linestyle="--", linewidth=1.0, zorder=1)
-
-    # Grid lines
-    for i in range(len(param_order) + 1):
-        ax.axhline(y=i - 0.5, color="#CCCCCC", linewidth=0.3, zorder=1)
-    for j in range(len(model_order) + 1):
-        ax.axvline(x=j - 0.5, color="#CCCCCC", linewidth=0.3, zorder=1)
-
-    ax.set_xlim(-0.5, len(model_order) - 0.5)
-    ax.set_ylim(len(param_order) - 0.5, -0.5)
-    ax.set_xticks(range(len(model_order)))
-    ax.set_xticklabels(model_labels, fontweight="bold")
-    ax.xaxis.set_ticks_position("top")
-    ax.xaxis.set_label_position("top")
-    ax.set_yticks(range(len(param_order)))
-    ax.set_yticklabels([local_display.get(p, p) for p in param_order])
-    ax.tick_params(axis="both", length=0)
-
-    # Category horizontal separators
-    for _, _, r_end in categories[:-1]:
-        ax.axhline(y=r_end - 0.5, color="#999999", linewidth=0.8, zorder=1)
-
-    plt.tight_layout()
-    plt.savefig(OUTPUT_DIR / "fig_model_overview.pdf", bbox_inches="tight")
-    plt.show()
-
-except Exception as e:
-    print(f"Model overview chart not available. ({e})")
+df_arch = pd.DataFrame(rows)
+md_table(df_arch)
 ```
 
 ```{python}
