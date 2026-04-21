@@ -367,11 +367,43 @@ Plans:
 - [ ] 23-03-PLAN.md (Wave 1, parallel with 23-01/23-02) — Delete residual `16b_bayesian_regression.cpython-313.pyc`, scrub `docs/03_methods_reference/MODEL_REFERENCE.md` cross-reference, install `test_no_16b_references.py` grep invariant guard (source .py already deleted pre-Phase-23)
 - [ ] 23-04-PLAN.md (Wave 2, after 23-01/02/03) — Add `config.load_netcdf_with_validation` + rewire 14 `az.from_netcdf` call sites across 13 files + install `test_load_side_validation.py` grep invariant guard
 
+#### Phase 23.1: GPU Pipeline Integration (INSERTED)
+
+**Goal:** Build GPU multi-GPU pmap variants of all Phase 21 SLURM scripts (`cluster/21_*_gpu.slurm`), validate that all 6 choice-only models {qlearning, wmrl, wmrl_m3, wmrl_m5, wmrl_m6a, wmrl_m6b} fit successfully on multi-GPU at smoke-test scale, and update `cluster/21_submit_pipeline.sh` to dispatch the GPU variants. Endpoint: `bash cluster/21_submit_pipeline.sh` on Monash M3 launches the GPU pipeline (3-4× faster wall-clock per audit/M6b proof) and the cold-start in Phase 24 produces all expected artifacts in `output/bayesian/21_*/` produced by GPU MCMC. Pulled forward from v5.1 (items GPU-01..03 originally deferred) per 2026-04-19 user decision to align v5.0 with end-state pipeline.
+
+**Depends on:** Phase 23 (clean codebase — must not pollute new GPU SLURM scripts with stale imports)
+
+**Requirements (proposed; planner finalizes):** GPU-INT-01, GPU-INT-02, GPU-INT-03, GPU-INT-04, GPU-INT-05
+
+**Success Criteria (what must be TRUE):**
+  1. **GPU-INT-01 (multi-GPU validation):** All 6 choice-only models pass a multi-GPU smoke test on Template C pattern (`--gres=gpu:4`, `chain_method="parallel"` via pmap, per `docs/CLUSTER_GPU_LESSONS.md` §6) at small N (e.g., 10 participants, 100 warmup, 200 samples) and reach `max_rhat ≤ 1.10`. M6b is already proven via `logs/bayesian_mgpu_54894258.out` (job 54894258, 2026-04-18, ~3h wall on 4 L40S GPUs); the other 5 models (M1, M2, M3, M5, M6a) need first-time multi-GPU validation.
+  2. **GPU-INT-02 (SLURM script set):** GPU variants of all MCMC-fitting Phase 21 SLURM scripts exist: `21_1_prior_predictive_gpu.slurm`, `21_2_recovery_gpu.slurm`, `21_3_fit_baseline_gpu.slurm`, `21_5_loo_stacking_bms_gpu.slurm`, `21_6_dispatch_l2_gpu.slurm`, `21_6_fit_with_l2_gpu.slurm` — all use `--partition=gpu` + `--gres=gpu:4` + activate `rlwm_gpu` env + chain_method=parallel via pmap. CPU-only audit/aggregation/table steps (21_4, 21_7, 21_8, 21_9) stay unchanged.
+  3. **GPU-INT-03 (orchestrator dispatch):** `cluster/21_submit_pipeline.sh` updated to dispatch the GPU variants by default with backwards-compat `USE_CPU=1` flag preserving the CPU path. All `--dependency=afterok` chains preserved. CRLF auto-strip preserved. Pre-flight pytest gate preserved. Original `21_*.slurm` CPU scripts kept intact (no breaking changes).
+  4. **GPU-INT-04 (JIT cache safety):** All new GPU SLURM scripts use per-model + per-backend cache path: `JAX_COMPILATION_CACHE_DIR=/scratch/${PROJECT}/${USER}/.jax_cache_21_baseline_gpu_${MODEL}` (with `_gpu` suffix to coexist with future CPU runs). Pin to single GPU architecture via `#SBATCH --constraint=l40s` (or document the architecture chosen). Encodes lessons from `docs/CLUSTER_GPU_LESSONS.md` §5 (cache keying on dtype/graph) + audit-flagged cross-GPU-arch contamination risk. `JAX_PERSISTENT_CACHE_MIN_ENTRY_SIZE_BYTES=0` and `PYTHONUNBUFFERED=1` set in every new SLURM script.
+  5. **GPU-INT-05 (smoke-test resilience):** Per-model `timeout 600` wrapper in smoke tests (per `docs/CLUSTER_GPU_LESSONS.md` §6 lesson: "per-model timeout in smoke tests" — Apr 16 job 54845743 burned 6h wall on qlearning alone before fix). Smoke job exits 0 with per-model PASS/FAIL/TIMEOUT tally; one slow model never burns the full wall.
+  6. **Lazy LBA float64 isolation preserved:** Phase 21 GPU scripts MUST NOT trigger any `lba_likelihood` import (would force `jax_enable_x64=True` globally per `docs/CLUSTER_GPU_LESSONS.md` §5). Lazy import discipline in `numpyro_models.py:wmrl_m4_hierarchical_model` is already in place; verify no regression with new SLURM paths. Smoke test confirms `jax.config.values["jax_enable_x64"] == False` after each model fit.
+  7. **Output path contract:** All GPU runs write to `output/bayesian/21_*/` (Phase 21 contract — what Phase 24 audit script depends on), NOT `output/v1/` (where the standalone M6b mgpu run wrote). Verified by smoke-test artifact path assertions.
+
+**Plans:** TBD (run `/gsd:plan-phase 23.1` to break down — likely 3-4 plans across 2-3 waves)
+
+Plans:
+- [ ] TBD — Wave 1: Multi-GPU smoke test for 5 unproven models (M1, M2, M3, M5, M6a) using `13_bayesian_multigpu.slurm` template at small N, with per-model timeout wrapper. M6b skipped (already validated).
+- [ ] TBD — Wave 2: Build GPU variants of 6 MCMC-fitting `cluster/21_*_gpu.slurm` scripts (mirror `13_bayesian_multigpu.slurm` Template C pattern + Phase 21 output-path contract).
+- [ ] TBD — Wave 2 (parallel): Update `cluster/21_submit_pipeline.sh` orchestrator to dispatch GPU variants with `USE_CPU=1` backwards-compat flag.
+- [ ] TBD — Wave 3: Integration smoke test (run pipeline at small N end-to-end via the GPU orchestrator, verify all artifacts land at correct paths).
+
+**Out of scope (defer to v5.1 or later):**
+- K-02 / K-03 (constrained K MLE refit) — separate from Bayesian GPU integration
+- M4 LBA Bayesian on Phase 21 GPU pipeline — Phase 21 is choice-only by design
+- GPU benchmarking instrumentation (cache hit/miss logging, per-step wall-clock breakdown) — nice-to-have, not in critical path
+
+**Why inserted between 23 and 24:** Discovered during Phase 24 pre-flight (2026-04-19) that the `21_*.slurm` scripts are CPU-only (`--partition=comp`, no `--gres=gpu`), but a recent multi-GPU run (`logs/bayesian_mgpu_54894258.out`, 2026-04-18) proved M6b can fit in ~3h on 4 L40S GPUs vs ~8-12h CPU. Audit (`docs/CLUSTER_GPU_LESSONS.md` + repo grep) found ~80% of the GPU infrastructure already exists (`scripts/fitting/numpyro_models.py:_select_chain_method()` auto-pmap; `scripts/fitting/fit_bayesian.py` device auto-detect; `scripts/21_fit_baseline.py` inherits via `fit_bayesian.main()`); only the SLURM scripts and orchestrator need GPU variants. Pulling this work forward aligns v5.0 with the end-state pipeline before the cold-start commits ~250-400 CPU-hours to a soon-to-be-superseded path.
+
 #### Phase 24: Cold-Start Pipeline Execution
 
 **Goal:** Run `bash cluster/21_submit_pipeline.sh` end-to-end from a clean checkout — the main scientific event of v5.0. The 9-step `afterok`-chained pipeline produces prior-predictive → Bayesian recovery → baseline hierarchical fits (6 models) → convergence audit → PSIS-LOO + stacking + RFX-BMS → winner L2 refit → scale audit → model averaging → manuscript tables. Wall-clock expectation: ~50-96 GPU-hours total. Phase output is the full empirical artifact set that Phase 25/26 verify and Phase 26 manuscript-assembles.
 
-**Depends on:** Phase 23 (clean codebase — no tech-debt pollution in cold-start outputs)
+**Depends on:** Phase 23 (clean codebase — no tech-debt pollution in cold-start outputs); Phase 23.1 (GPU pipeline built — cold-start now executes the GPU variants, not CPU)
 
 **Requirements:** EXEC-01, EXEC-02, EXEC-03, EXEC-04
 
