@@ -482,12 +482,65 @@ Plans:
 - [ ] 27-02-PLAN.md (Wave 2, after 27-01) — Archive v5.0-ROADMAP.md + v5.0-REQUIREMENTS.md + v5.0-MILESTONE-AUDIT.md; collapse top-level ROADMAP.md v5.0 section
 - [ ] 27-03-PLAN.md (Wave 3, after 27-02) — `/gsd:audit-milestone` run + final closure-guard verification + ship-commit
 
+#### Phase 28: Bayesian-First Manuscript Restructure & Repo Consolidation
+
+**Goal:** Reframe the paper as a Bayesian-first story (Bayesian fitting & model selection → hierarchical trauma/IES regression on winner(s) → subscale breakdown → MLE + recovery validation in appendix with Bayesian↔MLE parameter comparison), and in parallel consolidate the repo (src/ modules, grouped pipeline stages, cluster shell wrappers, figures/outputs, legacy pruning, docs refresh) so the codebase mirrors the new narrative.
+
+**Depends on:** Phase 24 (cold-start pipeline execution complete — real Bayesian artifacts on disk) and Phase 26 scope (may be absorbed or re-scoped; see "Sequencing Consideration" below).
+
+**Requirements:** TBD (planner to enumerate; likely draws from MANU-*, CLEAN-*, and adds new REFAC-* requirements for repo consolidation scope)
+
+**Paper-restructure scope (Results section, new canonical order):**
+  1. **Summary results** — cohort, behavior, group descriptives (terse).
+  2. **Bayesian model fitting** — hierarchical baseline fits for all 7 models; LOO-stacking + RFX-BMS + PXP for selection; winner (or top 2–3) identified; key parameter posteriors of the winner summarized.
+  3. **Hierarchical Level-2 trauma regression** — refit winner(s) with LEC + IES-R-total covariates; forest plots of β coefficients on probit scale.
+  4. **Subscale breakdown** — M6b 4-covariate subscale L2 (LEC + IES-R total + IES-R intrusion/avoidance residuals); identify which specific subscales drive any parameter effects.
+  5. **Appendix: validation & MLE track** — parameter recovery simulations, cross-model recovery, MLE fitting of all 7 models with AIC/BIC ranking, per-parameter Bayesian-posterior-mean vs. MLE-point-estimate scatterplots showing where the two agree and where they diverge (shrinkage for poorly-recovered parameters).
+
+**Repo-consolidation scope:**
+  1. **Finalize `src/`** — authoritative model definitions (both MLE likelihoods and NumPyro hierarchical models, no backward-compat shims); scripts import from `src/` directly. Investigate and resolve why `environments/` is a separate top-level folder from `src/` (consolidate into `src/environments/` if the split has no load-bearing reason).
+  2. **Data processing (01–04)** — consolidate into one script or a tight module with shared utilities; eliminate code duplication across parse/collate/trials/summary stages.
+  3. **Behavioral analysis (05–08)** — consolidate or clearly group (summary + visualization + trauma grouping + descriptives); decide one layout and apply it.
+  4. **Simulations & recovery (09–11)** — consolidate the PPC + parameter sweep + model recovery scripts into a single coherent entry point (likely one script with subcommands for `ppc`, `sweep`, `recovery`).
+  5. **Post-fit analysis (16–21)** — audit the 16–21 script explosion; consolidate one-off scripts (e.g., `21_compute_loo_stacking.py`, `21_scale_audit.py`, `21_model_averaging.py`, `21_baseline_audit.py`, `21_manuscript_tables.py`) into a single "post-Bayesian-fit analyses" step with subcommands or a coherent module layout. MLE regression scripts (15, 16) similarly consolidated into a "post-MLE-fit analyses" step.
+  6. **`figures/` + `output/` directory structure** — reorganize so paths mirror the new pipeline stages (pre-fit, MLE, Bayesian, post-fit); update CLAUDE.md + README accordingly.
+  7. **Cluster scripts (`cluster/`)** — consolidate per-model SLURM templates (e.g., `13_bayesian_m1.slurm` through `13_bayesian_m6b.slurm`) into one parameterized template dispatched via `--export=MODEL=...`. Add shell wrappers for grouped pipeline stages: pre-flight-checks, MLE track, Bayesian track, post-fit-analyses (mirror of `cluster/21_submit_pipeline.sh`).
+  8. **Legacy `validation/` + `tests/`** — audit each script/test file for current relevance; move stale ones to `legacy/` (or delete if superseded and in git history). Keep only tests that guard load-bearing invariants of the current pipeline.
+  9. **Docs refresh** — update `docs/` to reflect new structure; remove or consolidate any docs that describe the old layout. README and CLAUDE.md Quick Reference blocks updated to match new pipeline entry points.
+
+**Success Criteria (what must be TRUE — planner to refine):**
+  1. `paper.qmd` Results section follows the 5-section Bayesian-first canonical order above; MLE section is in Appendix only; Bayesian↔MLE comparison figure exists and is referenced from the appendix.
+  2. `src/` contains authoritative model code (MLE + NumPyro) with no backward-compat shims; every `scripts/*.py` and cluster script imports from `src/` (grep for direct copies returns zero).
+  3. Number of top-level numbered scripts in `scripts/` drops substantially (concrete target set by planner); each remaining numbered script corresponds to one named pipeline stage visible in README pipeline block.
+  4. `environments/` either consolidated into `src/environments/` or its separation is justified by a documented architectural reason in CLAUDE.md.
+  5. `cluster/` per-model SLURM templates consolidated into ≤ 4 parameterized templates + shell wrappers for each pipeline stage grouping.
+  6. `validation/` and `tests/` pruned to current-pipeline-relevant files only; stale files moved to `legacy/` (or deleted if equivalent logic lives elsewhere and is reachable via `git log --follow`).
+  7. `quarto render manuscript/paper.qmd` produces `paper.pdf` end-to-end without warnings or missing cross-references.
+  8. README pipeline block + CLAUDE.md Quick Reference point to new entry points and both render the canonical pipeline in ≤ 20 lines of shell.
+  9. `pytest` on the pruned `tests/` directory passes clean.
+  10. All existing v4.0 closure invariants (`validation/check_v4_closure.py`) still pass after the refactor.
+
+**Sequencing Consideration (flag for planner):**
+This phase was added via `/gsd:add-phase` (appends to end), so it currently sits at Phase 28 after Phase 27 (v5.0 closure). Logically, paper-restructure work belongs **before** Phase 26 (Manuscript Finalization) and repo-cleanup work overlaps with / supersedes some Phase 26 scope. Three possible resolutions for the planner/user to decide:
+  - **(A)** Re-scope Phase 26 to defer paper-finalization until after Phase 28; keep Phase 27 as closure. Execution order becomes 23 → 24 → 25 → 28 → 26 → 27.
+  - **(B)** Treat Phase 28 as spawning a new milestone (v5.1 or v6.0 "Restructure & Consolidation"); close v5.0 as-is with the current manuscript as the v5.0 deliverable, then restructure in v5.1.
+  - **(C)** Keep numeric order as-is (23→24→25→26→27→28) and accept that the paper restructure happens after v5.0 closure — treating v5.0's "finalized manuscript" as a v1 that will be restructured in a follow-up.
+Chosen resolution should be documented in `28-PHASE.md` before planning begins.
+
+**Plans:** TBD (run `/gsd:plan-phase 28` to break down)
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 28 to break down)
+
+**Details:**
+Scope driven by user's 2026-04-21 restructure decision after the "Bayesian-first story" narrative analysis (see conversation of same date). Captures two coupled workstreams — paper narrative reframing and repo consolidation — because the paper structure dictates which pipeline entry points need to be canonical and therefore which scripts need to be consolidated. Running them together avoids a second restructure pass later.
+
 </details>
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 13 → 14 → 15 → 16 → 17 → 18 → 19 → 20 → 21 → 22 → 23 → 24 → 25 → 26 → 27
+Phases execute in numeric order: 13 → 14 → 15 → 16 → 17 → 18 → 19 → 20 → 21 → 22 → 23 → 24 → 25 → 26 → 27 → 28 (Phase 28 sequencing under review — see Phase 28 "Sequencing Consideration" block)
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -518,3 +571,4 @@ Phases execute in numeric order: 13 → 14 → 15 → 16 → 17 → 18 → 19 �
 | 25. Reproducibility Regression & Closure-Guard Extension | v5.0 | 0/2 | Not started | — |
 | 26. Manuscript Finalization | v5.0 | 0/3 | Not started | — |
 | 27. Milestone v5.0 Closure | v5.0 | 0/3 | Not started | — |
+| 28. Bayesian-First Manuscript Restructure & Repo Consolidation | v5.0 | 0/TBD | Not started | — |
