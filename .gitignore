@@ -1,5 +1,7 @@
 .claude/
-.planning/
+# NOTE: .planning/ is tracked locally (audit trail, decision history) but
+# blocked from `git push` by .git/hooks/pre-push. Keeps planning work
+# private without losing git versioning.
 
 # Regression figures (can be regenerated, large file count)
 output/regressions/**/*.png
