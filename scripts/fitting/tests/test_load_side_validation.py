@@ -17,7 +17,7 @@ _PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 _ENUMERATED_FILES: list[Path] = [
     _PROJECT_ROOT / "scripts" / "14_compare_models.py",
-    _PROJECT_ROOT / "scripts" / "18_bayesian_level2_effects.py",
+    _PROJECT_ROOT / "scripts" / "post_mle" / "18_bayesian_level2_effects.py",
     _PROJECT_ROOT / "scripts" / "21_fit_with_l2.py",
     _PROJECT_ROOT / "scripts" / "21_compute_loo_stacking.py",
     _PROJECT_ROOT / "scripts" / "21_baseline_audit.py",
