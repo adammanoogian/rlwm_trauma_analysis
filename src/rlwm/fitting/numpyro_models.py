@@ -43,7 +43,7 @@ import numpy as np
 import pandas as pd
 from numpyro.infer import MCMC, NUTS
 
-from scripts.fitting.jax_likelihoods import (
+from rlwm.fitting.jax_likelihoods import (
     MAX_TRIALS_PER_BLOCK,
     pad_block_to_max,
     prepare_block_data,
@@ -1220,7 +1220,7 @@ def wmrl_m3_hierarchical_model(
       reset at block boundaries).
     - Do NOT modify this function's API: ``fit_bayesian.py`` dispatches to it by name.
     """
-    from scripts.fitting.numpyro_helpers import (
+    from rlwm.fitting.numpyro_helpers import (
         PARAM_PRIOR_DEFAULTS,
         phi_approx,
         sample_bounded_param,
@@ -1314,7 +1314,7 @@ def wmrl_m3_hierarchical_model(
     if stacked_arrays is None:
         stacked_arrays = stack_across_participants(participant_data_stacked)
 
-    from scripts.fitting.jax_likelihoods import wmrl_m3_fully_batched_likelihood
+    from rlwm.fitting.jax_likelihoods import wmrl_m3_fully_batched_likelihood
 
     per_participant_ll = wmrl_m3_fully_batched_likelihood(
         stimuli=stacked_arrays["stimuli"],
@@ -1355,7 +1355,7 @@ def qlearning_hierarchical_model_stacked(
     where ``Phi_approx = jax.scipy.stats.norm.cdf``.
 
     Three parameters (alpha_pos, alpha_neg, epsilon) are sampled via
-    :func:`sample_bounded_param` from :mod:`scripts.fitting.numpyro_helpers`.
+    :func:`sample_bounded_param` from :mod:`rlwm.fitting.numpyro_helpers`.
 
     Likelihood is accumulated via a single ``numpyro.factor("obs", ...)`` call
     using ``q_learning_fully_batched_likelihood`` (nested vmap over participants
@@ -1409,7 +1409,7 @@ def qlearning_hierarchical_model_stacked(
             "vmap path is not implemented.  Pass use_pscan=False."
         )
 
-    from scripts.fitting.numpyro_helpers import (
+    from rlwm.fitting.numpyro_helpers import (
         PARAM_PRIOR_DEFAULTS,
         sample_bounded_param,
     )
@@ -1437,7 +1437,7 @@ def qlearning_hierarchical_model_stacked(
     if stacked_arrays is None:
         stacked_arrays = stack_across_participants(participant_data_stacked)
 
-    from scripts.fitting.jax_likelihoods import q_learning_fully_batched_likelihood
+    from rlwm.fitting.jax_likelihoods import q_learning_fully_batched_likelihood
 
     per_participant_ll = q_learning_fully_batched_likelihood(
         stimuli=stacked_arrays["stimuli"],
@@ -1474,7 +1474,7 @@ def wmrl_hierarchical_model_stacked(
 
     Six parameters (alpha_pos, alpha_neg, phi, rho, capacity, epsilon) are
     sampled via :func:`sample_bounded_param` from
-    :mod:`scripts.fitting.numpyro_helpers`.
+    :mod:`rlwm.fitting.numpyro_helpers`.
 
     Likelihood is accumulated via a single ``numpyro.factor("obs", ...)`` call
     using ``wmrl_fully_batched_likelihood`` (nested vmap over participants and
@@ -1509,7 +1509,7 @@ def wmrl_hierarchical_model_stacked(
             "path is not implemented.  Pass use_pscan=False."
         )
 
-    from scripts.fitting.numpyro_helpers import (
+    from rlwm.fitting.numpyro_helpers import (
         PARAM_PRIOR_DEFAULTS,
         sample_bounded_param,
     )
@@ -1537,7 +1537,7 @@ def wmrl_hierarchical_model_stacked(
     if stacked_arrays is None:
         stacked_arrays = stack_across_participants(participant_data_stacked)
 
-    from scripts.fitting.jax_likelihoods import wmrl_fully_batched_likelihood
+    from rlwm.fitting.jax_likelihoods import wmrl_fully_batched_likelihood
 
     per_participant_ll = wmrl_fully_batched_likelihood(
         stimuli=stacked_arrays["stimuli"],
@@ -1638,7 +1638,7 @@ def wmrl_m5_hierarchical_model(
     - Do NOT modify this function's API: ``fit_bayesian.py`` dispatches to it by
       name.
     """
-    from scripts.fitting.numpyro_helpers import (
+    from rlwm.fitting.numpyro_helpers import (
         PARAM_PRIOR_DEFAULTS,
         phi_approx,
         sample_bounded_param,
@@ -1738,7 +1738,7 @@ def wmrl_m5_hierarchical_model(
     if stacked_arrays is None:
         stacked_arrays = stack_across_participants(participant_data_stacked)
 
-    from scripts.fitting.jax_likelihoods import wmrl_m5_fully_batched_likelihood
+    from rlwm.fitting.jax_likelihoods import wmrl_m5_fully_batched_likelihood
 
     per_participant_ll = wmrl_m5_fully_batched_likelihood(
         stimuli=stacked_arrays["stimuli"],
@@ -1843,7 +1843,7 @@ def wmrl_m6a_hierarchical_model(
     - Do NOT modify this function's API: ``fit_bayesian.py`` dispatches to it by
       name.
     """
-    from scripts.fitting.numpyro_helpers import (
+    from rlwm.fitting.numpyro_helpers import (
         PARAM_PRIOR_DEFAULTS,
         phi_approx,
         sample_bounded_param,
@@ -1939,7 +1939,7 @@ def wmrl_m6a_hierarchical_model(
     if stacked_arrays is None:
         stacked_arrays = stack_across_participants(participant_data_stacked)
 
-    from scripts.fitting.jax_likelihoods import wmrl_m6a_fully_batched_likelihood
+    from rlwm.fitting.jax_likelihoods import wmrl_m6a_fully_batched_likelihood
 
     per_participant_ll = wmrl_m6a_fully_batched_likelihood(
         stimuli=stacked_arrays["stimuli"],
@@ -2037,7 +2037,7 @@ def wmrl_m6b_hierarchical_model(
     - Do NOT modify this function's API: ``fit_bayesian.py`` dispatches to it by
       name.
     """
-    from scripts.fitting.numpyro_helpers import (
+    from rlwm.fitting.numpyro_helpers import (
         PARAM_PRIOR_DEFAULTS,
         phi_approx,
         sample_bounded_param,
@@ -2157,7 +2157,7 @@ def wmrl_m6b_hierarchical_model(
     if stacked_arrays is None:
         stacked_arrays = stack_across_participants(participant_data_stacked)
 
-    from scripts.fitting.jax_likelihoods import wmrl_m6b_fully_batched_likelihood
+    from rlwm.fitting.jax_likelihoods import wmrl_m6b_fully_batched_likelihood
 
     per_participant_ll = wmrl_m6b_fully_batched_likelihood(
         stimuli=stacked_arrays["stimuli"],
@@ -2278,7 +2278,7 @@ def wmrl_m6b_hierarchical_model_subscale(
     - Do NOT modify this function's API: ``fit_bayesian.py`` dispatches to
       it via the ``--subscale`` flag.
     """
-    from scripts.fitting.numpyro_helpers import PARAM_PRIOR_DEFAULTS, phi_approx
+    from rlwm.fitting.numpyro_helpers import PARAM_PRIOR_DEFAULTS, phi_approx
 
     n_participants = len(participant_data_stacked)
     participant_ids = sorted(participant_data_stacked.keys())
@@ -2602,7 +2602,7 @@ def wmrl_m4_hierarchical_model(
     """
     # Lazy imports to avoid float64 contamination in choice-only import paths
     from scripts.fitting.lba_likelihood import wmrl_m4_multiblock_likelihood_stacked
-    from scripts.fitting.numpyro_helpers import (
+    from rlwm.fitting.numpyro_helpers import (
         PARAM_PRIOR_DEFAULTS,
         phi_approx,
         sample_bounded_param,

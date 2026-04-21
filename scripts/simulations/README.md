@@ -13,9 +13,9 @@ The unified simulator provides a single implementation for all simulation needs.
 Simulate with specific parameter values (deterministic):
 
 ```python
-from simulations.unified_simulator import simulate_agent_fixed
-from models.q_learning import QLearningAgent
-from environments.rlwm_env import create_rlwm_env
+from scripts.simulations.unified_simulator import simulate_agent_fixed
+from rlwm.models.q_learning import QLearningAgent
+from rlwm.envs.rlwm_env import create_rlwm_env
 
 env = create_rlwm_env(set_size=3, seed=42)
 

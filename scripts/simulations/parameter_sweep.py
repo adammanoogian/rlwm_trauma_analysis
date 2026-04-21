@@ -38,9 +38,9 @@ src_root = project_root / "src"
 if src_root.exists():
     sys.path.insert(0, str(src_root))
 
-from environments.rlwm_env import create_rlwm_env
-from models.q_learning import QLearningAgent
-from models.wm_rl_hybrid import WMRLHybridAgent
+from rlwm.envs.rlwm_env import create_rlwm_env
+from rlwm.models.q_learning import QLearningAgent
+from rlwm.models.wm_rl_hybrid import WMRLHybridAgent
 from scripts.simulations.unified_simulator import simulate_agent_fixed
 try:
     # Prefer the versioned output root if present in this project.

@@ -1,4 +1,4 @@
-"""Tests for the rlwm package: imports, gymnasium registration, backward compat."""
+"""Tests for the rlwm package: imports, gymnasium registration, canonical paths."""
 
 from __future__ import annotations
 
@@ -74,44 +74,41 @@ class TestGymnasiumRegistration:
 
 
 # ──────────────────────────────────────────────────────────────────
-# Backward compatibility
+# Canonical path tests (shims deleted — test rlwm.* directly)
 # ──────────────────────────────────────────────────────────────────
 
 
-class TestBackwardCompat:
-    def test_environments_rlwm_env(self):
-        from environments.rlwm_env import RLWMEnv
-        from rlwm.envs.rlwm_env import RLWMEnv as RLWMEnvPkg
+class TestCanonicalPaths:
+    def test_envs_rlwm_env_importable(self):
+        from rlwm.envs.rlwm_env import RLWMEnv, create_rlwm_env
 
-        assert RLWMEnv is RLWMEnvPkg
+        assert RLWMEnv is not None
+        assert create_rlwm_env is not None
 
-    def test_environments_task_config(self):
-        from environments.task_config import TaskSequenceLoader
-        from rlwm.envs.task_config import TaskSequenceLoader as TSLPkg
+    def test_envs_task_config_importable(self):
+        from rlwm.envs.task_config import TaskSequenceLoader
 
-        assert TaskSequenceLoader is TSLPkg
+        assert TaskSequenceLoader is not None
 
-    def test_models_q_learning(self):
-        from models.q_learning import QLearningAgent
-        from rlwm.models.q_learning import QLearningAgent as QLAPkg
+    def test_models_q_learning_importable(self):
+        from rlwm.models.q_learning import QLearningAgent
 
-        assert QLearningAgent is QLAPkg
+        assert QLearningAgent is not None
 
-    def test_models_wm_rl_hybrid(self):
-        from models.wm_rl_hybrid import WMRLHybridAgent
-        from rlwm.models.wm_rl_hybrid import WMRLHybridAgent as WMRLPkg
+    def test_models_wm_rl_hybrid_importable(self):
+        from rlwm.models.wm_rl_hybrid import WMRLHybridAgent
 
-        assert WMRLHybridAgent is WMRLPkg
+        assert WMRLHybridAgent is not None
 
-    def test_create_env_via_old_import(self):
-        from environments.rlwm_env import create_rlwm_env
+    def test_create_env_via_canonical_import(self):
+        from rlwm.envs.rlwm_env import create_rlwm_env
 
         env = create_rlwm_env(set_size=3, seed=42)
         obs, info = env.reset()
         assert info["set_size"] == 3
 
-    def test_create_agent_via_old_import(self):
-        from models.q_learning import create_q_learning_agent
+    def test_create_agent_via_canonical_import(self):
+        from rlwm.models.q_learning import create_q_learning_agent
 
         agent = create_q_learning_agent(alpha_pos=0.5, seed=42)
         assert agent.alpha_pos == 0.5

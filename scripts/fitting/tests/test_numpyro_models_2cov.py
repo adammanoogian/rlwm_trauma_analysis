@@ -75,7 +75,7 @@ def _make_stacked_dict(
     """
     import jax.numpy as jnp
 
-    from scripts.fitting.jax_likelihoods import pad_block_to_max
+    from rlwm.fitting.jax_likelihoods import pad_block_to_max
 
     rng = np.random.default_rng(seed)
     participant_data_stacked: dict = {}
@@ -134,7 +134,7 @@ def test_model_accepts_covariate_iesr(model_name: str, target: str) -> None:
     Parameters
     ----------
     model_name : str
-        NumPyro model attribute on ``scripts.fitting.numpyro_models``.
+        NumPyro model attribute on ``rlwm.fitting.numpyro_models``.
     target : str
         L2 target parameter name used in site naming (``kappa`` or
         ``kappa_s``).
@@ -142,7 +142,7 @@ def test_model_accepts_covariate_iesr(model_name: str, target: str) -> None:
     import jax.numpy as jnp
     import numpyro.handlers as handlers
 
-    import scripts.fitting.numpyro_models as models
+    import rlwm.fitting.numpyro_models as models
 
     model_fn = getattr(models, model_name)
 
@@ -198,14 +198,14 @@ def test_m3_single_cov_unchanged(model_name: str, target: str) -> None:
     Parameters
     ----------
     model_name : str
-        NumPyro model attribute on ``scripts.fitting.numpyro_models``.
+        NumPyro model attribute on ``rlwm.fitting.numpyro_models``.
     target : str
         L2 target parameter name (``kappa`` or ``kappa_s``).
     """
     import jax.numpy as jnp
     import numpyro.handlers as handlers
 
-    import scripts.fitting.numpyro_models as models
+    import rlwm.fitting.numpyro_models as models
 
     model_fn = getattr(models, model_name)
 
@@ -255,12 +255,12 @@ def test_guard_raises_iesr_without_lec(model_name: str) -> None:
     Parameters
     ----------
     model_name : str
-        NumPyro model attribute on ``scripts.fitting.numpyro_models``.
+        NumPyro model attribute on ``rlwm.fitting.numpyro_models``.
     """
     import jax.numpy as jnp
     import numpyro.handlers as handlers
 
-    import scripts.fitting.numpyro_models as models
+    import rlwm.fitting.numpyro_models as models
 
     model_fn = getattr(models, model_name)
 
@@ -452,7 +452,7 @@ def _build_recovery_dataset(
     import jax.numpy as jnp
     from jax.scipy.stats import norm as jax_norm
 
-    from scripts.fitting.jax_likelihoods import pad_block_to_max
+    from rlwm.fitting.jax_likelihoods import pad_block_to_max
 
     rng = np.random.default_rng(seed)
 
@@ -554,7 +554,7 @@ def test_recovery_2cov_m3() -> None:
     import numpyro
     from numpyro.infer import MCMC, NUTS
 
-    from scripts.fitting.numpyro_models import (
+    from rlwm.fitting.numpyro_models import (
         stack_across_participants,
         wmrl_m3_hierarchical_model,
     )

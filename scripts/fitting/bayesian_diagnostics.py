@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     import pandas as pd
     from numpyro.infer import MCMC
 
-from scripts.fitting.jax_likelihoods import (
+from rlwm.fitting.jax_likelihoods import (
     q_learning_multiblock_likelihood_stacked,
     wmrl_multiblock_likelihood_stacked,
     wmrl_m3_multiblock_likelihood_stacked,

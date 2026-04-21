@@ -17,9 +17,9 @@ import numpy as np
 import pandas as pd
 from dataclasses import dataclass
 
-from models.q_learning import QLearningAgent
-from models.wm_rl_hybrid import WMRLHybridAgent
-from environments.rlwm_env import RLWMEnv
+from rlwm.models.q_learning import QLearningAgent
+from rlwm.models.wm_rl_hybrid import WMRLHybridAgent
+from rlwm.envs.rlwm_env import RLWMEnv
 
 
 @dataclass

@@ -19,7 +19,7 @@ import jax
 import jax.numpy as jnp
 import numpyro
 
-from scripts.fitting.numpyro_models import wmrl_hierarchical_model
+from rlwm.fitting.numpyro_models import wmrl_hierarchical_model
 
 
 def test_wmrl_model_compilation(wmrl_participant_data):

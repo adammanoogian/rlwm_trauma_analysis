@@ -23,7 +23,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from scripts.fitting.jax_likelihoods import (
+from rlwm.fitting.jax_likelihoods import (
     wmrl_block_likelihood,
     wmrl_m3_block_likelihood,
     wmrl_multiblock_likelihood,

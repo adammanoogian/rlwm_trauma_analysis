@@ -26,7 +26,7 @@ import jax
 import jax.numpy as jnp
 import pytest
 
-from scripts.fitting.jax_likelihoods import (
+from rlwm.fitting.jax_likelihoods import (
     MAX_TRIALS_PER_BLOCK,
     affine_scan,
     associative_scan_q_update,
@@ -906,7 +906,7 @@ def test_pscan_agreement_real_data(model):
         pytest.skip(f"Trial data not found: {_DATA_PATH}")
 
     import pandas as pd
-    from scripts.fitting.numpyro_models import prepare_stacked_participant_data
+    from rlwm.fitting.numpyro_models import prepare_stacked_participant_data
 
     # Load trial data
     data_df = pd.read_csv(_DATA_PATH)
@@ -963,7 +963,7 @@ def test_pscan_full_n154_agreement(model):
         pytest.skip(f"Trial data not found: {_DATA_PATH}")
 
     import pandas as pd
-    from scripts.fitting.numpyro_models import prepare_stacked_participant_data
+    from rlwm.fitting.numpyro_models import prepare_stacked_participant_data
 
     data_df = pd.read_csv(_DATA_PATH)
     participant_data = prepare_stacked_participant_data(data_df)
@@ -1013,7 +1013,7 @@ def test_pscan_full_n154_agreement(model):
 # PRECOMPUTATION FUNCTIONS (Phase 20)
 # =============================================================================
 
-from scripts.fitting.jax_likelihoods import (
+from rlwm.fitting.jax_likelihoods import (
     precompute_last_action_global,
     precompute_last_actions_per_stimulus,
 )
@@ -1492,7 +1492,7 @@ def test_fully_batched_full_n154_agreement(model):
         pytest.skip(f"Trial data not found: {_DATA_PATH}")
 
     import pandas as pd
-    from scripts.fitting.numpyro_models import (
+    from rlwm.fitting.numpyro_models import (
         prepare_stacked_participant_data,
         stack_across_participants,
     )

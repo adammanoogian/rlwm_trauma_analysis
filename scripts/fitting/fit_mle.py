@@ -85,7 +85,7 @@ sys.path.insert(0, str(project_root))
 from config import EXCLUDED_PARTICIPANTS, EXPECTED_PARAMETERIZATION
 
 # Import JAX likelihood functions
-from scripts.fitting.jax_likelihoods import (
+from rlwm.fitting.jax_likelihoods import (
     MAX_BLOCKS,
     MAX_TRIALS_PER_BLOCK,
     pad_block_to_max,

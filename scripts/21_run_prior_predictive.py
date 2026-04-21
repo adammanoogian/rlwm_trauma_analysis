@@ -14,7 +14,7 @@ Bayesian model-selection pipeline.  For the named model, it:
 4. For each draw, simulates one participant's trial sequence under that
    draw's individual-level parameters using a model-specific choice policy
    (mirrors the likelihood update equations in
-   ``scripts.fitting.jax_likelihoods``).  Uses the real participant trial
+   ``rlwm.fitting.jax_likelihoods``).  Uses the real participant trial
    structure (stimuli, set sizes, block boundaries) as the task template.
 5. Applies the three-part Baribault & Collins (2023) gate:
    median accuracy in [0.4, 0.9], <10% draws sub-chance, <5% draws at-ceiling.
@@ -65,8 +65,8 @@ from scripts.fitting.fit_bayesian import (  # noqa: E402
     STACKED_MODEL_DISPATCH,
     load_and_prepare_data,
 )
-from scripts.fitting.numpyro_helpers import PARAM_PRIOR_DEFAULTS  # noqa: E402
-from scripts.fitting.numpyro_models import (  # noqa: E402
+from rlwm.fitting.numpyro_helpers import PARAM_PRIOR_DEFAULTS  # noqa: E402
+from rlwm.fitting.numpyro_models import (  # noqa: E402
     prepare_stacked_participant_data,
     stack_across_participants,
 )

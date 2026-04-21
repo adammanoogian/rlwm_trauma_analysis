@@ -28,7 +28,7 @@ import pandas as pd
 project_root = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(project_root))
 
-from scripts.fitting.jax_likelihoods import (
+from rlwm.fitting.jax_likelihoods import (
     q_learning_multiblock_likelihood,
     wmrl_multiblock_likelihood,
     prepare_block_data,

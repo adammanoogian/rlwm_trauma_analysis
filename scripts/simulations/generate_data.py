@@ -35,10 +35,10 @@ sys.path.insert(0, str(project_root))
 
 from config import TaskParams, ModelParams, OUTPUT_VERSION_DIR, AnalysisParams, load_netcdf_with_validation
 
-from environments.rlwm_env import create_rlwm_env
-from environments.task_config import TaskConfigGenerator
-from models.q_learning import QLearningAgent
-from models.wm_rl_hybrid import WMRLHybridAgent
+from rlwm.envs.rlwm_env import create_rlwm_env
+from rlwm.envs.task_config import TaskConfigGenerator
+from rlwm.models.q_learning import QLearningAgent
+from rlwm.models.wm_rl_hybrid import WMRLHybridAgent
 from scripts.simulations.unified_simulator import simulate_agent_fixed, simulate_agent_sampled
 
 try:

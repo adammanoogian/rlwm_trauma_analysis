@@ -23,7 +23,7 @@ import pandas as pd
 import pytest
 
 from config import EXPECTED_PARAMETERIZATION, MODEL_REGISTRY, load_fits_with_validation
-from scripts.fitting.numpyro_helpers import (
+from rlwm.fitting.numpyro_helpers import (
     PARAM_PRIOR_DEFAULTS,
     phi_approx,
     sample_bounded_param,

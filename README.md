@@ -10,6 +10,7 @@ Senta et al. (2025); extends Collins & Frank (2012, 2014).
 ```bash
 conda env create -f environment.yml
 conda activate ds_env
+pip install -e .   # required: makes `import rlwm` resolve (src/ layout)
 ```
 
 ## Pipeline

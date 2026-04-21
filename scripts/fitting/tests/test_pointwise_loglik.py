@@ -5,7 +5,7 @@ import jax.numpy as jnp
 import numpy as np
 import pytest
 
-from scripts.fitting.jax_likelihoods import (
+from rlwm.fitting.jax_likelihoods import (
     MAX_TRIALS_PER_BLOCK,
     pad_block_to_max,
     q_learning_block_likelihood,

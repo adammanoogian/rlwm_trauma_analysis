@@ -56,7 +56,7 @@ def warmup_jit_compilation(model: str = 'all', verbose: bool = True):
     import jax.numpy as jnp
 
     # Import likelihood functions and constants
-    from scripts.fitting.jax_likelihoods import (
+    from rlwm.fitting.jax_likelihoods import (
         MAX_BLOCKS,
         MAX_TRIALS_PER_BLOCK,
         NUM_ACTIONS,

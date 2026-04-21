@@ -39,7 +39,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-# Add project root so ``scripts.fitting.*`` imports work
+# Add project root so ``rlwm.fitting.*`` imports resolve
 _PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_PROJECT_ROOT))
 
@@ -47,7 +47,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
-from scripts.fitting.jax_likelihoods import (
+from rlwm.fitting.jax_likelihoods import (
     MAX_TRIALS_PER_BLOCK,
     # Sequential multiblock stacked variants
     q_learning_multiblock_likelihood_stacked,

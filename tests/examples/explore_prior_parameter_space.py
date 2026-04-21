@@ -56,9 +56,9 @@ except ImportError:
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from environments.rlwm_env import create_rlwm_env
-from models.q_learning import QLearningAgent
-from models.wm_rl_hybrid import WMRLHybridAgent
+from rlwm.envs.rlwm_env import create_rlwm_env
+from rlwm.models.q_learning import QLearningAgent
+from rlwm.models.wm_rl_hybrid import WMRLHybridAgent
 from scripts.simulations.unified_simulator import simulate_agent_fixed
 from scripts.analysis.plotting_utils import setup_plot_style, save_figure, get_color_palette
 from config import TaskParams

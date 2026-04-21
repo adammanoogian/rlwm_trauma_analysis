@@ -18,9 +18,9 @@ import pytest
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from environments.rlwm_env import create_rlwm_env
-from models.q_learning import QLearningAgent
-from models.wm_rl_hybrid import WMRLHybridAgent
+from rlwm.envs.rlwm_env import create_rlwm_env
+from rlwm.models.q_learning import QLearningAgent
+from rlwm.models.wm_rl_hybrid import WMRLHybridAgent
 from scripts.simulations.unified_simulator import (
     SimulationResult,
     results_to_dataframe,

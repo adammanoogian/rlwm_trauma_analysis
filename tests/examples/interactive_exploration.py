@@ -23,9 +23,9 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from environments.rlwm_env import create_rlwm_env
-from models.q_learning import create_q_learning_agent, simulate_agent_on_env
-from models.wm_rl_hybrid import create_wm_rl_agent, simulate_wm_rl_on_env
+from rlwm.envs.rlwm_env import create_rlwm_env
+from rlwm.models.q_learning import create_q_learning_agent, simulate_agent_on_env
+from rlwm.models.wm_rl_hybrid import create_wm_rl_agent, simulate_wm_rl_on_env
 
 try:
     from ipywidgets import interact, FloatSlider, IntSlider, fixed, Dropdown

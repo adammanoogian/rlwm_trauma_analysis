@@ -44,7 +44,7 @@ import jax.numpy as jnp
 import numpyro
 import arviz as az
 
-from scripts.fitting.numpyro_models import (
+from rlwm.fitting.numpyro_models import (
     qlearning_hierarchical_model,
     wmrl_m3_hierarchical_model,
     qlearning_hierarchical_model_stacked,
