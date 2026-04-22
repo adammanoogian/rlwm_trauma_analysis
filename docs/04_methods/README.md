@@ -18,10 +18,10 @@ methods are added or old ones documented.
 
 | Topic | Producing script | Method doc |
 |---|---|---|
-| Posterior predictive checks | scripts/simulations_recovery/09_run_ppc.py | _TODO_ |
-| Synthetic-data generation | scripts/simulations_recovery/09_generate_synthetic_data.py | _TODO_ |
-| Parameter sweep | scripts/simulations_recovery/10_run_parameter_sweep.py | _TODO_ |
-| Parameter recovery | scripts/simulations_recovery/11_run_model_recovery.py | _TODO_ |
+| Posterior predictive checks | scripts/03_model_prefitting/09_run_ppc.py | _TODO_ |
+| Synthetic-data generation | scripts/03_model_prefitting/09_generate_synthetic_data.py | _TODO_ |
+| Parameter sweep | scripts/03_model_prefitting/10_run_parameter_sweep.py | _TODO_ |
+| Parameter recovery | scripts/03_model_prefitting/11_run_model_recovery.py | _TODO_ |
 | Posterior-vs-MLE sanity check | validation/compare_posterior_to_mle.py | _TODO_ |
 
 Entries marked _TODO_ are scaffolding. Add short method writeups here
