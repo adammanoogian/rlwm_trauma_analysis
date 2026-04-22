@@ -535,12 +535,49 @@ Plans:
 **Details:**
 Scope driven by user's 2026-04-21 restructure decision after the "Bayesian-first story" narrative analysis (see conversation of same date). Captures two coupled workstreams — paper narrative reframing and repo consolidation — because the paper structure dictates which pipeline entry points need to be canonical and therefore which scripts need to be consolidated. Running them together avoids a second restructure pass later.
 
+#### Phase 29: Pipeline Canonical Reorganization & Utilities Consolidation
+
+**Goal:** Finish the repo consolidation work Phase 28 started. Phase 28 grouped scripts into 5 subdirs under time pressure but did NOT implement the canonical paper-directional 01–06 stage layout, utilities library consolidation, dead-folder cleanup, docs/ spare-file integration, or cluster/ SLURM path updates. This phase completes all five. Target structure: `scripts/{01_data_preprocessing, 02_behav_analyses, 03_model_prefitting, 04_model_fitting/{a_mle,b_bayesian,c_level2}, 05_post_fitting_checks, 06_fit_analyses, utils}`. Every function used by ≥ 2 stage folders lives in `utils/` (never duplicated). Dead sibling folders (`analysis/`, `results/`, `simulations/`, `statistical_analyses/`, `visualization/`) audited and moved to `legacy/` or deleted. `docs/HIERARCHICAL_BAYESIAN.md`, `K_PARAMETERIZATION.md`, `SCALES_AND_FITTING_AUDIT.md` merged into methods references. `cluster/*.slurm` paths updated + per-model variants consolidated via `--export=MODEL=...`. `src/rlwm/fitting/` vertical-by-model refactor is OPTIONAL (planner decides; defer if not high-ROI). `docs/CLUSTER_GPU_LESSONS.md` untouched per user directive.
+
+**Depends on:** Phase 28 (initial grouping done; this completes it). MUST run BEFORE Phase 24 cold-start and Phase 26 manuscript finalization — paper.qmd path refs and SLURM paths must stabilize first.
+
+**Requirements:** New REFAC-14..REFAC-20 set (planner to enumerate).
+
+**Success Criteria (what must be TRUE):**
+  1. `scripts/` top level contains ONLY: `01_data_preprocessing/`, `02_behav_analyses/`, `03_model_prefitting/`, `04_model_fitting/`, `05_post_fitting_checks/`, `06_fit_analyses/`, `utils/`, and optionally a thin `fitting/` remnant or `legacy/`. No other top-level folders.
+  2. `04_model_fitting/{a_mle,b_bayesian,c_level2}` subdivision present; letter partition captures MLE/Bayesian as parallel-alternative paths with L2 depending on baseline.
+  3. Dead folders (`scripts/analysis/`, `scripts/results/`, `scripts/simulations/`, `scripts/statistical_analyses/`, `scripts/visualization/`) deleted or moved to `scripts/legacy/` with audit record in phase summary listing what was salvaged vs. dropped.
+  4. `grep -rn "def run_.*_ppc\|def run_posterior_predictive" scripts/` shows the simulator definition lives in `utils/`, not duplicated across 03 and 05.
+  5. `docs/HIERARCHICAL_BAYESIAN.md`, `K_PARAMETERIZATION.md`, `SCALES_AND_FITTING_AUDIT.md` no longer at top level; content merged into `docs/03_methods_reference/` or `docs/04_methods/`; originals in `docs/legacy/`.
+  6. `docs/CLUSTER_GPU_LESSONS.md` byte-identical to pre-phase (untouched).
+  7. `cluster/*.slurm` path references updated; `cluster/submit_all.sh` (or extended `21_submit_pipeline.sh`) chains stage-numbered SLURMs via `--afterok`; dry-run smoke check passes for every stage.
+  8. `manuscript/paper.qmd` renders via `quarto render paper.qmd` without path-not-found errors (graceful-fallback cells still catch data gaps).
+  9. `validation/check_v4_closure.py` still exits 0 on new structure (all v4.0 closure invariants preserved).
+  10. `grep -rn "from scripts\.(data_processing|behavioral|simulations_recovery|post_mle|bayesian_pipeline)\." src/ scripts/ tests/ validation/ manuscript/` returns ZERO matches (all importers updated to new paths).
+  11. `pytest scripts/fitting/tests/ tests/ validation/` passes clean.
+  12. New pytest `tests/test_v5_phase29_structure.py` asserts canonical directory shape + dead-folder absence + utils-library import pattern.
+
+**Plans:** 8 plans in 5 waves (29-08 OPTIONAL, gated on user approval)
+
+Plans:
+- [ ] 29-01-scripts-canonical-reorg-PLAN.md (Wave 1) — scripts/ big rename wave: data_processing→01, behavioral→02, simulations_recovery+prior-predictive+recovery→03, 12/13/21_fit_baseline/21_fit_with_l2→04/{a_mle,b_bayesian,c_level2}, 21_audits→05, 14_compare+21_loo/averaging/tables+post_mle→06; all importers updated atomically
+- [ ] 29-02-docs-spare-file-integration-PLAN.md (Wave 1, parallel) — merge HIERARCHICAL_BAYESIAN + SCALES_AND_FITTING_AUDIT → 04_methods/README.md, K_PARAMETERIZATION → 03_methods_reference/MODEL_REFERENCE.md; originals → docs/legacy/; pre-phase CLUSTER_GPU_LESSONS.md sha256 captured for closure guard
+- [ ] 29-03-utils-consolidation-PLAN.md (Wave 2, after 29-01) — extract canonical simulator into scripts/utils/ppc.py (single source for 03 prior-PPC + 03 synthetic + 05 posterior-PPC); rename plotting_utils/statistical_tests/scoring_functions to plotting/stats/scoring; create 05_post_fitting_checks/run_posterior_ppc.py thin orchestrator
+- [ ] 29-04-dead-folder-audit-PLAN.md (Wave 2, after 29-01) — per-folder grep-evidence audit + move to scripts/legacy/ with README.md audit record; analysis, results, simulations (retained with importer updates), statistical_analyses, visualization
+- [ ] 29-05-cluster-slurm-consolidation-PLAN.md (Wave 3, after 29-01 & 29-03) — update all cluster/*.slurm internal python paths + create stage-numbered 01..06 entry points + consolidate per-model templates via --export=MODEL=...,TIME=... + cluster/submit_all.sh master chain with --dry-run
+- [ ] 29-06-paper-qmd-smoke-render-PLAN.md (Wave 3, after 29-01) — rewrite paper.qmd + paper.tex script-path references + quarto render smoke
+- [ ] 29-07-closure-guard-extension-PLAN.md (Wave 4, after 29-01..29-06) — tests/test_v5_phase29_structure.py pytest closure guard (6 stage folders, dead folders absent, utils canonical, docs merged, cluster paths, sha256 invariant, v4 closure still green) + REFAC-14..REFAC-20 rows into REQUIREMENTS.md + 29-VERIFICATION.md
+- [ ] 29-08-src-fitting-vertical-refactor-PLAN.md (OPTIONAL, Wave 5, autonomous: false — user approval gate) — src/rlwm/fitting/{core.py, models/<model>.py × 7, sampling.py}; jax_likelihoods.py + numpyro_models.py retained as re-export shims; DEFERS to v6.0 if user declines
+
+**Details:**
+Origin 2026-04-22 user discussion. Phase 28 deliberately executed Option A-modified ("narrow migration") to ship before paper.qmd restructure deadline. Phase 29 is the *finishing* pass: canonical paper-directional structure (01–06 maps to IMRaD sections); shared utilities library; dead cluster cleanup; docs consolidation; cluster SLURM consolidation. User execution order: (1) scripts reorg FIRST, (2) utils + dead folder audit SECOND, (3) docs/cluster/paper.qmd can parallelize, (4) fitting/ refactor LAST and optional. Positioned as Phase 29 (numerically after 28 but logically BEFORE 24 cold-start and 26 manuscript finalization; neither has run yet, so sequencing remains valid).
+
 </details>
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 13 → 14 → 15 → 16 → 17 → 18 → 19 → 20 → 21 → 22 → 23 → 24 → 25 → 26 → 27 → 28 (Phase 28 sequencing under review — see Phase 28 "Sequencing Consideration" block)
+Phases execute in numeric order: 13 → 14 → 15 → 16 → 17 → 18 → 19 → 20 → 21 → 22 → 23 → 24 → 25 → 26 → 27 → 28 → 29 (Phase 28 ran before Phase 24; Phase 29 must also run before Phase 24 cold-start + Phase 26 manuscript finalization — path stability prerequisite)
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -572,3 +609,4 @@ Phases execute in numeric order: 13 → 14 → 15 → 16 → 17 → 18 → 19 �
 | 26. Manuscript Finalization | v5.0 | 0/3 | Not started | — |
 | 27. Milestone v5.0 Closure | v5.0 | 0/3 | Not started | — |
 | 28. Bayesian-First Manuscript Restructure & Repo Consolidation | v5.0 | 12/12 | Complete (execution reversed sequencing: Phase 28 ran before Phase 24) | 2026-04-22 |
+| 29. Pipeline Canonical Reorganization & Utilities Consolidation | v5.0 | 0/TBD | Planning (added 2026-04-22; completes Phase 28 scope; runs before Phase 24 cold-start) | — |
