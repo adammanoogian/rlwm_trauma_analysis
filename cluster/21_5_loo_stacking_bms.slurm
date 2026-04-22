@@ -2,7 +2,7 @@
 # =============================================================================
 # SLURM Batch Script: Phase 21 Step 21.5 — LOO + stacking + RFX-BMS
 # =============================================================================
-# Runs scripts/21_compute_loo_stacking.py over the baseline models that
+# Runs scripts/06_fit_analyses/02_compute_loo_stacking.py over the baseline models that
 # passed plan 21-05's convergence gate (pipeline_action == "PROCEED_TO_LOO"
 # in output/bayesian/21_baseline/convergence_table.csv) and writes
 # loo_stacking_results.csv + rfx_bms_pxp.csv + winner_report.md +

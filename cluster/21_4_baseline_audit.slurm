@@ -2,7 +2,7 @@
 # =============================================================================
 # SLURM Batch Script: Phase 21 Step 21.4 — Baseline Convergence + PPC Audit
 # =============================================================================
-# Runs scripts/21_baseline_audit.py over all 6 baseline posteriors produced
+# Runs scripts/05_post_fitting_checks/01_baseline_audit.py over all 6 baseline posteriors produced
 # by step 21.3 (output/bayesian/21_baseline/{model}_posterior.nc) and writes
 # convergence_table.csv + convergence_report.md to the same directory.
 #

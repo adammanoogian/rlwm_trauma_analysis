@@ -2,7 +2,7 @@
 # =============================================================================
 # SLURM Batch Script: Phase 21 Step 21.8 — Model Averaging + Subscale Arm
 # =============================================================================
-# Runs scripts/21_model_averaging.py over the winner L2 posteriors
+# Runs scripts/06_fit_analyses/03_model_averaging.py over the winner L2 posteriors
 # produced by step 21.6 (output/bayesian/21_l2/{winner}_posterior.nc),
 # using stacking weights from step 21.5
 # (output/bayesian/21_baseline/loo_stacking_results.csv) to build a

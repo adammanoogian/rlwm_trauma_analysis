@@ -146,7 +146,7 @@ if command -v nvidia-smi &>/dev/null; then
     GPU_MONITOR_PID=$!
 fi
 
-python scripts/fitting/model_recovery.py \
+python scripts/03_model_prefitting/03_run_model_recovery.py \
     --model $MODEL \
     --n-subjects $NSUBJ \
     --n-datasets $NDATASETS \

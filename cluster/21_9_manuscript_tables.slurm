@@ -2,7 +2,7 @@
 # =============================================================================
 # SLURM Batch Script: Phase 21 Step 21.9 — Manuscript Tables + Forest Plots
 # =============================================================================
-# Runs scripts/21_manuscript_tables.py to consolidate Phase 21 pipeline
+# Runs scripts/06_fit_analyses/08_manuscript_tables.py to consolidate Phase 21 pipeline
 # outputs (steps 21.1 through 21.8) into publication-ready Tables 1/2/3
 # (.csv + .md + .tex) and Figure 1 forest plots.
 #

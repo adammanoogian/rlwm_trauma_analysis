@@ -10,7 +10,7 @@
 #   sbatch cluster/13_bayesian_permutation.slurm
 #
 # After completion, aggregate results with:
-#   python scripts/fitting/aggregate_permutation_results.py
+#   python scripts/fitting/aggregate_permutation_results.py   # (scripts/fitting/ is the helpers bin — not a stage folder)
 #
 # Outputs per shuffle:
 #   output/bayesian/permutation/shuffle_{idx}_results.json

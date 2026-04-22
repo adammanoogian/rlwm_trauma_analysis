@@ -71,7 +71,7 @@ echo ""
 echo "[$(date)] Pre-flight: verifying 2-covariate L2 hook (plan 21-11)..."
 if ! pytest scripts/fitting/tests/test_numpyro_models_2cov.py -v -k "not slow" --tb=short; then
   echo "[ABORT] plan 21-11 tests failed — 2-covariate L2 hook for M3/M5/M6a is not wired correctly."
-  echo "[ABORT] No cluster jobs submitted. Fix scripts/fitting/numpyro_models.py and retry."
+  echo "[ABORT] No cluster jobs submitted. Fix src/rlwm/fitting/numpyro_models.py and retry."
   exit 1
 fi
 echo "[$(date)] Pre-flight OK — 2-covariate L2 hook ready."

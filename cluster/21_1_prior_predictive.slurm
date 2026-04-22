@@ -120,7 +120,7 @@ if [ $EXIT_CODE -eq 0 ]; then
 elif [ $EXIT_CODE -eq 1 ]; then
     echo "Gate verdict: FAIL — see output/bayesian/21_prior_predictive/${MODEL}_gate.md"
 else
-    echo "ERROR: scripts/21_run_prior_predictive.py exited with code $EXIT_CODE"
+    echo "ERROR: scripts/03_model_prefitting/04_run_prior_predictive.py exited with code $EXIT_CODE"
 fi
 
 # Auto-push logs and results when job completes

@@ -122,7 +122,7 @@ echo ""
 
 # NOTE (quick-008 cleanup): The M4 standalone runner script was removed.
 # The M4 hierarchical model (wmrl_m4_hierarchical_model) lives in
-# scripts/fitting/numpyro_models.py. A new runner script for Phase 17 SLURM
+# src/rlwm/fitting/numpyro_models.py. A new runner script for Phase 17 SLURM
 # submission needs to be created before this batch job can be resubmitted.
 # See docs/02_pipeline_guide/ANALYSIS_PIPELINE.md Stage 4 for the current M4 plan.
 echo "ERROR: This SLURM script requires a runner script for M4 hierarchical fitting."

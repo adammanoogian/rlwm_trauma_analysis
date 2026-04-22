@@ -181,7 +181,7 @@ DATA_FILE="output/task_trials_long.csv"
 if [[ ! -f "$DATA_FILE" ]]; then
     echo "ERROR: Data file not found: $DATA_FILE"
     echo "Run the data parsing script first:"
-    echo "  python scripts/01_parse_raw_data.py"
+    echo "  python scripts/01_data_preprocessing/01_parse_raw_data.py"
     exit 1
 fi
 

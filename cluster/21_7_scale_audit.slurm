@@ -2,7 +2,7 @@
 # =============================================================================
 # SLURM Batch Script: Phase 21 Step 21.7 — Scale-Fit Audit (L2 betas + FDR-BH)
 # =============================================================================
-# Runs scripts/21_scale_audit.py over the winners' L2-refit posteriors
+# Runs scripts/05_post_fitting_checks/02_scale_audit.py over the winners' L2-refit posteriors
 # produced by step 21.6 (output/bayesian/21_l2/{winner}_posterior.nc) and
 # writes scale_audit_report.md + per-winner beta_hdi_table.csv to the
 # same directory.
