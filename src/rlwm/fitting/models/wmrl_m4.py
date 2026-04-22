@@ -19,7 +19,7 @@ import numpyro
 import numpyro.distributions as dist
 import pandas as pd
 
-from ..core import MAX_TRIALS_PER_BLOCK, pad_block_to_max
+from ..core import MAX_TRIALS_PER_BLOCK, pad_block_to_max, prepare_stacked_participant_data
 
 __all__ = [
     "prepare_stacked_participant_data_m4",

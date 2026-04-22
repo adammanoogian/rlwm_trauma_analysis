@@ -30,7 +30,9 @@ from ..core import (
     pad_block_to_max,
     precompute_last_action_global,
     precompute_last_actions_per_stimulus,
+    prepare_stacked_participant_data,
     softmax_policy,
+    stack_across_participants,
 )
 
 __all__ = [

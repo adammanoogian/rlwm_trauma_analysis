@@ -31,7 +31,9 @@ from ..core import (
     associative_scan_q_update,
     pad_block_to_max,
     pad_blocks_to_max,
+    prepare_stacked_participant_data,
     softmax_policy,
+    stack_across_participants,
 )
 
 __all__ = [

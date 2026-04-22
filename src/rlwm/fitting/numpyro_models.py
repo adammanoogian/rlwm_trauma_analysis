@@ -14,13 +14,22 @@ Canonical homes (new in Phase 29-08):
   :mod:`rlwm.fitting.models.<model>` (the same file as the model's JAX
   likelihood — vertical-by-model layout).
 - Sampling orchestration (``run_inference``, ``samples_to_arviz``,
-  chain-method selector, data-prep utilities, stacking helpers) lives
-  in :mod:`rlwm.fitting.sampling`.
+  chain-method selector, data-prep utilities) lives in
+  :mod:`rlwm.fitting.sampling`.
+- Stacking helpers (``stack_across_participants``,
+  ``prepare_stacked_participant_data``) live in :mod:`rlwm.fitting.core`
+  (pure data-prep, moved there to avoid a circular import between the
+  per-model files and the sampling orchestration layer).
 
 All public symbols from those modules (defined via their ``__all__`` lists)
 are re-exported here via wildcard import.
 """
 from __future__ import annotations
+
+# Stacking helpers + shared constants (pre-refactor callers of
+# rlwm.fitting.numpyro_models expect stack_across_participants and
+# prepare_stacked_participant_data to be importable from here).
+from .core import *  # noqa: F401,F403
 
 # Sampling orchestration
 from .sampling import *  # noqa: F401,F403

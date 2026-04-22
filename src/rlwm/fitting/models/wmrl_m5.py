@@ -29,7 +29,9 @@ from ..core import (
     associative_scan_wm_update,
     pad_block_to_max,
     precompute_last_action_global,
+    prepare_stacked_participant_data,
     softmax_policy,
+    stack_across_participants,
 )
 
 __all__ = [

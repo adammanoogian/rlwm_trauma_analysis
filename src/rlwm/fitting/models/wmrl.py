@@ -31,6 +31,7 @@ from ..core import (
     associative_scan_wm_update,
     pad_block_to_max,
     softmax_policy,
+    stack_across_participants,
 )
 
 __all__ = [
