@@ -140,7 +140,7 @@ def sample_capacity(
     Convenience wrapper around :func:`sample_bounded_param` that
     enforces the Senta, Bishop, Collins (2025) capacity bounds.
 
-    Formula (from research doc K_PARAMETERIZATION.md):
+    Formula (from docs/03_methods_reference/MODEL_REFERENCE.md section 12):
         K_i = 2.0 + 4.0 * Phi_approx(mu_K_pr + sigma_K_pr * z_K_i)
 
     Parameters

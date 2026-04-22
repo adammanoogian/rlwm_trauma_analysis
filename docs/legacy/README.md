@@ -9,4 +9,5 @@ references for current code.
 | CONVERGENCE_ASSESSMENT.md | Standalone convergence-diagnostics reference — content now covered by 04_methods/README.md §4.1 (merged from HIERARCHICAL_BAYESIAN.md) | ../04_methods/README.md#hierarchical-bayesian-architecture |
 | HIERARCHICAL_BAYESIAN.md | Hierarchical Bayesian architecture doc — content merged into 04_methods/README.md (Phase 29 Plan 02) | ../04_methods/README.md#hierarchical-bayesian-architecture |
 | SCALES_AND_FITTING_AUDIT.md | LEC-5/IES-R distributions + fitting audit — content merged into 04_methods/README.md (Phase 29 Plan 02) | ../04_methods/README.md#scales-orthogonalization-and-audit |
+| K_PARAMETERIZATION.md | Working-memory capacity K ∈ [2, 6] decision record — content merged into 03_methods_reference/MODEL_REFERENCE.md section 12 (Phase 29 Plan 02) | ../03_methods_reference/MODEL_REFERENCE.md#k-parameterization |
 | DEER_NONLINEAR_PARALLELIZATION.md | Phase 20-01 investigation (NO-GO decision locked) | Decision recorded in ../PARALLEL_SCAN_LIKELIHOOD.md |
