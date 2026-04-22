@@ -39,13 +39,13 @@ Outputs:
 
 Usage:
     # Run all analyses (tables + statistics)
-    python scripts/08_run_statistical_analyses.py
+    python scripts/02_behav_analyses/04_run_statistical_analyses.py
 
     # Generate only descriptive tables
-    python scripts/08_run_statistical_analyses.py --tables-only
+    python scripts/02_behav_analyses/04_run_statistical_analyses.py --tables-only
 
     # Run only inferential statistics
-    python scripts/08_run_statistical_analyses.py --stats-only
+    python scripts/02_behav_analyses/04_run_statistical_analyses.py --stats-only
 
 Next Steps:
     - Review tables for thesis/publication

@@ -113,20 +113,20 @@ run_step() {
 if [[ "$SKIP_BEHAVIORAL" != "true" ]]; then
     echo ""
     echo "============================================================"
-    echo "PHASE A: Behavioral Analysis (Steps 05-08)"
+    echo "PHASE A: Behavioral Analysis (Steps 01-04)"
     echo "============================================================"
 
-    run_step "05 — Summarize behavioral data" \
-        python scripts/02_behav_analyses/05_summarize_behavioral_data.py
+    run_step "01 — Summarize behavioral data" \
+        python scripts/02_behav_analyses/01_summarize_behavioral_data.py
 
-    run_step "06 — Visualize task performance" \
-        python scripts/02_behav_analyses/06_visualize_task_performance.py
+    run_step "02 — Visualize task performance" \
+        python scripts/02_behav_analyses/02_visualize_task_performance.py
 
-    run_step "07 — Analyze trauma groups" \
-        python scripts/02_behav_analyses/07_analyze_trauma_groups.py
+    run_step "03 — Analyze trauma groups" \
+        python scripts/02_behav_analyses/03_analyze_trauma_groups.py
 
-    run_step "08 — Run statistical analyses" \
-        python scripts/02_behav_analyses/08_run_statistical_analyses.py
+    run_step "04 — Run statistical analyses" \
+        python scripts/02_behav_analyses/04_run_statistical_analyses.py
 else
     echo ""
     echo "Skipping Phase A (--export=SKIP_BEHAVIORAL=true)"

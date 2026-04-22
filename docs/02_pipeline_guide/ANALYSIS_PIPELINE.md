@@ -57,20 +57,20 @@ python scripts/01_data_preprocessing/04_create_summary_csv.py      # Summary met
 
 ---
 
-## Stage 2: Behavioral Analysis (Scripts 05-08)
+## Stage 2: Behavioral Analysis (Scripts 01-04)
 
 Generate descriptive statistics, visualizations, trauma group classifications, and statistical tests.
 
 ```bash
-python scripts/02_behav_analyses/05_summarize_behavioral_data.py    # Behavioral summary stats
-python scripts/02_behav_analyses/06_visualize_task_performance.py    # Learning curves, set-size effects
-python scripts/02_behav_analyses/07_analyze_trauma_groups.py         # Trauma grouping + validation
-python scripts/02_behav_analyses/08_run_statistical_analyses.py      # ANOVAs + descriptive tables
+python scripts/02_behav_analyses/01_summarize_behavioral_data.py    # Behavioral summary stats
+python scripts/02_behav_analyses/02_visualize_task_performance.py    # Learning curves, set-size effects
+python scripts/02_behav_analyses/03_analyze_trauma_groups.py         # Trauma grouping + validation
+python scripts/02_behav_analyses/04_run_statistical_analyses.py      # ANOVAs + descriptive tables
 ```
 
 ### Trauma Group Methodology
 
-Script 07 creates hypothesis-driven groups based on median splits of LEC-5 (trauma exposure) and IES-R (PTSD symptoms):
+Script 03 creates hypothesis-driven groups based on median splits of LEC-5 (trauma exposure) and IES-R (PTSD symptoms):
 
 | Group | LEC-5 | IES-R | Interpretation |
 |-------|-------|-------|----------------|

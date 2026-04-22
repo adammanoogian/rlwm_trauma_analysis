@@ -10,9 +10,9 @@ posteriors blocked on cluster runs).
 
 | Result | Producer | Output path | Status |
 |---|---|---|---|
-| Task performance plots | scripts/02_behav_analyses/06_visualize_task_performance.py | figures/behavioral_analysis/ | available |
-| Trauma-group behavioral stats | scripts/02_behav_analyses/07_analyze_trauma_groups.py | figures/trauma_groups/, output/summary_by_trauma.csv | available |
-| Statistical analyses (ANOVA, descriptives) | scripts/02_behav_analyses/08_run_statistical_analyses.py | output/statistical_analyses/ | available |
+| Task performance plots | scripts/02_behav_analyses/02_visualize_task_performance.py | figures/behavioral_analysis/ | available |
+| Trauma-group behavioral stats | scripts/02_behav_analyses/03_analyze_trauma_groups.py | figures/trauma_groups/, output/summary_by_trauma.csv | available |
+| Statistical analyses (ANOVA, descriptives) | scripts/02_behav_analyses/04_run_statistical_analyses.py | output/statistical_analyses/ | available |
 | Scale distributions | scripts/legacy/analysis/trauma_scale_distributions.py | figures/scale_distributions.png, figures/trauma_scale_analysis/ | available after pipeline rerun |
 
 ## Model fitting (MLE)

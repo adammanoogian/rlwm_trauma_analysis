@@ -194,11 +194,11 @@ python scripts/01_data_preprocessing/02_create_collated_csv.py
 python scripts/01_data_preprocessing/03_create_task_trials_csv.py
 python scripts/01_data_preprocessing/04_create_summary_csv.py
 
-# Behavioral Analysis (05-08)
-python scripts/02_behav_analyses/05_summarize_behavioral_data.py
-python scripts/02_behav_analyses/06_visualize_task_performance.py
-python scripts/02_behav_analyses/07_analyze_trauma_groups.py
-python scripts/02_behav_analyses/08_run_statistical_analyses.py
+# Behavioral Analysis (01-04)
+python scripts/02_behav_analyses/01_summarize_behavioral_data.py
+python scripts/02_behav_analyses/02_visualize_task_performance.py
+python scripts/02_behav_analyses/03_analyze_trauma_groups.py
+python scripts/02_behav_analyses/04_run_statistical_analyses.py
 
 # Model Fitting (04_model_fitting/)
 python scripts/04_model_fitting/a_mle/12_fit_mle.py --model qlearning

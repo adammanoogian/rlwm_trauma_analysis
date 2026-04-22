@@ -37,17 +37,17 @@ Outputs:
 
 Usage:
     # Run full analysis (grouping + validation)
-    python scripts/07_analyze_trauma_groups.py
+    python scripts/02_behav_analyses/03_analyze_trauma_groups.py
 
     # Run only grouping (skip validation)
-    python scripts/07_analyze_trauma_groups.py --grouping-only
+    python scripts/02_behav_analyses/03_analyze_trauma_groups.py --grouping-only
 
     # Run only validation (requires existing group assignments)
-    python scripts/07_analyze_trauma_groups.py --validation-only
+    python scripts/02_behav_analyses/03_analyze_trauma_groups.py --validation-only
 
 Next Steps:
-    - Run 08_run_statistical_analyses.py for ANOVAs and regressions
-    - Run 15_analyze_mle_by_trauma.py after model fitting
+    - Run 04_run_statistical_analyses.py for ANOVAs and regressions
+    - Run 04_analyze_mle_by_trauma.py (in 06_fit_analyses/) after model fitting
 """
 
 import pandas as pd
@@ -496,7 +496,7 @@ def main():
     print(f"  - {OUTPUT_DIR}/")
     print(f"  - {FIGURES_DIR}/")
     print("\nNext steps:")
-    print("  - Run 08_run_statistical_analyses.py for ANOVAs and regressions")
+    print("  - Run 04_run_statistical_analyses.py for ANOVAs and regressions")
     print("  - Use group_assignments.csv for downstream analysis")
 
 

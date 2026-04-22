@@ -24,11 +24,11 @@ Outputs:
     - output/behavioral_summary/data_summary_report.txt
 
 Usage:
-    python scripts/05_summarize_behavioral_data.py
+    python scripts/02_behav_analyses/01_summarize_behavioral_data.py
 
 Next Steps:
-    - Run 06_visualize_task_performance.py for learning curves
-    - Run 07_analyze_trauma_groups.py for trauma grouping analysis
+    - Run 02_visualize_task_performance.py for learning curves
+    - Run 03_analyze_trauma_groups.py for trauma grouping analysis
 """
 
 import numpy as np
@@ -371,8 +371,8 @@ def main():
     print("=" * 80)
     print(f"\nOutput saved to: {output_dir}")
     print("\nNext steps:")
-    print("  - Run 06_visualize_task_performance.py to create stimulus-based learning curves")
-    print("  - Run 07_analyze_trauma_groups.py for trauma grouping analysis")
+    print("  - Run 02_visualize_task_performance.py to create stimulus-based learning curves")
+    print("  - Run 03_analyze_trauma_groups.py for trauma grouping analysis")
     print("=" * 80)
 
 

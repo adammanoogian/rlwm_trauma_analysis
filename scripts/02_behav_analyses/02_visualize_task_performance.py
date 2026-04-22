@@ -21,20 +21,20 @@ Outputs:
 
 Usage:
     # Basic visualization
-    python scripts/06_visualize_task_performance.py
+    python scripts/02_behav_analyses/02_visualize_task_performance.py
 
     # With custom data file
-    python scripts/06_visualize_task_performance.py --data output/task_trials_long_all.csv
+    python scripts/02_behav_analyses/02_visualize_task_performance.py --data output/task_trials_long_all.csv
 
     # With trauma group comparisons
-    python scripts/06_visualize_task_performance.py --trauma-groups output/trauma_groups/group_assignments.csv
+    python scripts/02_behav_analyses/02_visualize_task_performance.py --trauma-groups output/trauma_groups/group_assignments.csv
 
     # Custom encounter threshold
-    python scripts/06_visualize_task_performance.py --threshold 5
+    python scripts/02_behav_analyses/02_visualize_task_performance.py --threshold 5
 
 Next Steps:
-    - Run 07_analyze_trauma_groups.py to create trauma groupings
-    - Run 08_run_statistical_analyses.py for statistical tests
+    - Run 03_analyze_trauma_groups.py to create trauma groupings
+    - Run 04_run_statistical_analyses.py for statistical tests
 """
 
 import numpy as np

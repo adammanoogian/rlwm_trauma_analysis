@@ -92,23 +92,23 @@ def main():
         ),
     ])
 
-    # Steps 05-08: Behavioral Analysis
+    # Steps 01-04 (Stage 02): Behavioral Analysis
     steps.extend([
         (
-            "05 — Summarizing behavioral data",
-            "python scripts/02_behav_analyses/05_summarize_behavioral_data.py",
+            "01 — Summarizing behavioral data",
+            "python scripts/02_behav_analyses/01_summarize_behavioral_data.py",
         ),
         (
-            "06 — Visualizing task performance",
-            "python scripts/02_behav_analyses/06_visualize_task_performance.py",
+            "02 — Visualizing task performance",
+            "python scripts/02_behav_analyses/02_visualize_task_performance.py",
         ),
         (
-            "07 — Analyzing trauma groups",
-            "python scripts/02_behav_analyses/07_analyze_trauma_groups.py",
+            "03 — Analyzing trauma groups",
+            "python scripts/02_behav_analyses/03_analyze_trauma_groups.py",
         ),
         (
-            "08 — Running statistical analyses",
-            "python scripts/02_behav_analyses/08_run_statistical_analyses.py",
+            "04 — Running statistical analyses",
+            "python scripts/02_behav_analyses/04_run_statistical_analyses.py",
         ),
     ])
 
