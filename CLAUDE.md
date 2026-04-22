@@ -257,10 +257,10 @@ bash cluster/21_submit_pipeline.sh
 python scripts/03_model_prefitting/04_run_prior_predictive.py
 python scripts/03_model_prefitting/05_run_bayesian_recovery.py
 python scripts/04_model_fitting/b_bayesian/fit_baseline.py
-python scripts/05_post_fitting_checks/baseline_audit.py
+python scripts/05_post_fitting_checks/01_baseline_audit.py
 python scripts/06_fit_analyses/compute_loo_stacking.py
 python scripts/04_model_fitting/c_level2/fit_with_l2.py
-python scripts/05_post_fitting_checks/scale_audit.py
+python scripts/05_post_fitting_checks/02_scale_audit.py
 python scripts/06_fit_analyses/model_averaging.py
 python scripts/06_fit_analyses/manuscript_tables.py
 ```

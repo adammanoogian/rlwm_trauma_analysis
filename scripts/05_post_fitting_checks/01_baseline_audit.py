@@ -1,7 +1,8 @@
 """Step 21.4 — Convergence + PPC audit over the 6 baseline posteriors.
 
 Phase 21 Wave 4 gatekeeper. Loads every NetCDF produced by step 21.3
-(:mod:`scripts.21_fit_baseline`) from ``output/bayesian/21_baseline/`` and
+(``scripts/04_model_fitting/b_bayesian/fit_baseline.py``) from
+``output/bayesian/21_baseline/`` and
 applies the Baribault & Collins (2023, DOI 10.1037/met0000554) convergence
 gate before any model is allowed to participate in PSIS-LOO + stacking +
 RFX-BMS/PXP in step 21.5.
@@ -55,8 +56,8 @@ Pipeline actions
 
 Usage
 -----
->>> python scripts/21_baseline_audit.py
->>> python scripts/21_baseline_audit.py \
+>>> python scripts/05_post_fitting_checks/01_baseline_audit.py
+>>> python scripts/05_post_fitting_checks/01_baseline_audit.py \
 ...     --baseline-dir output/bayesian/21_baseline/ \
 ...     --output-dir output/bayesian/21_baseline/ \
 ...     --rhat-threshold 1.05 --ess-threshold 400 --bfmi-threshold 0.2
@@ -85,15 +86,18 @@ import numpy as np
 import pandas as pd
 
 # -- Path bootstrap so this script runs both interactively and under SLURM.
+# parents[2] = project root from 05_post_fitting_checks/
+# (05_post_fitting_checks → scripts → <project root>).
 _THIS_FILE = Path(__file__).resolve()
-_PROJECT_ROOT = _THIS_FILE.parent.parent.parent
+_PROJECT_ROOT = _THIS_FILE.parents[2]
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
 from config import MODEL_REGISTRY, load_netcdf_with_validation  # noqa: E402
 
 # The 6 choice-only models produced by step 21.3. Must match
-# ``scripts/21_fit_baseline.py::BASELINE_MODELS`` and ``MODEL_REGISTRY``.
+# ``scripts/04_model_fitting/b_bayesian/fit_baseline.py::BASELINE_MODELS``
+# and ``MODEL_REGISTRY``.
 MODELS: tuple[str, ...] = (
     "qlearning",
     "wmrl",

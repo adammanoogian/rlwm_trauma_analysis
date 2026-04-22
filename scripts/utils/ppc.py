@@ -13,7 +13,7 @@ Layers (do not conflate)
 
   - stage 03 prior PPC  → ``scripts/03_model_prefitting/04_run_prior_predictive.py``
   - stage 05 posterior PPC thin orchestrator
-    → ``scripts/05_post_fitting_checks/run_posterior_ppc.py``
+    → ``scripts/05_post_fitting_checks/03_run_posterior_ppc.py``
 
   (The former ``scripts/03_model_prefitting/09_run_ppc.py`` duplicate
   orchestrator was removed in plan 29-04b — stage 05 is now the sole

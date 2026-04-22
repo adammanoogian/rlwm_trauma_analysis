@@ -94,7 +94,7 @@ mkdir -p logs
 echo ""
 echo "[$(date)] Starting Step 21.4 baseline convergence audit"
 
-python scripts/05_post_fitting_checks/baseline_audit.py \
+python scripts/05_post_fitting_checks/01_baseline_audit.py \
     --baseline-dir output/bayesian/21_baseline/ \
     --output-dir output/bayesian/21_baseline/ \
     --rhat-threshold "$RHAT" \

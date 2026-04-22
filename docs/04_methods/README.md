@@ -18,7 +18,7 @@ methods are added or old ones documented.
 
 | Topic | Producing script | Method doc |
 |---|---|---|
-| Posterior predictive checks | scripts/05_post_fitting_checks/run_posterior_ppc.py | _TODO_ |
+| Posterior predictive checks | scripts/05_post_fitting_checks/03_run_posterior_ppc.py | _TODO_ |
 | Synthetic-data generation | scripts/03_model_prefitting/01_generate_synthetic_data.py | _TODO_ |
 | Parameter sweep | scripts/03_model_prefitting/02_run_parameter_sweep.py | _TODO_ |
 | Parameter recovery | scripts/03_model_prefitting/03_run_model_recovery.py | _TODO_ |

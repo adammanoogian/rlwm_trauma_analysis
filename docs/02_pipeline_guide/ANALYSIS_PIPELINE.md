@@ -100,7 +100,7 @@ python scripts/03_model_prefitting/04_run_prior_predictive.py --model wmrl_m3  #
 python scripts/03_model_prefitting/05_run_bayesian_recovery.py --mode aggregate --model wmrl_m3  # Bayesian recovery aggregate
 
 # Posterior predictive check (after MLE fits land; stage 05):
-python scripts/05_post_fitting_checks/run_posterior_ppc.py --model wmrl_m3
+python scripts/05_post_fitting_checks/03_run_posterior_ppc.py --model wmrl_m3
 ```
 
 **Use cases:**

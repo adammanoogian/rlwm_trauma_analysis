@@ -12,8 +12,8 @@ simulations and prior predictive gates only.
 
 Usage
 -----
-python scripts/05_post_fitting_checks/run_posterior_ppc.py --model wmrl_m3
-python scripts/05_post_fitting_checks/run_posterior_ppc.py --model all \\
+python scripts/05_post_fitting_checks/03_run_posterior_ppc.py --model wmrl_m3
+python scripts/05_post_fitting_checks/03_run_posterior_ppc.py --model all \\
     --skip-model-recovery
 """
 

@@ -33,7 +33,7 @@ Usage:
 
 Next Steps:
     - Compare synthetic vs human data visually
-    - Use for posterior predictive checks (scripts/05_post_fitting_checks/run_posterior_ppc.py)
+    - Use for posterior predictive checks (scripts/05_post_fitting_checks/03_run_posterior_ppc.py)
     - Run 02_run_parameter_sweep.py for systematic exploration
 """
 

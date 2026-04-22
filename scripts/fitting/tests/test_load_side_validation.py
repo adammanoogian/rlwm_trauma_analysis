@@ -21,9 +21,9 @@ _ENUMERATED_FILES: list[Path] = [
     _PROJECT_ROOT / "scripts" / "06_fit_analyses" / "bayesian_level2_effects.py",
     _PROJECT_ROOT / "scripts" / "04_model_fitting" / "c_level2" / "fit_with_l2.py",
     _PROJECT_ROOT / "scripts" / "06_fit_analyses" / "compute_loo_stacking.py",
-    _PROJECT_ROOT / "scripts" / "05_post_fitting_checks" / "baseline_audit.py",
+    _PROJECT_ROOT / "scripts" / "05_post_fitting_checks" / "01_baseline_audit.py",
     _PROJECT_ROOT / "scripts" / "06_fit_analyses" / "model_averaging.py",
-    _PROJECT_ROOT / "scripts" / "05_post_fitting_checks" / "scale_audit.py",
+    _PROJECT_ROOT / "scripts" / "05_post_fitting_checks" / "02_scale_audit.py",
     # Legacy archive paths (plan 29-04 moved these folders to scripts/legacy/).
     # The enumeration still tracks them because the CLEAN-04 invariant
     # (no bare NetCDF loads) applies to any file historically loading NetCDF,

@@ -93,7 +93,7 @@ Outputs
 
 Usage
 -----
->>> python scripts/21_scale_audit.py \
+>>> python scripts/05_post_fitting_checks/02_scale_audit.py \
 ...     --l2-dir output/bayesian/21_l2/ \
 ...     --baseline-dir output/bayesian/21_baseline/ \
 ...     --winners-file output/bayesian/21_baseline/winners.txt \
@@ -103,7 +103,8 @@ Usage
 See also
 --------
 - ``cluster/21_7_scale_audit.slurm`` — SLURM submission template.
-- ``scripts/21_baseline_audit.py`` — step 21.4 sibling audit pattern.
+- ``scripts/05_post_fitting_checks/01_baseline_audit.py`` — step 21.4
+  sibling audit pattern.
 - ``.planning/phases/21-principled-bayesian-model-selection-pipeline/``
   21-08-PLAN.md for plan specification.
 
@@ -127,8 +128,9 @@ import numpy as np
 import pandas as pd
 
 # -- Path bootstrap so this script runs both interactively and under SLURM.
+# parents[2] = project root from 05_post_fitting_checks/
 _THIS_FILE = Path(__file__).resolve()
-_PROJECT_ROOT = _THIS_FILE.parent.parent.parent
+_PROJECT_ROOT = _THIS_FILE.parents[2]
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
@@ -140,7 +142,7 @@ try:
 except ImportError as exc:  # pragma: no cover — env-level failure
     print(
         "[FATAL] statsmodels is required for FDR-BH correction in "
-        "scripts/21_scale_audit.py. Expected it in ds_env. Install with "
+        "scripts/05_post_fitting_checks/02_scale_audit.py. Expected it in ds_env. Install with "
         "`conda install -n ds_env statsmodels` or `pip install statsmodels`. "
         f"Original error: {type(exc).__name__}: {exc}",
         file=sys.stderr,

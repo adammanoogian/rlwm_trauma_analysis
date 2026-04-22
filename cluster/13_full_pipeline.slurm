@@ -192,7 +192,7 @@ if [[ "$VALIDATE" == "true" ]]; then
     echo "============================================================"
 
     run_step "Posterior predictive checks (wmrl_m3)" \
-        python scripts/05_post_fitting_checks/run_posterior_ppc.py --model wmrl_m3 --use-gpu
+        python scripts/05_post_fitting_checks/03_run_posterior_ppc.py --model wmrl_m3 --use-gpu
 
     run_step "Parameter recovery (wmrl_m3)" \
         python scripts/03_model_prefitting/03_run_model_recovery.py --model wmrl_m3 --use-gpu
