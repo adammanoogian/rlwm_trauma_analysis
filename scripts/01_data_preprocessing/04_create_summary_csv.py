@@ -29,7 +29,7 @@ from config import EXCLUDED_PARTICIPANTS, DataParams
 # Add utils to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'utils'))
 
-from scoring_functions import calculate_all_task_metrics, score_ies_r, score_less
+from scoring import calculate_all_task_metrics, score_ies_r, score_less
 
 
 def main():

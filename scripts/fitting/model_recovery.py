@@ -50,7 +50,7 @@ from scripts.fitting.mle_utils import (
     WMRL_M6B_PARAMS,
     WMRL_PARAMS,
 )
-from scripts.utils.plotting_utils import plot_behavioral_comparison
+from scripts.utils.plotting import plot_behavioral_comparison
 
 # =============================================================================
 # Constants (matching real data structure)
@@ -851,7 +851,7 @@ def plot_recovery_scatter(
     output_dir : Path
         Directory to save figures
     """
-    from scripts.utils.plotting_utils import plot_scatter_with_annotations
+    from scripts.utils.plotting import plot_scatter_with_annotations
 
     # Get parameter names
     if model == 'qlearning':
@@ -956,7 +956,7 @@ def plot_distribution_comparison(
     output_dir : Path
         Directory to save figures
     """
-    from scripts.utils.plotting_utils import plot_kde_comparison
+    from scripts.utils.plotting import plot_kde_comparison
 
     # Get parameter names
     if model == 'qlearning':

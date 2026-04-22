@@ -90,7 +90,7 @@ from config import EXCLUDED_PARTICIPANTS, load_fits_with_validation
 
 # Import plotting utilities for color-by functionality
 sys.path.insert(0, str(Path(__file__).parent))
-from utils.plotting_utils import (
+from utils.plotting import (
     TRAUMA_GROUP_COLORS,
     add_colored_scatter,
     get_color_palette,

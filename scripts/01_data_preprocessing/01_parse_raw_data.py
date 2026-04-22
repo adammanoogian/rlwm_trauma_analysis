@@ -38,7 +38,7 @@ from data_cleaning import (
     extract_survey1_data,
     extract_survey2_data,
 )
-from scoring_functions import score_ies_r, score_less
+from scoring import score_ies_r, score_less
 
 # Import config for excluded participants
 try:

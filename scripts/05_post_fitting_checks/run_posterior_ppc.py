@@ -1,53 +1,18 @@
 #!/usr/bin/env python
-"""Posterior-predictive check CLI — thin stage-03 orchestrator.
+"""Posterior-predictive check CLI — stage 05 thin orchestrator.
 
-Validates fitted models by simulating behavior with fitted parameters and
-comparing to real behavioral patterns. Also runs model recovery to verify
-the generative model wins by AIC.
-
-The simulator / orchestrator logic lives in :mod:`scripts.utils.ppc`; this
-script is a thin argparse wrapper. A mirror orchestrator exists at
-``scripts/05_post_fitting_checks/run_posterior_ppc.py`` for callers that
-consume MCMC-posterior artifacts rather than MLE point estimates.
+Mirror of ``scripts/03_model_prefitting/09_run_ppc.py``, intended to live
+alongside the other stage-05 post-fitting diagnostics (``baseline_audit``,
+``scale_audit``). Both orchestrators are thin wrappers around the canonical
+simulator in :mod:`scripts.utils.ppc`; this one exists so the stage 05
+post-fit workflow has a first-class PPC entry point without having to
+reach into stage 03.
 
 Usage
 -----
-# Full PPC for a single model
-python scripts/03_model_prefitting/09_run_ppc.py --model wmrl_m3
-
-# All models
-python scripts/03_model_prefitting/09_run_ppc.py --model all
-
-# Skip model recovery (just behavioral comparison)
-python scripts/03_model_prefitting/09_run_ppc.py --model wmrl_m3 \\
+python scripts/05_post_fitting_checks/run_posterior_ppc.py --model wmrl_m3
+python scripts/05_post_fitting_checks/run_posterior_ppc.py --model all \\
     --skip-model-recovery
-
-# GPU-accelerated
-python scripts/03_model_prefitting/09_run_ppc.py --model wmrl_m3 --use-gpu
-
-Outputs
--------
-- output/ppc/{model}/synthetic_trials.csv
-- output/ppc/{model}/behavioral_comparison.csv
-- output/ppc/{model}/mle_results/ (model recovery fits)
-- figures/ppc/{model}/*.png (comparison plots)
-- Console: Behavioral comparison + model recovery PASS/FAIL
-
-Interpretation
---------------
-- Behavioral match: synthetic metrics within ~5% of real data
-- Model recovery PASS: generative model wins on synthetic data
-- Model recovery FAIL: may indicate model misspecification
-
-References
-----------
-Wilson, R. C. & Collins, A. G. E. (2019). Ten simple rules for the
-computational modeling of behavioral data. *eLife*, 8:e49547.
-
-Palminteri, S. et al. (2017). The importance of falsification in
-computational cognitive modeling. *Trends in Cognitive Sciences*.
-
-Senta et al. (2025).
 """
 
 from __future__ import annotations
@@ -66,18 +31,17 @@ from scripts.utils.ppc import run_posterior_ppc  # noqa: E402
 
 
 def main() -> int:
-    """Run PPC (behavioral comparison + optional model recovery) for one or all models.
+    """Run posterior PPC from MLE point estimates for one or all models.
 
     Returns
     -------
     int
-        Exit code 0 if all model-recovery checks pass (or were skipped); 1
-        otherwise.
+        Exit code 0 on pass, 1 on any model-recovery failure.
     """
     parser = argparse.ArgumentParser(
         description=(
-            "Run posterior predictive checks "
-            "(Senta et al. / Wilson & Collins methodology)."
+            "Run posterior predictive checks (stage 05 entry point). "
+            "Delegates to scripts.utils.ppc.run_posterior_ppc."
         )
     )
     parser.add_argument(
@@ -134,20 +98,13 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    # Determine models to run
     models = ALL_MODELS if args.model == "all" else [args.model]
 
-    # Run PPC for each model
     all_results: dict[str, dict] = {}
     for model in models:
         fitted_params_path = Path(args.fitted_params_dir) / f"{model}_individual_fits.csv"
-
         if not fitted_params_path.exists():
             print(f"Warning: Fitted params not found at {fitted_params_path}")
-            print(
-                f"  Run `python scripts/04_model_fitting/a_mle/12_fit_mle.py "
-                f"--model {model}` first"
-            )
             continue
 
         result = run_posterior_ppc(
@@ -163,22 +120,6 @@ def main() -> int:
         )
         all_results[model] = result
 
-    # Final summary for multi-model run
-    if len(models) > 1:
-        print(f"\n{'=' * 60}")
-        print("FINAL PPC SUMMARY")
-        print(f"{'=' * 60}")
-        for model, result in all_results.items():
-            if result.get("model_recovery"):
-                status = (
-                    "PASS" if result["model_recovery"]["generative_wins"] else "FAIL"
-                )
-            else:
-                status = "SKIPPED"
-            print(f"  {model}: Model Recovery = {status}")
-        print(f"{'=' * 60}\n")
-
-    # Exit code
     if args.skip_model_recovery:
         return 0
 

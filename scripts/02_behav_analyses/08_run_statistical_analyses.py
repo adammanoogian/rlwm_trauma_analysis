@@ -65,7 +65,7 @@ sys.path.insert(0, str(project_root))
 
 # Import from library modules
 from config import EXCLUDED_PARTICIPANTS
-from scripts.utils.statistical_tests import (
+from scripts.utils.stats import (
     check_normality,
     check_homogeneity_of_variance,
     run_mixed_anova,

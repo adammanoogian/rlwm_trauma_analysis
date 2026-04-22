@@ -9,7 +9,7 @@ The Phase 16 ROADMAP specified a 6-predictor design matrix that included
 LEC-5 physical/sexual/accident subcategories as a sixth predictor. After
 auditing the raw data pipeline, these subcategories are NOT available:
 
-  - ``scripts/utils/scoring_functions.py::score_less()`` only computes
+  - ``scripts/utils/scoring.py::score_less()`` only computes
     ``less_total_events`` and ``less_personal_events`` (total event counts).
   - The raw item-level columns (``s1_item01`` through ``s1_item15``) in
     ``output/parsed_survey1_all.csv`` are not mapped to a
@@ -564,7 +564,7 @@ def write_collinearity_report(
         "",
         "- `output/summary_participant_metrics.csv`: only `less_total_events` and "
         "`less_personal_events`.",
-        "- `scripts/utils/scoring_functions.py::score_less()`: computes only totals, "
+        "- `scripts/utils/scoring.py::score_less()`: computes only totals, "
         "no subcategory taxonomy.",
         "",
         "---",
