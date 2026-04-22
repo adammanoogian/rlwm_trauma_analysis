@@ -59,14 +59,14 @@ run_step() {
     return $rc
 }
 
-run_step "14 — Model comparison" \
-    python scripts/06_fit_analyses/compare_models.py
+run_step "Model comparison" \
+    python scripts/06_fit_analyses/01_compare_models.py
 
-run_step "15 — Parameter-trauma analysis" \
-    python scripts/15_analyze_mle_by_trauma.py --model all
+run_step "Parameter-trauma analysis" \
+    python scripts/06_fit_analyses/04_analyze_mle_by_trauma.py --model all
 
-run_step "16 — Scale regressions" \
-    python scripts/16_regress_parameters_on_scales.py --model all
+run_step "Scale regressions" \
+    python scripts/06_fit_analyses/05_regress_parameters_on_scales.py --model all
 
 echo ""
 echo "============================================================"

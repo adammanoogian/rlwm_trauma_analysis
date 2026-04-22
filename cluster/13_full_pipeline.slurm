@@ -170,17 +170,17 @@ unset GPU_MONITOR_PID
 # =============================================================================
 echo ""
 echo "============================================================"
-echo "PHASE C: Results Analysis (Steps 14-16)"
+echo "PHASE C: Results Analysis (compare -> trauma -> scales)"
 echo "============================================================"
 
-run_step "14 — Compare models" \
-    python scripts/06_fit_analyses/compare_models.py
+run_step "Compare models" \
+    python scripts/06_fit_analyses/01_compare_models.py
 
-run_step "15 — Analyze MLE by trauma" \
-    python scripts/15_analyze_mle_by_trauma.py --model all
+run_step "Analyze MLE by trauma" \
+    python scripts/06_fit_analyses/04_analyze_mle_by_trauma.py --model all
 
-run_step "16 — Regress parameters on scales" \
-    python scripts/16_regress_parameters_on_scales.py --model all
+run_step "Regress parameters on scales" \
+    python scripts/06_fit_analyses/05_regress_parameters_on_scales.py --model all
 
 # =============================================================================
 # Phase D (Optional): Validation (Steps 09, 11)

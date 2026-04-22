@@ -107,7 +107,7 @@ mkdir -p logs
 echo ""
 echo "[$(date)] Starting Step 21.9 manuscript tables"
 
-python scripts/06_fit_analyses/manuscript_tables.py \
+python scripts/06_fit_analyses/08_manuscript_tables.py \
     --baseline-dir "$BASELINE_DIR" \
     --l2-dir "$L2_DIR" \
     --figures-dir "$FIGURES_DIR" \

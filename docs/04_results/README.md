@@ -20,15 +20,15 @@ posteriors blocked on cluster runs).
 | Result | Producer | Output path | Status |
 |---|---|---|---|
 | Individual MLE fits (all 7 models) | scripts/04_model_fitting/a_mle/fit_mle.py | output/mle/{model}_individual_fits.csv | available |
-| Model comparison (AIC/BIC) | scripts/06_fit_analyses/compare_models.py | output/model_comparison/ | available |
-| Winner heterogeneity | scripts/06_fit_analyses/analyze_winner_heterogeneity.py | output/model_comparison/winner_heterogeneity*.csv, figures/model_comparison/winner_heterogeneity_figure.png | available |
+| Model comparison (AIC/BIC) | scripts/06_fit_analyses/01_compare_models.py | output/model_comparison/ | available |
+| Winner heterogeneity | scripts/06_fit_analyses/06_analyze_winner_heterogeneity.py | output/model_comparison/winner_heterogeneity*.csv, figures/model_comparison/winner_heterogeneity_figure.png | available |
 
 ## Trauma associations (MLE)
 
 | Result | Producer | Output path | Status |
 |---|---|---|---|
-| Parameter-trauma correlations | scripts/06_fit_analyses/analyze_mle_by_trauma.py | output/regressions/{model}/ | available |
-| FDR/Bonferroni-corrected regressions | scripts/06_fit_analyses/regress_parameters_on_scales.py | output/regressions/{model}/significance_*.{csv,md} | available |
+| Parameter-trauma correlations | scripts/06_fit_analyses/04_analyze_mle_by_trauma.py | output/regressions/{model}/ | available |
+| FDR/Bonferroni-corrected regressions | scripts/06_fit_analyses/05_regress_parameters_on_scales.py | output/regressions/{model}/significance_*.{csv,md} | available |
 
 ## Bayesian (blocked on cluster)
 
@@ -39,8 +39,8 @@ posteriors blocked on cluster runs).
 | Pscan benchmarks | cluster/13_bayesian_pscan.slurm | output/bayesian/pscan_benchmark.json | available |
 | M6b posterior diagnostics | scripts/legacy/visualization/plot_posterior_diagnostics.py | figures/m6b_posterior_diagnostics.png | _placeholder — needs posterior first_ |
 | M6b posterior vs MLE | validation/compare_posterior_to_mle.py | figures/m6b_posterior_vs_mle.png | _placeholder — needs posterior first_ |
-| Level-2 stacking weights | scripts/06_fit_analyses/compare_models.py --bayesian-comparison | output/bayesian/level2/stacking_weights.csv | _placeholder — needs posterior first_ |
-| Level-2 forest plots | scripts/06_fit_analyses/bayesian_level2_effects.py | output/bayesian/figures/m6b_forest_lec5.png | _placeholder — needs posterior first_ |
+| Level-2 stacking weights | scripts/06_fit_analyses/01_compare_models.py --bayesian-comparison | output/bayesian/level2/stacking_weights.csv | _placeholder — needs posterior first_ |
+| Level-2 forest plots | scripts/06_fit_analyses/07_bayesian_level2_effects.py | output/bayesian/figures/m6b_forest_lec5.png | _placeholder — needs posterior first_ |
 
 Entries marked _placeholder_ will be filled in after the next cluster
 Bayesian fit completes (see .planning/STATE.md for current blocker).

@@ -4,7 +4,8 @@ Phase 21 Wave 5 orchestrator for principled Bayesian model comparison.
 
 Pipeline position
 -----------------
-Runs AFTER plan 21-05's convergence gate (:mod:`scripts.21_baseline_audit`)
+Runs AFTER plan 21-05's convergence gate
+(``scripts/05_post_fitting_checks/01_baseline_audit.py``)
 and BEFORE plan 21-07's winner-L2 refit. Consumes
 ``{baseline_dir}/convergence_table.csv`` (produced by 21.4), filters to rows
 with ``pipeline_action == "PROCEED_TO_LOO"``, and ranks the survivors by
@@ -78,12 +79,12 @@ Exit codes
 
 Usage
 -----
->>> python scripts/21_compute_loo_stacking.py \
+>>> python scripts/06_fit_analyses/02_compute_loo_stacking.py \
 ...     --baseline-dir output/bayesian/21_baseline/ \
 ...     --output-dir output/bayesian/21_baseline/
 
 >>> # Manual-resume after INCONCLUSIVE_MULTIPLE checkpoint:
->>> python scripts/21_compute_loo_stacking.py \
+>>> python scripts/06_fit_analyses/02_compute_loo_stacking.py \
 ...     --baseline-dir output/bayesian/21_baseline/ \
 ...     --force-winners M3,M6b
 
@@ -91,7 +92,7 @@ See also
 --------
 - ``cluster/21_5_loo_stacking_bms.slurm`` — 2h/32G/4-CPU SLURM submission.
 - ``scripts/fitting/bms.py`` — :func:`rfx_bms` implementation (plan 21-02).
-- ``scripts/21_baseline_audit.py`` — upstream convergence gate (plan 21-05).
+- ``scripts/05_post_fitting_checks/01_baseline_audit.py`` — upstream convergence gate (plan 21-05).
 
 References
 ----------
@@ -134,7 +135,7 @@ from config import load_netcdf_with_validation  # noqa: E402
 from scripts.fitting.bms import rfx_bms  # noqa: E402
 
 # ---------------------------------------------------------------------------
-# Display-name map (mirrors BAYESIAN_NETCDF_MAP in scripts/06_fit_analyses/compare_models.py)
+# Display-name map (mirrors BAYESIAN_NETCDF_MAP in scripts/06_fit_analyses/01_compare_models.py)
 # ---------------------------------------------------------------------------
 # Convergence-table model keys (from plan 21-05) use the underscore names
 # from MODEL_REGISTRY; this maps them to the short display names used in
@@ -593,7 +594,7 @@ def _write_winner_report(
     lines.append("")
     lines.append("```bash")
     lines.append(
-        "python scripts/21_compute_loo_stacking.py \\"
+        "python scripts/06_fit_analyses/02_compute_loo_stacking.py \\"
     )
     lines.append(
         "    --baseline-dir output/bayesian/21_baseline/ \\"
@@ -722,7 +723,7 @@ def _load_convergence_eligible_models(
     if not csv_path.exists():
         raise FileNotFoundError(
             f"convergence_table.csv not found at {csv_path}. Run plan 21-05 "
-            f"(scripts/21_baseline_audit.py) first."
+            f"(scripts/05_post_fitting_checks/01_baseline_audit.py) first."
         )
     df = pd.read_csv(csv_path)
     if "pipeline_action" not in df.columns:

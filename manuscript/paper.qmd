@@ -514,7 +514,7 @@ Per-participant Bayesian posterior mean versus MLE point estimate for each M6b p
 #| fig-height: 5.0
 
 try:
-    # Look for forest plot from 18_bayesian_level2_effects.py
+    # Look for forest plot from 07_bayesian_level2_effects.py
     forest_candidates = [
         Path(f"../output/bayesian/figures/m6b_forest_lec5.png"),
         Path(f"../output/bayesian/level2/wmrl_m6b_forest.png"),
@@ -534,7 +534,7 @@ try:
     plt.show()
 except Exception as e:
     print(f"Level-2 forest plot not available. ({e})")
-    print("Run: python scripts/18_bayesian_level2_effects.py")
+    print("Run: python scripts/06_fit_analyses/07_bayesian_level2_effects.py")
 ```
 
 ```{python}
@@ -627,7 +627,7 @@ try:
 
     display(df_display.style.hide(axis="index"))
 except Exception as e:
-    print(f"Data not yet available. Run scripts/06_fit_analyses/compare_models.py first. ({e})")
+    print(f"Data not yet available. Run scripts/06_fit_analyses/01_compare_models.py first. ({e})")
 ```
 
 The winning model `{python} winner_display` (`{python} winner_n_params` free parameters) beat the second-best model `{python} second_display` by dAIC = `{python} f"{daic_vs_second:.1f}"` and dBIC = `{python} f"{dbic_vs_second:.1f}"`, constituting very strong evidence per @daw2011model ($\Delta > 10$). In per-participant AIC comparisons across the `{python} n_matched` participants with valid fits for all six models, `{python} winner_display` and `{python} second_display` each won for `{python} int(df_wins.loc[df_wins["model"] == winner_short, "aic_wins"].iloc[0]) if not df_wins.empty else "?"` and `{python} int(df_wins.loc[df_wins["model"] == second_short, "aic_wins"].iloc[0]) if not df_wins.empty else "?"` participants, respectively. See @sec-model-table for the complete parameter listings.
@@ -647,7 +647,7 @@ if stacking_path.exists():
         display_cols = [c for c in ['elpd', 'pIC', 'elpd_diff', 'weight', 'se', 'dse', 'warning'] if c in df_stacking.columns]
     display(df_stacking[display_cols].style.format(precision=2))
 else:
-    print("Stacking weights not available. Run: python scripts/06_fit_analyses/compare_models.py --bayesian-comparison")
+    print("Stacking weights not available. Run: python scripts/06_fit_analyses/01_compare_models.py --bayesian-comparison")
 ```
 
 ### Appendix B: Participant-Level Winner Heterogeneity {#sec-winner-heterogeneity}

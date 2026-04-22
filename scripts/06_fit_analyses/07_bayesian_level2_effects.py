@@ -6,12 +6,13 @@
 .. deprecated:: v4.0
 
     Superseded by the Phase 21 Bayesian model selection pipeline.
-    Kept in-tree because ``scripts/21_manuscript_tables.py`` delegates Figure 1
-    forest-plot rendering to this module via subprocess (single source of truth
-    for matplotlib styling). New Level-2 analysis should use
-    ``scripts/21_fit_with_l2.py`` (winner L2 refit) and
-    ``scripts/21_scale_audit.py`` (FDR-BH audit per-winner); this script is the
-    rendering backend only, not a standalone entry point.
+    Kept in-tree because ``scripts/06_fit_analyses/08_manuscript_tables.py``
+    delegates Figure 1 forest-plot rendering to this module via subprocess
+    (single source of truth for matplotlib styling). New Level-2 analysis
+    should use ``scripts/04_model_fitting/c_level2/fit_with_l2.py`` (winner
+    L2 refit) and ``scripts/05_post_fitting_checks/02_scale_audit.py``
+    (FDR-BH audit per-winner); this script is the rendering backend only,
+    not a standalone entry point.
 
     Any new invocation outside the Phase 21 orchestrator (``bash
     cluster/21_submit_pipeline.sh``) should be considered exploratory and
@@ -41,14 +42,14 @@ Coefficient summary:
 
 Usage:
     # Default: wmrl_m6b posterior
-    python scripts/18_bayesian_level2_effects.py
+    python scripts/06_fit_analyses/07_bayesian_level2_effects.py
 
     # Specify posterior path explicitly
-    python scripts/18_bayesian_level2_effects.py \\
+    python scripts/06_fit_analyses/07_bayesian_level2_effects.py \\
         --posterior-path output/bayesian/wmrl_m6b_subscale_posterior.nc
 
     # Custom HDI probability
-    python scripts/18_bayesian_level2_effects.py --hdi-prob 0.89
+    python scripts/06_fit_analyses/07_bayesian_level2_effects.py --hdi-prob 0.89
 """
 
 from __future__ import annotations
@@ -64,7 +65,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-project_root = Path(__file__).resolve().parents[1]
+# parents[2] = project root from 06_fit_analyses/
+# (06_fit_analyses → scripts → <project root>).  Plan 29-04b corrected
+# this from a pre-existing `parents[1]` bug.
+project_root = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(project_root))
 
 from config import load_netcdf_with_validation  # noqa: E402

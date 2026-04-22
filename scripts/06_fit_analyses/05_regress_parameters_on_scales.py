@@ -50,20 +50,20 @@ Outputs:
 
 Usage:
     # Analyze Q-learning parameters
-    python scripts/16_regress_parameters_on_scales.py --model qlearning
+    python scripts/06_fit_analyses/05_regress_parameters_on_scales.py --model qlearning
 
     # Analyze WM-RL parameters
-    python scripts/16_regress_parameters_on_scales.py --model wmrl
+    python scripts/06_fit_analyses/05_regress_parameters_on_scales.py --model wmrl
 
     # Run all models
-    python scripts/16_regress_parameters_on_scales.py --model all
+    python scripts/06_fit_analyses/05_regress_parameters_on_scales.py --model all
 
     # With specific predictors
-    python scripts/16_regress_parameters_on_scales.py --model wmrl \
+    python scripts/06_fit_analyses/05_regress_parameters_on_scales.py --model wmrl \
         --predictors ies_total less_total_events
 
     # Include covariates
-    python scripts/16_regress_parameters_on_scales.py --model wmrl \
+    python scripts/06_fit_analyses/05_regress_parameters_on_scales.py --model wmrl \
         --covariates age gender
 
 Note:
@@ -84,12 +84,14 @@ import pandas as pd
 import seaborn as sns
 from scipy import stats
 
-# Add parent directory for imports
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# Add project root AND scripts/ to sys.path (plan 29-04b fix).
+# - parents[2] = project root (so `from config import ...` resolves).
+# - parents[1] = scripts/ (so `from utils.plotting import ...` resolves —
+#   utils/ lives under scripts/utils/ after the plan 29-03 consolidation).
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from config import EXCLUDED_PARTICIPANTS, load_fits_with_validation
 
-# Import plotting utilities for color-by functionality
-sys.path.insert(0, str(Path(__file__).parent))
 from utils.plotting import (
     TRAUMA_GROUP_COLORS,
     add_colored_scatter,

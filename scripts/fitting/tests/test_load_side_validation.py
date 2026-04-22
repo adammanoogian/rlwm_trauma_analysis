@@ -17,12 +17,12 @@ _PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 _ENUMERATED_FILES: list[Path] = [
     # Canonical paths after plan 29-01 reorganisation
-    _PROJECT_ROOT / "scripts" / "06_fit_analyses" / "compare_models.py",
-    _PROJECT_ROOT / "scripts" / "06_fit_analyses" / "bayesian_level2_effects.py",
+    _PROJECT_ROOT / "scripts" / "06_fit_analyses" / "01_compare_models.py",
+    _PROJECT_ROOT / "scripts" / "06_fit_analyses" / "07_bayesian_level2_effects.py",
     _PROJECT_ROOT / "scripts" / "04_model_fitting" / "c_level2" / "fit_with_l2.py",
-    _PROJECT_ROOT / "scripts" / "06_fit_analyses" / "compute_loo_stacking.py",
+    _PROJECT_ROOT / "scripts" / "06_fit_analyses" / "02_compute_loo_stacking.py",
     _PROJECT_ROOT / "scripts" / "05_post_fitting_checks" / "01_baseline_audit.py",
-    _PROJECT_ROOT / "scripts" / "06_fit_analyses" / "model_averaging.py",
+    _PROJECT_ROOT / "scripts" / "06_fit_analyses" / "03_model_averaging.py",
     _PROJECT_ROOT / "scripts" / "05_post_fitting_checks" / "02_scale_audit.py",
     # Legacy archive paths (plan 29-04 moved these folders to scripts/legacy/).
     # The enumeration still tracks them because the CLEAN-04 invariant

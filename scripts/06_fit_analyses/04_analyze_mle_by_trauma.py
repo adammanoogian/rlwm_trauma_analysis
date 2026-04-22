@@ -42,22 +42,22 @@ Outputs:
 
 Usage:
     # Analyze Q-learning parameters
-    python scripts/15_analyze_mle_by_trauma.py --model qlearning
+    python scripts/06_fit_analyses/04_analyze_mle_by_trauma.py --model qlearning
 
     # Analyze WM-RL parameters
-    python scripts/15_analyze_mle_by_trauma.py --model wmrl
+    python scripts/06_fit_analyses/04_analyze_mle_by_trauma.py --model wmrl
 
     # Analyze all models
-    python scripts/15_analyze_mle_by_trauma.py --model all
+    python scripts/06_fit_analyses/04_analyze_mle_by_trauma.py --model all
 
     # Specify custom paths
-    python scripts/15_analyze_mle_by_trauma.py --model wmrl \
+    python scripts/06_fit_analyses/04_analyze_mle_by_trauma.py --model wmrl \
         --mle-file output/mle/wmrl_individual_fits.csv \
         --trauma-file output/summary_participant_metrics.csv
 
 Next Steps:
     - Interpret parameter-trauma relationships
-    - Run 16_regress_parameters_on_scales.py for regression analysis
+    - Run 05_regress_parameters_on_scales.py for regression analysis
 """
 
 from __future__ import annotations
@@ -74,9 +74,18 @@ import seaborn as sns
 import statsmodels.api as sm
 from scipy import stats
 
-# Add project root to path
-PROJECT_ROOT = Path(__file__).parent.parent
+# Add project root AND scripts/ to path.
+# - PROJECT_ROOT (parents[2]) enables `from config import ...` (config.py
+#   lives at repo root).
+# - SCRIPTS_DIR (parents[1]) enables `from utils.plotting import ...`
+#   (utils/ lives at scripts/utils/, not repo root).
+# Plan 29-04b corrected this from a pre-existing `parent.parent` bug that
+# only put SCRIPTS_DIR on sys.path and then relied on `scripts/config.py`
+# which does not exist — config.py is at the repo root.
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+SCRIPTS_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
+sys.path.insert(0, str(SCRIPTS_DIR))
 
 from utils.plotting import (
     TRAUMA_GROUP_COLORS,
@@ -848,9 +857,9 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python scripts/15_analyze_mle_by_trauma.py --model qlearning
-  python scripts/15_analyze_mle_by_trauma.py --model all
-  python scripts/15_analyze_mle_by_trauma.py --model wmrl --color-by hypothesis_group
+  python scripts/06_fit_analyses/04_analyze_mle_by_trauma.py --model qlearning
+  python scripts/06_fit_analyses/04_analyze_mle_by_trauma.py --model all
+  python scripts/06_fit_analyses/04_analyze_mle_by_trauma.py --model wmrl --color-by hypothesis_group
         """
     )
     parser.add_argument('--model', type=str, default='all',

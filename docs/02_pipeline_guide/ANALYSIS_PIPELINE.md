@@ -175,13 +175,13 @@ python scripts/04_model_fitting/b_bayesian/fit_bayesian.py --model wmrl --chains
 
 ```bash
 # Compare all fitted MLE models (AIC/BIC)
-python scripts/06_fit_analyses/compare_models.py
+python scripts/06_fit_analyses/01_compare_models.py
 
 # Compare specific models
-python scripts/06_fit_analyses/compare_models.py --models qlearning wmrl wmrl_m3
+python scripts/06_fit_analyses/01_compare_models.py --models qlearning wmrl wmrl_m3
 
 # With Bayesian criteria (WAIC/LOO)
-python scripts/06_fit_analyses/compare_models.py --use-waic
+python scripts/06_fit_analyses/01_compare_models.py --use-waic
 ```
 
 **Outputs:**
@@ -209,10 +209,10 @@ Relate fitted model parameters to trauma measures.
 
 ```bash
 # Parameter group comparisons (trauma groups × fitted parameters)
-python scripts/06_fit_analyses/analyze_mle_by_trauma.py --model all
+python scripts/06_fit_analyses/04_analyze_mle_by_trauma.py --model all
 
 # Continuous regression (parameters ~ LEC-5 + IES-R subscales)
-python scripts/06_fit_analyses/regress_parameters_on_scales.py --model all
+python scripts/06_fit_analyses/05_regress_parameters_on_scales.py --model all
 ```
 
 ### Stage 5b: Winner Heterogeneity (Script 17)
@@ -220,7 +220,7 @@ python scripts/06_fit_analyses/regress_parameters_on_scales.py --model all
 Analyze per-participant model-selection heterogeneity: what fraction of participants are best fit by each model, and how does this vary by trauma group.
 
 ```bash
-python scripts/06_fit_analyses/analyze_winner_heterogeneity.py
+python scripts/06_fit_analyses/06_analyze_winner_heterogeneity.py
 ```
 
 **Inputs:** `output/model_comparison/` (from script 14)
@@ -233,7 +233,7 @@ python scripts/06_fit_analyses/analyze_winner_heterogeneity.py
 Forest plots of Level-2 regression coefficients (trauma predictors × model parameters) from the hierarchical Bayesian posterior. Runs only after cluster Bayesian fit completes.
 
 ```bash
-python scripts/06_fit_analyses/bayesian_level2_effects.py
+python scripts/06_fit_analyses/07_bayesian_level2_effects.py
 ```
 
 **Inputs:** `output/bayesian/{model}_posterior.nc` (generated after cluster Bayesian fit)

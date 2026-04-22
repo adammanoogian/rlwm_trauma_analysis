@@ -96,7 +96,7 @@ Outputs
 
 Usage
 -----
->>> python scripts/21_model_averaging.py \\
+>>> python scripts/06_fit_analyses/03_model_averaging.py \\
 ...     --l2-dir output/bayesian/21_l2/ \\
 ...     --stacking-results output/bayesian/21_baseline/loo_stacking_results.csv \\
 ...     --winners-file output/bayesian/21_baseline/winners.txt \\
@@ -130,7 +130,7 @@ if str(_PROJECT_ROOT) not in sys.path:
 from config import load_netcdf_with_validation  # noqa: E402
 
 # Display-name <-> internal-id mappings (must match
-# scripts/21_scale_audit.py and scripts/21_compute_loo_stacking.py).
+# scripts/05_post_fitting_checks/02_scale_audit.py and scripts/06_fit_analyses/02_compute_loo_stacking.py).
 DISPLAY_TO_INTERNAL: dict[str, str] = {
     "M1": "qlearning",
     "M2": "wmrl",
@@ -309,7 +309,7 @@ def _parse_winners_file(winners_path: Path) -> list[str]:
     if not winners_path.exists():
         raise FileNotFoundError(
             f"winners file not found: {winners_path}. Expected step 21.5 "
-            f"(scripts/21_compute_loo_stacking.py) to have written it."
+            f"(scripts/06_fit_analyses/02_compute_loo_stacking.py) to have written it."
         )
     raw = winners_path.read_text(encoding="utf-8").strip()
     if not raw:
@@ -358,7 +358,7 @@ def _read_stacking_weights(
     if not stacking_csv.exists():
         raise FileNotFoundError(
             f"stacking results CSV not found: {stacking_csv}. Expected "
-            f"step 21.5 (scripts/21_compute_loo_stacking.py) output."
+            f"step 21.5 (scripts/06_fit_analyses/02_compute_loo_stacking.py) output."
         )
     df = pd.read_csv(stacking_csv, index_col=0)
     if "weight" not in df.columns:

@@ -68,7 +68,7 @@ model parameters**, not as a post-hoc step.
 
 A second-stage regression against covariates NOT in the MCMC design matrix.
 Already partially achievable by running
-`scripts/06_fit_analyses/bayesian_level2_effects.py` on the posterior NetCDF (descriptive
+`scripts/06_fit_analyses/07_bayesian_level2_effects.py` on the posterior NetCDF (descriptive
 output, not re-fit).  Not necessary for v4.0 validation because LEC is
 already in the joint design.
 
@@ -194,7 +194,7 @@ shuffle.
 
 #### 4.5 Model comparison
 
-`python scripts/06_fit_analyses/compare_models.py --bayesian-comparison` runs
+`python scripts/06_fit_analyses/01_compare_models.py --bayesian-comparison` runs
 `az.compare(ic='loo', method='stacking')` across the 6 choice-only
 posteriors.
 

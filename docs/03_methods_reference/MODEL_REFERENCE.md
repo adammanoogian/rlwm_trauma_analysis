@@ -1420,7 +1420,7 @@ choice-only `az.compare` table because its likelihood domain differs. M4
 gets its own LOO with Pareto-k gating:
 - If < 5% observations have Pareto-k > 0.7: report M4 LOO ELPD separately.
 - If >= 5%: fall back to choice-only marginal log-likelihood.
-- See `scripts/06_fit_analyses/compare_models.py --bayesian-comparison` for implementation.
+- See `scripts/06_fit_analyses/01_compare_models.py --bayesian-comparison` for implementation.
 
 **Convergence gate:** All hierarchical fits must pass before LOO/WAIC:
 `max_rhat < 1.01 AND min_ess_bulk > 400 AND num_divergences == 0`.
@@ -1435,9 +1435,9 @@ column names identical to the MLE CSVs plus:
 - `max_rhat`, `min_ess_bulk`, `num_divergences`
 - `converged` (bool), `parameterization_version`
 
-This schema parity enables `scripts/06_fit_analyses/analyze_mle_by_trauma.py`,
-`scripts/06_fit_analyses/regress_parameters_on_scales.py`, and
-`scripts/06_fit_analyses/analyze_winner_heterogeneity.py` to operate on either MLE or
+This schema parity enables `scripts/06_fit_analyses/04_analyze_mle_by_trauma.py`,
+`scripts/06_fit_analyses/05_regress_parameters_on_scales.py`, and
+`scripts/06_fit_analyses/06_analyze_winner_heterogeneity.py` to operate on either MLE or
 Bayesian fits via a `--source mle|bayesian` flag with zero analysis-logic
 changes.
 
@@ -1524,7 +1524,7 @@ column with the value:
 v4.0-K[2,6]-phiapprox
 ```
 
-Downstream scripts (`scripts/06_fit_analyses/analyze_mle_by_trauma.py`, `scripts/06_fit_analyses/regress_parameters_on_scales.py`)
+Downstream scripts (`scripts/06_fit_analyses/04_analyze_mle_by_trauma.py`, `scripts/06_fit_analyses/05_regress_parameters_on_scales.py`)
 validate this column on load and raise a `ValueError` if the string does not match,
 preventing accidental mixing of v3.0 MLE fits (which use K in [1, 7]) with v4.0 fits.
 

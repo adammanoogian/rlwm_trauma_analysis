@@ -25,7 +25,7 @@ Outputs
 
 Usage
 -----
-    python scripts/17_analyze_winner_heterogeneity.py
+    python scripts/06_fit_analyses/06_analyze_winner_heterogeneity.py
 
 Notes
 -----
@@ -52,7 +52,10 @@ import pandas as pd
 import seaborn as sns
 from scipy import stats as scipy_stats
 
-project_root = Path(__file__).resolve().parents[1]
+# parents[2] = project root from 06_fit_analyses/
+# (06_fit_analyses → scripts → <project root>).  Plan 29-04b corrected
+# this from a pre-existing `parents[1]` bug.
+project_root = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(project_root))
 
 from config import FIGURES_DIR, MODEL_REGISTRY, load_fits_with_validation

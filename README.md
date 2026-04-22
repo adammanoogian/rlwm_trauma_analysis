@@ -41,12 +41,12 @@ python scripts/03_model_prefitting/05_run_bayesian_recovery.py --mode aggregate 
 for m in qlearning wmrl wmrl_m3 wmrl_m5 wmrl_m6a wmrl_m6b wmrl_m4; do
   python scripts/04_model_fitting/a_mle/fit_mle.py --model $m --n-jobs 16
 done
-python scripts/06_fit_analyses/compare_models.py
+python scripts/06_fit_analyses/01_compare_models.py
 
 # Parameter-trauma associations (06_fit_analyses/)
-python scripts/06_fit_analyses/analyze_mle_by_trauma.py --model all
-python scripts/06_fit_analyses/regress_parameters_on_scales.py --model all
-python scripts/06_fit_analyses/analyze_winner_heterogeneity.py
+python scripts/06_fit_analyses/04_analyze_mle_by_trauma.py --model all
+python scripts/06_fit_analyses/05_regress_parameters_on_scales.py --model all
+python scripts/06_fit_analyses/06_analyze_winner_heterogeneity.py
 
 # Hierarchical Bayesian pipeline (cluster; 9-step afterok chain)
 bash cluster/21_submit_pipeline.sh

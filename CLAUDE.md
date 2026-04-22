@@ -208,12 +208,12 @@ python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m5
 python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m6a
 python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m6b
 python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m4
-python scripts/06_fit_analyses/compare_models.py
+python scripts/06_fit_analyses/01_compare_models.py
 
 # Post-fit Results Analysis (06_fit_analyses/)
-python scripts/06_fit_analyses/analyze_mle_by_trauma.py --model all
-python scripts/06_fit_analyses/regress_parameters_on_scales.py --model all
-python scripts/06_fit_analyses/analyze_winner_heterogeneity.py
+python scripts/06_fit_analyses/04_analyze_mle_by_trauma.py --model all
+python scripts/06_fit_analyses/05_regress_parameters_on_scales.py --model all
+python scripts/06_fit_analyses/06_analyze_winner_heterogeneity.py
 ```
 
 ### Run MLE Fitting (Fast, Point Estimates)
@@ -258,11 +258,11 @@ python scripts/03_model_prefitting/04_run_prior_predictive.py
 python scripts/03_model_prefitting/05_run_bayesian_recovery.py
 python scripts/04_model_fitting/b_bayesian/fit_baseline.py
 python scripts/05_post_fitting_checks/01_baseline_audit.py
-python scripts/06_fit_analyses/compute_loo_stacking.py
+python scripts/06_fit_analyses/02_compute_loo_stacking.py
 python scripts/04_model_fitting/c_level2/fit_with_l2.py
 python scripts/05_post_fitting_checks/02_scale_audit.py
-python scripts/06_fit_analyses/model_averaging.py
-python scripts/06_fit_analyses/manuscript_tables.py
+python scripts/06_fit_analyses/03_model_averaging.py
+python scripts/06_fit_analyses/08_manuscript_tables.py
 ```
 
 ### Cluster Execution (Monash M3)
@@ -306,16 +306,16 @@ python scripts/04_model_fitting/b_bayesian/fit_bayesian.py --model wmrl --data d
 
 ```bash
 # Compare choice-only models (M1-M3, M5, M6a, M6b) by AIC/BIC
-python scripts/06_fit_analyses/compare_models.py
+python scripts/06_fit_analyses/01_compare_models.py
 
 # Include M4 separate track
-python scripts/06_fit_analyses/compare_models.py --m4
+python scripts/06_fit_analyses/01_compare_models.py --m4
 
 # Compare specific models
-python scripts/06_fit_analyses/compare_models.py --models qlearning wmrl wmrl_m3
+python scripts/06_fit_analyses/01_compare_models.py --models qlearning wmrl wmrl_m3
 
 # With Bayesian comparison (WAIC/LOO)
-python scripts/06_fit_analyses/compare_models.py --use-waic
+python scripts/06_fit_analyses/01_compare_models.py --use-waic
 ```
 
 ### Cross-Model Recovery
