@@ -508,6 +508,8 @@ Progress: [████████░░] ~75% (30/~40 plans across Phases 13-2
 
 ## Session Continuity
 
-Last session: 2026-04-18 (late afternoon)
-Stopped at: Plan 21-05 complete — Step 21.4 baseline convergence audit runner (`scripts/21_baseline_audit.py` ~500 lines + `cluster/21_4_baseline_audit.slurm` 137 lines) applying Baribault & Collins (2023) 4-criterion gate (R-hat<=1.05 AND ESS_bulk>=400 AND divergences==0 AND BFMI>=0.2) over 6 baseline posteriors with pipeline-action enum (PROCEED_TO_LOO / EXCLUDED_*) and exit-1-when-n_passing<2 for `--dependency=afterok` chain blocking. Commits 83de94f, c64e622. Smoke-tested via `arviz.from_dict` stubs. Next: Plan 21-06 (PSIS-LOO + stacking + RFX-BMS over the `PROCEED_TO_LOO` set) or parallel cluster submission of steps 21.1-21.4 via the master orchestrator (plan 21-10).
+Last session: 2026-04-22 (Phase 29 Wave 1 execution)
+Stopped at: Plan 29-02 complete — docs spare-file integration. Three orphan top-level docs merged into structured methods references. HIERARCHICAL_BAYESIAN.md + SCALES_AND_FITTING_AUDIT.md → docs/04_methods/README.md; K_PARAMETERIZATION.md → docs/03_methods_reference/MODEL_REFERENCE.md section 12. Commits 59cdef2 (Task 1), 7d3f8fb (Task 2), 56e5ea5 (Task 3 sha256 artifact). Deferred: paper.qmd line 166 caption (docs/SCALES_AND_FITTING_AUDIT.md → docs/04_methods/README.md#scales-orthogonalization-and-audit) — owned by Plan 29-06. Known accepted stale ref: docs/CLUSTER_GPU_LESSONS.md:975 references old docs/HIERARCHICAL_BAYESIAN.md (untouched per user directive).
 Resume file: None
+
+[Phase 29 position update pending Plan 29-01 completion — 29-01 and 29-02 ran in parallel Wave 1. Position: Phase 29 of 29, Plans 29-01+29-02 complete (Wave 1 done).]
