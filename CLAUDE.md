@@ -160,10 +160,10 @@ Install with `pip install -e .` (required to import `rlwm`).
 **Fitting with Practice Data:**
 ```bash
 # MLE fitting with practice blocks
-python scripts/12_fit_mle.py --model qlearning --data output/task_trials_long_all.csv --include-practice
+python scripts/04_model_fitting/a_mle/12_fit_mle.py --model qlearning --data output/task_trials_long_all.csv --include-practice
 
 # Bayesian fitting with practice blocks
-python scripts/13_fit_bayesian.py --model qlearning --data output/task_trials_long_all.csv --include-practice
+python scripts/04_model_fitting/b_bayesian/13_fit_bayesian.py --model qlearning --data output/task_trials_long_all.csv --include-practice
 ```
 
 ---
@@ -189,62 +189,62 @@ python scripts/13_fit_bayesian.py --model qlearning --data output/task_trials_lo
 
 ```bash
 # Data Processing (01-04)
-python scripts/data_processing/01_parse_raw_data.py
-python scripts/data_processing/02_create_collated_csv.py
-python scripts/data_processing/03_create_task_trials_csv.py
-python scripts/data_processing/04_create_summary_csv.py
+python scripts/01_data_preprocessing/01_parse_raw_data.py
+python scripts/01_data_preprocessing/02_create_collated_csv.py
+python scripts/01_data_preprocessing/03_create_task_trials_csv.py
+python scripts/01_data_preprocessing/04_create_summary_csv.py
 
 # Behavioral Analysis (05-08)
-python scripts/behavioral/05_summarize_behavioral_data.py
-python scripts/behavioral/06_visualize_task_performance.py
-python scripts/behavioral/07_analyze_trauma_groups.py
-python scripts/behavioral/08_run_statistical_analyses.py
+python scripts/02_behav_analyses/05_summarize_behavioral_data.py
+python scripts/02_behav_analyses/06_visualize_task_performance.py
+python scripts/02_behav_analyses/07_analyze_trauma_groups.py
+python scripts/02_behav_analyses/08_run_statistical_analyses.py
 
-# Model Fitting (12-14; unchanged location)
-python scripts/12_fit_mle.py --model qlearning
-python scripts/12_fit_mle.py --model wmrl
-python scripts/12_fit_mle.py --model wmrl_m3
-python scripts/12_fit_mle.py --model wmrl_m5
-python scripts/12_fit_mle.py --model wmrl_m6a
-python scripts/12_fit_mle.py --model wmrl_m6b
-python scripts/12_fit_mle.py --model wmrl_m4
-python scripts/14_compare_models.py
+# Model Fitting (04_model_fitting/)
+python scripts/04_model_fitting/a_mle/12_fit_mle.py --model qlearning
+python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl
+python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl_m3
+python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl_m5
+python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl_m6a
+python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl_m6b
+python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl_m4
+python scripts/06_fit_analyses/compare_models.py
 
-# Post-MLE Results Analysis (15-17)
-python scripts/post_mle/15_analyze_mle_by_trauma.py --model all
-python scripts/post_mle/16_regress_parameters_on_scales.py --model all
-python scripts/post_mle/17_analyze_winner_heterogeneity.py
+# Post-fit Results Analysis (06_fit_analyses/)
+python scripts/06_fit_analyses/analyze_mle_by_trauma.py --model all
+python scripts/06_fit_analyses/regress_parameters_on_scales.py --model all
+python scripts/06_fit_analyses/analyze_winner_heterogeneity.py
 ```
 
 ### Run MLE Fitting (Fast, Point Estimates)
 
 ```bash
 # Q-learning (M1)
-python scripts/12_fit_mle.py --model qlearning --data output/task_trials_long.csv
+python scripts/04_model_fitting/a_mle/12_fit_mle.py --model qlearning --data output/task_trials_long.csv
 
 # WM-RL (M2)
-python scripts/12_fit_mle.py --model wmrl --data output/task_trials_long.csv
+python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl --data output/task_trials_long.csv
 
 # WM-RL with perseveration (M3)
-python scripts/12_fit_mle.py --model wmrl_m3 --data output/task_trials_long.csv
+python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl_m3 --data output/task_trials_long.csv
 
 # M5: WM-RL + RL Forgetting
-python scripts/12_fit_mle.py --model wmrl_m5 --data output/task_trials_long.csv
+python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl_m5 --data output/task_trials_long.csv
 
 # M6a: WM-RL + Stimulus-Specific Perseveration
-python scripts/12_fit_mle.py --model wmrl_m6a --data output/task_trials_long.csv
+python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl_m6a --data output/task_trials_long.csv
 
 # M6b: WM-RL + Dual Perseveration
-python scripts/12_fit_mle.py --model wmrl_m6b --data output/task_trials_long.csv
+python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl_m6b --data output/task_trials_long.csv
 
 # M4: RLWM-LBA Joint Choice+RT (requires float64)
-python scripts/12_fit_mle.py --model wmrl_m4 --data output/task_trials_long.csv
+python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl_m4 --data output/task_trials_long.csv
 
 # Parallel fitting (multi-core, ~4-8x speedup)
-python scripts/12_fit_mle.py --model wmrl_m5 --data output/task_trials_long.csv --n-jobs 16
+python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl_m5 --data output/task_trials_long.csv --n-jobs 16
 
 # GPU-accelerated (requires rlwm_gpu environment)
-python scripts/12_fit_mle.py --model wmrl_m5 --data output/task_trials_long.csv --use-gpu
+python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl_m5 --data output/task_trials_long.csv --use-gpu
 ```
 
 ### Run Bayesian Pipeline (Full Hierarchical Fit)
@@ -253,16 +253,16 @@ python scripts/12_fit_mle.py --model wmrl_m5 --data output/task_trials_long.csv 
 # Full 9-step afterok chain (recommended; runs on cluster)
 bash cluster/21_submit_pipeline.sh
 
-# Individual steps (scripts/bayesian_pipeline/)
-python scripts/bayesian_pipeline/21_run_prior_predictive.py
-python scripts/bayesian_pipeline/21_run_bayesian_recovery.py
-python scripts/bayesian_pipeline/21_fit_baseline.py
-python scripts/bayesian_pipeline/21_baseline_audit.py
-python scripts/bayesian_pipeline/21_compute_loo_stacking.py
-python scripts/bayesian_pipeline/21_fit_with_l2.py
-python scripts/bayesian_pipeline/21_scale_audit.py
-python scripts/bayesian_pipeline/21_model_averaging.py
-python scripts/bayesian_pipeline/21_manuscript_tables.py
+# Individual steps (new canonical locations)
+python scripts/03_model_prefitting/12_run_prior_predictive.py
+python scripts/03_model_prefitting/13_run_bayesian_recovery.py
+python scripts/04_model_fitting/b_bayesian/21_fit_baseline.py
+python scripts/05_post_fitting_checks/baseline_audit.py
+python scripts/06_fit_analyses/compute_loo_stacking.py
+python scripts/04_model_fitting/c_level2/21_fit_with_l2.py
+python scripts/05_post_fitting_checks/scale_audit.py
+python scripts/06_fit_analyses/model_averaging.py
+python scripts/06_fit_analyses/manuscript_tables.py
 ```
 
 ### Cluster Execution (Monash M3)
@@ -293,36 +293,36 @@ sbatch cluster/13_bayesian_gpu.slurm
 
 ```bash
 # Q-learning
-python scripts/13_fit_bayesian.py --model qlearning --data output/task_trials_long.csv
+python scripts/04_model_fitting/b_bayesian/13_fit_bayesian.py --model qlearning --data output/task_trials_long.csv
 
 # WM-RL
-python scripts/13_fit_bayesian.py --model wmrl --data output/task_trials_long.csv
+python scripts/04_model_fitting/b_bayesian/13_fit_bayesian.py --model wmrl --data output/task_trials_long.csv
 
 # With custom MCMC settings
-python scripts/13_fit_bayesian.py --model wmrl --data data.csv --chains 4 --warmup 1000 --samples 2000
+python scripts/04_model_fitting/b_bayesian/13_fit_bayesian.py --model wmrl --data data.csv --chains 4 --warmup 1000 --samples 2000
 ```
 
 ### Model Comparison
 
 ```bash
 # Compare choice-only models (M1-M3, M5, M6a, M6b) by AIC/BIC
-python scripts/14_compare_models.py
+python scripts/06_fit_analyses/compare_models.py
 
 # Include M4 separate track
-python scripts/14_compare_models.py --m4
+python scripts/06_fit_analyses/compare_models.py --m4
 
 # Compare specific models
-python scripts/14_compare_models.py --models qlearning wmrl wmrl_m3
+python scripts/06_fit_analyses/compare_models.py --models qlearning wmrl wmrl_m3
 
 # With Bayesian comparison (WAIC/LOO)
-python scripts/14_compare_models.py --use-waic
+python scripts/06_fit_analyses/compare_models.py --use-waic
 ```
 
 ### Cross-Model Recovery
 
 ```bash
 # Validate all choice-only models are distinguishable by AIC
-python scripts/simulations_recovery/11_run_model_recovery.py --mode cross-model --model all --n-subjects 50 --n-datasets 10 --n-jobs 8
+python scripts/03_model_prefitting/11_run_model_recovery.py --mode cross-model --model all --n-subjects 50 --n-datasets 10 --n-jobs 8
 ```
 
 ### Run Tests

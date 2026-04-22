@@ -155,8 +155,8 @@ def main():
     print("\n" + "=" * 80)
     print(f"Test figures saved to: {test_dir}")
     print("=" * 80)
-    print("\nIf plots look good, you can use scripts/14_compare_models.py with real data:")
-    print("  python scripts/14_compare_models.py --model qlearning")
+    print("\nIf plots look good, you can use scripts/06_fit_analyses/compare_models.py with real data:")
+    print("  python scripts/06_fit_analyses/compare_models.py --model qlearning")
 
 
 if __name__ == '__main__':

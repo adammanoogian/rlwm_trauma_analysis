@@ -36,10 +36,10 @@ For GPU-accelerated model fitting, see [cluster execution](#cluster-execution).
 Parse raw jsPsych JSON exports into analysis-ready CSV files.
 
 ```bash
-python scripts/data_processing/01_parse_raw_data.py         # Parse raw jsPsych data
-python scripts/data_processing/02_create_collated_csv.py     # Collate all participants (wide format)
-python scripts/data_processing/03_create_task_trials_csv.py  # Trial-level data (long format)
-python scripts/data_processing/04_create_summary_csv.py      # Summary metrics per participant
+python scripts/01_data_preprocessing/01_parse_raw_data.py         # Parse raw jsPsych data
+python scripts/01_data_preprocessing/02_create_collated_csv.py     # Collate all participants (wide format)
+python scripts/01_data_preprocessing/03_create_task_trials_csv.py  # Trial-level data (long format)
+python scripts/01_data_preprocessing/04_create_summary_csv.py      # Summary metrics per participant
 ```
 
 **Outputs:**
@@ -62,10 +62,10 @@ python scripts/data_processing/04_create_summary_csv.py      # Summary metrics p
 Generate descriptive statistics, visualizations, trauma group classifications, and statistical tests.
 
 ```bash
-python scripts/behavioral/05_summarize_behavioral_data.py    # Behavioral summary stats
-python scripts/behavioral/06_visualize_task_performance.py    # Learning curves, set-size effects
-python scripts/behavioral/07_analyze_trauma_groups.py         # Trauma grouping + validation
-python scripts/behavioral/08_run_statistical_analyses.py      # ANOVAs + descriptive tables
+python scripts/02_behav_analyses/05_summarize_behavioral_data.py    # Behavioral summary stats
+python scripts/02_behav_analyses/06_visualize_task_performance.py    # Learning curves, set-size effects
+python scripts/02_behav_analyses/07_analyze_trauma_groups.py         # Trauma grouping + validation
+python scripts/02_behav_analyses/08_run_statistical_analyses.py      # ANOVAs + descriptive tables
 ```
 
 ### Trauma Group Methodology
@@ -93,10 +93,10 @@ The script also runs hierarchical clustering (Ward linkage) as a data-driven val
 Generate synthetic data and validate the fitting pipeline.
 
 ```bash
-python scripts/simulations_recovery/09_generate_synthetic_data.py  # Synthetic data generation
-python scripts/simulations_recovery/09_run_ppc.py                   # PPC analysis
-python scripts/simulations_recovery/10_run_parameter_sweep.py       # Systematic parameter exploration
-python scripts/simulations_recovery/11_run_model_recovery.py        # Parameter/model recovery
+python scripts/03_model_prefitting/09_generate_synthetic_data.py  # Synthetic data generation
+python scripts/03_model_prefitting/09_run_ppc.py                   # PPC analysis
+python scripts/03_model_prefitting/10_run_parameter_sweep.py       # Systematic parameter exploration
+python scripts/03_model_prefitting/11_run_model_recovery.py        # Parameter/model recovery
 ```
 
 **Use cases:**
@@ -114,44 +114,44 @@ Maximum likelihood estimation with multi-start optimization. Fast, reliable poin
 
 ```bash
 # Q-learning (M1): alpha_pos, alpha_neg, epsilon
-python scripts/12_fit_mle.py --model qlearning
+python scripts/04_model_fitting/a_mle/12_fit_mle.py --model qlearning
 
 # WM-RL (M2): alpha_pos, alpha_neg, phi, rho, K, epsilon
-python scripts/12_fit_mle.py --model wmrl
+python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl
 
 # WM-RL with perseveration (M3): alpha_pos, alpha_neg, phi, rho, K, kappa, epsilon
-python scripts/12_fit_mle.py --model wmrl_m3
+python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl_m3
 
 # WM-RL + RL forgetting (M5): alpha_pos, alpha_neg, phi, rho, K, kappa, phi_rl, epsilon
-python scripts/12_fit_mle.py --model wmrl_m5
+python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl_m5
 
 # WM-RL + stimulus-specific perseveration (M6a): alpha_pos, alpha_neg, phi, rho, K, kappa_s, epsilon
-python scripts/12_fit_mle.py --model wmrl_m6a
+python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl_m6a
 
 # WM-RL + dual perseveration (M6b): alpha_pos, alpha_neg, phi, rho, K, kappa_total, kappa_share, epsilon
 # Current winning model (AIC rank 1, Akaike weight ~1.0 across N=154)
-python scripts/12_fit_mle.py --model wmrl_m6b
+python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl_m6b
 
 # RLWM-LBA joint choice+RT (M4): alpha_pos, alpha_neg, phi, rho, K, kappa, v_scale, A, delta, t0
 # NOTE: M4 AIC is NOT comparable to choice-only models (M1-M3, M5, M6a, M6b).
 # M4 is the only model requiring GPU (float64 LBA likelihood).
-python scripts/12_fit_mle.py --model wmrl_m4
+python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl_m4
 ```
 
 **Speed options:**
 
 ```bash
 # Parallel CPU (multi-core, ~4-8x speedup)
-python scripts/12_fit_mle.py --model wmrl_m3 --n-jobs 16
+python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl_m3 --n-jobs 16
 
 # GPU-accelerated (requires rlwm_gpu environment)
-python scripts/12_fit_mle.py --model wmrl_m3 --use-gpu
+python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl_m3 --use-gpu
 ```
 
 **With practice data:**
 
 ```bash
-python scripts/12_fit_mle.py --model qlearning --data output/task_trials_long_all.csv --include-practice
+python scripts/04_model_fitting/a_mle/12_fit_mle.py --model qlearning --data output/task_trials_long_all.csv --include-practice
 ```
 
 **Outputs:** `output/mle/<model>_mle_results.csv` — per-participant parameter estimates, NLL, AIC, BIC.
@@ -161,8 +161,8 @@ python scripts/12_fit_mle.py --model qlearning --data output/task_trials_long_al
 Hierarchical Bayesian models via JAX/NumPyro (NUTS sampler).
 
 ```bash
-python scripts/13_fit_bayesian.py --model qlearning
-python scripts/13_fit_bayesian.py --model wmrl --chains 4 --warmup 1000 --samples 2000
+python scripts/04_model_fitting/b_bayesian/13_fit_bayesian.py --model qlearning
+python scripts/04_model_fitting/b_bayesian/13_fit_bayesian.py --model wmrl --chains 4 --warmup 1000 --samples 2000
 ```
 
 **Outputs:** ArviZ InferenceData (`.nc`), parameter summaries (`.csv`), trace plots.
@@ -171,13 +171,13 @@ python scripts/13_fit_bayesian.py --model wmrl --chains 4 --warmup 1000 --sample
 
 ```bash
 # Compare all fitted MLE models (AIC/BIC)
-python scripts/14_compare_models.py
+python scripts/06_fit_analyses/compare_models.py
 
 # Compare specific models
-python scripts/14_compare_models.py --models qlearning wmrl wmrl_m3
+python scripts/06_fit_analyses/compare_models.py --models qlearning wmrl wmrl_m3
 
 # With Bayesian criteria (WAIC/LOO)
-python scripts/14_compare_models.py --use-waic
+python scripts/06_fit_analyses/compare_models.py --use-waic
 ```
 
 **Outputs:**
@@ -205,10 +205,10 @@ Relate fitted model parameters to trauma measures.
 
 ```bash
 # Parameter group comparisons (trauma groups × fitted parameters)
-python scripts/post_mle/15_analyze_mle_by_trauma.py --model all
+python scripts/06_fit_analyses/analyze_mle_by_trauma.py --model all
 
 # Continuous regression (parameters ~ LEC-5 + IES-R subscales)
-python scripts/post_mle/16_regress_parameters_on_scales.py --model all
+python scripts/06_fit_analyses/regress_parameters_on_scales.py --model all
 ```
 
 ### Stage 5b: Winner Heterogeneity (Script 17)
@@ -216,7 +216,7 @@ python scripts/post_mle/16_regress_parameters_on_scales.py --model all
 Analyze per-participant model-selection heterogeneity: what fraction of participants are best fit by each model, and how does this vary by trauma group.
 
 ```bash
-python scripts/post_mle/17_analyze_winner_heterogeneity.py
+python scripts/06_fit_analyses/analyze_winner_heterogeneity.py
 ```
 
 **Inputs:** `output/model_comparison/` (from script 14)
@@ -229,7 +229,7 @@ python scripts/post_mle/17_analyze_winner_heterogeneity.py
 Forest plots of Level-2 regression coefficients (trauma predictors × model parameters) from the hierarchical Bayesian posterior. Runs only after cluster Bayesian fit completes.
 
 ```bash
-python scripts/post_mle/18_bayesian_level2_effects.py
+python scripts/06_fit_analyses/bayesian_level2_effects.py
 ```
 
 **Inputs:** `output/bayesian/{model}_posterior.nc` (generated after cluster Bayesian fit)

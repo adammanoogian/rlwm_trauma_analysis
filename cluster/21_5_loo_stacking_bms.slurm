@@ -99,7 +99,7 @@ if [ -n "$FORCE_WINNERS" ]; then
     EXTRA_ARGS+=(--force-winners "$FORCE_WINNERS")
 fi
 
-python scripts/bayesian_pipeline/21_compute_loo_stacking.py \
+python scripts/06_fit_analyses/compute_loo_stacking.py \
     --baseline-dir output/bayesian/21_baseline/ \
     --output-dir output/bayesian/21_baseline/ \
     "${EXTRA_ARGS[@]}"

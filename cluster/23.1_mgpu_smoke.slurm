@@ -136,7 +136,7 @@ mkdir -p logs "$SMOKE_OUT_DIR"
 # =============================================================================
 # fit_bayesian.py has no --n-participants / --limit flag, so we materialize a
 # 10-ppt CSV here and pass it as --data. Canonical participant ID column is
-# `sona_id` (verified in scripts/fitting/fit_bayesian.py lines 127, 129, 140,
+# `sona_id` (verified in scripts/04_model_fitting/b_bayesian/fit_bayesian.py lines 127, 129, 140,
 # 141, 148, 152, 153, 157, 180, 183 — no fallback column needed).
 if [[ ! -f "$DATA_FILE" ]]; then
     echo "ERROR: Data file not found: $DATA_FILE"
@@ -178,7 +178,7 @@ for MODEL in $MODELS; do
     # (per fit_bayesian.py:702-705 — bayesian_dir = output_dir / "bayesian" /
     # output_subdir). We rename to `_smoke_posterior.nc` after the loop so the
     # audit script can distinguish smoke vs production posteriors.
-    timeout "$PER_MODEL_TIMEOUT" python scripts/fitting/fit_bayesian.py \
+    timeout "$PER_MODEL_TIMEOUT" python scripts/04_model_fitting/b_bayesian/fit_bayesian.py \
         --model "$MODEL" \
         --data "$SMOKE_DATA" \
         --output output \

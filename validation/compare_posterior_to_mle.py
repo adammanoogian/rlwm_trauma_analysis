@@ -7,9 +7,9 @@ optimum (modulo expected hierarchical shrinkage).
 Inputs
 ------
 - ``output/bayesian/{model}_posterior.nc``  (ArviZ NetCDF, produced by
-  ``scripts/fitting/fit_bayesian.py``)
+  ``scripts/04_model_fitting/b_bayesian/fit_bayesian.py``)
 - ``output/mle/{model}_individual_fits.csv`` (produced by
-  ``scripts/fitting/fit_mle.py``)
+  ``scripts/04_model_fitting/a_mle/fit_mle.py``)
 
 Outputs
 -------

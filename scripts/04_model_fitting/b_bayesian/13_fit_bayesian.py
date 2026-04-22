@@ -38,16 +38,16 @@ Outputs:
 
 Usage:
     # Fit Q-learning (recommended first - faster)
-    python scripts/13_fit_bayesian.py --model qlearning --data output/task_trials_long.csv
+    python scripts/04_model_fitting/b_bayesian/13_fit_bayesian.py --model qlearning --data output/task_trials_long.csv
 
     # Fit WM-RL
-    python scripts/13_fit_bayesian.py --model wmrl --data output/task_trials_long.csv
+    python scripts/04_model_fitting/b_bayesian/13_fit_bayesian.py --model wmrl --data output/task_trials_long.csv
 
     # Custom MCMC settings
-    python scripts/13_fit_bayesian.py --model qlearning --chains 4 --warmup 1000 --samples 2000
+    python scripts/04_model_fitting/b_bayesian/13_fit_bayesian.py --model qlearning --chains 4 --warmup 1000 --samples 2000
 
     # Include practice blocks
-    python scripts/13_fit_bayesian.py --model qlearning --data output/task_trials_long_all.csv --include-practice
+    python scripts/04_model_fitting/b_bayesian/13_fit_bayesian.py --model qlearning --data output/task_trials_long_all.csv --include-practice
 
 Note:
     Bayesian fitting is slower than MLE but provides richer output.
@@ -62,12 +62,12 @@ Next Steps:
 import sys
 from pathlib import Path
 
-# Add project root to path
-project_root = Path(__file__).resolve().parents[1]
+# Add project root to path (parents[3] = project root from b_bayesian/)
+project_root = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(project_root))
 
-# Import the main function from the library module
-from scripts.fitting.fit_bayesian import main
+# Import the main function from the co-located implementation module (relative import)
+from .fit_bayesian import main
 
 if __name__ == '__main__':
     main()

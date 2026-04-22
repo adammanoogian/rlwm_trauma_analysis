@@ -158,7 +158,7 @@ if command -v nvidia-smi &>/dev/null; then
 fi
 
 # Build command with optional --limit
-CMD="python scripts/fitting/fit_bayesian.py \
+CMD="python scripts/04_model_fitting/b_bayesian/fit_bayesian.py \
     --model $MODEL \
     --data $DATA_FILE \
     --output output/bayesian/ \

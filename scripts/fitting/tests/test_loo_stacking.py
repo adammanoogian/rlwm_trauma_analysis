@@ -1,4 +1,4 @@
-"""Smoke tests for ``scripts/bayesian_pipeline/21_compute_loo_stacking.py``.
+"""Smoke tests for ``scripts/06_fit_analyses/compute_loo_stacking.py``.
 
 Phase 21 Wave 5 orchestrator unit tests. Exercises the pure-function core
 :func:`compute_loo_stacking_bms` with hand-crafted stub ``InferenceData``
@@ -15,13 +15,14 @@ Covered scenarios
   from the orchestrator has the expected keys (``alpha``, ``r``, ``xp``,
   ``bor``, ``pxp``) with the expected shapes.
 
-The script ``scripts/bayesian_pipeline/21_compute_loo_stacking.py`` has a
+The script ``scripts/06_fit_analyses/compute_loo_stacking.py`` has a
 leading digit in its filename, which makes direct ``import`` illegal; we
 load it via ``importlib.util.spec_from_file_location`` following the same
 pattern as ``test_prior_predictive.py``. Path updated from
 ``scripts/21_compute_loo_stacking.py`` to
 ``scripts/bayesian_pipeline/21_compute_loo_stacking.py`` by REFAC-07
-(plan 28-06).
+(plan 28-06); then to ``scripts/06_fit_analyses/compute_loo_stacking.py``
+by plan 29-01.
 """
 
 from __future__ import annotations
@@ -36,16 +37,17 @@ import pytest
 
 
 def _load_orchestrator_module() -> ModuleType:
-    """Load ``scripts/bayesian_pipeline/21_compute_loo_stacking.py`` by filepath.
+    """Load ``scripts/06_fit_analyses/compute_loo_stacking.py`` by filepath.
 
-    The leading ``21_`` in the filename forbids a normal ``import`` — we
+    The leading digit in the script directory forbids a normal ``import`` — we
     use :func:`importlib.util.spec_from_file_location` to get the module
     object anyway. This mirrors the pattern in
     :mod:`scripts.fitting.tests.test_prior_predictive`.
 
     Path updated from ``scripts/21_compute_loo_stacking.py`` to
     ``scripts/bayesian_pipeline/21_compute_loo_stacking.py`` by REFAC-07
-    (plan 28-06).
+    (plan 28-06); then to ``scripts/06_fit_analyses/compute_loo_stacking.py``
+    by plan 29-01.
 
     Returns
     -------
@@ -56,8 +58,8 @@ def _load_orchestrator_module() -> ModuleType:
     mod_path = (
         Path(__file__).resolve().parents[3]
         / "scripts"
-        / "bayesian_pipeline"
-        / "21_compute_loo_stacking.py"
+        / "06_fit_analyses"
+        / "compute_loo_stacking.py"
     )
     spec = importlib.util.spec_from_file_location(
         "_loo_stacking_test_mod", mod_path

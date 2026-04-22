@@ -688,8 +688,9 @@ EXPECTED_PARAMETERIZATION: dict[str, str] = {
 v4.0+ invariant: every fit CSV produced by this project MUST carry a
 ``parameterization_version`` column whose value matches the string above
 for its model. :func:`load_fits_with_validation` enforces this on the
-read side; :mod:`scripts.fitting.fit_mle` and :mod:`scripts.fitting.fit_bayesian`
-enforce it on the write side.
+read side; :mod:`rlwm.fitting.jax_likelihoods` and :mod:`rlwm.fitting.numpyro_models`
+enforce it on the write side (entry scripts: ``scripts/04_model_fitting/a_mle/fit_mle.py``
+and ``scripts/04_model_fitting/b_bayesian/fit_bayesian.py``).
 
 Mismatched or absent values are rejected with an informative error
 (expected vs. actual) rather than silently producing wrong inferences.

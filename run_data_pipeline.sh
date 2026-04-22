@@ -17,16 +17,16 @@ echo "[2/11] Updating participant ID mapping..."
 python scripts/update_participant_mapping.py
 
 echo "[3/11] Parsing raw jsPsych data..."
-python scripts/data_processing/01_parse_raw_data.py
+python scripts/01_data_preprocessing/01_parse_raw_data.py
 
 echo "[4/11] Creating collated participant data..."
-python scripts/data_processing/02_create_collated_csv.py
+python scripts/01_data_preprocessing/02_create_collated_csv.py
 
 echo "[5/11] Creating task trials CSV..."
-python scripts/data_processing/03_create_task_trials_csv.py
+python scripts/01_data_preprocessing/03_create_task_trials_csv.py
 
 echo "[6/11] Creating summary CSV..."
-python scripts/data_processing/04_create_summary_csv.py
+python scripts/01_data_preprocessing/04_create_summary_csv.py
 
 echo "[7/11] Parsing all participants (including partial data)..."
 python scripts/parse_all_participants.py

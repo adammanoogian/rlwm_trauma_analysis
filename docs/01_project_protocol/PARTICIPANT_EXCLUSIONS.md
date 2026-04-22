@@ -51,7 +51,7 @@ Exclusions are applied in:
 - All statistical outputs reflect N=48
 
 ### Computational Modeling Pipeline
-- `scripts/fitting/fit_mle.py`: Maximum likelihood parameter estimation
+- `scripts/04_model_fitting/a_mle/fit_mle.py`: Maximum likelihood parameter estimation
 - `scripts/fitting/fit_with_jax.py`: Bayesian parameter estimation  
 - `scripts/analysis/regress_parameters_on_scales.py`: Parameter-trauma correlations
 - All model fitting uses same N=48 participants

@@ -195,7 +195,7 @@ for model in $MODELS; do
     echo "Started: $(date)"
     echo "============================================================"
 
-    python scripts/fitting/fit_mle.py \
+    python scripts/04_model_fitting/a_mle/fit_mle.py \
         --model "$model" \
         --data "$DATA_FILE" \
         --output output/mle/ \

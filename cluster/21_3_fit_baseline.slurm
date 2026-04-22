@@ -119,7 +119,7 @@ mkdir -p logs
 echo ""
 echo "[$(date)] Starting Step 21.3 baseline hierarchical Bayesian fit for $MODEL"
 
-python scripts/bayesian_pipeline/21_fit_baseline.py \
+python scripts/04_model_fitting/b_bayesian/21_fit_baseline.py \
     --model "$MODEL" \
     --data output/task_trials_long.csv \
     --chains "$CHAINS" \

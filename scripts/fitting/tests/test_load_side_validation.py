@@ -16,18 +16,21 @@ import pytest
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 _ENUMERATED_FILES: list[Path] = [
-    _PROJECT_ROOT / "scripts" / "14_compare_models.py",
-    _PROJECT_ROOT / "scripts" / "post_mle" / "18_bayesian_level2_effects.py",
-    _PROJECT_ROOT / "scripts" / "bayesian_pipeline" / "21_fit_with_l2.py",
-    _PROJECT_ROOT / "scripts" / "bayesian_pipeline" / "21_compute_loo_stacking.py",
-    _PROJECT_ROOT / "scripts" / "bayesian_pipeline" / "21_baseline_audit.py",
-    _PROJECT_ROOT / "scripts" / "bayesian_pipeline" / "21_model_averaging.py",
-    _PROJECT_ROOT / "scripts" / "bayesian_pipeline" / "21_scale_audit.py",
-    _PROJECT_ROOT / "scripts" / "visualization" / "plot_posterior_diagnostics.py",
-    _PROJECT_ROOT / "scripts" / "visualization" / "plot_group_parameters.py",
-    _PROJECT_ROOT / "scripts" / "visualization" / "plot_model_comparison.py",
-    _PROJECT_ROOT / "scripts" / "visualization" / "quick_arviz_plots.py",
-    _PROJECT_ROOT / "scripts" / "simulations" / "generate_data.py",
+    # Canonical paths after plan 29-01 reorganisation
+    _PROJECT_ROOT / "scripts" / "06_fit_analyses" / "compare_models.py",
+    _PROJECT_ROOT / "scripts" / "06_fit_analyses" / "bayesian_level2_effects.py",
+    _PROJECT_ROOT / "scripts" / "04_model_fitting" / "c_level2" / "21_fit_with_l2.py",
+    _PROJECT_ROOT / "scripts" / "06_fit_analyses" / "compute_loo_stacking.py",
+    _PROJECT_ROOT / "scripts" / "05_post_fitting_checks" / "baseline_audit.py",
+    _PROJECT_ROOT / "scripts" / "06_fit_analyses" / "model_averaging.py",
+    _PROJECT_ROOT / "scripts" / "05_post_fitting_checks" / "scale_audit.py",
+    # TODO(29-04): visualization/ stage not yet created; re-enable after plan 29-04
+    # _PROJECT_ROOT / "scripts" / "visualization" / "plot_posterior_diagnostics.py",
+    # _PROJECT_ROOT / "scripts" / "visualization" / "plot_group_parameters.py",
+    # _PROJECT_ROOT / "scripts" / "visualization" / "plot_model_comparison.py",
+    # _PROJECT_ROOT / "scripts" / "visualization" / "quick_arviz_plots.py",
+    # TODO(29-04): simulations/ stage not yet created; re-enable after plan 29-04
+    # _PROJECT_ROOT / "scripts" / "simulations" / "generate_data.py",
     _PROJECT_ROOT / "validation" / "compare_posterior_to_mle.py",
 ]
 

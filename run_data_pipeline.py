@@ -76,19 +76,19 @@ def main():
     steps.extend([
         (
             "01 — Parsing raw jsPsych data",
-            "python scripts/data_processing/01_parse_raw_data.py",
+            "python scripts/01_data_preprocessing/01_parse_raw_data.py",
         ),
         (
             "02 — Creating collated participant data",
-            "python scripts/data_processing/02_create_collated_csv.py",
+            "python scripts/01_data_preprocessing/02_create_collated_csv.py",
         ),
         (
             "03 — Creating task trials CSV",
-            "python scripts/data_processing/03_create_task_trials_csv.py",
+            "python scripts/01_data_preprocessing/03_create_task_trials_csv.py",
         ),
         (
             "04 — Creating summary CSV",
-            "python scripts/data_processing/04_create_summary_csv.py",
+            "python scripts/01_data_preprocessing/04_create_summary_csv.py",
         ),
     ])
 
@@ -96,19 +96,19 @@ def main():
     steps.extend([
         (
             "05 — Summarizing behavioral data",
-            "python scripts/behavioral/05_summarize_behavioral_data.py",
+            "python scripts/02_behav_analyses/05_summarize_behavioral_data.py",
         ),
         (
             "06 — Visualizing task performance",
-            "python scripts/behavioral/06_visualize_task_performance.py",
+            "python scripts/02_behav_analyses/06_visualize_task_performance.py",
         ),
         (
             "07 — Analyzing trauma groups",
-            "python scripts/behavioral/07_analyze_trauma_groups.py",
+            "python scripts/02_behav_analyses/07_analyze_trauma_groups.py",
         ),
         (
             "08 — Running statistical analyses",
-            "python scripts/behavioral/08_run_statistical_analyses.py",
+            "python scripts/02_behav_analyses/08_run_statistical_analyses.py",
         ),
     ])
 

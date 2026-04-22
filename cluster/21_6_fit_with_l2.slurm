@@ -149,7 +149,7 @@ done
 echo ""
 echo "[$(date)] Starting Step 21.6 L2 refit for $MODEL"
 
-python scripts/bayesian_pipeline/21_fit_with_l2.py \
+python scripts/04_model_fitting/c_level2/21_fit_with_l2.py \
     --model "$MODEL" \
     --data output/task_trials_long.csv \
     --chains "$CHAINS" \

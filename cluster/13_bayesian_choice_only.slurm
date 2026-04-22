@@ -95,7 +95,7 @@ mkdir -p output/bayesian
 echo ""
 echo "[$(date)] Starting ${MODEL} hierarchical Bayesian fit"
 
-python scripts/fitting/fit_bayesian.py \
+python scripts/04_model_fitting/b_bayesian/fit_bayesian.py \
     --model "$MODEL" \
     --data output/task_trials_long.csv \
     --chains 4 \

@@ -87,7 +87,7 @@ mkdir -p output/bayesian/permutation
 echo ""
 echo "[$(date)] Starting permutation shuffle ${SLURM_ARRAY_TASK_ID}"
 
-python scripts/fitting/fit_bayesian.py \
+python scripts/04_model_fitting/b_bayesian/fit_bayesian.py \
     --model wmrl_m3 \
     --data output/task_trials_long.csv \
     --permutation-shuffle "$SLURM_ARRAY_TASK_ID" \

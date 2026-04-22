@@ -204,7 +204,7 @@ for model in $MODELS; do
     fi
 
     # Build command with optional --limit
-    CMD="python scripts/fitting/fit_mle.py \
+    CMD="python scripts/04_model_fitting/a_mle/fit_mle.py \
         --model $model \
         --data $DATA_FILE \
         --output output/mle/ \

@@ -1,7 +1,7 @@
 # Hierarchical Bayesian Pipeline (v4.0)
 
 Architecture, Level-2 trauma regression, and validation checklist for the
-joint hierarchical inference used by `scripts/fitting/fit_bayesian.py`.
+joint hierarchical inference used by `scripts/04_model_fitting/b_bayesian/fit_bayesian.py`.
 
 This is the canonical reference.  See `.planning/STATE.md` for the current
 execution status and `docs/03_methods_reference/MODEL_REFERENCE.md` for the
@@ -33,7 +33,7 @@ model parameters**, not as a post-hoc step.
 
 A second-stage regression against covariates NOT in the MCMC design matrix.
 Already partially achievable by running
-`scripts/post_mle/18_bayesian_level2_effects.py` on the posterior NetCDF (descriptive
+`scripts/06_fit_analyses/bayesian_level2_effects.py` on the posterior NetCDF (descriptive
 output, not re-fit).  Not necessary for v4.0 validation because LEC is
 already in the joint design.
 
@@ -159,7 +159,7 @@ shuffle.
 
 ### 4.5 Model comparison
 
-`python scripts/14_compare_models.py --bayesian-comparison` runs
+`python scripts/06_fit_analyses/compare_models.py --bayesian-comparison` runs
 `az.compare(ic='loo', method='stacking')` across the 6 choice-only
 posteriors.
 

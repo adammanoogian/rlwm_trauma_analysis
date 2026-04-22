@@ -170,19 +170,19 @@ amortized across MCMC iterations.
 
 ```bash
 # Bayesian fitting with parallel scan likelihoods (CPU)
-python scripts/13_fit_bayesian.py --model wmrl_m3 \
+python scripts/04_model_fitting/b_bayesian/13_fit_bayesian.py --model wmrl_m3 \
     --data output/task_trials_long.csv \
     --use-pscan
 
 # GPU-accelerated Bayesian fitting
-python scripts/13_fit_bayesian.py --model wmrl_m3 \
+python scripts/04_model_fitting/b_bayesian/13_fit_bayesian.py --model wmrl_m3 \
     --data output/task_trials_long.csv \
     --use-pscan \
     --chains 4 --warmup 1000 --samples 2000
 
 # All choice-only models with pscan
 for model in qlearning wmrl wmrl_m3 wmrl_m5 wmrl_m6a wmrl_m6b; do
-    python scripts/13_fit_bayesian.py --model $model \
+    python scripts/04_model_fitting/b_bayesian/13_fit_bayesian.py --model $model \
         --data output/task_trials_long.csv \
         --use-pscan
 done
@@ -363,7 +363,7 @@ nvidia-smi
 pip install --upgrade "jax[cuda12]"
 
 # Force GPU backend (errors if GPU unavailable)
-JAX_PLATFORMS=cuda python scripts/13_fit_bayesian.py --model wmrl_m3 --use-pscan
+JAX_PLATFORMS=cuda python scripts/04_model_fitting/b_bayesian/13_fit_bayesian.py --model wmrl_m3 --use-pscan
 ```
 
 ### Out of memory (OOM)
@@ -378,13 +378,13 @@ JAX_PLATFORMS=cuda python scripts/13_fit_bayesian.py --model wmrl_m3 --use-pscan
 **Fixes:**
 ```bash
 # Reduce chain count
-python scripts/13_fit_bayesian.py --model wmrl_m3 --use-pscan --chains 2
+python scripts/04_model_fitting/b_bayesian/13_fit_bayesian.py --model wmrl_m3 --use-pscan --chains 2
 
 # Limit memory pre-allocation (JAX allocates 75% of GPU by default)
-XLA_PYTHON_CLIENT_MEM_FRACTION=0.5 python scripts/13_fit_bayesian.py ...
+XLA_PYTHON_CLIENT_MEM_FRACTION=0.5 python scripts/04_model_fitting/b_bayesian/13_fit_bayesian.py ...
 
 # Use memory-efficient scan (sequential fallback)
-python scripts/13_fit_bayesian.py --model wmrl_m3  # without --use-pscan
+python scripts/04_model_fitting/b_bayesian/13_fit_bayesian.py --model wmrl_m3  # without --use-pscan
 ```
 
 ### Float precision issues
@@ -395,7 +395,7 @@ No precision issues expected.
 **M4 LBA:** Requires float64. If you see NaN or inf in log-likelihoods:
 ```bash
 # Force float64 globally
-JAX_ENABLE_X64=1 python scripts/12_fit_mle.py --model wmrl_m4
+JAX_ENABLE_X64=1 python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl_m4
 ```
 
 ### PScan NLL disagreement

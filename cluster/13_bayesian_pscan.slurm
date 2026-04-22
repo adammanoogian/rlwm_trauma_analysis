@@ -155,7 +155,7 @@ fi
 
 SEQ_START=$(date +%s)
 
-python scripts/fitting/fit_bayesian.py \
+python scripts/04_model_fitting/b_bayesian/fit_bayesian.py \
     --model "$MODEL" \
     --data "$DATA_FILE" \
     --output output/ \
@@ -181,7 +181,7 @@ echo "============================================================"
 
 PSCAN_START=$(date +%s)
 
-python scripts/fitting/fit_bayesian.py \
+python scripts/04_model_fitting/b_bayesian/fit_bayesian.py \
     --model "$MODEL" \
     --data "$DATA_FILE" \
     --output output/ \

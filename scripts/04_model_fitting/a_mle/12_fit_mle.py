@@ -28,22 +28,22 @@ Outputs:
 
 Usage:
     # Fit Q-learning model
-    python scripts/12_fit_mle.py --model qlearning --data output/task_trials_long.csv
+    python scripts/04_model_fitting/a_mle/12_fit_mle.py --model qlearning --data output/task_trials_long.csv
 
     # Fit WM-RL model
-    python scripts/12_fit_mle.py --model wmrl --data output/task_trials_long.csv
+    python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl --data output/task_trials_long.csv
 
     # Fit WM-RL with perseveration
-    python scripts/12_fit_mle.py --model wmrl_m3 --data output/task_trials_long.csv
+    python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl_m3 --data output/task_trials_long.csv
 
     # Parallel fitting (faster)
-    python scripts/12_fit_mle.py --model wmrl_m3 --data output/task_trials_long.csv --n-jobs 16
+    python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl_m3 --data output/task_trials_long.csv --n-jobs 16
 
     # GPU-accelerated (requires rlwm_gpu environment)
-    python scripts/12_fit_mle.py --model wmrl_m3 --data output/task_trials_long.csv --use-gpu
+    python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl_m3 --data output/task_trials_long.csv --use-gpu
 
     # Include practice blocks
-    python scripts/12_fit_mle.py --model qlearning --data output/task_trials_long_all.csv --include-practice
+    python scripts/04_model_fitting/a_mle/12_fit_mle.py --model qlearning --data output/task_trials_long_all.csv --include-practice
 
 Cluster Execution:
     # Sequential
@@ -63,12 +63,12 @@ Next Steps:
 import sys
 from pathlib import Path
 
-# Add project root to path
-project_root = Path(__file__).resolve().parents[1]
+# Add project root to path (parents[3] = project root from a_mle/)
+project_root = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(project_root))
 
-# Import the main function from the library module
-from scripts.fitting.fit_mle import main
+# Import the main function from the co-located implementation module (relative import)
+from .fit_mle import main
 
 if __name__ == '__main__':
     main()

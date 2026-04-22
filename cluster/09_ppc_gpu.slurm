@@ -3,7 +3,7 @@
 # SLURM Batch Script: Posterior Predictive Checks (GPU)
 # =============================================================================
 # Runs posterior predictive checks with GPU acceleration.
-# Maps to: scripts/simulations_recovery/09_run_ppc.py
+# Maps to: scripts/03_model_prefitting/09_run_ppc.py
 #
 # Usage:
 #   sbatch cluster/09_ppc_gpu.slurm
@@ -46,7 +46,7 @@ echo "Start time: $(date)"
 echo "=========================================="
 
 # Build command
-CMD="python scripts/simulations_recovery/09_run_ppc.py --model $MODEL --use-gpu"
+CMD="python scripts/03_model_prefitting/09_run_ppc.py --model $MODEL --use-gpu"
 if [ "$SKIP_MODEL_RECOVERY" = "true" ]; then
     CMD="$CMD --skip-model-recovery"
 fi

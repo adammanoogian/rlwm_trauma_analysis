@@ -532,7 +532,7 @@ def fit_model(
         raise NotImplementedError(
             f"Bayesian fitting for '{model}' is not yet implemented. "
             f"Implemented models: {sorted(STACKED_MODEL_DISPATCH.keys())}. "
-            f"Use scripts/12_fit_mle.py for MLE fitting of this model."
+            f"Use scripts/04_model_fitting/a_mle/12_fit_mle.py for MLE fitting of this model."
         )
 
     if subscale and model != "wmrl_m6b":

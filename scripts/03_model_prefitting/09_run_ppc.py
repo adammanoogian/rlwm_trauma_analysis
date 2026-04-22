@@ -159,7 +159,7 @@ def main():
 
         if not fitted_params_path.exists():
             print(f"Warning: Fitted params not found at {fitted_params_path}")
-            print(f"  Run `python scripts/12_fit_mle.py --model {model}` first")
+            print(f"  Run `python scripts/04_model_fitting/a_mle/12_fit_mle.py --model {model}` first")
             continue
 
         result = run_ppc_for_model(

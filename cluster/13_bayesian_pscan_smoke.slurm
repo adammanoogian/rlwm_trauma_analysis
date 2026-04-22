@@ -176,7 +176,7 @@ for MODEL in $MODELS; do
 
     SEQ_START=$(date +%s)
 
-    python scripts/fitting/fit_bayesian.py \
+    python scripts/04_model_fitting/b_bayesian/fit_bayesian.py \
         --model "$MODEL" \
         --data "$DATA_FILE" \
         --output output/smoke_test \
@@ -227,7 +227,7 @@ for MODEL in $MODELS; do
 
     PSCAN_START=$(date +%s)
 
-    python scripts/fitting/fit_bayesian.py \
+    python scripts/04_model_fitting/b_bayesian/fit_bayesian.py \
         --model "$MODEL" \
         --data "$DATA_FILE" \
         --output output/smoke_test \

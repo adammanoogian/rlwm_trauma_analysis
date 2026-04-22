@@ -83,7 +83,7 @@ IES_hyperarousal    0.140    0.161     0.924    0.821    0.750    1.000
 
 ### Standardization: z-score both covariates before MCMC
 
-`scripts/fitting/fit_bayesian.py::_load_lec_covariate` and
+`scripts/04_model_fitting/b_bayesian/fit_bayesian.py::_load_lec_covariate` and
 `scripts/fitting/level2_design.py::build_level2_design_matrix` both z-score
 via `(x − mean) / std`.
 

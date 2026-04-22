@@ -127,7 +127,7 @@ for MODEL in $MODELS; do
 
     MODEL_START=$(date +%s)
 
-    timeout "$PER_MODEL_TIMEOUT" python scripts/fitting/fit_bayesian.py \
+    timeout "$PER_MODEL_TIMEOUT" python scripts/04_model_fitting/b_bayesian/fit_bayesian.py \
         --model "$MODEL" \
         --data "$DATA_FILE" \
         --output output/fb_smoke \

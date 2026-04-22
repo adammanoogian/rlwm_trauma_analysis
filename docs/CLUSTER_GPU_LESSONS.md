@@ -197,7 +197,7 @@ pmap:
 
 ```bash
 export NUMPYRO_HOST_DEVICE_COUNT=4
-python scripts/fitting/fit_bayesian.py --chains 4 --model wmrl_m6b
+python scripts/04_model_fitting/b_bayesian/fit_bayesian.py --chains 4 --model wmrl_m6b
 ```
 
 ---
@@ -402,7 +402,7 @@ export JAX_COMPILATION_CACHE_DIR="/scratch/${PROJECT}/${USER}/.jax_cache_bayesia
 export JAX_PERSISTENT_CACHE_MIN_ENTRY_SIZE_BYTES=0
 export PYTHONUNBUFFERED=1
 
-python scripts/fitting/fit_bayesian.py \
+python scripts/04_model_fitting/b_bayesian/fit_bayesian.py \
     --model wmrl_m6b --chains 4 --warmup 1000 --samples 2000 --max-tree-depth 8
 
 source cluster/autopush.sh
@@ -438,7 +438,7 @@ export JAX_COMPILATION_CACHE_DIR="/scratch/${PROJECT}/${USER}/.jax_cache_fb_smok
 export JAX_PERSISTENT_CACHE_MIN_ENTRY_SIZE_BYTES=0
 export PYTHONUNBUFFERED=1
 
-python scripts/fitting/fit_bayesian.py \
+python scripts/04_model_fitting/b_bayesian/fit_bayesian.py \
     --model wmrl_m6b --chains 4 --warmup 500 --samples 500
 ```
 
@@ -464,7 +464,7 @@ New, `cluster/13_bayesian_multigpu.slurm`.  Untested in production.
 
 # ... activate rlwm_gpu, cache, etc. ...
 
-python scripts/fitting/fit_bayesian.py \
+python scripts/04_model_fitting/b_bayesian/fit_bayesian.py \
     --model wmrl_m6b --chains 4 --warmup 1000 --samples 2000
 ```
 
@@ -514,7 +514,7 @@ data on the other 5 models.
 
 ```bash
 for MODEL in $MODELS; do
-    timeout "$PER_MODEL_TIMEOUT" python scripts/fitting/fit_bayesian.py \
+    timeout "$PER_MODEL_TIMEOUT" python scripts/04_model_fitting/b_bayesian/fit_bayesian.py \
         --model "$MODEL" ...
     EXIT=$?
     if [[ $EXIT -eq 124 ]]; then

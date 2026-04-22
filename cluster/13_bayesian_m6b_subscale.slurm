@@ -108,7 +108,7 @@ echo "[$(date)] Starting M6b subscale (WM-RL+dual) hierarchical Bayesian fit"
 echo "  32 beta sites = 8 params x 4 covariates (lec_total, iesr_total,"
 echo "  iesr_intr_resid, iesr_avd_resid)"
 
-python scripts/fitting/fit_bayesian.py \
+python scripts/04_model_fitting/b_bayesian/fit_bayesian.py \
     --model wmrl_m6b \
     --subscale \
     --data output/task_trials_long.csv \

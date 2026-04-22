@@ -13,9 +13,9 @@ cluster/
 ├── 01_diagnostic_gpu.slurm  # GPU/JAX validation (run first)
 ├── 09_ppc_gpu.slurm         # Posterior predictive checks  → scripts/09_run_ppc.py
 ├── 11_recovery_gpu.slurm    # Parameter recovery           → scripts/11_run_model_recovery.py
-├── 12_mle.slurm             # MLE fitting (CPU parallel)   → scripts/12_fit_mle.py
-├── 12_mle_gpu.slurm         # MLE fitting (GPU)            → scripts/12_fit_mle.py
-├── 12_mle_single.slurm      # MLE fitting (single model)   → scripts/12_fit_mle.py
+├── 12_mle.slurm             # MLE fitting (CPU parallel)   → scripts/04_model_fitting/a_mle/12_fit_mle.py
+├── 12_mle_gpu.slurm         # MLE fitting (GPU)            → scripts/04_model_fitting/a_mle/12_fit_mle.py
+├── 12_mle_single.slurm      # MLE fitting (single model)   → scripts/04_model_fitting/a_mle/12_fit_mle.py
 ├── 12_submit_all.sh         # Submit all CPU MLE jobs
 ├── 12_submit_all_gpu.sh     # Submit all GPU MLE jobs
 ├── 13_full_pipeline.slurm   # FULL PIPELINE: steps 05-16 (GPU)
@@ -171,7 +171,7 @@ module load miniforge3
 conda activate rlwm
 cd /projects/$PROJECT/$USER/rlwm_trauma_analysis
 
-python scripts/fitting/fit_mle.py \
+python scripts/04_model_fitting/a_mle/fit_mle.py \
     --model qlearning \
     --data output/task_trials_long.csv \
     --limit 2 \

@@ -60,7 +60,7 @@ run_step() {
 }
 
 run_step "14 — Model comparison" \
-    python scripts/14_compare_models.py
+    python scripts/06_fit_analyses/compare_models.py
 
 run_step "15 — Parameter-trauma analysis" \
     python scripts/15_analyze_mle_by_trauma.py --model all

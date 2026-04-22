@@ -218,7 +218,7 @@ if [[ ! -f "$DATA_FILE" ]]; then
 fi
 
 # Build command
-CMD="python scripts/fitting/fit_mle.py --model $MODEL --data $DATA_FILE --output output/mle/ --n-starts 20 --seed 42 --compute-diagnostics"
+CMD="python scripts/04_model_fitting/a_mle/fit_mle.py --model $MODEL --data $DATA_FILE --output output/mle/ --n-starts 20 --seed 42 --compute-diagnostics"
 
 if [[ -n "$LIMIT" ]]; then
     CMD="$CMD --limit $LIMIT"
@@ -299,7 +299,7 @@ if [[ -n "$LIMIT" ]]; then
     FITTING_ARGS="$FITTING_ARGS --limit $LIMIT"
 fi
 
-srun --ntasks=1 --cpus-per-task=4 --exact --export=ALL $PYTHON_BIN scripts/fitting/fit_mle.py $FITTING_ARGS
+srun --ntasks=1 --cpus-per-task=4 --exact --export=ALL $PYTHON_BIN scripts/04_model_fitting/a_mle/fit_mle.py $FITTING_ARGS
 
 EXIT_CODE=$?
 

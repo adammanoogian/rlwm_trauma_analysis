@@ -69,7 +69,7 @@ FORBIDDEN_PATH_GLOBS: tuple[str, ...] = (
 
 # Smoke-data preflight CSV (produced by 23.1_mgpu_smoke.slurm). Canonical
 # participant ID column is `sona_id` (verified in
-# scripts/fitting/fit_bayesian.py lines 127, 129, 140, 141, 148, 152, 153,
+# scripts/04_model_fitting/b_bayesian/fit_bayesian.py lines 127, 129, 140, 141, 148, 152, 153,
 # 157, 180, 183).
 SMOKE_DATA_FILENAME = "_smoke_data_10ppts.csv"
 SMOKE_DATA_ID_COL = "sona_id"

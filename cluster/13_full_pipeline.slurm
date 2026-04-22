@@ -117,16 +117,16 @@ if [[ "$SKIP_BEHAVIORAL" != "true" ]]; then
     echo "============================================================"
 
     run_step "05 — Summarize behavioral data" \
-        python scripts/behavioral/05_summarize_behavioral_data.py
+        python scripts/02_behav_analyses/05_summarize_behavioral_data.py
 
     run_step "06 — Visualize task performance" \
-        python scripts/behavioral/06_visualize_task_performance.py
+        python scripts/02_behav_analyses/06_visualize_task_performance.py
 
     run_step "07 — Analyze trauma groups" \
-        python scripts/behavioral/07_analyze_trauma_groups.py
+        python scripts/02_behav_analyses/07_analyze_trauma_groups.py
 
     run_step "08 — Run statistical analyses" \
-        python scripts/behavioral/08_run_statistical_analyses.py
+        python scripts/02_behav_analyses/08_run_statistical_analyses.py
 else
     echo ""
     echo "Skipping Phase A (--export=SKIP_BEHAVIORAL=true)"
@@ -151,7 +151,7 @@ fi
 
 for model in qlearning wmrl wmrl_m3 wmrl_m5 wmrl_m6a wmrl_m6b wmrl_m4; do
     run_step "12 — Fit MLE: $model (GPU)" \
-        python scripts/12_fit_mle.py \
+        python scripts/04_model_fitting/a_mle/12_fit_mle.py \
             --model "$model" \
             --data "$DATA_FILE" \
             --output output/mle/ \
@@ -174,7 +174,7 @@ echo "PHASE C: Results Analysis (Steps 14-16)"
 echo "============================================================"
 
 run_step "14 — Compare models" \
-    python scripts/14_compare_models.py
+    python scripts/06_fit_analyses/compare_models.py
 
 run_step "15 — Analyze MLE by trauma" \
     python scripts/15_analyze_mle_by_trauma.py --model all
