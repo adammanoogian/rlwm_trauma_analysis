@@ -2,7 +2,7 @@
 phase: 29-pipeline-canonical-reorg
 plan: 08
 type: execute
-wave: 5
+wave: 6
 depends_on: [29-01, 29-07]
 optional: true
 files_modified:

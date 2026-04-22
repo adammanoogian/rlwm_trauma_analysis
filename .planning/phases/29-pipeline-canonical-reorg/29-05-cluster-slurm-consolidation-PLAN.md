@@ -2,8 +2,8 @@
 phase: 29-pipeline-canonical-reorg
 plan: 05
 type: execute
-wave: 3
-depends_on: [29-01, 29-03]
+wave: 4
+depends_on: [29-01, 29-03, 29-04b]
 files_modified:
   - cluster/01_data_processing.slurm                      (new stage-numbered entry point)
   - cluster/02_behav_analyses.slurm                       (new)

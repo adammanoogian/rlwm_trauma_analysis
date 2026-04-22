@@ -2,8 +2,8 @@
 phase: 29-pipeline-canonical-reorg
 plan: 06
 type: execute
-wave: 3
-depends_on: [29-01, 29-02]
+wave: 4
+depends_on: [29-01, 29-02, 29-04b]
 files_modified:
   - manuscript/paper.qmd                     (inline-cell python imports + script-path prose references)
   - manuscript/paper.tex                     (line 244 path reference updated per 29-04)

@@ -2,8 +2,8 @@
 phase: 29-pipeline-canonical-reorg
 plan: 07
 type: execute
-wave: 4
-depends_on: [29-01, 29-02, 29-03, 29-04, 29-05, 29-06]
+wave: 5
+depends_on: [29-01, 29-02, 29-03, 29-04, 29-04b, 29-05, 29-06]
 files_modified:
   - tests/test_v5_phase29_structure.py              (new — pytest closure guard for canonical shape)
   - validation/check_v4_closure.py                  (updated if new path invariants supersede v4 paths)
