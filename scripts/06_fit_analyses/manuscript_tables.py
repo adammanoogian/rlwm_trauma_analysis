@@ -38,7 +38,7 @@ Inputs
     - ``averaged_scale_effects.csv`` (step 21.8, multi-winner only) — provides
       ``model_averaged_*`` columns for Table 3.
     - ``{winner}_posterior.nc`` per winner (step 21.6) — for Figure 1 forest
-      plot via ``scripts/18_bayesian_level2_effects.py``.
+      plot via ``scripts/06_fit_analyses/bayesian_level2_effects.py``.
 
 ``output/bayesian/wmrl_m6b_subscale_posterior.nc`` — Phase-16 canonical path
     for the M6b subscale exploratory arm. **Guarded with ``Path.exists()``
@@ -697,7 +697,7 @@ def generate_table3_winner_betas(
 
 
 # ---------------------------------------------------------------------------
-# Figure 1 — forest plot (delegates to scripts/18_bayesian_level2_effects.py)
+# Figure 1 — forest plot (delegates to scripts/06_fit_analyses/bayesian_level2_effects.py)
 # ---------------------------------------------------------------------------
 
 
@@ -708,7 +708,7 @@ def generate_figure1_forest(
 ) -> list[Path]:
     """Generate forest plots for each winner via the legacy step-18 script.
 
-    Per plan 21-10, we reuse ``scripts/18_bayesian_level2_effects.py`` rather
+    Per plan 21-10, we reuse ``scripts/06_fit_analyses/bayesian_level2_effects.py`` rather
     than re-implementing the forest plot. The script is invoked once per
     winner via subprocess with adjusted paths (``--posterior-path`` →
     ``output/bayesian/21_l2/{winner}_posterior.nc``).
@@ -743,7 +743,7 @@ def generate_figure1_forest(
         out_png = figures_dir / f"forest_{internal}.png"
         cmd = [
             sys.executable,
-            "scripts/post_mle/18_bayesian_level2_effects.py",
+            "scripts/06_fit_analyses/bayesian_level2_effects.py",
             "--posterior-path",
             str(posterior),
         ]

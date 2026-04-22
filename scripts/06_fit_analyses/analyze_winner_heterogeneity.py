@@ -117,7 +117,7 @@ def load_per_participant_aic(mle_dir: Path) -> pd.DataFrame:
         if not path.exists():
             raise FileNotFoundError(
                 f"Missing fit CSV for {model}: expected {path}. "
-                f"Run `python scripts/12_fit_mle.py --model {model}` first."
+                f"Run `python scripts/04_model_fitting/a_mle/12_fit_mle.py --model {model}` first."
             )
         fits = load_fits_with_validation(path, model)
         short = SHORT_NAME_BY_MODEL[model]

@@ -134,7 +134,7 @@ from config import load_netcdf_with_validation  # noqa: E402
 from scripts.fitting.bms import rfx_bms  # noqa: E402
 
 # ---------------------------------------------------------------------------
-# Display-name map (mirrors BAYESIAN_NETCDF_MAP in scripts/14_compare_models.py)
+# Display-name map (mirrors BAYESIAN_NETCDF_MAP in scripts/06_fit_analyses/compare_models.py)
 # ---------------------------------------------------------------------------
 # Convergence-table model keys (from plan 21-05) use the underscore names
 # from MODEL_REGISTRY; this maps them to the short display names used in
