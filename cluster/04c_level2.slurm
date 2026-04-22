@@ -19,12 +19,12 @@
 # output/bayesian/21_baseline/{model}_posterior.nc are NEVER overwritten.
 #
 # Usage (single model, default wmrl_m6b):
-#   sbatch cluster/21_6_fit_with_l2.slurm
+#   sbatch cluster/04c_level2.slurm
 #
 # Usage (specific model; must be in winners.txt):
-#   sbatch --export=MODEL=wmrl_m3 cluster/21_6_fit_with_l2.slurm
+#   sbatch --export=MODEL=wmrl_m3 cluster/04c_level2.slurm
 #
-# Usage (from master pipeline orchestrator, chained to step 21.5 afterok):
+# Usage (from master pipeline orchestrator, chained to stage 04b afterok):
 #   # Loop over winners.txt entries on the submit host
 #   for m in $(python -c "import sys; \
 #       names={'M1':'qlearning','M2':'wmrl','M3':'wmrl_m3','M5':'wmrl_m5',\
@@ -33,7 +33,7 @@
 #       open('output/bayesian/21_baseline/winners.txt').read().split(',') \
 #       if t.strip()))"); do
 #       sbatch --dependency=afterok:$LOO_JOBID \
-#              --export=MODEL=$m cluster/21_6_fit_with_l2.slurm
+#              --export=MODEL=$m cluster/04c_level2.slurm
 #   done
 #
 # Outputs saved to:

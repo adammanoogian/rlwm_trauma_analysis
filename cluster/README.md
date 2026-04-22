@@ -1,26 +1,120 @@
-# M3 Cluster Setup & MLE Fitting Guide
+# M3 Cluster Setup & Pipeline Guide
 
-Complete step-by-step guide for running the RLWM project on Monash M3 cluster.
+Complete step-by-step guide for running the RLWM project on the Monash M3 cluster.
 
-## Cluster Script Index
+---
 
-Scripts are numbered to match the pipeline scripts they invoke:
+## Canonical SLURM Layout (post-29-05)
+
+Six stage-numbered entry SLURMs + one master orchestrator cover the full pipeline.
+Every SLURM invokes python scripts via the post-29-04b canonical stage-numbered
+paths (`scripts/0{1..6}_*/*.py`).
 
 ```
 cluster/
-├── 00_setup_env.sh          # CPU conda environment setup
-├── 00_setup_env_gpu.sh      # GPU conda environment setup (JAX CUDA)
-├── 01_diagnostic_gpu.slurm  # GPU/JAX validation (run first)
-├── 09_ppc_gpu.slurm         # Posterior predictive checks  → scripts/05_post_fitting_checks/03_run_posterior_ppc.py
-├── 11_recovery_gpu.slurm    # Parameter recovery           → scripts/03_model_prefitting/03_run_model_recovery.py
-├── 12_mle.slurm             # MLE fitting (CPU parallel)   → scripts/04_model_fitting/a_mle/fit_mle.py
-├── 12_mle_gpu.slurm         # MLE fitting (GPU)            → scripts/04_model_fitting/a_mle/fit_mle.py
-├── 12_mle_single.slurm      # MLE fitting (single model)   → scripts/04_model_fitting/a_mle/fit_mle.py
-├── 12_submit_all.sh         # Submit all CPU MLE jobs
-├── 12_submit_all_gpu.sh     # Submit all GPU MLE jobs
-├── 13_full_pipeline.slurm   # FULL PIPELINE: steps 05-16 (GPU)
-├── logs/                    # SLURM output (gitignored)
-└── README.md                # This file
+├── submit_all.sh                     # MASTER: chains 01..06 via afterok (canonical entry)
+├── 21_submit_pipeline.sh             # Shim delegating to submit_all.sh (back-compat)
+│
+├── 01_data_processing.slurm          # Stage 01: parse + collate + trials CSV + summary CSV
+├── 02_behav_analyses.slurm           # Stage 02: summary/visualise/trauma groups/statistics
+├── 03_prefitting_cpu.slurm           # Stage 03 CPU: STEP=synthetic|parameter_sweep|model_recovery|prior_predictive|bayesian_recovery
+├── 03_prefitting_gpu.slurm           # Stage 03 GPU: same STEP dispatch, GPU-accelerated
+├── 04a_mle_cpu.slurm                 # Stage 04a: MLE fitting (CPU parallel, NJOBS knob)
+├── 04a_mle_gpu.slurm                 # Stage 04a: MLE fitting (GPU)
+├── 04b_bayesian_cpu.slurm            # Stage 04b: hierarchical Bayesian (CPU; all 6 choice-only + subscale)
+├── 04b_bayesian_gpu.slurm            # Stage 04b: hierarchical Bayesian (GPU; M4 LBA target)
+├── 04c_level2.slurm                  # Stage 04c: winner refit WITH L2 scales
+├── 05_post_checks.slurm              # Stage 05: STEP=baseline_audit|scale_audit|posterior_ppc
+├── 06_fit_analyses.slurm             # Stage 06: STEP=compare_models|loo_stacking|model_averaging|manuscript_tables|...
+│
+├── 13_full_pipeline.slurm            # [RETAINED] single-job full pipeline (legacy, for quick runs)
+├── 13_bayesian_multigpu.slurm        # [RETAINED-SPECIALIZED] multi-GPU chains (pmap across 4 GPUs)
+├── 13_bayesian_permutation.slurm     # [RETAINED-SPECIALIZED] permutation null test (array 0-49)
+├── 13_bayesian_pscan.slurm           # [RETAINED-SPECIALIZED] parallel-scan A/B benchmark
+├── 13_bayesian_pscan_smoke.slurm     # [RETAINED-SPECIALIZED] pscan smoke test
+├── 13_bayesian_fullybatched_smoke.slurm  # [RETAINED-SPECIALIZED] fully-batched vmap smoke
+├── 19_benchmark_pscan_cpu.slurm      # [RETAINED-SPECIALIZED] pscan CPU micro-benchmark
+├── 19_benchmark_pscan_gpu.slurm      # [RETAINED-SPECIALIZED] pscan GPU micro-benchmark
+├── 23.1_mgpu_smoke.slurm             # [RETAINED-SPECIALIZED] Phase 23.1 multi-GPU smoke
+├── 21_6_dispatch_l2.slurm            # [RETAINED] L2 winner dispatcher wrapper (sbatch --wait blocker)
+├── 21_dispatch_l2_winners.sh         # [RETAINED] L2 winner fan-out shell driver
+├── 01_diagnostic_gpu.slurm           # [RETAINED] GPU/JAX smoke diagnostic
+├── 99_push_results.slurm             # [RETAINED] auto-push results to git
+│
+├── 00_setup_env.sh                   # CPU conda environment setup
+├── 00_setup_env_gpu.sh               # GPU conda environment setup (JAX CUDA)
+├── autopush.sh                       # Auto-push helper (sourced by SLURMs)
+├── submit_full_pipeline.sh           # [RETAINED] wave-based pipeline (alt to submit_all.sh)
+├── logs/                             # SLURM output (gitignored)
+└── README.md                         # this file
+```
+
+### What changed in 29-05
+
+- **6 stage entry SLURMs** (`01..06_*.slurm`) replace the per-step templates.
+- **`cluster/submit_all.sh`** is the new canonical master orchestrator (afterok chain).
+- **`cluster/21_submit_pipeline.sh`** still works — it's now a one-line shim that delegates to `submit_all.sh`.
+- Every python invocation in every cluster SLURM resolves on disk (post-29-04b paths).
+
+### Deleted in 29-05 (consolidated)
+
+| Deleted | Replacement |
+|---|---|
+| `09_ppc_gpu.slurm` | `05_post_checks.slurm` STEP=posterior_ppc (USE_GPU=1) |
+| `11_recovery_gpu.slurm` | `03_prefitting_gpu.slurm` STEP=model_recovery |
+| `12_mle.slurm` | **renamed** `04a_mle_cpu.slurm` |
+| `12_mle_gpu.slurm` | **renamed** `04a_mle_gpu.slurm` |
+| `12_mle_single.slurm` | `04a_mle_cpu.slurm` with `--export=NJOBS=1` |
+| `12_submit_all.sh`, `12_submit_all_gpu.sh` | `submit_all.sh` |
+| `13_bayesian_choice_only.slurm` | **renamed** `04b_bayesian_cpu.slurm` |
+| `13_bayesian_gpu.slurm` | **renamed** `04b_bayesian_gpu.slurm` |
+| `13_bayesian_m4_gpu.slurm` | `04b_bayesian_gpu.slurm` with `MODEL=wmrl_m4,TIME=48:00:00` |
+| `13_bayesian_m6b_subscale.slurm` | `04b_bayesian_cpu.slurm` with `MODEL=wmrl_m6b,SUBSCALE=1,TIME=12:00:00` |
+| `14_analysis.slurm` | `06_fit_analyses.slurm` STEP=compare_models \| analyze_mle_by_trauma \| regress_parameters_on_scales |
+| `21_1_prior_predictive.slurm` | `03_prefitting_cpu.slurm` STEP=prior_predictive |
+| `21_2_recovery.slurm` | `03_prefitting_cpu.slurm` STEP=bayesian_recovery (array support via SLURM_ARRAY_TASK_ID) |
+| `21_2_recovery_aggregate.slurm` | `03_prefitting_cpu.slurm` STEP=bayesian_recovery RECOVERY_MODE=aggregate |
+| `21_3_fit_baseline.slurm` | `04b_bayesian_cpu.slurm` (baseline output subdir is handled by fit_bayesian internally) |
+| `21_4_baseline_audit.slurm` | `05_post_checks.slurm` STEP=baseline_audit |
+| `21_5_loo_stacking_bms.slurm` | `06_fit_analyses.slurm` STEP=loo_stacking |
+| `21_6_fit_with_l2.slurm` | **renamed** `04c_level2.slurm` |
+| `21_7_scale_audit.slurm` | `05_post_checks.slurm` STEP=scale_audit |
+| `21_8_model_averaging.slurm` | `06_fit_analyses.slurm` STEP=model_averaging |
+| `21_9_manuscript_tables.slurm` | `06_fit_analyses.slurm` STEP=manuscript_tables |
+
+### Retained-specialized SLURMs (kept verbatim because they have a dedicated workflow)
+
+| SLURM | Why kept |
+|---|---|
+| `13_full_pipeline.slurm` | Single-job full run (all-in-one, quick sanity) — useful for smoke testing |
+| `13_bayesian_multigpu.slurm` | Multi-GPU chain pmap (not just model selection — different chain_method) |
+| `13_bayesian_permutation.slurm` | Permutation-null SLURM array (50 shuffles); orthogonal dispatch surface |
+| `13_bayesian_pscan.slurm`, `13_bayesian_pscan_smoke.slurm`, `13_bayesian_fullybatched_smoke.slurm` | Parallel-scan A/B benchmarks and smokes (benchmarking, not production fits) |
+| `19_benchmark_pscan_{cpu,gpu}.slurm` | Micro-benchmarks (validation/benchmark_parallel_scan.py wrapper) |
+| `23.1_mgpu_smoke.slurm` | Phase 23.1 multi-GPU validation (per-model 10-minute smoke) |
+| `21_6_dispatch_l2.slurm` + `21_dispatch_l2_winners.sh` | L2 winner fan-out (sbatch --wait blocker, referenced from winners.txt) |
+| `01_diagnostic_gpu.slurm` | GPU/JAX readiness check (run-first template for new users) |
+| `99_push_results.slurm` | Auto-push results to git (dependency-chained from fitting SLURMs) |
+
+---
+
+## Canonical full-pipeline invocation
+
+```bash
+# Full chain (01 -> 02 -> 03 -> 04 -> 05 -> 06) via --afterok
+bash cluster/submit_all.sh
+
+# Dry-run: verify every SLURM passes bash -n and every python path resolves
+bash cluster/submit_all.sh --dry-run
+
+# Restart mid-pipeline
+bash cluster/submit_all.sh --from-stage 5
+
+# Subset of models
+bash cluster/submit_all.sh --models "wmrl_m3 wmrl_m5"
+
+# Back-compat shim (preserves v4.0 user-memory invocation)
+bash cluster/21_submit_pipeline.sh           # -> delegates to submit_all.sh
 ```
 
 ---
@@ -32,9 +126,9 @@ cluster/
 ssh YOUR_USERNAME@m3.massive.org.au
 ```
 
-### 1.2 Configure Conda for Scratch Storage (CRITICAL - Do Once)
+### 1.2 Configure Conda for Scratch Storage (do this once)
 
-**M3 Rule: Store conda envs in `/scratch/`, NOT home directory!**
+**M3 rule: Store conda envs in `/scratch/`, NOT home directory.**
 
 ```bash
 mkdir -p ~/.conda
@@ -50,9 +144,9 @@ mkdir -p /scratch/$PROJECT/$USER/conda/pkgs
 mkdir -p /scratch/$PROJECT/$USER/conda/envs
 ```
 
-### 1.3 Verify You Haven't Run `conda init`
+### 1.3 Verify you haven't run `conda init`
 
-**M3 Rule: NEVER run `conda init` - it breaks Strudel!**
+**M3 rule: never run `conda init` — it breaks Strudel.**
 
 ```bash
 grep -A5 ">>> conda initialize >>>" ~/.bashrc
@@ -61,248 +155,87 @@ grep -A5 ">>> conda initialize >>>" ~/.bashrc
 
 ---
 
-## Step 2: Clone/Upload the Project
-
-### 2.1 Clone from GitHub (Recommended for Code)
+## Step 2: Clone the Project
 
 ```bash
 cd /projects/$PROJECT/$USER
 git clone https://github.com/YOUR_USERNAME/rlwm_trauma_analysis.git
 cd rlwm_trauma_analysis
+pip install -e .       # required: src/rlwm/ is the authoritative import package
 ```
-
-### 2.2 Set Up Git on M3 (First Time Only)
-
-```bash
-git config --global user.name "Your Name"
-git config --global user.email "your.email@monash.edu"
-
-# (Optional) SSH key for GitHub
-ssh-keygen -t ed25519 -C "your.email@monash.edu"
-cat ~/.ssh/id_ed25519.pub
-# Add to GitHub: Settings > SSH Keys > New SSH Key
-```
-
-### 2.3 Sync Changes with GitHub
-
-```bash
-cd /projects/$PROJECT/$USER/rlwm_trauma_analysis
-git pull origin main
-
-# Push results back
-git add output/mle/*.csv
-git commit -m "Add MLE fitting results from M3"
-git push origin main
-```
-
-### 2.4 Transfer Large Data Files via SCP
-
-```bash
-# LOCAL → M3 (upload raw data)
-scp output/task_trials_long.csv YOUR_USERNAME@m3.massive.org.au:/projects/$PROJECT/$USER/rlwm_trauma_analysis/output/
-
-# M3 → LOCAL (download results)
-scp -r YOUR_USERNAME@m3.massive.org.au:/projects/$PROJECT/$USER/rlwm_trauma_analysis/output/mle/ ./results/
-```
-
-| Content | Sync Method | Reason |
-|---------|-------------|--------|
-| Python scripts, configs | **GitHub** | Version control |
-| SLURM scripts | **GitHub** | Part of codebase |
-| Raw data (`*.csv` > 50MB) | **SCP** | Too large for GitHub |
-| Results (`output/mle/`) | **GitHub** or **SCP** | Small CSVs can go to GitHub |
-| Participant data (sensitive) | **SCP only** | May not belong in repo |
 
 ---
 
-## Step 3: Create the Conda Environment
+## Step 3: Create conda environments
 
-### 3.1 Load Miniforge (M3's Conda)
 ```bash
 module load miniforge3
-```
-
-### 3.2 Create CPU Environment
-```bash
-cd /projects/$PROJECT/$USER/rlwm_trauma_analysis
-mamba env create -f environment.yml
-
-conda env list
-# Should show: /scratch/$PROJECT/$USER/conda/envs/rlwm
-```
-
-### 3.3 (Optional) Create GPU Environment
-```bash
-# Note: Do NOT load CUDA module — JAX pip packages bundle CUDA libraries
-mamba env create -f environment_gpu.yml
-
-conda env list
-# Should show: /scratch/$PROJECT/$USER/conda/envs/rlwm_gpu
+mamba env create -f environment.yml          # CPU
+mamba env create -f environment_gpu.yml      # GPU (optional, required for M4 LBA)
 ```
 
 ---
 
-## Step 4: Check Available Resources
+## Step 4: Submit the pipeline
 
-```bash
-show_cluster            # Overall cluster utilization
-sinfo -p comp           # CPU partition (up to 96 CPUs/node)
-sinfo -p gpu            # GPU partition (A100, T4, A40)
-show_budget             # Your project allocations
-```
+### Option A — full chain
 
-| Partition | Max CPUs/node | Max Memory | GPUs | Use For |
-|-----------|---------------|------------|------|---------|
-| `comp` | 96 | 1532 GB | None | CPU parallel fitting |
-| `gpu` | varies | varies | A100, T4, A40 | GPU fitting |
-| `m3g` | varies | varies | V100 (56 total) | GPU fitting |
-| `short` | 18 | 181 GB | None | Quick tests (<30 min) |
-
----
-
-## Step 5: Run a Quick Test (Interactive)
-
-```bash
-# Request 4 CPUs for 30 minutes
-srun --partition=comp --cpus-per-task=4 --mem=8G --time=00:30:00 --pty bash
-
-# Activate and test
-module load miniforge3
-conda activate rlwm
-cd /projects/$PROJECT/$USER/rlwm_trauma_analysis
-
-python scripts/04_model_fitting/a_mle/fit_mle.py \
-    --model qlearning \
-    --data output/task_trials_long.csv \
-    --limit 2 \
-    --n-jobs 4 \
-    --n-starts 5
-
-exit
-```
-
----
-
-## Step 6: Submit Batch Jobs
-
-### 6.1 Create Logs Directory
 ```bash
 mkdir -p cluster/logs
-```
-
-### 6.2 Full Pipeline (Steps 05-16, Recommended)
-
-Run behavioral analysis, MLE fitting, and results analysis in one job:
-
-```bash
-cd /projects/$PROJECT/$USER/rlwm_trauma_analysis
-sbatch cluster/13_full_pipeline.slurm                          # Standard
-sbatch --export=VALIDATE=true cluster/13_full_pipeline.slurm   # + validation (09, 11)
-sbatch --export=SKIP_BEHAVIORAL=true cluster/13_full_pipeline.slurm  # Skip 05-08
+bash cluster/submit_all.sh
 squeue -u $USER
 ```
 
-### 6.3 Submit All 3 Models as Parallel GPU Jobs
+### Option B — individual stages
 
 ```bash
-bash cluster/12_submit_all_gpu.sh
-squeue -u $USER
-```
+# Stage 01 (data processing)
+sbatch cluster/01_data_processing.slurm
 
-### 6.3 Submit Single GPU Job
+# Stage 02 (behavioural analyses)
+sbatch cluster/02_behav_analyses.slurm
 
-GPU fitting avoids LLVM/CPU issues and is comparable speed to parallel CPU.
+# Stage 03 (prefitting: fan-out per model)
+for m in qlearning wmrl wmrl_m3 wmrl_m5 wmrl_m6a wmrl_m6b; do
+  sbatch --export=ALL,STEP=prior_predictive,MODEL=$m cluster/03_prefitting_cpu.slurm
+done
 
-```bash
-sbatch cluster/12_mle_gpu.slurm                                    # All 3 models
-sbatch --export=MODEL=wmrl_m3 cluster/12_mle_gpu.slurm             # Single model
-tail -f cluster/logs/mle_gpu_*.out
-```
+# Stage 04a MLE (GPU)
+sbatch cluster/04a_mle_gpu.slurm                                    # all models
+sbatch --export=MODEL=wmrl_m3 cluster/04a_mle_gpu.slurm             # single model
 
-### 6.4 Submit CPU Parallel Job (Alternative)
+# Stage 04b Bayesian (CPU for choice-only)
+sbatch --export=ALL,MODEL=wmrl_m3 cluster/04b_bayesian_cpu.slurm
+sbatch --time=36:00:00 --export=ALL,MODEL=wmrl_m6b cluster/04b_bayesian_cpu.slurm
+sbatch --time=12:00:00 --mem=48G \
+  --export=ALL,MODEL=wmrl_m6b,SUBSCALE=1 cluster/04b_bayesian_cpu.slurm
 
-```bash
-sbatch cluster/12_mle.slurm
-tail -f cluster/logs/mle_*.out
-```
+# Stage 04b Bayesian (GPU — M4 LBA only)
+sbatch --time=48:00:00 --gres=gpu:a100:1 --mem=96G \
+  --export=ALL,MODEL=wmrl_m4 cluster/04b_bayesian_gpu.slurm
 
-### 6.5 Submit Single Model (For Testing)
-```bash
-sbatch --export=MODEL=wmrl_m3,LIMIT=3 cluster/12_mle_single.slurm  # Quick timing test
-sbatch --export=MODEL=wmrl_m3 cluster/12_mle_single.slurm          # Full dataset
-```
+# Stage 04c Level-2 refit
+sbatch --export=MODEL=wmrl_m3 cluster/04c_level2.slurm
 
-### 6.6 Parameter Recovery
-```bash
-sbatch cluster/11_recovery_gpu.slurm
-sbatch --export=MODEL=qlearning cluster/11_recovery_gpu.slurm
-```
+# Stage 05 post-fitting checks
+sbatch --export=ALL,STEP=baseline_audit cluster/05_post_checks.slurm
+sbatch --export=ALL,STEP=scale_audit cluster/05_post_checks.slurm
 
-### 6.7 Posterior Predictive Checks
-```bash
-sbatch cluster/09_ppc_gpu.slurm
-sbatch --export=MODEL=wmrl_m3 cluster/09_ppc_gpu.slurm
+# Stage 06 fit analyses
+sbatch --export=ALL,STEP=compare_models cluster/06_fit_analyses.slurm
+sbatch --export=ALL,STEP=loo_stacking cluster/06_fit_analyses.slurm
+sbatch --export=ALL,STEP=manuscript_tables cluster/06_fit_analyses.slurm
 ```
 
 ---
 
-## Step 7: Monitor & Retrieve Results
+## Step 5: Monitor & retrieve results
 
-### 7.1 Check Job Status
 ```bash
 squeue -u $USER
-scontrol show job JOBID
-scancel JOBID
-```
-
-### 7.2 View Output Logs
-```bash
-ls -la cluster/logs/
-tail -f cluster/logs/mle_gpu_*.out
-```
-
-### 7.3 Real-Time Monitoring
-
-```bash
-watch -n 5 'squeue -u $USER'
-squeue -u $USER -o "%.8i %.9P %.20j %.8u %.2t %.10M %.6D %R"
 sacct -j <JOBID> --format=JobID,Elapsed,MaxRSS,MaxVMSize,TotalCPU,State
-```
+tail -f cluster/logs/*_%j.out
 
-### 7.4 Check Results
-```bash
-ls -la output/mle/
-cat output/mle/qlearning_group_summary.csv
-```
-
-### 7.5 Download Results
-```bash
-# From LOCAL machine:
-scp -r YOUR_USERNAME@m3.massive.org.au:/projects/$PROJECT/$USER/rlwm_trauma_analysis/output/mle/ ./results/
-```
-
----
-
-## Quick Reference
-
-```bash
-# Load environment (every session)
-module load miniforge3
-conda activate rlwm
-
-# Submit jobs
-sbatch cluster/13_full_pipeline.slurm     # FULL PIPELINE: steps 05-16 (recommended)
-bash cluster/12_submit_all_gpu.sh         # All 3 models (GPU, fitting only)
-sbatch cluster/12_mle.slurm               # All 3 models (CPU parallel)
-sbatch cluster/12_mle_gpu.slurm           # All 3 models (GPU, single job)
-sbatch cluster/11_recovery_gpu.slurm      # Parameter recovery
-sbatch cluster/09_ppc_gpu.slurm           # Posterior predictive checks
-
-# Monitor
-squeue -u $USER
-tail -f cluster/logs/mle_gpu_*.out
-
-# Cancel
 scancel JOBID
 scancel -u $USER
 ```
@@ -312,36 +245,13 @@ scancel -u $USER
 ## Troubleshooting
 
 | Issue | Solution |
-|-------|----------|
+|---|---|
 | `conda: command not found` | Run `module load miniforge3` |
 | `CondaEnvironmentNotFound` | Check `conda env list`, ensure env is in scratch |
 | Job stuck in `PENDING` | Run `squeue -u $USER` to see reason; try smaller resource request |
-| GPU not detected | Ensure using `rlwm_gpu` env on a GPU node. Do NOT load cuda module |
-| `SIGILL` or CPU feature mismatch | Clear stale cache: `rm -rf /scratch/$PROJECT/$USER/.jax_cache` and retry |
-| `Cannot allocate memory` (LLVM) | Use GPU fitting, or use `12_mle_single.slurm` with two-phase approach |
-
----
-
-## Available Scripts
-
-| Script | Description | Resources | Time |
-|--------|-------------|-----------|------|
-| `13_full_pipeline.slurm` | **Full pipeline**: steps 05-16 | 4 CPU + GPU | ~25min |
-| `12_submit_all_gpu.sh` | 3 independent GPU MLE jobs | 4 CPU + GPU each | ~5min/model |
-| `12_mle.slurm` | CPU parallel fitting (all models) | 16 CPU | 30min |
-| `12_mle_gpu.slurm` | GPU fitting (single job, all models) | 4 CPU + GPU | 15min |
-| `12_mle_single.slurm` | Single model (timing tests) | 16 CPU | 2h |
-| `11_recovery_gpu.slurm` | Parameter recovery validation | 4 CPU + GPU | 30min |
-| `09_ppc_gpu.slurm` | Posterior predictive checks | 4 CPU + GPU | 8h |
-| `01_diagnostic_gpu.slurm` | GPU/JAX validation | 4 CPU + GPU | 30min |
-
-## Expected Runtimes (47 Participants, All 3 Models)
-
-| Configuration | Time | Script |
-|---------------|------|--------|
-| Sequential (1 CPU) | ~90 min | `12_mle.slurm` (NJOBS=1) |
-| Parallel (16 CPUs) | ~10 min | `12_mle.slurm` |
-| GPU (1x A100) | ~5-10 min | `12_mle_gpu.slurm` |
+| GPU not detected | Ensure using `rlwm_gpu` env on a GPU node; do NOT load cuda module |
+| `SIGILL` / CPU feature mismatch | Clear stale cache: `rm -rf /scratch/$PROJECT/$USER/.jax_cache` |
+| `Cannot allocate memory` (LLVM) | Use `--export=NJOBS=1` on `04a_mle_cpu.slurm` or switch to `04a_mle_gpu.slurm` |
 
 ---
 
@@ -350,3 +260,4 @@ scancel -u $USER
 - [M3 Documentation](https://docs.erc.monash.edu/Compute/HPC/M3/)
 - [Conda on M3](https://docs.erc.monash.edu/Compute/HPC/M3/Software/Conda/)
 - [M3 Partitions](https://docs.erc.monash.edu/old-M3/M3/slurm/partitions/)
+- `.planning/phases/29-pipeline-canonical-reorg/29-05-SUMMARY.md` for the consolidation audit trail

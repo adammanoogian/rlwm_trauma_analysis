@@ -7,9 +7,11 @@
 # Requires the rlwm_gpu conda environment (see environment_gpu.yml).
 #
 # Usage:
-#   sbatch cluster/13_bayesian_gpu.slurm                                    # Default model (wmrl_m3)
-#   sbatch --export=MODEL=qlearning cluster/13_bayesian_gpu.slurm           # Q-Learning
-#   sbatch --export=MODEL=wmrl_m3,LIMIT=5 cluster/13_bayesian_gpu.slurm    # Quick test (5 participants)
+#   sbatch cluster/04b_bayesian_gpu.slurm                                    # Default model (wmrl_m3)
+#   sbatch --export=MODEL=qlearning cluster/04b_bayesian_gpu.slurm           # Q-Learning
+#   sbatch --export=MODEL=wmrl_m3,LIMIT=5 cluster/04b_bayesian_gpu.slurm    # Quick test (5 participants)
+#   sbatch --time=48:00:00 --gres=gpu:a100:1 --mem=96G \
+#     --export=MODEL=wmrl_m4 cluster/04b_bayesian_gpu.slurm                  # M4 LBA (GPU required)
 #
 # Performance (approximate):
 #   154 participants, wmrl_m3 (NUTS, 4 chains, 1000 warmup, 2000 samples): ~4-6 hours (A100)

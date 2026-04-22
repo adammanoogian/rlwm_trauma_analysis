@@ -36,7 +36,7 @@ SKIP_PUSH=false
 MODELS="qlearning wmrl wmrl_m3 wmrl_m5 wmrl_m6a wmrl_m6b wmrl_m4"
 # PPC runs for all fitted models (scripts/05_post_fitting_checks/03_run_posterior_ppc.py supports all 7)
 PPC_MODELS="$MODELS"
-# Recovery parameters (see cluster/11_recovery_gpu.slurm for timing budget)
+# Recovery parameters (see cluster/03_prefitting_gpu.slurm STEP=model_recovery for timing budget)
 RECOVERY_MODELS="$MODELS"
 RECOVERY_NSUBJ=50
 RECOVERY_NDATASETS=3
@@ -86,7 +86,7 @@ for model in $MODELS; do
     jobid=$(sbatch --export=ALL,MODEL="$model" \
         --job-name="fit_${model}" \
         $EXTRA_ARGS \
-        --parsable cluster/12_mle_gpu.slurm 2>&1)
+        --parsable cluster/04a_mle_gpu.slurm 2>&1)
 
     if [[ $? -eq 0 && -n "$jobid" ]]; then
         FIT_JOBS[$model]=$jobid
@@ -114,12 +114,12 @@ if [[ "$SKIP_WAVE2" != "true" ]]; then
         fit_jobid="${FIT_JOBS[$model]:-}"
         [[ -z "$fit_jobid" ]] && continue
 
-        # Recovery: depends on fit completing (uses same fitting code path)
+        # Recovery: depends on fit completing (post-29-05 stage-03 GPU dispatch)
         rec_jobid=$(sbatch \
             --dependency=afterok:${fit_jobid} \
-            --export=ALL,MODEL="$model",NSUBJ=$RECOVERY_NSUBJ,NDATASETS=$RECOVERY_NDATASETS,NSTARTS=$RECOVERY_NSTARTS \
+            --export=ALL,STEP=model_recovery,MODEL="$model",NSUBJ=$RECOVERY_NSUBJ,NDATASETS=$RECOVERY_NDATASETS,NSTARTS=$RECOVERY_NSTARTS \
             --job-name="rec_${model}" \
-            --parsable cluster/11_recovery_gpu.slurm 2>&1)
+            --parsable cluster/03_prefitting_gpu.slurm 2>&1)
 
         if [[ $? -eq 0 && -n "$rec_jobid" ]]; then
             WAVE2_IDS+=("$rec_jobid")
@@ -129,12 +129,15 @@ if [[ "$SKIP_WAVE2" != "true" ]]; then
         fi
 
         # PPC: only for models that scripts/05_post_fitting_checks/03_run_posterior_ppc.py supports
+        # (post-29-05: routed through 05_post_checks.slurm STEP=posterior_ppc with USE_GPU=1)
         if echo "$PPC_MODELS" | grep -qw "$model"; then
             ppc_jobid=$(sbatch \
                 --dependency=afterok:${fit_jobid} \
-                --export=ALL,MODEL="$model" \
+                --export=ALL,STEP=posterior_ppc,MODEL="$model",USE_GPU=1 \
                 --job-name="ppc_${model}" \
-                --parsable cluster/09_ppc_gpu.slurm 2>&1)
+                --gres=gpu:1 \
+                --partition=gpu \
+                --parsable cluster/05_post_checks.slurm 2>&1)
 
             if [[ $? -eq 0 && -n "$ppc_jobid" ]]; then
                 WAVE2_IDS+=("$ppc_jobid")
@@ -160,8 +163,13 @@ echo "------------------------------------------------------------"
 # Use --analysis-after-any flag for old behaviour (runs even if some models fail).
 analysis_jobid=$(sbatch \
     --dependency=${ANALYSIS_DEP_TYPE}:${FIT_DEPENDENCY} \
+    --export=ALL,STEP=compare_models \
     --job-name="analysis" \
-    --parsable cluster/14_analysis.slurm 2>&1)
+    --parsable cluster/06_fit_analyses.slurm 2>&1)
+# Note: post-29-05 — 14_analysis.slurm was consolidated into
+# cluster/06_fit_analyses.slurm as STEP=compare_models. Downstream
+# trauma/scale analyses can be chained as additional --export=STEP=...
+# submissions using the same stage-06 SLURM.
 
 if [[ $? -eq 0 && -n "$analysis_jobid" ]]; then
     echo "  analysis: Job $analysis_jobid (after all fits)"

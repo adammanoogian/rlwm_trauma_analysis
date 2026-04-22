@@ -1,9 +1,9 @@
 #!/bin/bash
 # =============================================================================
-# SLURM Batch Script: Phase 21 Step 21.6 — L2 Winner Dispatcher (wrapper)
+# SLURM Batch Script: Stage 04c — L2 Winner Dispatcher (wrapper)
 # =============================================================================
 # Proper SLURM wrapper around cluster/21_dispatch_l2_winners.sh, which
-# reads winners.txt and submits one cluster/21_6_fit_with_l2.slurm per
+# reads winners.txt and submits one cluster/04c_level2.slurm per
 # winner via `sbatch --wait` (blocking parallel waits via `&` + `wait`).
 #
 # Why a SLURM wrapper instead of `sbatch --wrap=...`?

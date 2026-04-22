@@ -6,9 +6,9 @@
 # Requires the rlwm_gpu conda environment (see environment_gpu.yml).
 #
 # Usage:
-#   sbatch cluster/12_mle_gpu.slurm                                    # All models
-#   sbatch --export=MODEL=wmrl_m3 cluster/12_mle_gpu.slurm             # Single model
-#   sbatch --export=MODEL=qlearning,LIMIT=3 cluster/12_mle_gpu.slurm   # Quick test (3 participants)
+#   sbatch cluster/04a_mle_gpu.slurm                                    # All models
+#   sbatch --export=MODEL=wmrl_m3 cluster/04a_mle_gpu.slurm             # Single model
+#   sbatch --export=MODEL=qlearning,LIMIT=3 cluster/04a_mle_gpu.slurm   # Quick test (3 participants)
 #
 # Performance (approximate):
 #   47 participants:   ~2-5 minutes per model (GPU)

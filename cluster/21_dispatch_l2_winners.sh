@@ -4,7 +4,7 @@
 # =============================================================================
 # Reads output/bayesian/21_baseline/winners.txt (comma-separated display
 # names from step 21.5), maps display names to internal model ids, and
-# submits one cluster/21_6_fit_with_l2.slurm per winner via
+# submits one cluster/04c_level2.slurm per winner via
 # `sbatch --wait` so this dispatcher BLOCKS until each L2 fit completes.
 #
 # Parallelisation: each `sbatch --wait` is backgrounded with `&`, then a
@@ -60,7 +60,7 @@ echo ""
 for name in $WINNERS; do
   model=${NAME_MAP[$name]:-$name}
   echo "[DISPATCH] Submitting L2 fit for $name ($model) and blocking on --wait"
-  sbatch --wait --export=ALL,MODEL=$model cluster/21_6_fit_with_l2.slurm &
+  sbatch --wait --export=ALL,MODEL=$model cluster/04c_level2.slurm &
 done
 
 wait

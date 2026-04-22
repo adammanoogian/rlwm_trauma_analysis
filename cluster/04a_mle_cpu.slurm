@@ -6,9 +6,9 @@
 # JAX compilation is cached to reduce memory overhead on subsequent runs.
 #
 # Usage:
-#   sbatch cluster/12_mle.slurm                         # All models, 4 workers
-#   sbatch --export=MODEL=wmrl_m3 cluster/12_mle.slurm  # Single model
-#   sbatch --export=NJOBS=8 cluster/12_mle.slurm        # More workers (if memory allows)
+#   sbatch cluster/04a_mle_cpu.slurm                         # All models, 4 workers
+#   sbatch --export=MODEL=wmrl_m3 cluster/04a_mle_cpu.slurm  # Single model
+#   sbatch --export=NJOBS=8 cluster/04a_mle_cpu.slurm        # More workers (if memory allows)
 #
 # Performance (47 participants):
 #   - Parallel (4 workers):  ~8-10 minutes per model with Hessian diagnostics
@@ -170,9 +170,10 @@ echo "JAX cache: ${JAX_COMPILATION_CACHE_DIR:-disabled}"
 # =============================================================================
 # Run MLE Fitting
 # =============================================================================
-# NOTE: If you encounter "Cannot allocate memory" errors from LLVM, use
-# 12_mle_single.slurm instead, which uses taskset to limit CPU affinity
-# and prevent LLVM from spawning too many compilation threads.
+# NOTE: If you encounter "Cannot allocate memory" errors from LLVM, reduce
+# NJOBS to 1 (sequential) via --export=NJOBS=1. The legacy 12_mle_single.slurm
+# two-phase srun wrapper has been retired (29-05); NJOBS=1 is the canonical
+# low-memory fallback now.
 # =============================================================================
 
 DATA_FILE="output/task_trials_long.csv"
@@ -231,7 +232,7 @@ echo ""
 echo "============================================================"
 echo "JOB RESOURCE METRICS"
 echo "============================================================"
-echo "Command run: sbatch cluster/12_mle.slurm"
+echo "Command run: sbatch cluster/04a_mle_cpu.slurm"
 echo "Models fitted: $MODELS"
 echo "Parallel workers: $NJOBS"
 echo "Thread settings: OMP=$OMP_NUM_THREADS, MKL=$MKL_NUM_THREADS"

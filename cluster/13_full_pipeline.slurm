@@ -17,7 +17,10 @@
 # Usage:
 #   sbatch cluster/13_full_pipeline.slurm                          # Standard run
 #   sbatch --export=VALIDATE=true cluster/13_full_pipeline.slurm   # With validation
-#   sbatch --export=SKIP_BEHAVIORAL=true cluster/13_full_pipeline.slurm  # Skip 05-08
+#   sbatch --export=SKIP_BEHAVIORAL=true cluster/13_full_pipeline.slurm  # Skip 01-04
+#
+# Preferred alternative (post-29-05): use cluster/submit_all.sh for the
+# stage-numbered --afterok chain (01 -> 02 -> 03 -> 04 -> 05 -> 06).
 #
 # Outputs:
 #   output/mle/*_individual_fits.csv       — Fitted parameters
