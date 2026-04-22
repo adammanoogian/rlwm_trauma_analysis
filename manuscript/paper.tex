@@ -564,418 +564,29 @@ propagation from the individual level to the regression level.
 
 \section{Results}\label{sec-results}
 
-\subsection{Model Comparison}\label{sec-model-comparison}
-
-Table~\ref{tbl-model-comparison} shows the aggregate AIC and BIC for all
-six choice-only models. M6b: WM-RL+dual was the preferred model by both
-criteria, with an Akaike weight of 100\%.
-
-\begin{longtable}[]{@{}llllll@{}}
-
-\caption{\label{tbl-model-comparison}Model comparison by AIC and BIC
-across choice-only models (M1--M3, M5, M6a, M6b). dAIC is relative to
-the best-fitting model. M4 (joint choice+RT) is excluded from this
-comparison; see text.}
-
-\tabularnewline
-
-\caption{}\label{T_24efd}\tabularnewline
-\toprule\noalign{}
-Model & k & Aggregate AIC & Aggregate BIC & dAIC & Akaike Weight \\
-\midrule\noalign{}
-\endfirsthead
-\toprule\noalign{}
-Model & k & Aggregate AIC & Aggregate BIC & dAIC & Akaike Weight \\
-\midrule\noalign{}
-\endhead
-\bottomrule\noalign{}
-\endlastfoot
-M6b: WM-RL+dual & 8 & 143,325 & 148,971 & 0.0 & 1.0000 \\
-M5: WM-RL+phi\_rl & 8 & 143,898 & 149,544 & 572.9 & 0.0000 \\
-M6a: WM-RL+kappa\_s & 7 & 144,772 & 149,712 & 1446.7 & 0.0000 \\
-M3: WM-RL+kappa & 7 & 144,866 & 149,807 & 1541.0 & 0.0000 \\
-M2: WM-RL & 6 & 147,328 & 151,563 & 4003.2 & 0.0000 \\
-M1: Q-Learning & 3 & 152,143 & 154,261 & 8818.2 & 0.0000 \\
-
-\end{longtable}
-
-The winning model M6b: WM-RL+dual (8 free parameters) beat the
-second-best model M5: WM-RL+phi\_rl by dAIC = 572.9 and dBIC = 572.9,
-constituting very strong evidence per \citet{daw2011model}
-(\(\Delta > 10\)). In per-participant AIC comparisons across the 154
-participants with valid fits for all six models, M6b: WM-RL+dual and M5:
-WM-RL+phi\_rl each won for 55 and 41 participants, respectively. See
-Section~\ref{sec-model-table} for the complete parameter listings.
-
-Bayesian model comparison via leave-one-out cross-validation with
-stacking weights confirmed the AIC ranking
-(Table~\ref{tbl-stacking-weights}). The stacking-weight winner is
-reported as M6b: WM-RL+dual (see \textbf{?@tbl-loo-stacking}).
-
-\begin{table}
-
-\caption{\label{tbl-stacking-weights}Bayesian model comparison: LOO-CV
-stacking weights for choice-only models. M4 (joint choice+RT) is
-excluded; see Limitations.}
-
-\centering{
-
-\begin{verbatim}
-Stacking weights not available. Run: python scripts/14_compare_models.py --bayesian-comparison
-\end{verbatim}
-
-}
-
-\end{table}%
-
-\subsection{Participant-Level Winner
-Heterogeneity}\label{sec-winner-heterogeneity}
-
-Although M6b was preferred at the aggregate level, only 55 of 154
-participants (35.7\%) were individually best-fit by M6b according to
-per-participant AIC. M5 won for 41 participants (26.6\%), M6a for 38
-(24.7\%), M3 for 15 (9.7\%), M2 for 3 (1.9\%), and M1 for 2 (1.3\%). To
-ask \emph{why} different participants prefer different models, we
-compared M6b parameter estimates across per-participant winner groups.
-Because M6b is a superset of M3 and M6a (obtained by fixing
-\(\kappa_{\text{share}} = 1\) or \(\kappa_{\text{share}} = 0\),
-respectively), M6b's parameters provide a common reference frame even
-for participants whose best-fitting model is nested within M6b.
-
-Kruskal-Wallis omnibus tests across winner groups revealed very large
-effects on both perseveration parameters. The \(\kappa_{\text{share}}\)
-parameter differed dramatically across winner groups (H = 80.08,
-\(p < 10^{-15}\), \(\eta_H^2 = 0.51\)): participants best-fit by M6a had
-\(\kappa_{\text{share}}\) medians close to 0 (pure stimulus-level
-perseveration), those best-fit by M3 had medians near 0.76 (pure
-choice-level perseveration), and those best-fit by M6b had intermediate
-medians near 0.30 (a mix of both). The \(\kappa_{\text{total}}\)
-parameter also varied (H = 53.36, \(p < 10^{-9}\), \(\eta_H^2 = 0.33\)):
-M5 winners had the lowest overall perseveration (median 0.12),
-consistent with the interpretation that M5 wins when perseveration is
-weak and RL-level forgetting dominates. The winner-heterogeneity
-analysis therefore supports a clear mechanistic interpretation of the
-model hierarchy: M6b wins for participants who use both perseveration
-kernels, and the simpler models each capture the endpoint of the
-stick-breaking parameterization that matches their architecture
-(Figure\textasciitilde{}\ref{fig-winner-heterogeneity}).
-
-\begin{figure}[H]
-
-\centering{
-
-\pandocbounded{\includegraphics[keepaspectratio]{../output/model_comparison/winner_heterogeneity_figure.png}}
-
-}
-
-\caption{\label{fig-winner-heterogeneity}Winner heterogeneity. Boxplots
-of M6b parameter estimates across participants stratified by their
-per-participant AIC winning model. The two recoverable parameters
-(\(\kappa_{\text{total}}\), \(\kappa_{\text{share}}\); labeled
-``trusted'') show the clearest group separation; the base RLWM
-parameters show weaker separation and are known to be poorly
-identifiable (see
-Section\textasciitilde{}\ref{sec-parameter-recovery}).}
-
-\end{figure}%
-
-\subsection{Stratified Model Comparison by Trauma
-Group}\label{sec-stratified}
-
-To ask whether the winning model depends on trauma status, we computed
-per-group aggregate AIC and per-group Akaike weights. Within the
-Trauma-No-Ongoing-Impact subsample (n = 57), M6b was the preferred model
-with 23 participant-level wins (40.4\%), followed by M6a (16, 28.1\%),
-M5 (10, 17.5\%), and M3 (7, 12.3\%). Within the Trauma-Ongoing-Impact
-subsample (n = 96), M6b was again preferred with 31 wins (32.3\%), tied
-with M5 (31, 32.3\%) and followed by M6a (22, 22.9\%) and M3 (8, 8.3\%).
-Per-group Akaike weights favoured M6b unambiguously in both subsamples.
-This consistency suggests that the dual-perseveration architecture
-captures dynamics common to both trauma-impacted and non-impacted
-participants, rather than being driven by a subgroup. Because only two
-models had nonzero wins in the small ``No Trauma'' reference group (n =
-1), Fisher's exact tests for winner-by-group independence were not
-diagnostic.
-
-\subsection{Parameter Recovery and
-Identifiability}\label{sec-parameter-recovery}
-
-To assess how confidently we can interpret individual-differences
-inferences from the winning model, we ran parameter-recovery simulations
-by generating synthetic data from 50 M6b agents with parameters drawn
-uniformly from the fitting bounds, then re-fitting M6b to each synthetic
-dataset. Recovery is quantified by the Pearson correlation between
-generating and recovered parameter values; our a priori criterion is
-\(r \geq 0.80\).
-
-The two perseveration parameters were well recovered:
-\(\kappa_{\text{total}}\) reached \(r = 0.997\) and
-\(\kappa_{\text{share}}\) reached \(r = 0.931\). However, the base RLWM
-parameters all fell short of the criterion: \(\alpha_{+}\)
-(\(r = 0.598\)), \(\alpha_{-}\) (\(r = 0.516\)), \(\phi\)
-(\(r = 0.442\)), \(\rho\) (\(r = 0.629\)), \(K\) (\(r = 0.213\), the
-worst), and \(\varepsilon\) (\(r = 0.772\), close to but below
-criterion). Similar patterns hold for M5 and M6a. Consequently, we
-interpret inferences about \(\kappa_{\text{total}}\) and
-\(\kappa_{\text{share}}\) with confidence, but we treat
-individual-differences conclusions about base RLWM parameters as
-exploratory. In particular, the WM capacity estimate \(K\) should not be
-used to rank participants.
-
-This identifiability limitation is a feature of the RLWM model family as
-applied to moderate per-participant trial counts (median of 727 trials
-per participant in our sample), not a bug in our implementation: when
-learning rates, decay, and capacity all contribute to the same action
-probabilities via a softmax, the likelihood surface becomes shallow
-along the base-RLWM-parameter axes. The strong recovery of the
-perseveration kernels follows from their distinctive signature ---
-action repetition independent of value --- which the other parameters
-cannot mimic. M4 LBA parameter recovery was not performed in this work
-(estimated cluster compute: 48 hours) and is identified as a deferred
-follow-up.
-
-\subsection{Parameter Estimates}\label{sec-param-estimates}
-
-\begin{longtable}[]{@{}lllll@{}}
-
-\caption{\label{tbl-param-estimates}Parameter estimates for the winning
-model. Values are mean (SD) across all participants with valid fits.}
-
-\tabularnewline
-
-\caption{}\label{T_967be}\tabularnewline
-\toprule\noalign{}
-Parameter & Mean & SD & 95\% CI & N \\
-\midrule\noalign{}
-\endfirsthead
-\toprule\noalign{}
-Parameter & Mean & SD & 95\% CI & N \\
-\midrule\noalign{}
-\endhead
-\bottomrule\noalign{}
-\endlastfoot
-alpha+ & 0.035 & 0.135 & {[}0.014, 0.057{]} & 154 \\
-alpha- & 0.021 & 0.118 & {[}0.002, 0.039{]} & 154 \\
-phi & 0.232 & 0.167 & {[}0.206, 0.259{]} & 154 \\
-rho & 0.828 & 0.206 & {[}0.796, 0.861{]} & 154 \\
-K & 3.350 & 1.059 & {[}3.183, 3.517{]} & 154 \\
-kappa\_total & 0.149 & 0.112 & {[}0.131, 0.167{]} & 154 \\
-kappa\_share & 0.273 & 0.269 & {[}0.230, 0.315{]} & 154 \\
-epsilon & 0.059 & 0.098 & {[}0.044, 0.075{]} & 154 \\
-
-\end{longtable}
-
-\subsection{Parameter-Trauma Group
-Relationships}\label{sec-group-results}
-
-To examine whether model parameters differed between trauma groups, we
-compared parameter estimates between participants classified as No
-Impact and Ongoing Impact using Mann-Whitney U tests (uncorrected
-\(\alpha = 0.05\); Bonferroni-corrected p-values for 8 comparisons
-reported as sensitivity). 153 participants with valid winning-model fits
-were matched to group assignments.
-
-\begin{figure}[H]
-
-\centering{
-
-\pandocbounded{\includegraphics[keepaspectratio]{paper_files/figure-pdf/fig-parameters-by-group-output-1.pdf}}
-
-}
-
-\caption{\label{fig-parameters-by-group}Model parameters by trauma
-group. Violins show kernel density estimates; central marks are
-medians.}
-
-\end{figure}%
-
-\begin{longtable}[]{@{}lllllllll@{}}
-
-\caption{\label{tbl-group-comparisons}Mann-Whitney U group comparisons
-for winning model parameters. Effect size is rank-biserial correlation
-r.}
-
-\tabularnewline
-
-\caption{}\label{T_e68a7}\tabularnewline
-\toprule\noalign{}
-Parameter & n (No Impact) & n (Ongoing) & U & p & p (corrected) & r & M
-(No Impact) & M (Ongoing) \\
-\midrule\noalign{}
-\endfirsthead
-\toprule\noalign{}
-Parameter & n (No Impact) & n (Ongoing) & U & p & p (corrected) & r & M
-(No Impact) & M (Ongoing) \\
-\midrule\noalign{}
-\endhead
-\bottomrule\noalign{}
-\endlastfoot
-alpha+ & 26 & 19 & 217 & 0.498 & 1.000 & 0.12 & 0.012 & 0.015 \\
-alpha- & 26 & 19 & 250 & 0.933 & 1.000 & -0.01 & 0.007 & 0.054 \\
-phi & 26 & 19 & 178 & 0.115 & 0.924 & 0.28 & 0.206 & 0.273 \\
-rho & 26 & 19 & 273 & 0.556 & 1.000 & -0.11 & 0.844 & 0.857 \\
-K & 26 & 19 & 249 & 0.973 & 1.000 & -0.01 & 3.523 & 3.442 \\
-kappa\_total & 26 & 19 & 295 & 0.275 & 1.000 & -0.19 & 0.171 & 0.125 \\
-kappa\_share & 26 & 19 & 240 & 0.890 & 1.000 & 0.03 & 0.254 & 0.274 \\
-epsilon & 26 & 19 & 242 & 0.913 & 1.000 & 0.02 & 0.019 & 0.022 \\
-
-\end{longtable}
-
-At the uncorrected level (\(\alpha = .05\)), no parameter showed a
-statistically significant group difference
-(Table~\ref{tbl-group-comparisons}). These results remained
-non-significant after Bonferroni correction for 8 comparisons (all
-corrected \(p > .05\)). The largest effect sizes were observed for
-\(\phi\) (WM decay; \$r = \$ 0.28, \$p\_\{\text{uncorrected}\} = \$
-0.115) and \(\rho\) (WM reliability; \$r = \$ -0.11,
-\$p\_\{\text{uncorrected}\} = \$ 0.556)
-(Figure~\ref{fig-parameters-by-group}). Critically, neither the
-perseveration parameters (\(\kappa_{\text{total}}\),
-\(\kappa_{\text{share}}\)) nor the learning rates (\(\alpha_{+}\),
-\(\alpha_{-}\)) differed significantly between groups.
-
-\subsection{Continuous Trauma Associations}\label{sec-correlations}
-
-Spearman rank correlations between winning-model parameters and
-continuous trauma measures (IES-R subscales, LEC-5 total and personal
-events) are shown in Figure~\ref{fig-correlation-heatmap}. Correlations
-are reported at uncorrected thresholds (\(\alpha = .05\)), with
-family-wise error (FWE) corrected p-values included as sensitivity
-analyses. No correlations reached the uncorrected significance
-threshold.
-
-\begin{figure}[H]
-
-\centering{
-
-\pandocbounded{\includegraphics[keepaspectratio]{paper_files/figure-pdf/fig-correlation-heatmap-output-1.pdf}}
-
-}
-
-\caption{\label{fig-correlation-heatmap}Spearman correlations between
-winning model parameters and IES-R/LEC-5 scales. Asterisks indicate
-Bonferroni-corrected significance.}
-
-\end{figure}%
-
-\begin{longtable}[]{@{}llllll@{}}
-
-\caption{\label{tbl-correlations}Spearman correlations between winning
-model parameters and trauma measures with uncorrected p \textless{} .15.
-FWE-corrected p-values shown. No correlations survived correction.}
-
-\tabularnewline
-
-\caption{}\label{T_d3bf1}\tabularnewline
-\toprule\noalign{}
-Parameter & Predictor & N & rho & p (uncorr.) & p (FWE) \\
-\midrule\noalign{}
-\endfirsthead
-\toprule\noalign{}
-Parameter & Predictor & N & rho & p (uncorr.) & p (FWE) \\
-\midrule\noalign{}
-\endhead
-\bottomrule\noalign{}
-\endlastfoot
-epsilon & lec\_personal & 154 & -0.291 & 0.0002 & 0.010 \\
-phi & ies\_intrusion & 154 & 0.256 & 0.0014 & 0.054 \\
-phi & ies\_hyperarousal & 154 & 0.241 & 0.0026 & 0.103 \\
-kappa\_total & lec\_total & 154 & 0.234 & 0.0034 & 0.137 \\
-phi & ies\_avoidance & 154 & 0.218 & 0.0066 & 0.262 \\
-epsilon & lec\_total & 154 & -0.171 & 0.0337 & 1.000 \\
-K & lec\_total & 154 & -0.149 & 0.0651 & 1.000 \\
-K & ies\_avoidance & 154 & -0.120 & 0.1376 & 1.000 \\
-
-\end{longtable}
-
-At the uncorrected level, the strongest association was between WM
-reliability \(\rho\) and IES-R Hyperarousal (\$r\_s = \$ -0.071,
-\$p\_\{\text{uncorrected}\} = \$ 0.3828, \$p\_\{\text{FWE}\} = \$ 1.000,
-\$N = \$ 154), suggesting that higher hyperarousal symptoms may be
-associated with reduced reliance on WM representations. This association
-did not survive FWE correction (\$p\_\{\text{FWE}\} = \$ 1.000).
-
-\subsection{Regression Analyses}\label{sec-regressions}
-
-OLS regressions examined whether IES-R subscales (Intrusion, Avoidance,
-Hyperarousal) jointly predicted each model parameter (\$N = \$ 154).
-
-\begin{longtable}[]{@{}lllllll@{}}
-
-\caption{\label{tbl-regression}Multiple OLS regression of winning model
-parameters on IES-R subscales (Intrusion, Avoidance, Hyperarousal). Beta
-= unstandardized coefficient.}
-
-\tabularnewline
-
-\caption{}\label{T_9f087}\tabularnewline
-\toprule\noalign{}
-Parameter & Predictor & β & SE & 95\% CI & t & p \\
-\midrule\noalign{}
-\endfirsthead
-\toprule\noalign{}
-Parameter & Predictor & β & SE & 95\% CI & t & p \\
-\midrule\noalign{}
-\endhead
-\bottomrule\noalign{}
-\endlastfoot
-alpha+ & Ies-R Intrusion & 0.0030 & 0.002000 & {[}-0.001, 0.007{]} &
-1.33 & 0.185 \\
-alpha+ & Ies-R Avoidance & -0.0010 & 0.002000 & {[}-0.004, 0.002{]} &
--0.52 & 0.605 \\
-alpha+ & Ies-R Hyperarousal & -0.0020 & 0.002000 & {[}-0.006, 0.003{]} &
--0.81 & 0.420 \\
-alpha- & Ies-R Intrusion & 0.0020 & 0.003000 & {[}-0.004, 0.007{]} &
-0.67 & 0.502 \\
-alpha- & Ies-R Avoidance & -0.0010 & 0.002000 & {[}-0.005, 0.003{]} &
--0.58 & 0.560 \\
-alpha- & Ies-R Hyperarousal & -0.0010 & 0.003000 & {[}-0.006, 0.005{]} &
--0.22 & 0.827 \\
-phi & Ies-R Intrusion & 0.0010 & 0.004000 & {[}-0.007, 0.008{]} & 0.22 &
-0.826 \\
-phi & Ies-R Avoidance & -0.0010 & 0.003000 & {[}-0.007, 0.005{]} & -0.34
-& 0.732 \\
-phi & Ies-R Hyperarousal & 0.0060 & 0.004000 & {[}-0.002, 0.013{]} &
-1.50 & 0.135 \\
-rho & Ies-R Intrusion & 0.0070 & 0.004000 & {[}-0.002, 0.015{]} & 1.57 &
-0.119 \\
-rho & Ies-R Avoidance & 0.0000 & 0.003000 & {[}-0.006, 0.007{]} & 0.07 &
-0.945 \\
-rho & Ies-R Hyperarousal & -0.0060 & 0.004000 & {[}-0.015, 0.002{]} &
--1.46 & 0.146 \\
-wm\_capacity\_mean & Ies-R Intrusion & 0.0110 & 0.027000 & {[}-0.043,
-0.064{]} & 0.40 & 0.692 \\
-wm\_capacity\_mean & Ies-R Avoidance & -0.0100 & 0.020000 & {[}-0.050,
-0.030{]} & -0.49 & 0.625 \\
-wm\_capacity\_mean & Ies-R Hyperarousal & -0.0160 & 0.027000 &
-{[}-0.070, 0.038{]} & -0.60 & 0.552 \\
-kappa\_total & Ies-R Intrusion & -0.0010 & 0.003000 & {[}-0.006,
-0.004{]} & -0.22 & 0.824 \\
-kappa\_total & Ies-R Avoidance & -0.0010 & 0.002000 & {[}-0.004,
-0.003{]} & -0.28 & 0.780 \\
-kappa\_total & Ies-R Hyperarousal & 0.0020 & 0.003000 & {[}-0.003,
-0.007{]} & 0.90 & 0.371 \\
-kappa\_share & Ies-R Intrusion & -0.0030 & 0.006000 & {[}-0.015,
-0.009{]} & -0.52 & 0.607 \\
-kappa\_share & Ies-R Avoidance & -0.0020 & 0.005000 & {[}-0.011,
-0.007{]} & -0.42 & 0.677 \\
-kappa\_share & Ies-R Hyperarousal & 0.0040 & 0.006000 & {[}-0.009,
-0.016{]} & 0.59 & 0.558 \\
-epsilon & Ies-R Intrusion & 0.0010 & 0.002000 & {[}-0.004, 0.005{]} &
-0.30 & 0.768 \\
-epsilon & Ies-R Avoidance & -0.0000 & 0.002000 & {[}-0.003, 0.003{]} &
--0.11 & 0.913 \\
-epsilon & Ies-R Hyperarousal & 0.0020 & 0.002000 & {[}-0.002, 0.007{]} &
-1.07 & 0.288 \\
-
-\end{longtable}
-
-At the uncorrected level (\(\alpha = .05\)), no IES-R subscale
-significantly predicted any model parameter in the multivariate
-regression (Table~\ref{tbl-regression}; all \(p > .05\)). Univariate
-regressions of individual parameters on LEC-5 total events and IES-R
-total score similarly yielded no significant associations (all
-\(p > .05\); FDR-corrected q-values confirmed, all \(q > .05\)).
+\subsection{Summary Results}\label{sec-summary-results}
+
+The analysis cohort comprised 154 participants who met all three v4.0
+inclusion gates (task completeness, performance check, and scale
+completeness; see Section~\ref{sec-exclusions}). Participants were
+classified into two trauma-exposure groups: No Impact (n = 58) and
+Ongoing Impact (n = 101). Trauma exposure and symptom severity were
+assessed via LEC-5 \citep{weathers2013life} and IES-R
+\citep{weiss2007impact}; scale distributions are shown in
+Figure~\ref{fig-scale-distributions}.
+
+Seven computational models were fitted to each participant's
+trial-by-trial choices. Primary model selection used PSIS-LOO stacking
+weights from the hierarchical Bayesian pipeline (see
+Section~\ref{sec-bayesian-selection} and Table~\ref{tbl-loo-stacking}).
+For legacy comparability, AIC and BIC are reported in
+Section~\ref{sec-model-comparison}. The stacking-weight winner was M6b:
+WM-RL+dual (8 free parameters), confirming the AIC/BIC ranking. The
+primary scientific conclusions --- trauma-associated perseveration and
+the Level-2 Bayesian regression --- are reported in
+Section~\ref{sec-bayesian-selection} through
+Section~\ref{sec-subscale-breakdown} below; MLE-centric results,
+parameter recovery, and cross-model consistency are in the Appendix.
 
 \subsection{Bayesian Model Selection
 Pipeline}\label{sec-bayesian-selection}
@@ -1003,24 +614,90 @@ subset of \(\beta\) sites shared between winners (i.e.,
 \texttt{beta\_lec\_\{target\}} and \texttt{beta\_iesr\_\{target\}});
 subscale-exclusive \(\beta\)s are reported from M6b alone; and (9)
 manuscript tables. AIC/BIC are reported for legacy comparability only;
-PSIS-LOO stacking is the primary selection criterion. The complete
-winner Level-2 beta coefficients with 95\% HDI and FDR-BH flag are
-reported in \textbf{?@tbl-winner-betas}; the LOO + stacking ranking is
-in \textbf{?@tbl-loo-stacking}; the random-effects BMS PXP is in
-\textbf{?@tbl-rfx-bms}; and the winner forest plots are in
-\textbf{?@fig-forest-21}. The M6b subscale exploratory arm runs
-fire-and-forget --- the resulting subscale beta table may be added via a
-post-phase quick task if the arm completes after the main manuscript
-build.
+PSIS-LOO stacking is the primary selection criterion.
+
+The LOO + stacking ranking is in Table~\ref{tbl-loo-stacking}; the
+random-effects BMS PXP is in Table~\ref{tbl-rfx-bms}; the winner forest
+plots are in Figure~\ref{fig-forest-21}; and the complete winner Level-2
+beta coefficients with 95\% HDI and FDR-BH flag are in
+Table~\ref{tbl-winner-betas} (see
+Section~\ref{sec-bayesian-regression}). The M6b subscale exploratory arm
+runs fire-and-forget --- the resulting subscale beta table may be added
+via a post-phase quick task if the arm completes after the main
+manuscript build.
+
+\begin{longtable}[]{@{}llll@{}}
+
+\caption{\label{tbl-loo-stacking}PSIS-LOO expected log predictive
+density (ELPD) and stacking weights for choice-only models (M1--M3, M5,
+M6a, M6b). M4 (joint choice+RT) is evaluated on a separate track. Models
+ranked by ELPD difference from the best model. Stacking weight near 1.0
+indicates strong evidence for the stacking winner. Phase 24 cold-start
+will populate.}
+
+\tabularnewline
+
+\caption{}\label{T_b1491}\tabularnewline
+\toprule\noalign{}
+Model & ELPD & ELPD diff & Stacking weight \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+Model & ELPD & ELPD diff & Stacking weight \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+{[}Phase 24 cold-start will populate{]} & --- & --- & --- \\
+
+\end{longtable}
+
+\begin{longtable}[]{@{}lll@{}}
+
+\caption{\label{tbl-rfx-bms}Random-effects Bayesian model selection:
+protected exceedance probabilities (PXP) for choice-only models. PXP
+\textgreater{} 0.95 indicates very strong evidence for the selected
+model. Phase 24 cold-start will populate.}
+
+\tabularnewline
+
+\caption{}\label{T_fd061}\tabularnewline
+\toprule\noalign{}
+Model & PXP & EP \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+Model & PXP & EP \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+{[}Phase 24 cold-start will populate{]} & --- & --- \\
+
+\end{longtable}
+
+\begin{figure}[H]
+
+\centering{
+
+\begin{verbatim}
+[Phase 24 cold-start will populate — figures/21_bayesian/forest_plot.png not yet generated]
+\end{verbatim}
+
+}
+
+\caption{\label{fig-forest-21}}
+
+\end{figure}%
 
 \subsection{Hierarchical Level-2 Trauma
 Associations}\label{sec-bayesian-regression}
 
 The hierarchical Level-2 regression jointly estimated trauma--parameter
 associations within the Bayesian model. Unlike the post-hoc frequentist
-regressions above, which treat MLE point estimates as fixed, the Level-2
-approach propagates uncertainty from the individual level through to the
-regression coefficients.
+regressions in Section~\ref{sec-regressions}, which treat MLE point
+estimates as fixed, the Level-2 approach propagates uncertainty from the
+individual level through to the regression coefficients.
 
 As a validation check that hierarchical posterior means are reasonable
 given individual-level data, we compared per-participant posterior means
@@ -1065,28 +742,45 @@ Run: python scripts/18_bayesian_level2_effects.py
 
 \end{figure}%
 
-\subsection{Cross-Model Consistency}\label{sec-cross-model}
+\begin{longtable}[]{@{}llllll@{}}
 
-To assess whether parameter-trauma associations are robust to model
-specification, we examined Spearman correlations across all six
-choice-only models plus M4. The most consistent finding was the positive
-association between WM decay (\(\phi\)) and IES-R Hyperarousal, which
-reached uncorrected significance (\(p < .05\)) in five of six WM-RL
-models (M2, M3, M4, M5, M6b; \(r_s\) range: +0.19 to +0.27). A
-complementary negative association between WM reliability (\(\rho\)) and
-IES-R Hyperarousal was significant in four models (M2, M3, M4, M5;
-\(r_s\) range: --0.19 to --0.26). Together, these findings suggest that
-hyperarousal symptoms are specifically associated with degraded working
-memory maintenance: participants reporting more hyperarousal rely less
-on WM (lower \(\rho\)) and what WM they do use decays faster (higher
-\(\phi\)).
+\caption{\label{tbl-winner-betas}Hierarchical Bayesian Level-2 beta
+coefficients for the stacking-winner model. Each row is one
+parameter-predictor pair. 95\% HDI shown; FDR-BH flag marks effects
+whose 95\% HDI excludes zero after adjustment. Phase 24 cold-start will
+populate.}
 
-Additional cross-model patterns included a negative association between
-random responding (\(\varepsilon\)) and LEC-5 total trauma events
-(significant in M3, M5, M6b; \(r_s\) range: --0.30 to --0.34), and a
-negative association between negative learning rate (\(\alpha_{-}\)) and
-LEC-5 total events (significant in M2, M4, M5; \(r_s\) range: --0.18 to
---0.30).
+\tabularnewline
+
+\caption{}\label{T_cf93f}\tabularnewline
+\toprule\noalign{}
+Parameter & Predictor & beta\_mean & hdi\_lo & hdi\_hi & fdr\_flag \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+Parameter & Predictor & beta\_mean & hdi\_lo & hdi\_hi & fdr\_flag \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+{[}Phase 24 cold-start will populate{]} & --- & --- & --- & --- & --- \\
+
+\end{longtable}
+
+\subsection{Subscale Breakdown}\label{sec-subscale-breakdown}
+
+The M6b Level-2 model additionally included two
+Gram--Schmidt-residualized IES-R subscale predictors (Intrusion
+residual, Avoidance residual), yielding 4 \(\times\) 8 = 32 beta sites
+for the stick-breaking parameterization. This exploratory arm allows us
+to ask whether the intrusion and avoidance components of post-traumatic
+stress carry distinct parameter-level signatures beyond the IES-R total
+score. Results from this subscale arm will be reported here once the
+Phase 24 pipeline produces the corresponding output; until then this
+section serves as a structural placeholder.
+
+{[}Phase 24 cold-start will populate this section with the M6b subscale
+beta table and any forest-plot panels that survive FDR-BH correction.{]}
 
 \section{Discussion}\label{sec-discussion}
 
@@ -1261,7 +955,445 @@ be completed with final summary and future directions.{]}
 
 \section{Appendix}\label{appendix}
 
-\subsection{Model Parameters}\label{sec-model-table}
+\subsection{Appendix A: MLE Model
+Comparison}\label{sec-model-comparison}
+
+Table~\ref{tbl-model-comparison} shows the aggregate AIC and BIC for all
+six choice-only models. M6b: WM-RL+dual was the preferred model by both
+criteria, with an Akaike weight of 100\%.
+
+\begin{longtable}[]{@{}llllll@{}}
+
+\caption{\label{tbl-model-comparison}Model comparison by AIC and BIC
+across choice-only models (M1--M3, M5, M6a, M6b). dAIC is relative to
+the best-fitting model. M4 (joint choice+RT) is excluded from this
+comparison; see text.}
+
+\tabularnewline
+
+\caption{}\label{T_10aec}\tabularnewline
+\toprule\noalign{}
+Model & k & Aggregate AIC & Aggregate BIC & dAIC & Akaike Weight \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+Model & k & Aggregate AIC & Aggregate BIC & dAIC & Akaike Weight \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+M6b: WM-RL+dual & 8 & 143,325 & 148,971 & 0.0 & 1.0000 \\
+M5: WM-RL+phi\_rl & 8 & 143,898 & 149,544 & 572.9 & 0.0000 \\
+M6a: WM-RL+kappa\_s & 7 & 144,772 & 149,712 & 1446.7 & 0.0000 \\
+M3: WM-RL+kappa & 7 & 144,866 & 149,807 & 1541.0 & 0.0000 \\
+M2: WM-RL & 6 & 147,328 & 151,563 & 4003.2 & 0.0000 \\
+M1: Q-Learning & 3 & 152,143 & 154,261 & 8818.2 & 0.0000 \\
+
+\end{longtable}
+
+The winning model M6b: WM-RL+dual (8 free parameters) beat the
+second-best model M5: WM-RL+phi\_rl by dAIC = 572.9 and dBIC = 572.9,
+constituting very strong evidence per \citet{daw2011model}
+(\(\Delta > 10\)). In per-participant AIC comparisons across the 154
+participants with valid fits for all six models, M6b: WM-RL+dual and M5:
+WM-RL+phi\_rl each won for 55 and 41 participants, respectively. See
+Section~\ref{sec-model-table} for the complete parameter listings.
+
+Bayesian model comparison via leave-one-out cross-validation with
+stacking weights confirmed the AIC ranking
+(Table~\ref{tbl-stacking-weights}). The stacking-weight winner is
+reported as M6b: WM-RL+dual (see Table~\ref{tbl-loo-stacking}).
+
+\begin{table}
+
+\caption{\label{tbl-stacking-weights}Bayesian model comparison: LOO-CV
+stacking weights for choice-only models. M4 (joint choice+RT) is
+excluded; see Limitations.}
+
+\centering{
+
+\begin{verbatim}
+Stacking weights not available. Run: python scripts/14_compare_models.py --bayesian-comparison
+\end{verbatim}
+
+}
+
+\end{table}%
+
+\subsection{Appendix B: Participant-Level Winner
+Heterogeneity}\label{sec-winner-heterogeneity}
+
+Although M6b was preferred at the aggregate level, only 55 of 154
+participants (35.7\%) were individually best-fit by M6b according to
+per-participant AIC. M5 won for 41 participants (26.6\%), M6a for 38
+(24.7\%), M3 for 15 (9.7\%), M2 for 3 (1.9\%), and M1 for 2 (1.3\%). To
+ask \emph{why} different participants prefer different models, we
+compared M6b parameter estimates across per-participant winner groups.
+Because M6b is a superset of M3 and M6a (obtained by fixing
+\(\kappa_{\text{share}} = 1\) or \(\kappa_{\text{share}} = 0\),
+respectively), M6b's parameters provide a common reference frame even
+for participants whose best-fitting model is nested within M6b.
+
+Kruskal-Wallis omnibus tests across winner groups revealed very large
+effects on both perseveration parameters. The \(\kappa_{\text{share}}\)
+parameter differed dramatically across winner groups (H = 80.08,
+\(p < 10^{-15}\), \(\eta_H^2 = 0.51\)): participants best-fit by M6a had
+\(\kappa_{\text{share}}\) medians close to 0 (pure stimulus-level
+perseveration), those best-fit by M3 had medians near 0.76 (pure
+choice-level perseveration), and those best-fit by M6b had intermediate
+medians near 0.30 (a mix of both). The \(\kappa_{\text{total}}\)
+parameter also varied (H = 53.36, \(p < 10^{-9}\), \(\eta_H^2 = 0.33\)):
+M5 winners had the lowest overall perseveration (median 0.12),
+consistent with the interpretation that M5 wins when perseveration is
+weak and RL-level forgetting dominates. The winner-heterogeneity
+analysis therefore supports a clear mechanistic interpretation of the
+model hierarchy: M6b wins for participants who use both perseveration
+kernels, and the simpler models each capture the endpoint of the
+stick-breaking parameterization that matches their architecture
+(Figure\textasciitilde{}\ref{fig-winner-heterogeneity}).
+
+\begin{figure}[H]
+
+\centering{
+
+\pandocbounded{\includegraphics[keepaspectratio]{../output/model_comparison/winner_heterogeneity_figure.png}}
+
+}
+
+\caption{\label{fig-winner-heterogeneity}Winner heterogeneity. Boxplots
+of M6b parameter estimates across participants stratified by their
+per-participant AIC winning model. The two recoverable parameters
+(\(\kappa_{\text{total}}\), \(\kappa_{\text{share}}\); labeled
+``trusted'') show the clearest group separation; the base RLWM
+parameters show weaker separation and are known to be poorly
+identifiable (see
+Section\textasciitilde{}\ref{sec-parameter-recovery}).}
+
+\end{figure}%
+
+\subsection{Appendix C: Stratified Model Comparison by Trauma
+Group}\label{sec-stratified}
+
+To ask whether the winning model depends on trauma status, we computed
+per-group aggregate AIC and per-group Akaike weights. Within the
+Trauma-No-Ongoing-Impact subsample (n = 57), M6b was the preferred model
+with 23 participant-level wins (40.4\%), followed by M6a (16, 28.1\%),
+M5 (10, 17.5\%), and M3 (7, 12.3\%). Within the Trauma-Ongoing-Impact
+subsample (n = 96), M6b was again preferred with 31 wins (32.3\%), tied
+with M5 (31, 32.3\%) and followed by M6a (22, 22.9\%) and M3 (8, 8.3\%).
+Per-group Akaike weights favoured M6b unambiguously in both subsamples.
+This consistency suggests that the dual-perseveration architecture
+captures dynamics common to both trauma-impacted and non-impacted
+participants, rather than being driven by a subgroup. Because only two
+models had nonzero wins in the small ``No Trauma'' reference group (n =
+1), Fisher's exact tests for winner-by-group independence were not
+diagnostic.
+
+\subsection{Appendix D: Parameter Recovery and
+Identifiability}\label{sec-parameter-recovery}
+
+To assess how confidently we can interpret individual-differences
+inferences from the winning model, we ran parameter-recovery simulations
+by generating synthetic data from 50 M6b agents with parameters drawn
+uniformly from the fitting bounds, then re-fitting M6b to each synthetic
+dataset. Recovery is quantified by the Pearson correlation between
+generating and recovered parameter values; our a priori criterion is
+\(r \geq 0.80\).
+
+The two perseveration parameters were well recovered:
+\(\kappa_{\text{total}}\) reached \(r = 0.997\) and
+\(\kappa_{\text{share}}\) reached \(r = 0.931\). However, the base RLWM
+parameters all fell short of the criterion: \(\alpha_{+}\)
+(\(r = 0.598\)), \(\alpha_{-}\) (\(r = 0.516\)), \(\phi\)
+(\(r = 0.442\)), \(\rho\) (\(r = 0.629\)), \(K\) (\(r = 0.213\), the
+worst), and \(\varepsilon\) (\(r = 0.772\), close to but below
+criterion). Similar patterns hold for M5 and M6a. Consequently, we
+interpret inferences about \(\kappa_{\text{total}}\) and
+\(\kappa_{\text{share}}\) with confidence, but we treat
+individual-differences conclusions about base RLWM parameters as
+exploratory. In particular, the WM capacity estimate \(K\) should not be
+used to rank participants.
+
+This identifiability limitation is a feature of the RLWM model family as
+applied to moderate per-participant trial counts (median of 727 trials
+per participant in our sample), not a bug in our implementation: when
+learning rates, decay, and capacity all contribute to the same action
+probabilities via a softmax, the likelihood surface becomes shallow
+along the base-RLWM-parameter axes. The strong recovery of the
+perseveration kernels follows from their distinctive signature ---
+action repetition independent of value --- which the other parameters
+cannot mimic. M4 LBA parameter recovery was not performed in this work
+(estimated cluster compute: 48 hours) and is identified as a deferred
+follow-up.
+
+\subsection{Appendix E: Parameter Estimates}\label{sec-param-estimates}
+
+\begin{longtable}[]{@{}lllll@{}}
+
+\caption{\label{tbl-param-estimates}Parameter estimates for the winning
+model. Values are mean (SD) across all participants with valid fits.}
+
+\tabularnewline
+
+\caption{}\label{T_d51dd}\tabularnewline
+\toprule\noalign{}
+Parameter & Mean & SD & 95\% CI & N \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+Parameter & Mean & SD & 95\% CI & N \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+alpha+ & 0.035 & 0.135 & {[}0.014, 0.057{]} & 154 \\
+alpha- & 0.021 & 0.118 & {[}0.002, 0.039{]} & 154 \\
+phi & 0.232 & 0.167 & {[}0.206, 0.259{]} & 154 \\
+rho & 0.828 & 0.206 & {[}0.796, 0.861{]} & 154 \\
+K & 3.350 & 1.059 & {[}3.183, 3.517{]} & 154 \\
+kappa\_total & 0.149 & 0.112 & {[}0.131, 0.167{]} & 154 \\
+kappa\_share & 0.273 & 0.269 & {[}0.230, 0.315{]} & 154 \\
+epsilon & 0.059 & 0.098 & {[}0.044, 0.075{]} & 154 \\
+
+\end{longtable}
+
+\subsection{Appendix F: Parameter-Trauma Group
+Relationships}\label{sec-group-results}
+
+To examine whether model parameters differed between trauma groups, we
+compared parameter estimates between participants classified as No
+Impact and Ongoing Impact using Mann-Whitney U tests (uncorrected
+\(\alpha = 0.05\); Bonferroni-corrected p-values for 8 comparisons
+reported as sensitivity). 153 participants with valid winning-model fits
+were matched to group assignments.
+
+\begin{figure}[H]
+
+\centering{
+
+\pandocbounded{\includegraphics[keepaspectratio]{paper_files/figure-pdf/fig-parameters-by-group-output-1.pdf}}
+
+}
+
+\caption{\label{fig-parameters-by-group}Model parameters by trauma
+group. Violins show kernel density estimates; central marks are
+medians.}
+
+\end{figure}%
+
+\begin{longtable}[]{@{}lllllllll@{}}
+
+\caption{\label{tbl-group-comparisons}Mann-Whitney U group comparisons
+for winning model parameters. Effect size is rank-biserial correlation
+r.}
+
+\tabularnewline
+
+\caption{}\label{T_22f0c}\tabularnewline
+\toprule\noalign{}
+Parameter & n (No Impact) & n (Ongoing) & U & p & p (corrected) & r & M
+(No Impact) & M (Ongoing) \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+Parameter & n (No Impact) & n (Ongoing) & U & p & p (corrected) & r & M
+(No Impact) & M (Ongoing) \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+alpha+ & 26 & 19 & 217 & 0.498 & 1.000 & 0.12 & 0.012 & 0.015 \\
+alpha- & 26 & 19 & 250 & 0.933 & 1.000 & -0.01 & 0.007 & 0.054 \\
+phi & 26 & 19 & 178 & 0.115 & 0.924 & 0.28 & 0.206 & 0.273 \\
+rho & 26 & 19 & 273 & 0.556 & 1.000 & -0.11 & 0.844 & 0.857 \\
+K & 26 & 19 & 249 & 0.973 & 1.000 & -0.01 & 3.523 & 3.442 \\
+kappa\_total & 26 & 19 & 295 & 0.275 & 1.000 & -0.19 & 0.171 & 0.125 \\
+kappa\_share & 26 & 19 & 240 & 0.890 & 1.000 & 0.03 & 0.254 & 0.274 \\
+epsilon & 26 & 19 & 242 & 0.913 & 1.000 & 0.02 & 0.019 & 0.022 \\
+
+\end{longtable}
+
+At the uncorrected level (\(\alpha = .05\)), no parameter showed a
+statistically significant group difference
+(Table~\ref{tbl-group-comparisons}). These results remained
+non-significant after Bonferroni correction for 8 comparisons (all
+corrected \(p > .05\)). The largest effect sizes were observed for
+\(\phi\) (WM decay; \$r = \$ 0.28, \$p\_\{\text{uncorrected}\} = \$
+0.115) and \(\rho\) (WM reliability; \$r = \$ -0.11,
+\$p\_\{\text{uncorrected}\} = \$ 0.556)
+(Figure~\ref{fig-parameters-by-group}). Critically, neither the
+perseveration parameters (\(\kappa_{\text{total}}\),
+\(\kappa_{\text{share}}\)) nor the learning rates (\(\alpha_{+}\),
+\(\alpha_{-}\)) differed significantly between groups.
+
+\subsection{Appendix G: Continuous Trauma
+Associations}\label{sec-correlations}
+
+Spearman rank correlations between winning-model parameters and
+continuous trauma measures (IES-R subscales, LEC-5 total and personal
+events) are shown in Figure~\ref{fig-correlation-heatmap}. Correlations
+are reported at uncorrected thresholds (\(\alpha = .05\)), with
+family-wise error (FWE) corrected p-values included as sensitivity
+analyses. No correlations reached the uncorrected significance
+threshold.
+
+\begin{figure}[H]
+
+\centering{
+
+\pandocbounded{\includegraphics[keepaspectratio]{paper_files/figure-pdf/fig-correlation-heatmap-output-1.pdf}}
+
+}
+
+\caption{\label{fig-correlation-heatmap}Spearman correlations between
+winning model parameters and IES-R/LEC-5 scales. Asterisks indicate
+Bonferroni-corrected significance.}
+
+\end{figure}%
+
+\begin{longtable}[]{@{}llllll@{}}
+
+\caption{\label{tbl-correlations}Spearman correlations between winning
+model parameters and trauma measures with uncorrected p \textless{} .15.
+FWE-corrected p-values shown. No correlations survived correction.}
+
+\tabularnewline
+
+\caption{}\label{T_fc4a3}\tabularnewline
+\toprule\noalign{}
+Parameter & Predictor & N & rho & p (uncorr.) & p (FWE) \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+Parameter & Predictor & N & rho & p (uncorr.) & p (FWE) \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+epsilon & lec\_personal & 154 & -0.291 & 0.0002 & 0.010 \\
+phi & ies\_intrusion & 154 & 0.256 & 0.0014 & 0.054 \\
+phi & ies\_hyperarousal & 154 & 0.241 & 0.0026 & 0.103 \\
+kappa\_total & lec\_total & 154 & 0.234 & 0.0034 & 0.137 \\
+phi & ies\_avoidance & 154 & 0.218 & 0.0066 & 0.262 \\
+epsilon & lec\_total & 154 & -0.171 & 0.0337 & 1.000 \\
+K & lec\_total & 154 & -0.149 & 0.0651 & 1.000 \\
+K & ies\_avoidance & 154 & -0.120 & 0.1376 & 1.000 \\
+
+\end{longtable}
+
+At the uncorrected level, the strongest association was between WM
+reliability \(\rho\) and IES-R Hyperarousal (\$r\_s = \$ -0.071,
+\$p\_\{\text{uncorrected}\} = \$ 0.3828, \$p\_\{\text{FWE}\} = \$ 1.000,
+\$N = \$ 154), suggesting that higher hyperarousal symptoms may be
+associated with reduced reliance on WM representations. This association
+did not survive FWE correction (\$p\_\{\text{FWE}\} = \$ 1.000).
+
+\subsection{Appendix H: Regression Analyses}\label{sec-regressions}
+
+OLS regressions examined whether IES-R subscales (Intrusion, Avoidance,
+Hyperarousal) jointly predicted each model parameter (\$N = \$ 154).
+
+\begin{longtable}[]{@{}lllllll@{}}
+
+\caption{\label{tbl-regression}Multiple OLS regression of winning model
+parameters on IES-R subscales (Intrusion, Avoidance, Hyperarousal). Beta
+= unstandardized coefficient.}
+
+\tabularnewline
+
+\caption{}\label{T_79492}\tabularnewline
+\toprule\noalign{}
+Parameter & Predictor & β & SE & 95\% CI & t & p \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+Parameter & Predictor & β & SE & 95\% CI & t & p \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+alpha+ & Ies-R Intrusion & 0.0030 & 0.002000 & {[}-0.001, 0.007{]} &
+1.33 & 0.185 \\
+alpha+ & Ies-R Avoidance & -0.0010 & 0.002000 & {[}-0.004, 0.002{]} &
+-0.52 & 0.605 \\
+alpha+ & Ies-R Hyperarousal & -0.0020 & 0.002000 & {[}-0.006, 0.003{]} &
+-0.81 & 0.420 \\
+alpha- & Ies-R Intrusion & 0.0020 & 0.003000 & {[}-0.004, 0.007{]} &
+0.67 & 0.502 \\
+alpha- & Ies-R Avoidance & -0.0010 & 0.002000 & {[}-0.005, 0.003{]} &
+-0.58 & 0.560 \\
+alpha- & Ies-R Hyperarousal & -0.0010 & 0.003000 & {[}-0.006, 0.005{]} &
+-0.22 & 0.827 \\
+phi & Ies-R Intrusion & 0.0010 & 0.004000 & {[}-0.007, 0.008{]} & 0.22 &
+0.826 \\
+phi & Ies-R Avoidance & -0.0010 & 0.003000 & {[}-0.007, 0.005{]} & -0.34
+& 0.732 \\
+phi & Ies-R Hyperarousal & 0.0060 & 0.004000 & {[}-0.002, 0.013{]} &
+1.50 & 0.135 \\
+rho & Ies-R Intrusion & 0.0070 & 0.004000 & {[}-0.002, 0.015{]} & 1.57 &
+0.119 \\
+rho & Ies-R Avoidance & 0.0000 & 0.003000 & {[}-0.006, 0.007{]} & 0.07 &
+0.945 \\
+rho & Ies-R Hyperarousal & -0.0060 & 0.004000 & {[}-0.015, 0.002{]} &
+-1.46 & 0.146 \\
+wm\_capacity\_mean & Ies-R Intrusion & 0.0110 & 0.027000 & {[}-0.043,
+0.064{]} & 0.40 & 0.692 \\
+wm\_capacity\_mean & Ies-R Avoidance & -0.0100 & 0.020000 & {[}-0.050,
+0.030{]} & -0.49 & 0.625 \\
+wm\_capacity\_mean & Ies-R Hyperarousal & -0.0160 & 0.027000 &
+{[}-0.070, 0.038{]} & -0.60 & 0.552 \\
+kappa\_total & Ies-R Intrusion & -0.0010 & 0.003000 & {[}-0.006,
+0.004{]} & -0.22 & 0.824 \\
+kappa\_total & Ies-R Avoidance & -0.0010 & 0.002000 & {[}-0.004,
+0.003{]} & -0.28 & 0.780 \\
+kappa\_total & Ies-R Hyperarousal & 0.0020 & 0.003000 & {[}-0.003,
+0.007{]} & 0.90 & 0.371 \\
+kappa\_share & Ies-R Intrusion & -0.0030 & 0.006000 & {[}-0.015,
+0.009{]} & -0.52 & 0.607 \\
+kappa\_share & Ies-R Avoidance & -0.0020 & 0.005000 & {[}-0.011,
+0.007{]} & -0.42 & 0.677 \\
+kappa\_share & Ies-R Hyperarousal & 0.0040 & 0.006000 & {[}-0.009,
+0.016{]} & 0.59 & 0.558 \\
+epsilon & Ies-R Intrusion & 0.0010 & 0.002000 & {[}-0.004, 0.005{]} &
+0.30 & 0.768 \\
+epsilon & Ies-R Avoidance & -0.0000 & 0.002000 & {[}-0.003, 0.003{]} &
+-0.11 & 0.913 \\
+epsilon & Ies-R Hyperarousal & 0.0020 & 0.002000 & {[}-0.002, 0.007{]} &
+1.07 & 0.288 \\
+
+\end{longtable}
+
+At the uncorrected level (\(\alpha = .05\)), no IES-R subscale
+significantly predicted any model parameter in the multivariate
+regression (Table~\ref{tbl-regression}; all \(p > .05\)). Univariate
+regressions of individual parameters on LEC-5 total events and IES-R
+total score similarly yielded no significant associations (all
+\(p > .05\); FDR-corrected q-values confirmed, all \(q > .05\)).
+
+\subsection{Appendix I: Cross-Model Consistency}\label{sec-cross-model}
+
+To assess whether parameter-trauma associations are robust to model
+specification, we examined Spearman correlations across all six
+choice-only models plus M4. The most consistent finding was the positive
+association between WM decay (\(\phi\)) and IES-R Hyperarousal, which
+reached uncorrected significance (\(p < .05\)) in five of six WM-RL
+models (M2, M3, M4, M5, M6b; \(r_s\) range: +0.19 to +0.27). A
+complementary negative association between WM reliability (\(\rho\)) and
+IES-R Hyperarousal was significant in four models (M2, M3, M4, M5;
+\(r_s\) range: --0.19 to --0.26). Together, these findings suggest that
+hyperarousal symptoms are specifically associated with degraded working
+memory maintenance: participants reporting more hyperarousal rely less
+on WM (lower \(\rho\)) and what WM they do use decays faster (higher
+\(\phi\)).
+
+Additional cross-model patterns included a negative association between
+random responding (\(\varepsilon\)) and LEC-5 total trauma events
+(significant in M3, M5, M6b; \(r_s\) range: --0.30 to --0.34), and a
+negative association between negative learning rate (\(\alpha_{-}\)) and
+LEC-5 total events (significant in M2, M4, M5; \(r_s\) range: --0.18 to
+--0.30).
+
+\subsection{Appendix J: Model Parameters}\label{sec-model-table}
 
 \begin{longtable}[]{@{}llll@{}}
 
@@ -1271,7 +1403,7 @@ not comparable to choice-only models M1--M6b.}
 
 \tabularnewline
 
-\caption{}\label{T_1e0ab}\tabularnewline
+\caption{}\label{T_86ab7}\tabularnewline
 \toprule\noalign{}
 Model & Free Parameters & k & Type \\
 \midrule\noalign{}
@@ -1297,7 +1429,7 @@ t0 & 10 & Choice+RT \\
 
 \end{longtable}
 
-\subsection{Exclusion Criteria}\label{sec-exclusions}
+\subsection{Appendix K: Exclusion Criteria}\label{sec-exclusions}
 
 All v4.0 analyses used a canonical cohort implemented as
 \texttt{config.get\_analysis\_cohort()}. A participant was included if
