@@ -571,4 +571,4 @@ Phases execute in numeric order: 13 → 14 → 15 → 16 → 17 → 18 → 19 �
 | 25. Reproducibility Regression & Closure-Guard Extension | v5.0 | 0/2 | Not started | — |
 | 26. Manuscript Finalization | v5.0 | 0/3 | Not started | — |
 | 27. Milestone v5.0 Closure | v5.0 | 0/3 | Not started | — |
-| 28. Bayesian-First Manuscript Restructure & Repo Consolidation | v5.0 | 0/TBD | Not started | — |
+| 28. Bayesian-First Manuscript Restructure & Repo Consolidation | v5.0 | 12/12 | Complete (execution reversed sequencing: Phase 28 ran before Phase 24) | 2026-04-22 |
