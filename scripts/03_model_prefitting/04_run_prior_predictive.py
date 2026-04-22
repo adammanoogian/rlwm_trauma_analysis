@@ -18,9 +18,9 @@ https://doi.org/10.5334/cpsy.116
 
 Usage
 -----
-python scripts/03_model_prefitting/12_run_prior_predictive.py \\
+python scripts/03_model_prefitting/04_run_prior_predictive.py \\
     --model wmrl_m3 --num-draws 500
-python scripts/03_model_prefitting/12_run_prior_predictive.py \\
+python scripts/03_model_prefitting/04_run_prior_predictive.py \\
     --model qlearning --num-draws 20 --output-dir /tmp/ppc_smoke
 """
 

@@ -188,14 +188,14 @@ run_step "16 — Regress parameters on scales" \
 if [[ "$VALIDATE" == "true" ]]; then
     echo ""
     echo "============================================================"
-    echo "PHASE D: Validation (Steps 09, 11)"
+    echo "PHASE D: Validation (Posterior PPC + Parameter Recovery)"
     echo "============================================================"
 
-    run_step "09 — Posterior predictive checks (wmrl_m3)" \
-        python scripts/09_run_ppc.py --model wmrl_m3 --use-gpu
+    run_step "Posterior predictive checks (wmrl_m3)" \
+        python scripts/05_post_fitting_checks/run_posterior_ppc.py --model wmrl_m3 --use-gpu
 
-    run_step "11 — Parameter recovery (wmrl_m3)" \
-        python scripts/11_run_model_recovery.py --model wmrl_m3 --use-gpu
+    run_step "Parameter recovery (wmrl_m3)" \
+        python scripts/03_model_prefitting/03_run_model_recovery.py --model wmrl_m3 --use-gpu
 fi
 
 # =============================================================================

@@ -1,4 +1,4 @@
-"""Smoke tests for scripts/03_model_prefitting/13_run_bayesian_recovery.py.
+"""Smoke tests for scripts/03_model_prefitting/05_run_bayesian_recovery.py.
 
 Fast unit tests exercising the single-subject and aggregate modes
 under a minimal MCMC budget.  The single-subject smoke test runs a
@@ -30,10 +30,12 @@ if str(_PROJECT_ROOT) not in sys.path:
 
 # Import the recovery runner as a module.  The script was moved to
 # scripts/bayesian_pipeline/ by REFAC-07 (plan 28-06); then to
-# scripts/03_model_prefitting/ by plan 29-01.  Use importlib to load it by path.
+# scripts/03_model_prefitting/ by plan 29-01; then renumbered to
+# 05_run_bayesian_recovery.py (Scheme D intra-stage 01-05) by plan 29-04b.
+# Use importlib to load it by path.
 import importlib.util
 
-_RUNNER_PATH = _PROJECT_ROOT / "scripts" / "03_model_prefitting" / "13_run_bayesian_recovery.py"
+_RUNNER_PATH = _PROJECT_ROOT / "scripts" / "03_model_prefitting" / "05_run_bayesian_recovery.py"
 _spec = importlib.util.spec_from_file_location(
     "_bayes_recovery_runner", str(_RUNNER_PATH)
 )

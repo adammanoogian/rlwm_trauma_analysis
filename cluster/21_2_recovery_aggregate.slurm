@@ -85,7 +85,7 @@ mkdir -p output/bayesian/21_recovery
 echo ""
 echo "[$(date)] Running aggregation for MODEL=$MODEL (n_subjects=$N_SUBJECTS)"
 
-python scripts/03_model_prefitting/13_run_bayesian_recovery.py \
+python scripts/03_model_prefitting/05_run_bayesian_recovery.py \
     --mode aggregate \
     --model "$MODEL" \
     --n-subjects "$N_SUBJECTS" \

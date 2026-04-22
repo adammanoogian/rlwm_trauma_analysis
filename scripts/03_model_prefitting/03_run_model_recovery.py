@@ -16,22 +16,22 @@ Purpose:
 
 Usage:
     # Parameter recovery (default mode) - single model
-    python scripts/11_run_model_recovery.py --model wmrl_m3
+    python scripts/03_model_prefitting/03_run_model_recovery.py --model wmrl_m3
 
     # Parameter recovery - all models
-    python scripts/11_run_model_recovery.py --model all
+    python scripts/03_model_prefitting/03_run_model_recovery.py --model all
 
     # Quick test (fewer subjects/datasets)
-    python scripts/11_run_model_recovery.py --model qlearning --n-subjects 20 --n-datasets 2
+    python scripts/03_model_prefitting/03_run_model_recovery.py --model qlearning --n-subjects 20 --n-datasets 2
 
     # With GPU acceleration
-    python scripts/11_run_model_recovery.py --model wmrl_m3 --use-gpu
+    python scripts/03_model_prefitting/03_run_model_recovery.py --model wmrl_m3 --use-gpu
 
     # Cross-model recovery (generates from each model, checks AIC winner)
-    python scripts/11_run_model_recovery.py --mode cross-model --model all --n-subjects 10 --n-datasets 3
+    python scripts/03_model_prefitting/03_run_model_recovery.py --mode cross-model --model all --n-subjects 10 --n-datasets 3
 
     # Cross-model recovery for a single generating model
-    python scripts/11_run_model_recovery.py --mode cross-model --model wmrl_m5 --n-subjects 5 --n-datasets 1
+    python scripts/03_model_prefitting/03_run_model_recovery.py --mode cross-model --model wmrl_m5 --n-subjects 5 --n-datasets 1
 
 Outputs:
     Parameter mode:

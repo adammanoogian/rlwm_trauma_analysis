@@ -20,21 +20,21 @@ Outputs:
 
 Usage:
     # Generate data from Q-learning with default parameters
-    python scripts/09_generate_synthetic_data.py --model qlearning
+    python scripts/03_model_prefitting/01_generate_synthetic_data.py --model qlearning
 
     # Generate data from WM-RL with fitted parameters
-    python scripts/09_generate_synthetic_data.py --model wmrl --params-file output/mle/wmrl_params.csv
+    python scripts/03_model_prefitting/01_generate_synthetic_data.py --model wmrl --params-file output/mle/wmrl_params.csv
 
     # Generate for specific set sizes
-    python scripts/09_generate_synthetic_data.py --model qlearning --set-sizes 3 5
+    python scripts/03_model_prefitting/01_generate_synthetic_data.py --model qlearning --set-sizes 3 5
 
     # Multiple participants (for averaging)
-    python scripts/09_generate_synthetic_data.py --model wmrl --n-subjects 50
+    python scripts/03_model_prefitting/01_generate_synthetic_data.py --model wmrl --n-subjects 50
 
 Next Steps:
     - Compare synthetic vs human data visually
-    - Use for posterior predictive checks
-    - Run 10_run_parameter_sweep.py for systematic exploration
+    - Use for posterior predictive checks (scripts/05_post_fitting_checks/run_posterior_ppc.py)
+    - Run 02_run_parameter_sweep.py for systematic exploration
 """
 
 import sys

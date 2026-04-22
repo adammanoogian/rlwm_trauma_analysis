@@ -93,7 +93,7 @@ mkdir -p output/bayesian/21_prior_predictive
 echo ""
 echo "[$(date)] Starting step 21.1 prior-predictive gate for MODEL=${MODEL}"
 
-python scripts/03_model_prefitting/12_run_prior_predictive.py \
+python scripts/03_model_prefitting/04_run_prior_predictive.py \
     --model "$MODEL" \
     --data output/task_trials_long.csv \
     --num-draws "$NUM_DRAWS" \

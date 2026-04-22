@@ -1,10 +1,8 @@
 """Canonical single-source PPC simulator for prior and posterior predictive checks.
 
 This module holds the one authoritative simulator used across the RLWM
-pipeline. It supersedes the former copies inside
-``scripts/03_model_prefitting/09_run_ppc.py`` and
-``scripts/03_model_prefitting/12_run_prior_predictive.py`` — those scripts
-now import from here.
+pipeline. It supersedes the former per-stage copies — every orchestrator
+now imports from here.
 
 Layers (do not conflate)
 ------------------------
@@ -13,11 +11,13 @@ Layers (do not conflate)
   it simulates per-participant trial sequences and aggregates behavioral
   metrics. Used by:
 
-  - stage 03 prior PPC  → ``scripts/03_model_prefitting/12_run_prior_predictive.py``
-  - stage 03 posterior PPC thin orchestrator
-    → ``scripts/03_model_prefitting/09_run_ppc.py``
+  - stage 03 prior PPC  → ``scripts/03_model_prefitting/04_run_prior_predictive.py``
   - stage 05 posterior PPC thin orchestrator
     → ``scripts/05_post_fitting_checks/run_posterior_ppc.py``
+
+  (The former ``scripts/03_model_prefitting/09_run_ppc.py`` duplicate
+  orchestrator was removed in plan 29-04b — stage 05 is now the sole
+  entry point for posterior PPC per Scheme D.)
 
 * For *single-agent* trajectory simulation given fixed parameters (used by
   the test-suite and parameter-sweep tooling), see

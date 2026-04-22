@@ -25,21 +25,21 @@ Outputs:
 
 Usage:
     # Quick sweep of Q-learning parameters
-    python scripts/10_run_parameter_sweep.py --model qlearning --n-samples 100
+    python scripts/03_model_prefitting/02_run_parameter_sweep.py --model qlearning --n-samples 100
 
     # Full sweep with parallel execution
-    python scripts/10_run_parameter_sweep.py --model both --n-samples 500 --n-jobs -1
+    python scripts/03_model_prefitting/02_run_parameter_sweep.py --model both --n-samples 500 --n-jobs -1
 
     # WM-RL focused on capacity effects
-    python scripts/10_run_parameter_sweep.py --model wmrl --n-samples 200 --set-sizes 3 5 6
+    python scripts/03_model_prefitting/02_run_parameter_sweep.py --model wmrl --n-samples 200 --set-sizes 3 5 6
 
     # Test with fewer trials for speed
-    python scripts/10_run_parameter_sweep.py --model qlearning --n-samples 50 --num-trials 30
+    python scripts/03_model_prefitting/02_run_parameter_sweep.py --model qlearning --n-samples 50 --num-trials 30
 
 Next Steps:
     - Review heatmaps to understand parameter-performance relationships
     - Identify optimal parameter ranges for model fitting
-    - Run 11_run_model_recovery.py to validate fitting procedure
+    - Run 03_run_model_recovery.py to validate fitting procedure
 """
 
 import sys

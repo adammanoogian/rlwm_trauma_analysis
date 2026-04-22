@@ -11,8 +11,8 @@ cluster/
 ├── 00_setup_env.sh          # CPU conda environment setup
 ├── 00_setup_env_gpu.sh      # GPU conda environment setup (JAX CUDA)
 ├── 01_diagnostic_gpu.slurm  # GPU/JAX validation (run first)
-├── 09_ppc_gpu.slurm         # Posterior predictive checks  → scripts/09_run_ppc.py
-├── 11_recovery_gpu.slurm    # Parameter recovery           → scripts/11_run_model_recovery.py
+├── 09_ppc_gpu.slurm         # Posterior predictive checks  → scripts/05_post_fitting_checks/run_posterior_ppc.py
+├── 11_recovery_gpu.slurm    # Parameter recovery           → scripts/03_model_prefitting/03_run_model_recovery.py
 ├── 12_mle.slurm             # MLE fitting (CPU parallel)   → scripts/04_model_fitting/a_mle/12_fit_mle.py
 ├── 12_mle_gpu.slurm         # MLE fitting (GPU)            → scripts/04_model_fitting/a_mle/12_fit_mle.py
 ├── 12_mle_single.slurm      # MLE fitting (single model)   → scripts/04_model_fitting/a_mle/12_fit_mle.py

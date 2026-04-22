@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 """Posterior-predictive check CLI — stage 05 thin orchestrator.
 
-Mirror of ``scripts/03_model_prefitting/09_run_ppc.py``, intended to live
-alongside the other stage-05 post-fitting diagnostics (``baseline_audit``,
-``scale_audit``). Both orchestrators are thin wrappers around the canonical
-simulator in :mod:`scripts.utils.ppc`; this one exists so the stage 05
-post-fit workflow has a first-class PPC entry point without having to
-reach into stage 03.
+Lives alongside the other stage-05 post-fitting diagnostics
+(``baseline_audit``, ``scale_audit``) as the sole posterior-PPC entry
+point. Thin wrapper around the canonical simulator in
+:mod:`scripts.utils.ppc`.
+
+Plan 29-04b removed the former stage-03 mirror (``09_run_ppc.py``) because
+posterior PPC belongs in stage 05 per Scheme D — stage 03 is pre-fit
+simulations and prior predictive gates only.
 
 Usage
 -----

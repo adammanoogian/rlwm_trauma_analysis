@@ -111,7 +111,7 @@ echo "[$(date)] Starting single-subject recovery fit"
 echo "  SUBJECT_IDX=$SUBJECT_IDX"
 echo "  SUBJECT_SEED=$SUBJECT_SEED"
 
-python scripts/03_model_prefitting/13_run_bayesian_recovery.py \
+python scripts/03_model_prefitting/05_run_bayesian_recovery.py \
     --mode single-subject \
     --model "$MODEL" \
     --subject-idx "$SUBJECT_IDX" \

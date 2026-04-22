@@ -254,8 +254,8 @@ python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl_m5 --data outpu
 bash cluster/21_submit_pipeline.sh
 
 # Individual steps (new canonical locations)
-python scripts/03_model_prefitting/12_run_prior_predictive.py
-python scripts/03_model_prefitting/13_run_bayesian_recovery.py
+python scripts/03_model_prefitting/04_run_prior_predictive.py
+python scripts/03_model_prefitting/05_run_bayesian_recovery.py
 python scripts/04_model_fitting/b_bayesian/21_fit_baseline.py
 python scripts/05_post_fitting_checks/baseline_audit.py
 python scripts/06_fit_analyses/compute_loo_stacking.py
@@ -322,7 +322,7 @@ python scripts/06_fit_analyses/compare_models.py --use-waic
 
 ```bash
 # Validate all choice-only models are distinguishable by AIC
-python scripts/03_model_prefitting/11_run_model_recovery.py --mode cross-model --model all --n-subjects 50 --n-datasets 10 --n-jobs 8
+python scripts/03_model_prefitting/03_run_model_recovery.py --mode cross-model --model all --n-subjects 50 --n-datasets 10 --n-jobs 8
 ```
 
 ### Run Tests

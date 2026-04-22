@@ -30,10 +30,12 @@ python scripts/02_behav_analyses/02_visualize_task_performance.py
 python scripts/02_behav_analyses/03_analyze_trauma_groups.py
 python scripts/02_behav_analyses/04_run_statistical_analyses.py
 
-# Simulations & recovery (09-11)
-python scripts/03_model_prefitting/09_run_ppc.py
-python scripts/03_model_prefitting/10_run_parameter_sweep.py
-python scripts/03_model_prefitting/11_run_model_recovery.py --mode cross-model --model all
+# Pre-fit validation (01-05): synthetic data, parameter sweeps, recovery, PPC gates
+python scripts/03_model_prefitting/01_generate_synthetic_data.py
+python scripts/03_model_prefitting/02_run_parameter_sweep.py
+python scripts/03_model_prefitting/03_run_model_recovery.py --mode cross-model --model all
+python scripts/03_model_prefitting/04_run_prior_predictive.py --model wmrl_m3
+python scripts/03_model_prefitting/05_run_bayesian_recovery.py --mode aggregate --model wmrl_m3
 
 # MLE fitting + frequentist comparison (04_model_fitting/, 06_fit_analyses/)
 for m in qlearning wmrl wmrl_m3 wmrl_m5 wmrl_m6a wmrl_m6b wmrl_m4; do

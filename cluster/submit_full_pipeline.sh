@@ -34,7 +34,7 @@ SKIP_PUSH=false
 # Choice-only: qlearning wmrl wmrl_m3 wmrl_m5 wmrl_m6a wmrl_m6b
 # Joint RT:    wmrl_m4
 MODELS="qlearning wmrl wmrl_m3 wmrl_m5 wmrl_m6a wmrl_m6b wmrl_m4"
-# PPC runs for all fitted models (09_run_ppc.py now supports all 7)
+# PPC runs for all fitted models (scripts/05_post_fitting_checks/run_posterior_ppc.py supports all 7)
 PPC_MODELS="$MODELS"
 # Recovery parameters (see cluster/11_recovery_gpu.slurm for timing budget)
 RECOVERY_MODELS="$MODELS"
@@ -128,7 +128,7 @@ if [[ "$SKIP_WAVE2" != "true" ]]; then
             echo "  rec_${model}: FAILED - $rec_jobid"
         fi
 
-        # PPC: only for models that 09_run_ppc.py supports
+        # PPC: only for models that scripts/05_post_fitting_checks/run_posterior_ppc.py supports
         if echo "$PPC_MODELS" | grep -qw "$model"; then
             ppc_jobid=$(sbatch \
                 --dependency=afterok:${fit_jobid} \

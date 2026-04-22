@@ -88,15 +88,19 @@ The script also runs hierarchical clustering (Ward linkage) as a data-driven val
 
 ---
 
-## Stage 3: Simulations & Validation (Scripts 09-11)
+## Stage 3: Pre-fit Simulations & Validation (Scripts 01-05)
 
 Generate synthetic data and validate the fitting pipeline.
 
 ```bash
-python scripts/03_model_prefitting/09_generate_synthetic_data.py  # Synthetic data generation
-python scripts/03_model_prefitting/09_run_ppc.py                   # PPC analysis
-python scripts/03_model_prefitting/10_run_parameter_sweep.py       # Systematic parameter exploration
-python scripts/03_model_prefitting/11_run_model_recovery.py        # Parameter/model recovery
+python scripts/03_model_prefitting/01_generate_synthetic_data.py  # Synthetic data generation
+python scripts/03_model_prefitting/02_run_parameter_sweep.py       # Systematic parameter exploration
+python scripts/03_model_prefitting/03_run_model_recovery.py        # Parameter/model recovery
+python scripts/03_model_prefitting/04_run_prior_predictive.py --model wmrl_m3  # Prior predictive gate
+python scripts/03_model_prefitting/05_run_bayesian_recovery.py --mode aggregate --model wmrl_m3  # Bayesian recovery aggregate
+
+# Posterior predictive check (after MLE fits land; stage 05):
+python scripts/05_post_fitting_checks/run_posterior_ppc.py --model wmrl_m3
 ```
 
 **Use cases:**
