@@ -8,7 +8,7 @@ docs/
 │
 ├── 02_pipeline_guide/
 │   ├── ANALYSIS_PIPELINE.md             # Full pipeline walkthrough (scripts 01-18)
-│   └── PLOTTING_REFERENCE.md            # All scripts/visualization/* tools
+│   └── PLOTTING_REFERENCE.md            # All scripts/legacy/visualization/* tools (historical)
 │
 ├── 03_methods_reference/
 │   ├── MODEL_REFERENCE.md               # Model math (Q-learning, WM-RL, priors, K parameterization)

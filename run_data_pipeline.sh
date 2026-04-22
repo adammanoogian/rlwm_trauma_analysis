@@ -31,17 +31,28 @@ python scripts/01_data_preprocessing/04_create_summary_csv.py
 echo "[7/11] Parsing all participants (including partial data)..."
 python scripts/parse_all_participants.py
 
-echo "[8/11] Generating human performance visualizations..."
-python scripts/analysis/visualize_human_performance.py --data output/task_trials_long_all_participants.csv
+# Steps [8/11]–[11/11] below referenced four scripts
+# (visualize_human_performance.py, visualize_scale_distributions.py,
+#  visualize_scale_correlations.py, summarize_behavioral_data.py)
+# that were deleted from the repository in an earlier cleanup wave
+# (pre-Phase 28). They have been commented out rather than deleted here
+# so a future tech-debt plan can decide whether to:
+#   (a) restore-and-modernize those scripts, or
+#   (b) remove these steps from the pipeline permanently.
+# Contact: see .planning/phases/29-pipeline-canonical-reorg/29-04-SUMMARY.md
+# for the dead-folder audit that surfaced this stale reference.
 
-echo "[9/11] Generating scale distributions..."
-python scripts/analysis/visualize_scale_distributions.py
-
-echo "[10/11] Generating scale correlations..."
-python scripts/analysis/visualize_scale_correlations.py
-
-echo "[11/11] Creating summary report..."
-python scripts/analysis/summarize_behavioral_data.py
+# echo "[8/11] Generating human performance visualizations..."
+# python scripts/legacy/analysis/visualize_human_performance.py --data output/task_trials_long_all_participants.csv
+#
+# echo "[9/11] Generating scale distributions..."
+# python scripts/legacy/analysis/visualize_scale_distributions.py
+#
+# echo "[10/11] Generating scale correlations..."
+# python scripts/legacy/analysis/visualize_scale_correlations.py
+#
+# echo "[11/11] Creating summary report..."
+# python scripts/legacy/analysis/summarize_behavioral_data.py
 
 echo ""
 echo "=========================================="

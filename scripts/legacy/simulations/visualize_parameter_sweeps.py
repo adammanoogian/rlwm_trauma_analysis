@@ -21,7 +21,7 @@ import seaborn as sns
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from scripts.analysis.plotting_utils import (
+from scripts.legacy.analysis.plotting_utils import (
     get_color_palette,
     save_figure,
     setup_plot_style,

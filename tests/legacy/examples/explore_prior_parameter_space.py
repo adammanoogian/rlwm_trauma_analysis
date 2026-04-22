@@ -59,8 +59,8 @@ sys.path.insert(0, str(project_root))
 from rlwm.envs.rlwm_env import create_rlwm_env
 from rlwm.models.q_learning import QLearningAgent
 from rlwm.models.wm_rl_hybrid import WMRLHybridAgent
-from scripts.simulations.unified_simulator import simulate_agent_fixed
-from scripts.analysis.plotting_utils import setup_plot_style, save_figure, get_color_palette
+from scripts.legacy.simulations.unified_simulator import simulate_agent_fixed
+from scripts.legacy.analysis.plotting_utils import setup_plot_style, save_figure, get_color_palette
 from config import TaskParams
 
 

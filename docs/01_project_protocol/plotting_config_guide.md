@@ -155,12 +155,12 @@ class PlotConfig:
 ## Integration Status
 
 Currently integrated in:
-- ✅ `scripts/analysis/trauma_grouping_analysis.py` - hypothesis_groups_scatter.png
+- (historical) `scripts/legacy/analysis/trauma_grouping_analysis.py` - hypothesis_groups_scatter.png
 
-**Not yet integrated** (ready for future updates):
-- `scripts/analysis/visualize_human_performance.py`
-- `scripts/analysis/visualize_scale_correlations.py`
-- `scripts/visualization/quick_arviz_plots.py`
+**Not yet integrated** (ready for future updates; files archived under `scripts/legacy/` per Phase 29-04):
+- `scripts/legacy/analysis/visualize_human_performance.py` (deleted in earlier cleanup wave; retained in docs only for provenance)
+- `scripts/legacy/analysis/visualize_scale_correlations.py` (deleted in earlier cleanup wave; retained in docs only for provenance)
+- `scripts/legacy/visualization/quick_arviz_plots.py`
 - Other visualization scripts
 
 ## Example: Before and After

@@ -45,7 +45,7 @@ project_root = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(project_root))
 
 # Import the main function from the library module
-from scripts.simulations.generate_data import main
+from scripts.legacy.simulations.generate_data import main
 
 if __name__ == '__main__':
     main()

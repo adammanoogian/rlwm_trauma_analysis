@@ -41,7 +41,7 @@ if src_root.exists():
 from rlwm.envs.rlwm_env import create_rlwm_env
 from rlwm.models.q_learning import QLearningAgent
 from rlwm.models.wm_rl_hybrid import WMRLHybridAgent
-from scripts.simulations.unified_simulator import simulate_agent_fixed
+from scripts.legacy.simulations.unified_simulator import simulate_agent_fixed
 try:
     # Prefer the versioned output root if present in this project.
     from config import OUTPUT_VERSION_DIR  # type: ignore

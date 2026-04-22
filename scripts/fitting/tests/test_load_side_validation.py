@@ -24,13 +24,16 @@ _ENUMERATED_FILES: list[Path] = [
     _PROJECT_ROOT / "scripts" / "05_post_fitting_checks" / "baseline_audit.py",
     _PROJECT_ROOT / "scripts" / "06_fit_analyses" / "model_averaging.py",
     _PROJECT_ROOT / "scripts" / "05_post_fitting_checks" / "scale_audit.py",
-    # TODO(29-04): visualization/ stage not yet created; re-enable after plan 29-04
-    # _PROJECT_ROOT / "scripts" / "visualization" / "plot_posterior_diagnostics.py",
-    # _PROJECT_ROOT / "scripts" / "visualization" / "plot_group_parameters.py",
-    # _PROJECT_ROOT / "scripts" / "visualization" / "plot_model_comparison.py",
-    # _PROJECT_ROOT / "scripts" / "visualization" / "quick_arviz_plots.py",
-    # TODO(29-04): simulations/ stage not yet created; re-enable after plan 29-04
-    # _PROJECT_ROOT / "scripts" / "simulations" / "generate_data.py",
+    # Legacy archive paths (plan 29-04 moved these folders to scripts/legacy/).
+    # The enumeration still tracks them because the CLEAN-04 invariant
+    # (no bare NetCDF loads) applies to any file historically loading NetCDF,
+    # even when archived — a future re-activation of these scripts must not
+    # reintroduce the forbidden pattern.
+    _PROJECT_ROOT / "scripts" / "legacy" / "visualization" / "plot_posterior_diagnostics.py",
+    _PROJECT_ROOT / "scripts" / "legacy" / "visualization" / "plot_group_parameters.py",
+    _PROJECT_ROOT / "scripts" / "legacy" / "visualization" / "plot_model_comparison.py",
+    _PROJECT_ROOT / "scripts" / "legacy" / "visualization" / "quick_arviz_plots.py",
+    _PROJECT_ROOT / "scripts" / "legacy" / "simulations" / "generate_data.py",
     _PROJECT_ROOT / "validation" / "compare_posterior_to_mle.py",
 ]
 

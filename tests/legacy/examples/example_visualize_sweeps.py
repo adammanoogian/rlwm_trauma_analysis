@@ -16,7 +16,7 @@ import sys
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from scripts.simulations.visualize_parameter_sweeps import (
+from scripts.legacy.simulations.visualize_parameter_sweeps import (
     plot_qlearning_sweep,
     plot_wmrl_sweep,
     plot_comparative_accuracy_by_setsize,

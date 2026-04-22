@@ -1,5 +1,13 @@
 # Posterior Visualization Reference
 
+> **Historical reference** — The scripts described below were moved to
+> `scripts/legacy/visualization/` by Phase 29-04 (dead-folder audit,
+> 2026-04-22) because they had no live importers in the active pipeline.
+> The invocation examples have been updated to the `scripts/legacy/`
+> paths so the commands still work if the archived scripts are run
+> directly. Prefer canonical figure-producing code under
+> `scripts/06_fit_analyses/` when adding new posterior visualizations.
+
 Complete guide to visualizing fitted model posteriors.
 
 ## Quick Start: Comprehensive Diagnostics
@@ -11,7 +19,7 @@ conda activate ds_env
 
 **Create all diagnostic plots at once:**
 ```bash
-python scripts/visualization/quick_arviz_plots.py \
+python scripts/legacy/visualization/quick_arviz_plots.py \
   --posterior output/qlearning_jax_posterior_TIMESTAMP.nc \
   --output-dir figures
 ```
@@ -31,7 +39,7 @@ python scripts/visualization/quick_arviz_plots.py \
 
 ## All Visualization Scripts
 
-All scripts live in `scripts/visualization/`. Run from the repo root.
+All scripts live in `scripts/legacy/visualization/`. Run from the repo root.
 
 | Script | Purpose | Primary input | Primary output |
 |---|---|---|---|
@@ -64,7 +72,7 @@ All scripts live in `scripts/visualization/`. Run from the repo root.
 
 **Single Model:**
 ```bash
-python scripts/visualization/plot_group_parameters.py \
+python scripts/legacy/visualization/plot_group_parameters.py \
   --qlearning output/qlearning_jax_posterior_TIMESTAMP.nc \
   --output-dir figures \
   --prefix qlearning
@@ -82,7 +90,7 @@ python scripts/visualization/plot_group_parameters.py \
 
 **Two Models (Q-Learning + WM-RL):**
 ```bash
-python scripts/visualization/plot_group_parameters.py \
+python scripts/legacy/visualization/plot_group_parameters.py \
   --qlearning output/qlearning_jax_posterior_TIMESTAMP.nc \
   --wmrl output/wmrl_jax_posterior_TIMESTAMP.nc \
   --output-dir figures \
@@ -101,7 +109,7 @@ python scripts/visualization/plot_group_parameters.py \
 **Requires both models fitted!**
 
 ```bash
-python scripts/visualization/plot_model_comparison.py \
+python scripts/legacy/visualization/plot_model_comparison.py \
   --qlearning output/qlearning_jax_posterior_TIMESTAMP.nc \
   --wmrl output/wmrl_jax_posterior_TIMESTAMP.nc \
   --output-dir figures \
@@ -473,16 +481,16 @@ Before trusting your results, check:
 conda activate ds_env
 
 # Quick diagnostics (all plots) - saves to figures/
-python scripts/visualization/quick_arviz_plots.py \
+python scripts/legacy/visualization/quick_arviz_plots.py \
   --posterior output/qlearning_jax_posterior_TIMESTAMP.nc
 
 # Group parameters only - saves to figures/
-python scripts/visualization/plot_group_parameters.py \
+python scripts/legacy/visualization/plot_group_parameters.py \
   --qlearning output/qlearning_jax_posterior_TIMESTAMP.nc \
   --prefix qlearning
 
 # Model comparison (need both models) - saves to figures/
-python scripts/visualization/plot_model_comparison.py \
+python scripts/legacy/visualization/plot_model_comparison.py \
   --qlearning output/qlearning_jax_posterior_TIMESTAMP.nc \
   --wmrl output/wmrl_jax_posterior_TIMESTAMP.nc
 ```

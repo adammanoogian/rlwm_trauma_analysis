@@ -13,7 +13,7 @@ sys.path.insert(0, str(project_root))
 
 from rlwm.envs.rlwm_env import create_rlwm_env
 from rlwm.models.wm_rl_hybrid import WMRLHybridAgent
-from scripts.simulations.unified_simulator import simulate_agent_fixed
+from scripts.legacy.simulations.unified_simulator import simulate_agent_fixed
 
 print("=" * 80)
 print("TESTING WM-RL PARAMETER EXPLORATION")

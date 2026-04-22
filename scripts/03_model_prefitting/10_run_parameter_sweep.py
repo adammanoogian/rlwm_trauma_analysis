@@ -54,7 +54,7 @@ if src_root.exists():
     sys.path.insert(0, str(src_root))
 
 # Import the main function from the library module
-from scripts.simulations.parameter_sweep import main
+from scripts.legacy.simulations.parameter_sweep import main
 
 if __name__ == '__main__':
     main()

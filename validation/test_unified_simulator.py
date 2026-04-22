@@ -21,7 +21,7 @@ sys.path.insert(0, str(project_root))
 from rlwm.envs.rlwm_env import create_rlwm_env
 from rlwm.models.q_learning import QLearningAgent
 from rlwm.models.wm_rl_hybrid import WMRLHybridAgent
-from scripts.simulations.unified_simulator import (
+from scripts.legacy.simulations.unified_simulator import (
     SimulationResult,
     results_to_dataframe,
     simulate_agent_fixed,

@@ -13,7 +13,7 @@ posteriors blocked on cluster runs).
 | Task performance plots | scripts/02_behav_analyses/06_visualize_task_performance.py | figures/behavioral_analysis/ | available |
 | Trauma-group behavioral stats | scripts/02_behav_analyses/07_analyze_trauma_groups.py | figures/trauma_groups/, output/summary_by_trauma.csv | available |
 | Statistical analyses (ANOVA, descriptives) | scripts/02_behav_analyses/08_run_statistical_analyses.py | output/statistical_analyses/ | available |
-| Scale distributions | scripts/analysis/trauma_scale_distributions.py | figures/scale_distributions.png, figures/trauma_scale_analysis/ | available after pipeline rerun |
+| Scale distributions | scripts/legacy/analysis/trauma_scale_distributions.py | figures/scale_distributions.png, figures/trauma_scale_analysis/ | available after pipeline rerun |
 
 ## Model fitting (MLE)
 
@@ -37,7 +37,7 @@ posteriors blocked on cluster runs).
 | Hierarchical posteriors (6 choice-only models) | scripts/04_model_fitting/b_bayesian/13_fit_bayesian.py | output/bayesian/{model}_posterior.nc | _placeholder — cluster refit pending_ |
 | M4 LBA posterior | scripts/04_model_fitting/b_bayesian/13_fit_bayesian.py --model wmrl_m4 | output/bayesian/wmrl_m4_posterior.nc | _placeholder — cluster refit pending_ |
 | Pscan benchmarks | cluster/13_bayesian_pscan.slurm | output/bayesian/pscan_benchmark.json | available |
-| M6b posterior diagnostics | scripts/visualization/plot_posterior_diagnostics.py | figures/m6b_posterior_diagnostics.png | _placeholder — needs posterior first_ |
+| M6b posterior diagnostics | scripts/legacy/visualization/plot_posterior_diagnostics.py | figures/m6b_posterior_diagnostics.png | _placeholder — needs posterior first_ |
 | M6b posterior vs MLE | validation/compare_posterior_to_mle.py | figures/m6b_posterior_vs_mle.png | _placeholder — needs posterior first_ |
 | Level-2 stacking weights | scripts/06_fit_analyses/compare_models.py --bayesian-comparison | output/bayesian/level2/stacking_weights.csv | _placeholder — needs posterior first_ |
 | Level-2 forest plots | scripts/06_fit_analyses/bayesian_level2_effects.py | output/bayesian/figures/m6b_forest_lec5.png | _placeholder — needs posterior first_ |
