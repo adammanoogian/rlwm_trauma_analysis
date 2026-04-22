@@ -72,7 +72,7 @@
   citecolor=blue,
   pdftitle={Dissociating Perseverative Responding from Learning-Rate
 Effects in Trauma: A Computational Modeling Approach},
-  pdfauthor={Adam Manoogian, Coauthor Name},
+  pdfauthor={Jasmine Burrows, Adam Manoogian},
 }
 
 % ── Float spacing ─────────────────────────────────────────────────────────────
@@ -110,17 +110,18 @@ Effects in Trauma: A Computational Modeling Approach},
 \title{Dissociating Perseverative Responding from Learning-Rate Effects
 in Trauma: A Computational Modeling Approach}
 
+\author[uts]{%
+  %
+  Jasmine Burrows%
+  %
+}
 \author[mc3s,mbi,turner]{%
   \href{https://orcid.org/0009-0002-8002-3191}{\usebox{\orcidbox}\hspace{1mm}}%
   Adam Manoogian%
   \thanks{\texttt{adam.manoogian@monash.edu}}%
 }
-\author[mbi]{%
-  %
-  Coauthor Name%
-  %
-}
 
+\affil[uts]{University of Technology Sydney}
 \affil[mc3s]{Monash Centre for Consciousness and Contemplative Studies,
 Monash University}
 \affil[mbi]{Monash Biomedical Imaging, Monash University}
@@ -223,7 +224,7 @@ Ongoing Impact} (n = 58) and \textbf{Trauma - Ongoing Impact} (n = 101).
 
 Scale distributions and pairwise correlations are summarized in
 Figure~\ref{fig-scale-distributions} and documented in
-\texttt{docs/SCALES\_AND\_FITTING\_AUDIT.md}.
+\texttt{docs/04\_methods/README.md\#scales-orthogonalization-and-audit}.
 
 \begin{figure}[H]
 
@@ -241,8 +242,8 @@ total (\(r\) = 0.13), justifying inclusion of both predictors. IES
 subscales correlate strongly with IES total (\(r\) = 0.91--0.93),
 requiring the Gram--Schmidt residualization described in Model Fitting.
 Figure produced by
-\texttt{scripts/legacy/analysis/trauma\_scale\_distributions.py} and copied
-into \texttt{manuscript/figures/} on pipeline rerun.}
+\texttt{scripts/legacy/analysis/trauma\_scale\_distributions.py} and
+copied into \texttt{manuscript/figures/} on pipeline rerun.}
 
 \end{figure}%
 
@@ -269,31 +270,29 @@ capacity and set size.
 
 \textbf{Core WM-RL architecture.} On each trial, WM decays globally
 toward a uniform baseline, then overwrites the observed
-stimulus--action--reward association: \[
-\text{WM}(s,a) \leftarrow (1 - \phi)\,\text{WM}(s,a) + \phi / n_A
+stimulus--action--reward association:
+\[\text{WM}(s,a) \leftarrow (1 - \phi)\,\text{WM}(s,a) + \phi / n_A
 \qquad\text{(decay)},\qquad
 \text{WM}(s,a) \leftarrow r
-\qquad\text{(update)}
-\] RL values are updated via an asymmetric delta rule: \[
-Q(s,a) \leftarrow Q(s,a) + \alpha\,\delta, \qquad
+\qquad\text{(update)}\] RL values are updated via an asymmetric delta
+rule: \[Q(s,a) \leftarrow Q(s,a) + \alpha\,\delta, \qquad
 \delta = r - Q(s,a), \qquad
-\alpha = \begin{cases}\alpha_{+} & \delta > 0 \\ \alpha_{-} & \delta \leq 0\end{cases}
-\] Both systems produce softmax choice probabilities (\(\beta = 50\),
-fixed), combined via an adaptive weight: \[
-\omega = \rho \cdot \min\!\left(1,\; K / n_s\right),\qquad
-p_{\text{hybrid}}(a \mid s) = \omega\,p_{\text{WM}} + (1-\omega)\,p_{\text{RL}}
-\]
+\alpha = \begin{cases}\alpha_{+} & \delta > 0 \\ \alpha_{-} & \delta \leq 0\end{cases}\]
+Both systems produce softmax choice probabilities (\(\beta = 50\),
+fixed), combined via an adaptive weight:
+\[\omega = \rho \cdot \min\!\left(1,\; K / n_s\right),\qquad
+p_{\text{hybrid}}(a \mid s) = \omega\,p_{\text{WM}} + (1-\omega)\,p_{\text{RL}}\]
 
 \textbf{Epsilon noise and dual perseveration (M6b).} The winning model
 adds uniform noise and two perseveration kernels (global and
-stimulus-specific) via a stick-breaking parameterization: \[
-\kappa = \kappa_{\text{total}} \cdot \kappa_{\text{share}}, \qquad
-\kappa_s = \kappa_{\text{total}} \cdot (1 - \kappa_{\text{share}})
-\] The final choice probability is: \[
-p(a \mid s) = (1 - \kappa - \kappa_s)\left[\frac{\varepsilon}{n_A} + (1-\varepsilon)\,p_{\text{hybrid}}\right]
+stimulus-specific) via a stick-breaking parameterization:
+\[\kappa = \kappa_{\text{total}} \cdot \kappa_{\text{share}}, \qquad
+\kappa_s = \kappa_{\text{total}} \cdot (1 - \kappa_{\text{share}})\] The
+final choice probability is:
+\[p(a \mid s) = (1 - \kappa - \kappa_s)\left[\frac{\varepsilon}{n_A} + (1-\varepsilon)\,p_{\text{hybrid}}\right]
 + \kappa\,\mathbf{1}[a = a_{\text{last}}]
-+ \kappa_s\,\mathbf{1}[a = a_{\text{last}}^{(s)}]
-\] where \(a_{\text{last}}\) is the globally previous action and
++ \kappa_s\,\mathbf{1}[a = a_{\text{last}}^{(s)}]\] where
+\(a_{\text{last}}\) is the globally previous action and
 \(a_{\text{last}}^{(s)}\) is the previous action for stimulus \(s\).
 
 \begin{tcolorbox}[enhanced jigsaw, arc=.35mm, bottomrule=.15mm, bottomtitle=1mm, breakable, colback=white, colbacktitle=quarto-callout-note-color!10!white, colframe=quarto-callout-note-color-frame, coltitle=black, left=2mm, leftrule=.75mm, opacityback=0, opacitybacktitle=0.6, rightrule=.15mm, title=\textcolor{quarto-callout-note-color}{\faInfo}\hspace{0.5em}{Model Parameter Glossary}, titlerule=0mm, toprule=.15mm, toptitle=1mm]
@@ -503,8 +502,8 @@ This construction enforces the sum constraint without inequality
 constraints, avoids boundary artefacts when either kernel vanishes, and
 permits separate Level-2 regression coefficients on
 \(\kappa_{\text{total}}\) (overall perseveration budget) and
-\(\kappa_{\text{share}}\) (allocation between global vs.
-stimulus-specific kernels). Note that \(\kappa_{\text{share}}\) is
+\(\kappa_{\text{share}}\) (allocation between global
+vs.~stimulus-specific kernels). Note that \(\kappa_{\text{share}}\) is
 non-identifiable when \(\kappa_{\text{total}} \approx 0\); we address
 this at three points: (a) the prior
 \(\mu_{0, \kappa_{\text{share}}} = 0\) is uninformative about the split,
@@ -637,7 +636,7 @@ will populate.}
 
 \tabularnewline
 
-\caption{}\label{T_b1491}\tabularnewline
+\caption{}\label{T_2e3fc}\tabularnewline
 \toprule\noalign{}
 Model & ELPD & ELPD diff & Stacking weight \\
 \midrule\noalign{}
@@ -661,7 +660,7 @@ model. Phase 24 cold-start will populate.}
 
 \tabularnewline
 
-\caption{}\label{T_fd061}\tabularnewline
+\caption{}\label{T_84d1e}\tabularnewline
 \toprule\noalign{}
 Model & PXP & EP \\
 \midrule\noalign{}
@@ -752,7 +751,7 @@ populate.}
 
 \tabularnewline
 
-\caption{}\label{T_cf93f}\tabularnewline
+\caption{}\label{T_6b7aa}\tabularnewline
 \toprule\noalign{}
 Parameter & Predictor & beta\_mean & hdi\_lo & hdi\_hi & fdr\_flag \\
 \midrule\noalign{}
@@ -971,7 +970,7 @@ comparison; see text.}
 
 \tabularnewline
 
-\caption{}\label{T_10aec}\tabularnewline
+\caption{}\label{T_a716b}\tabularnewline
 \toprule\noalign{}
 Model & k & Aggregate AIC & Aggregate BIC & dAIC & Akaike Weight \\
 \midrule\noalign{}
@@ -1135,7 +1134,7 @@ model. Values are mean (SD) across all participants with valid fits.}
 
 \tabularnewline
 
-\caption{}\label{T_d51dd}\tabularnewline
+\caption{}\label{T_80f79}\tabularnewline
 \toprule\noalign{}
 Parameter & Mean & SD & 95\% CI & N \\
 \midrule\noalign{}
@@ -1189,7 +1188,7 @@ r.}
 
 \tabularnewline
 
-\caption{}\label{T_22f0c}\tabularnewline
+\caption{}\label{T_78530}\tabularnewline
 \toprule\noalign{}
 Parameter & n (No Impact) & n (Ongoing) & U & p & p (corrected) & r & M
 (No Impact) & M (Ongoing) \\
@@ -1259,7 +1258,7 @@ FWE-corrected p-values shown. No correlations survived correction.}
 
 \tabularnewline
 
-\caption{}\label{T_fc4a3}\tabularnewline
+\caption{}\label{T_5e41f}\tabularnewline
 \toprule\noalign{}
 Parameter & Predictor & N & rho & p (uncorr.) & p (FWE) \\
 \midrule\noalign{}
@@ -1301,7 +1300,7 @@ parameters on IES-R subscales (Intrusion, Avoidance, Hyperarousal). Beta
 
 \tabularnewline
 
-\caption{}\label{T_79492}\tabularnewline
+\caption{}\label{T_05ffc}\tabularnewline
 \toprule\noalign{}
 Parameter & Predictor & β & SE & 95\% CI & t & p \\
 \midrule\noalign{}
@@ -1403,7 +1402,7 @@ not comparable to choice-only models M1--M6b.}
 
 \tabularnewline
 
-\caption{}\label{T_86ab7}\tabularnewline
+\caption{}\label{T_a0ca8}\tabularnewline
 \toprule\noalign{}
 Model & Free Parameters & k & Type \\
 \midrule\noalign{}

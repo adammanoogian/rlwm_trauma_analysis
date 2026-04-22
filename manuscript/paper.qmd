@@ -4,7 +4,7 @@ author:
   - name: Jasmine Burrows
     affiliations:
       - id: uts
-          name: University of Technology Sydney
+        name: University of Technology Sydney
   - name: Adam Manoogian
     orcid: 0009-0002-8002-3191
     email: adam.manoogian@monash.edu
@@ -163,7 +163,7 @@ This paper describes the fitting of seven hierarchically nested computational mo
 
 Participants were included in all downstream analyses only if they met the v4.0 canonical inclusion criteria implemented in `config.get_analysis_cohort()`, which enforces the intersection of three gates: (1) **task completeness** --- at least `{python} MIN_TRIALS_THRESHOLD` trials and at least eight main-task blocks; (2) a **performance check** --- overall accuracy above `{python} f"{MIN_OVERALL_ACCURACY:.2f}"` AND mean accuracy over the last `{python} LATE_BLOCK_N` main-task blocks above `{python} f"{MIN_LATE_BLOCK_ACCURACY:.2f}"` (the late-block criterion confirms the participant learned rather than performing at or near chance throughout the session, since chance = 1/3 $\approx$ 0.333); (3) **scale completeness** --- non-missing values on every required survey column (LEC-5 total events, IES-R total, IES-R intrusion, IES-R avoidance, IES-R hyperarousal). The resulting analysis cohort comprised **`{python} n_participants`** participants. Trauma exposure and symptom severity were assessed via the Life Events Checklist for DSM-5 (LEC-5; @weathers2013life) and the Impact of Event Scale--Revised (IES-R; @weiss2007impact). Participants were classified into two groups based on LEC-5 endorsement and IES-R total score: **`{python} groups[0]`** (n = `{python} group_counts[groups[0]]`) and **`{python} groups[1]`** (n = `{python} group_counts[groups[1]]`).
 
-Scale distributions and pairwise correlations are summarized in @fig-scale-distributions and documented in `docs/SCALES_AND_FITTING_AUDIT.md`.
+Scale distributions and pairwise correlations are summarized in @fig-scale-distributions and documented in `docs/04_methods/README.md#scales-orthogonalization-and-audit`.
 
 ::: {#fig-scale-distributions}
 ![](figures/scale_distributions.png){width="100%"}
