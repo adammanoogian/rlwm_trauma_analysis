@@ -24,6 +24,8 @@ files_modified:
   - scripts/fitting/fit_mle.py                           (moved to 04/a_mle)
   - scripts/fitting/fit_bayesian.py                      (moved to 04/b_bayesian)
   - scripts/**/*.py                                      (internal importer updates across moved tree)
+  - scripts/fitting/tests/test_load_side_validation.py   (update _ENUMERATED_FILES list lines 18-32 to canonical 01-06 paths; comment out visualization/simulations entries pending 29-04 restore)
+  - config.py                                            (line 691 :mod: cross-references updated to rlwm.fitting.* forms)
   - validation/compare_posterior_to_mle.py               (docstring references updated)
 autonomous: true
 
@@ -185,6 +187,12 @@ Output: 6 new stage directories populated with moved files + all importers point
        - Known referrers: `cluster/12_mle.slurm`, `cluster/12_mle_gpu.slurm`, `cluster/12_mle_single.slurm`, `cluster/12_submit_all.sh`, `cluster/12_submit_all_gpu.sh`, `cluster/13_bayesian_choice_only.slurm`, `cluster/13_bayesian_gpu.slurm`, `cluster/13_bayesian_m4_gpu.slurm`, `cluster/13_bayesian_m6b_subscale.slurm`, `cluster/13_bayesian_multigpu.slurm`, `cluster/13_bayesian_permutation.slurm`, `cluster/13_bayesian_pscan.slurm`, `cluster/13_bayesian_pscan_smoke.slurm`, `cluster/13_bayesian_fullybatched_smoke.slurm`, `cluster/13_full_pipeline.slurm`, `cluster/21_3_fit_baseline.slurm`, `cluster/21_6_fit_with_l2.slurm`, `cluster/21_submit_pipeline.sh`, `cluster/21_dispatch_l2_winners.sh`, `CLAUDE.md`, `README.md`, `validation/compare_posterior_to_mle.py` docstrings (lines 10, 12), `manuscript/paper.qmd` (2 hits for `scripts/14_compare_models.py`, separate from fitting but same wave of path updates — handled in Task 5 below).
        - Rewrite each caller to reference the new path.
     8. Do NOT remove `scripts/fitting/` yet; it still holds bms.py, compare_mle_models.py, mle_utils.py, lba_likelihood.py, level2_design.py, bayesian_diagnostics.py, bayesian_summary_writer.py, model_recovery.py, warmup_jit.py, aggregate_permutation_results.py, and tests/. Plan 29-03 utils consolidation decides the fate of each.
+    9. **Fix stale RST `:mod:` cross-references**. `config.py` line 691 contains `:mod:\`scripts.fitting.fit_mle\`` and `:mod:\`scripts.fitting.fit_bayesian\`` — these dotted-module paths become stale after the move. The new dotted-module path (`scripts.04_model_fitting.a_mle.fit_mle`) is NOT a valid Python dotted-module name because `04_model_fitting` starts with a digit (Python identifiers cannot begin with a digit). Rewrite to point at the importable `src/rlwm/fitting/*` modules instead (these exist per Phase 28 REFAC-02 and are the authoritative write-side enforcers):
+         - `:mod:\`scripts.fitting.fit_mle\`` → `:mod:\`rlwm.fitting.jax_likelihoods\`` (or drop the cross-reference and use file-path prose: `\`\`scripts/04_model_fitting/a_mle/fit_mle.py\`\``)
+         - `:mod:\`scripts.fitting.fit_bayesian\`` → `:mod:\`rlwm.fitting.numpyro_models\`` (or prose: `\`\`scripts/04_model_fitting/b_bayesian/fit_bayesian.py\`\``)
+       - Grep first to find all such hits: `grep -rn ":mod:\\\`scripts\\.fitting" . --include="*.py" --include="*.md" --include="*.rst" --exclude-dir=.planning --exclude-dir=.git`
+       - Apply the same remap pattern to any other `:mod:\`scripts.<stage>\`` RST references uncovered by the grep — always prefer the `rlwm.<submodule>` form if an authoritative `src/rlwm/` home exists; otherwise drop the `:mod:` role and use backtick-quoted file-path prose.
+    10. **Add digit-prefix documentation comment (polish)**. In each of `scripts/04_model_fitting/__init__.py`, `scripts/04_model_fitting/a_mle/__init__.py`, `scripts/04_model_fitting/b_bayesian/__init__.py`, `scripts/04_model_fitting/c_level2/__init__.py`, prepend a one-line comment: `# Stage folder name starts with a digit: use relative imports within this package (e.g. `from .fit_mle import main`), never `from scripts.04_model_fitting.a_mle.fit_mle` (Python dotted names cannot start with a digit).` — Apply the same comment in `scripts/01_data_preprocessing/__init__.py`, `scripts/02_behav_analyses/__init__.py`, `scripts/03_model_prefitting/__init__.py`, `scripts/05_post_fitting_checks/__init__.py`, `scripts/06_fit_analyses/__init__.py`. This helps future collaborators understand why intra-package imports use the relative form.
   </action>
   <verify>
     - `test -d scripts/04_model_fitting/a_mle && test -d scripts/04_model_fitting/b_bayesian && test -d scripts/04_model_fitting/c_level2`
@@ -253,22 +261,49 @@ Output: 6 new stage directories populated with moved files + all importers point
 </task>
 
 <task type="auto">
-  <name>Task 5: Full-tree grep sweep + atomic commit</name>
+  <name>Task 5: Update test_load_side_validation.py enumeration + full-tree grep sweep + atomic commit</name>
   <files>
-    - (verification task — touches no files directly)
+    - scripts/fitting/tests/test_load_side_validation.py  (update `_ENUMERATED_FILES` list lines 18-32)
+    - (otherwise a verification task — touches no new files directly)
   </files>
   <action>
-    1. Final sweep for any remaining old paths (excluding `.planning/` which is historical):
+    0. **CRITICAL — update `scripts/fitting/tests/test_load_side_validation.py` `_ENUMERATED_FILES` list (lines 18–32)**. This list is built with `pathlib.Path` `/` operator, so path segments are individual quoted strings (`"bayesian_pipeline"`, `"post_mle"`, etc.) and the grep sweep in step 1 below MUST use the disjunctive quoted-string pattern (not the forward-slash-form pattern) to catch them. The test logic at lines 76–83 adds `[MISSING]` to `violations` for any absent file; the `assert not violations` at line 99 will FAIL post-rename unless every entry is rewritten. Apply the following remaps:
+       - `_PROJECT_ROOT / "scripts" / "14_compare_models.py"` → `_PROJECT_ROOT / "scripts" / "06_fit_analyses" / "compare_models.py"`
+       - `_PROJECT_ROOT / "scripts" / "post_mle" / "18_bayesian_level2_effects.py"` → `_PROJECT_ROOT / "scripts" / "06_fit_analyses" / "bayesian_level2_effects.py"`
+       - `_PROJECT_ROOT / "scripts" / "bayesian_pipeline" / "21_fit_with_l2.py"` → `_PROJECT_ROOT / "scripts" / "04_model_fitting" / "c_level2" / "21_fit_with_l2.py"`
+       - `_PROJECT_ROOT / "scripts" / "bayesian_pipeline" / "21_compute_loo_stacking.py"` → `_PROJECT_ROOT / "scripts" / "06_fit_analyses" / "compute_loo_stacking.py"`
+       - `_PROJECT_ROOT / "scripts" / "bayesian_pipeline" / "21_baseline_audit.py"` → `_PROJECT_ROOT / "scripts" / "05_post_fitting_checks" / "baseline_audit.py"`
+       - `_PROJECT_ROOT / "scripts" / "bayesian_pipeline" / "21_model_averaging.py"` → `_PROJECT_ROOT / "scripts" / "06_fit_analyses" / "model_averaging.py"`
+       - `_PROJECT_ROOT / "scripts" / "bayesian_pipeline" / "21_scale_audit.py"` → `_PROJECT_ROOT / "scripts" / "05_post_fitting_checks" / "scale_audit.py"`
+       - **For the four `scripts/visualization/*` entries AND the `scripts/simulations/generate_data.py` entry (lines 26–30)**: comment them out with a TODO marker that 29-04 will restore. Plan 29-04 moves those folders to `scripts/legacy/` — but 29-04 runs in Wave 2, after this plan. We cannot reference `scripts/legacy/visualization/...` paths yet because the `git mv` hasn't happened. Replace those 5 lines with:
+         ```python
+         # TODO(29-04): restore these entries with scripts/legacy/ paths once dead-folder audit completes.
+         # _PROJECT_ROOT / "scripts" / "visualization" / "plot_posterior_diagnostics.py",
+         # _PROJECT_ROOT / "scripts" / "visualization" / "plot_group_parameters.py",
+         # _PROJECT_ROOT / "scripts" / "visualization" / "plot_model_comparison.py",
+         # _PROJECT_ROOT / "scripts" / "visualization" / "quick_arviz_plots.py",
+         # _PROJECT_ROOT / "scripts" / "simulations" / "generate_data.py",
+         ```
+         Plan 29-04 Task 2 has a corresponding step to un-comment these and rewrite to `scripts/legacy/visualization/...` and `scripts/legacy/simulations/...` paths after the `git mv`.
+       - Leave `_PROJECT_ROOT / "validation" / "compare_posterior_to_mle.py"` UNCHANGED (validation/ path unaffected by 29-01).
+
+    1. Final sweep for any remaining old paths (excluding `.planning/` which is historical). **Run BOTH a forward-slash-form grep AND a disjunctive-quoted-string grep** — the latter catches Python `pathlib.Path` construction where segments are individual string literals:
        ```
+       # Forward-slash path form
        grep -rn \
          "scripts/data_processing\|scripts/behavioral\|scripts/simulations_recovery\|scripts/post_mle\|scripts/bayesian_pipeline\|scripts/12_fit_mle\|scripts/13_fit_bayesian\|scripts/14_compare_models\|scripts/fitting/fit_mle\|scripts/fitting/fit_bayesian\|from scripts\.data_processing\|from scripts\.behavioral\|from scripts\.simulations_recovery\|from scripts\.post_mle\|from scripts\.bayesian_pipeline" \
          scripts/ tests/ validation/ cluster/ manuscript/ docs/ src/ \
          --include="*.py" --include="*.sh" --include="*.slurm" --include="*.md" --include="*.qmd" --include="*.tex"
+
+       # Python pathlib.Path / operator form (individual quoted string segments)
+       grep -rn '"bayesian_pipeline"\|"post_mle"\|"simulations_recovery"\|"data_processing"\|"behavioral"' \
+         scripts/ src/ tests/ validation/ manuscript/ --include="*.py"
        ```
-       Expected: ZERO matches.
+       Expected: ZERO matches from BOTH greps (outside `.planning/`). The second grep specifically catches the `_PROJECT_ROOT / "scripts" / "bayesian_pipeline" / ...` pattern that the first misses.
+       - EXCEPTION: the commented-out `# _PROJECT_ROOT / "scripts" / "visualization" / ...` and `# ... / "simulations" / ...` lines added in step 0 SHOULD still appear; they're prefixed with `#` so the test treats them as comments. The 29-04 restore step will replace `"visualization"` with `"legacy" / "visualization"` etc. If the second grep reports hits ONLY on those commented lines, that's fine — they're not active code.
     2. Fix any stragglers by walking each hit and rewriting the path.
     3. Re-verify `validation/check_v4_closure.py --milestone v4.0` exits 0.
-    4. Re-verify `pytest scripts/fitting/tests/test_v4_closure.py scripts/fitting/tests/test_load_side_validation.py -v` PASSES.
+    4. Re-verify **`python -m pytest scripts/fitting/tests/test_load_side_validation.py -v`** PASSES (the 2 test functions pass with zero `[MISSING]` violations — all enumerated files resolve to real paths on disk post-rename). Then re-verify `pytest scripts/fitting/tests/test_v4_closure.py scripts/fitting/tests/test_load_side_validation.py -v` PASSES as the combined check.
     5. Atomic commit (ONE commit for the whole rename wave): 
        ```
        refactor(29-01): canonical 01–06 stage layout for scripts/

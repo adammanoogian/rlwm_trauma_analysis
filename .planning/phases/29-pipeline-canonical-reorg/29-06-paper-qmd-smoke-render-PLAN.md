@@ -3,7 +3,7 @@ phase: 29-pipeline-canonical-reorg
 plan: 06
 type: execute
 wave: 3
-depends_on: [29-01]
+depends_on: [29-01, 29-02]
 files_modified:
   - manuscript/paper.qmd                     (inline-cell python imports + script-path prose references)
   - manuscript/paper.tex                     (line 244 path reference updated per 29-04)
@@ -13,6 +13,7 @@ autonomous: true
 must_haves:
   truths:
     - "paper.qmd contains zero references to old paths (scripts/{data_processing,behavioral,simulations_recovery,post_mle,bayesian_pipeline}/ or scripts/{12,13,14}_*.py top-level)"  # SC#8, SC#10
+    - "paper.qmd line 166 caption reference to docs/SCALES_AND_FITTING_AUDIT.md rewritten to docs/04_methods/README.md#scales-orthogonalization-and-audit (absorbed from 29-02)"
     - "quarto render manuscript/paper.qmd exits 0 (graceful-fallback cells absorb missing artifacts)"  # SC#8
     - "Every inline {python} code cell import in paper.qmd resolves from repo root (PYTHONPATH=.) given the new structure"
   artifacts:
@@ -81,10 +82,13 @@ Output: paper.qmd + paper.tex with canonical paths + successful quarto render.
     5. Verify inline `{python}` cells that import from `scripts.*` modules resolve under the new paths:
        - If a cell does `from scripts.bayesian_pipeline.21_manuscript_tables import <func>` (impossible — `21_` can't start a Python module name), rewrite to `from scripts.06_fit_analyses.manuscript_tables import <func>` (still impossible if the leading `06_` blocks it). More likely: paper.qmd uses subprocess-style invocation (`subprocess.run(["python", "scripts/..."]`) for loading, which is path-based not import-based. In that case the rewrites in step 3 already handle it. Confirm by reading each `{python}` cell that touches scripts/ content.
     6. One known inline pattern from Phase 28 (graceful fallback): `Path("output/bayesian/manuscript/...").exists()` checks — those DON'T reference `scripts/` paths, so they're unchanged.
+    7. **Absorbed from Plan 29-02** — rewrite paper.qmd line 166 caption cross-reference. Line 166 currently reads (in prose): `Scale distributions and pairwise correlations are summarized in @fig-scale-distributions and documented in \`docs/SCALES_AND_FITTING_AUDIT.md\`.` Rewrite the backtick-quoted path to `\`docs/04_methods/README.md#scales-orthogonalization-and-audit\``. This was originally 29-02's responsibility but was moved here to keep paper.qmd edits consolidated in a single plan (avoids Wave 1 parallel-write race between 29-01 and 29-02). Confirm via: `grep -n "SCALES_AND_FITTING_AUDIT\|scales-orthogonalization-and-audit" manuscript/paper.qmd` — expect the pre-edit match on line 166 and, post-edit, a match only on the new anchor form.
   </action>
   <verify>
     - `grep -n "scripts/data_processing\|scripts/behavioral\|scripts/simulations_recovery\|scripts/post_mle\|scripts/bayesian_pipeline\|scripts/12_fit_mle\|scripts/13_fit_bayesian\|scripts/14_compare_models\|scripts/fitting/fit_mle\|scripts/fitting/fit_bayesian" manuscript/paper.qmd manuscript/paper.tex` returns ZERO matches
     - `grep -n "scripts/" manuscript/paper.qmd | grep -v "scripts/0[1-6]_\|scripts/utils/\|scripts/legacy/\|scripts/fitting/"` returns only expected hits (fitting library remnants or comments)
+    - `grep -n "docs/SCALES_AND_FITTING_AUDIT\.md" manuscript/paper.qmd` returns ZERO matches (line 166 absorbed-from-29-02 edit applied)
+    - `grep -n "scales-orthogonalization-and-audit" manuscript/paper.qmd` returns at least 1 match (the rewritten caption)
   </verify>
   <done>Every paper.qmd and paper.tex script-path reference points at canonical 01–06 layout; zero stale old-path refs.</done>
 </task>

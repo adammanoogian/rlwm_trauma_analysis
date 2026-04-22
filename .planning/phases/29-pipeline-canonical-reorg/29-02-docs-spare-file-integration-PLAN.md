@@ -14,7 +14,10 @@ files_modified:
   - docs/legacy/K_PARAMETERIZATION.md                  (git mv from docs/)
   - docs/legacy/SCALES_AND_FITTING_AUDIT.md            (git mv from docs/)
   - docs/README.md                                     (updated cross-references)
-  - manuscript/paper.qmd                               (line 166: docs ref updated for SCALES merge)
+  # NOTE: manuscript/paper.qmd line 166 edit DEFERRED to Plan 29-06 (paper-qmd-smoke-render).
+  # Rationale: 29-06 already rewrites script-path references in paper.qmd; consolidating the
+  # docs-ref edit there avoids a Wave 1 parallel-write race with 29-01 and keeps 29-02 scoped
+  # to pure docs/ content.
 autonomous: true
 
 must_haves:
@@ -22,7 +25,7 @@ must_haves:
     - "docs/ top level no longer contains HIERARCHICAL_BAYESIAN.md, K_PARAMETERIZATION.md, or SCALES_AND_FITTING_AUDIT.md (merged into structured method docs)"  # SC#5
     - "docs/CLUSTER_GPU_LESSONS.md byte-identical to pre-phase content (untouched per user directive)"  # SC#6
     - "Merged content is reachable from docs/README.md and docs/04_methods/README.md navigation tables"
-    - "paper.qmd cross-reference to `docs/SCALES_AND_FITTING_AUDIT.md` (line 166) updated to point at merged location"
+    # paper.qmd cross-reference (line 166) is handled by Plan 29-06, not this plan.
   artifacts:
     - path: "docs/legacy/HIERARCHICAL_BAYESIAN.md"
       provides: "historical archive of pre-merge hierarchical-Bayesian design doc"
@@ -94,7 +97,7 @@ Output: 3 merged sections, 3 legacy archives, hash manifest for CLUSTER_GPU_LESS
     4. `git mv docs/SCALES_AND_FITTING_AUDIT.md docs/legacy/SCALES_AND_FITTING_AUDIT.md`
     5. Update any other referrers:
        - `grep -rn "HIERARCHICAL_BAYESIAN.md\|SCALES_AND_FITTING_AUDIT.md" . --exclude-dir=.planning --exclude-dir=.git --exclude-dir=docs/legacy`
-       - Known hit: `manuscript/paper.qmd` line 166 references `docs/SCALES_AND_FITTING_AUDIT.md` (in a figure caption). Rewrite to: `docs/04_methods/README.md#scales-orthogonalization-and-audit`.
+       - **DEFERRED**: `manuscript/paper.qmd` line 166 references `docs/SCALES_AND_FITTING_AUDIT.md` (in a figure caption). **DO NOT edit paper.qmd in this plan** — Plan 29-06 (paper-qmd-smoke-render) already rewrites every `scripts/`-prefixed path reference in paper.qmd and is the single owner of paper.qmd edits in Phase 29. Add a note in this plan's SUMMARY pointing 29-06 at line 166: "caption text `docs/SCALES_AND_FITTING_AUDIT.md` → `docs/04_methods/README.md#scales-orthogonalization-and-audit`". This avoids a Wave 1 parallel-write race with 29-01 (which also touches paper.qmd) and keeps this plan scoped to docs/ only.
        - Known hit (potentially): `docs/README.md` if it has a top-level index — update to point at the merged sections.
   </action>
   <verify>
@@ -102,10 +105,10 @@ Output: 3 merged sections, 3 legacy archives, hash manifest for CLUSTER_GPU_LESS
     - `test -f docs/legacy/HIERARCHICAL_BAYESIAN.md && test -f docs/legacy/SCALES_AND_FITTING_AUDIT.md`
     - `grep -n "## Hierarchical Bayesian Architecture" docs/04_methods/README.md` returns 1 match
     - `grep -n "## Scales Orthogonalization and Audit" docs/04_methods/README.md` returns 1 match
-    - `grep -rn "docs/HIERARCHICAL_BAYESIAN\.md\|docs/SCALES_AND_FITTING_AUDIT\.md" scripts/ tests/ validation/ cluster/ manuscript/ docs/ src/ --exclude-dir=legacy` returns ZERO (all references rewritten, except inside `docs/legacy/` which is fine)
+    - `grep -rn "docs/HIERARCHICAL_BAYESIAN\.md\|docs/SCALES_AND_FITTING_AUDIT\.md" scripts/ tests/ validation/ cluster/ docs/ src/ --exclude-dir=legacy` returns ZERO (all references rewritten, except inside `docs/legacy/` which is fine). **NOTE: `manuscript/paper.qmd` line 166 is INTENTIONALLY excluded from this grep** — that edit is 29-06's responsibility, not this plan's.
     - `git log --follow --oneline docs/legacy/HIERARCHICAL_BAYESIAN.md | head -3` shows original file history preserved
   </verify>
-  <done>Merged content lives under `docs/04_methods/README.md` H2 sections with historical-source footnotes; originals archived in `docs/legacy/`; paper.qmd caption updated.</done>
+  <done>Merged content lives under `docs/04_methods/README.md` H2 sections with historical-source footnotes; originals archived in `docs/legacy/`. (paper.qmd caption update deferred to Plan 29-06.)</done>
 </task>
 
 <task type="auto">
@@ -160,7 +163,7 @@ Output: 3 merged sections, 3 legacy archives, hash manifest for CLUSTER_GPU_LESS
        - docs/K_PARAMETERIZATION.md → docs/03_methods_reference/MODEL_REFERENCE.md#k-parameterization
        - Originals archived under docs/legacy/ with git mv (history preserved)
        - CLUSTER_GPU_LESSONS.md and PARALLEL_SCAN_LIKELIHOOD.md UNTOUCHED (user directive)
-       - paper.qmd caption (line 166) updated to new SCALES location
+       - paper.qmd caption (line 166) update DEFERRED to Plan 29-06 (avoids Wave 1 parallel-write race)
        - pre_phase29_cluster_gpu_lessons.sha256 manifest added for 29-07 closure guard
        ```
   </action>
@@ -203,8 +206,7 @@ grep -rn "docs/HIERARCHICAL_BAYESIAN\.md\|docs/K_PARAMETERIZATION\.md\|docs/SCAL
   --exclude-dir=legacy --exclude-dir=.planning \
   || echo "OK: zero stale refs"
 
-# paper.qmd caption updated
-grep -n "SCALES_AND_FITTING_AUDIT\|scales-orthogonalization-and-audit" manuscript/paper.qmd
+# paper.qmd caption — NOT verified here (29-06 owns paper.qmd edits)
 ```
 </verification>
 
@@ -213,8 +215,7 @@ grep -n "SCALES_AND_FITTING_AUDIT\|scales-orthogonalization-and-audit" manuscrip
 2. The three originals live at `docs/legacy/` with `git mv` history preserved.
 3. Merged content is findable under `docs/04_methods/README.md` (2 H2 sections) and `docs/03_methods_reference/MODEL_REFERENCE.md` (1 H2 section).
 4. `docs/CLUSTER_GPU_LESSONS.md` and `docs/PARALLEL_SCAN_LIKELIHOOD.md` bit-identical to pre-phase content (SC#6); hash manifest captured.
-5. `manuscript/paper.qmd` line 166 reference updated.
-6. Zero stale `docs/HIERARCHICAL_BAYESIAN.md`/`docs/K_PARAMETERIZATION.md`/`docs/SCALES_AND_FITTING_AUDIT.md` references outside `docs/legacy/` and `.planning/`.
+5. Zero stale `docs/HIERARCHICAL_BAYESIAN.md`/`docs/K_PARAMETERIZATION.md`/`docs/SCALES_AND_FITTING_AUDIT.md` references outside `docs/legacy/`, `.planning/`, AND `manuscript/paper.qmd` (paper.qmd line 166 is handled by Plan 29-06).
 </success_criteria>
 
 <output>

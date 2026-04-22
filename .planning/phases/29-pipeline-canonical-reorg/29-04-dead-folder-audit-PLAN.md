@@ -16,6 +16,7 @@ files_modified:
   - tests/test_wmrl_exploration.py       (import updated similarly)
   - scripts/03_model_prefitting/09_generate_synthetic_data.py  (import updated if scripts/simulations/generate_data.py moves)
   - scripts/03_model_prefitting/10_run_parameter_sweep.py      (import updated if scripts/simulations/parameter_sweep.py moves)
+  - scripts/fitting/tests/test_load_side_validation.py         (restore 5 _ENUMERATED_FILES entries that 29-01 commented out; rewrite to scripts/legacy/ paths post-move)
   - manuscript/paper.tex                 (line 244 reference updated: `scripts/analysis/trauma_scale_distributions.py` path)
 autonomous: true
 
@@ -175,6 +176,18 @@ Output: `scripts/legacy/README.md` audit record + cleaned `scripts/` top level.
        - Default action: `git mv scripts/visualization scripts/legacy/visualization` unless specific files are salvaged.
        - Update `docs/02_pipeline_guide/PLOTTING_REFERENCE.md` references to point at new legacy paths OR annotate as historical.
     
+    1b. **Restore commented-out `_ENUMERATED_FILES` entries in `scripts/fitting/tests/test_load_side_validation.py`** (coordinated with 29-01). Plan 29-01 Task 5 step 0 commented out 5 entries with a `TODO(29-04)` marker pending the `scripts/visualization/` and `scripts/simulations/` moves. After 29-04's `git mv scripts/visualization scripts/legacy/visualization` and `git mv scripts/simulations scripts/legacy/simulations` land, un-comment the TODO block and rewrite each to the new `scripts/legacy/<folder>/` path:
+       ```python
+       _PROJECT_ROOT / "scripts" / "legacy" / "visualization" / "plot_posterior_diagnostics.py",
+       _PROJECT_ROOT / "scripts" / "legacy" / "visualization" / "plot_group_parameters.py",
+       _PROJECT_ROOT / "scripts" / "legacy" / "visualization" / "plot_model_comparison.py",
+       _PROJECT_ROOT / "scripts" / "legacy" / "visualization" / "quick_arviz_plots.py",
+       _PROJECT_ROOT / "scripts" / "legacy" / "simulations" / "generate_data.py",
+       ```
+       Also remove the `# TODO(29-04): restore these entries with scripts/legacy/ paths once dead-folder audit completes.` marker comment since the TODO is now resolved.
+       - **Edge case**: if any of these 5 files are DELETED (rather than archived to legacy/) per the per-file audit in Task 1, then instead of un-commenting, remove the line entirely from the enumeration. The `[MISSING]` logic in the test would flag a deleted file as a violation — so the line must either point at an existing archived location OR be removed.
+       - Run `python -m pytest scripts/fitting/tests/test_load_side_validation.py -v` after the edits — both test functions must PASS with zero `[MISSING]` violations.
+
     2. After all moves, grep for any remaining references to the old top-level folders:
        ```
        grep -rn \
@@ -206,9 +219,10 @@ Output: `scripts/legacy/README.md` audit record + cleaned `scripts/` top level.
     - `test -d scripts/legacy/analysis && test -d scripts/legacy/results && test -d scripts/legacy/simulations && test -d scripts/legacy/statistical_analyses && test -d scripts/legacy/visualization` (unless some were deleted outright — in which case the README.md documents which ones)
     - `grep -rn "scripts/analysis\|scripts/results\|scripts/simulations\|scripts/statistical_analyses\|scripts/visualization\|from scripts\.analysis\|from scripts\.results\|from scripts\.simulations\|from scripts\.statistical_analyses\|from scripts\.visualization" scripts/ tests/ validation/ cluster/ manuscript/ docs/ src/ --include="*.py" --include="*.sh" --include="*.slurm" --include="*.md" --include="*.qmd" --include="*.tex" --exclude-dir=.planning --exclude-dir=scripts/legacy` returns ZERO
     - `pytest scripts/fitting/tests/test_v4_closure.py -v` PASSES 3/3
+    - `python -m pytest scripts/fitting/tests/test_load_side_validation.py -v` PASSES (both test functions; zero `[MISSING]` violations — the 5 previously-commented-out entries now resolve to valid `scripts/legacy/<folder>/` paths, or were removed because the underlying file was deleted)
     - `pytest validation/test_unified_simulator.py --collect-only` completes without ImportError (even if the test itself is deselected)
   </verify>
-  <done>Five legacy folders gone from scripts/ top level; contents either archived under legacy/ with importers updated, or deleted; audit record in README.md matches on-disk reality; v4 closure still green.</done>
+  <done>Five legacy folders gone from scripts/ top level; contents either archived under legacy/ with importers updated, or deleted; audit record in README.md matches on-disk reality; v4 closure still green; test_load_side_validation.py `_ENUMERATED_FILES` restoration complete and `pytest scripts/fitting/tests/test_load_side_validation.py` PASSES.</done>
 </task>
 
 </tasks>

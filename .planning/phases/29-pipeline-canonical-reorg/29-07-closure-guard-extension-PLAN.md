@@ -16,7 +16,7 @@ must_haves:
     - "pytest tests/test_v5_phase29_structure.py passes — asserts the 6 stage folders exist, dead folders are gone from top level, utils/ canonical names exist, docs spare files are merged, CLUSTER_GPU_LESSONS.md hash unchanged"  # SC#12
     - "validation/check_v4_closure.py --milestone v4.0 still exits 0 (no v4 invariants regressed)"  # SC#9
     - "REQUIREMENTS.md contains REFAC-14..REFAC-20 rows and the requirement-to-phase ledger entries"
-    - "All seven success criteria from 29-CONTEXT.md / ROADMAP.md are verifiable from the test file"  # SC#1..#12
+    - "SC#1, SC#2, SC#3, SC#4, SC#5, SC#6, SC#9, SC#10, SC#12 and utils canonical-name invariants are verifiable from this pytest file. SC#7 (cluster SLURM dry-run) and SC#8 (quarto render) are verified by Plan 29-05 and Plan 29-06 verify steps respectively, which run external processes (sbatch --dry-run, quarto render) not expressible as pytest assertions. SC#11 (full-suite pytest green) is verified by running the full pytest suite as a separate step within this plan."
   artifacts:
     - path: "tests/test_v5_phase29_structure.py"
       provides: "pytest closure guard for Phase 29 canonical structure"
