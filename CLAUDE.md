@@ -67,57 +67,109 @@ This file contains project-specific instructions for Claude Code when working on
 
 The analysis pipeline uses numbered scripts grouped by stage:
 
+Pipeline layout follows **Scheme D** (plan 29-04b): six numbered stage
+folders (01-06) with intra-stage numbers that reset per stage; parallel-
+alternative subfolders (04/a, 04/b, 04/c) are unnumbered. Library /
+engine code uses underscore-private convention (`_engine.py`) to avoid
+collision with canonical CLI entry names.
+
 ```
 scripts/
-├── data_processing/          # Stage 01-04: Data Processing
-│   ├── 01_parse_raw_data.py         # Parse raw jsPsych JSON files
-│   ├── 02_create_collated_csv.py    # Collate all participants
-│   ├── 03_create_task_trials_csv.py # Create trial-level data
-│   └── 04_create_summary_csv.py     # Create participant summaries
+├── 01_data_preprocessing/      # Strict execution order
+│   ├── 01_parse_raw_data.py
+│   ├── 02_create_collated_csv.py
+│   ├── 03_create_task_trials_csv.py
+│   └── 04_create_summary_csv.py
 │
-├── behavioral/               # Stage 05-08: Behavioral Analysis
-│   ├── 05_summarize_behavioral_data.py    # Behavioral summary stats
-│   ├── 06_visualize_task_performance.py   # Task performance plots
-│   ├── 07_analyze_trauma_groups.py        # Trauma grouping + validation
-│   └── 08_run_statistical_analyses.py     # ANOVAs + descriptive tables
+├── 02_behav_analyses/          # Strict execution order
+│   ├── 01_summarize_behavioral_data.py
+│   ├── 02_visualize_task_performance.py
+│   ├── 03_analyze_trauma_groups.py
+│   └── 04_run_statistical_analyses.py
 │
-├── simulations_recovery/     # Stage 09-11: Simulations & Model Validation
-│   ├── 09_generate_synthetic_data.py      # Synthetic data generation
-│   ├── 09_run_ppc.py                      # Posterior predictive checks
-│   ├── 10_run_parameter_sweep.py          # Systematic parameter exploration
-│   └── 11_run_model_recovery.py           # Parameter/model recovery
+├── 03_model_prefitting/        # Pre-fit simulations + gates
+│   ├── 01_generate_synthetic_data.py
+│   ├── 02_run_parameter_sweep.py
+│   ├── 03_run_model_recovery.py
+│   ├── 04_run_prior_predictive.py     # Baribault gate
+│   └── 05_run_bayesian_recovery.py
 │
-├── 12_fit_mle.py             # Stage 12: MLE fitting (top-level entry point)
-├── 13_fit_bayesian.py        # Stage 13: Bayesian fitting (top-level entry point)
-├── 14_compare_models.py      # Stage 14: Model comparison (top-level entry point)
+├── 04_model_fitting/           # Parallel alternatives — no stage numbers
+│   ├── a_mle/                  # Dispatch via --model CLI flag
+│   │   ├── fit_mle.py                 # Thin CLI entry
+│   │   └── _engine.py                 # Library (3,157 lines, private)
+│   ├── b_bayesian/             # Hierarchical MCMC
+│   │   ├── fit_bayesian.py            # Ad-hoc CLI entry
+│   │   ├── fit_baseline.py            # Phase 21 pipeline entry
+│   │   └── _engine.py                 # Library (1,173 lines, private)
+│   └── c_level2/               # Winner refit with L2 design
+│       └── fit_with_l2.py
 │
-├── post_mle/                 # Stage 15-18: Post-MLE + Rendering Backend
-│   ├── 15_analyze_mle_by_trauma.py        # Parameter-trauma relationships
-│   ├── 16_regress_parameters_on_scales.py # Continuous scale regressions
-│   ├── 17_analyze_winner_heterogeneity.py # Per-participant winner analysis
-│   └── 18_bayesian_level2_effects.py      # Level-2 rendering backend
+├── 05_post_fitting_checks/     # Paper-read order: baseline -> scales -> PPC
+│   ├── 01_baseline_audit.py
+│   ├── 02_scale_audit.py
+│   └── 03_run_posterior_ppc.py
 │
-├── bayesian_pipeline/        # Stage 21: Bayesian Pipeline (9 steps)
-│   ├── 21_run_prior_predictive.py   # Prior predictive checks
-│   ├── 21_run_bayesian_recovery.py  # Parameter recovery
-│   ├── 21_fit_baseline.py           # Baseline MCMC fit
-│   ├── 21_baseline_audit.py         # Convergence + diagnostics
-│   ├── 21_compute_loo_stacking.py   # LOO-PSIS stacking weights
-│   ├── 21_fit_with_l2.py            # Level-2 trauma regression
-│   ├── 21_scale_audit.py            # Scale orthogonalization audit
-│   ├── 21_model_averaging.py        # Posterior model averaging
-│   └── 21_manuscript_tables.py      # Manuscript table rendering
+├── 06_fit_analyses/            # Paper-read order: compare -> ... -> tables
+│   ├── 01_compare_models.py
+│   ├── 02_compute_loo_stacking.py
+│   ├── 03_model_averaging.py
+│   ├── 04_analyze_mle_by_trauma.py
+│   ├── 05_regress_parameters_on_scales.py
+│   ├── 06_analyze_winner_heterogeneity.py
+│   ├── 07_bayesian_level2_effects.py
+│   └── 08_manuscript_tables.py
 │
-└── fitting/                  # Orchestrators + utilities
-    ├── fit_mle.py            # MLE fitting implementation
-    ├── fit_bayesian.py       # Bayesian fitting implementation
-    ├── mle_utils.py          # MLE utilities (transforms, info criteria)
-    ├── bms.py                # Bayesian model selection
-    └── tests/                # Test suite
-        ├── conftest.py       # Shared fixtures
-        ├── test_v4_closure.py        # Closure invariant tests
-        └── test_load_side_validation.py  # Load-side validation
+├── utils/                      # Consolidated helpers (plan 29-03)
+│   ├── ppc.py                  # Canonical PPC simulator (single source)
+│   ├── plotting.py
+│   ├── stats.py
+│   ├── scoring.py
+│   └── data_cleaning.py
+│
+├── fitting/                    # Library helpers + tests
+│   ├── mle_utils.py
+│   ├── bms.py
+│   ├── model_recovery.py
+│   ├── bayesian_diagnostics.py
+│   ├── bayesian_summary_writer.py
+│   ├── level2_design.py
+│   ├── lba_likelihood.py
+│   ├── warmup_jit.py
+│   ├── compare_mle_models.py
+│   └── tests/
+│       ├── test_v4_closure.py
+│       ├── test_load_side_validation.py
+│       ├── test_loo_stacking.py
+│       ├── test_bayesian_recovery.py
+│       ├── test_mle_quick.py
+│       ├── test_gpu_m4.py
+│       └── conftest.py
+│
+└── legacy/                     # Archived dead folders (plan 29-04)
+    ├── analysis/
+    ├── results/
+    ├── simulations/
+    ├── statistical_analyses/
+    └── visualization/
 ```
+
+**Scheme D naming rules (pin for future contributors):**
+
+- Stage folders (`0N_<descriptive>`, N = 1..6) keep numeric prefixes —
+  they encode paper IMRaD order.
+- Intra-stage numbers reset per stage (`0M_<descriptive>.py`, M = 1..N_in_stage)
+  wherever execution order is load-bearing. Parallel-alternative subfolders
+  (`04/a_mle/`, `04/b_bayesian/`, `04/c_level2/`) do NOT use numbers — they
+  use canonical descriptive names.
+- Library / engine code uses underscore-private convention
+  (`_engine.py`, `_helpers.py`) to avoid collision with CLI entry names.
+- Model fanout (M1/M2/M3/M5/M6a/M6b/M4) is via CLI `--model <name>` flag,
+  NEVER via per-model script files.
+- Callers that need to reuse engine code import via
+  `importlib.util.spec_from_file_location` by absolute path, because Python
+  dotted names cannot start with a digit (`scripts.04_model_fitting.*` is
+  illegal).
 
 ### Library (src/rlwm/)
 
