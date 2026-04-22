@@ -116,7 +116,10 @@ def test_prior_predictive_gate_helper():
     # Load the 21_run_prior_predictive module by filepath (leading digit makes
     # normal imports illegal).
     mod_path = (
-        Path(__file__).resolve().parents[3] / "scripts" / "21_run_prior_predictive.py"
+        Path(__file__).resolve().parents[3]
+        / "scripts"
+        / "bayesian_pipeline"
+        / "21_run_prior_predictive.py"
     )
     spec = importlib.util.spec_from_file_location("prior_pred_mod", mod_path)
     assert spec is not None and spec.loader is not None
