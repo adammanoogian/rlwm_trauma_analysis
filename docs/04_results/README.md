@@ -19,7 +19,7 @@ posteriors blocked on cluster runs).
 
 | Result | Producer | Output path | Status |
 |---|---|---|---|
-| Individual MLE fits (all 7 models) | scripts/04_model_fitting/a_mle/12_fit_mle.py | output/mle/{model}_individual_fits.csv | available |
+| Individual MLE fits (all 7 models) | scripts/04_model_fitting/a_mle/fit_mle.py | output/mle/{model}_individual_fits.csv | available |
 | Model comparison (AIC/BIC) | scripts/06_fit_analyses/compare_models.py | output/model_comparison/ | available |
 | Winner heterogeneity | scripts/06_fit_analyses/analyze_winner_heterogeneity.py | output/model_comparison/winner_heterogeneity*.csv, figures/model_comparison/winner_heterogeneity_figure.png | available |
 
@@ -34,8 +34,8 @@ posteriors blocked on cluster runs).
 
 | Result | Producer | Output path | Status |
 |---|---|---|---|
-| Hierarchical posteriors (6 choice-only models) | scripts/04_model_fitting/b_bayesian/13_fit_bayesian.py | output/bayesian/{model}_posterior.nc | _placeholder — cluster refit pending_ |
-| M4 LBA posterior | scripts/04_model_fitting/b_bayesian/13_fit_bayesian.py --model wmrl_m4 | output/bayesian/wmrl_m4_posterior.nc | _placeholder — cluster refit pending_ |
+| Hierarchical posteriors (6 choice-only models) | scripts/04_model_fitting/b_bayesian/fit_bayesian.py | output/bayesian/{model}_posterior.nc | _placeholder — cluster refit pending_ |
+| M4 LBA posterior | scripts/04_model_fitting/b_bayesian/fit_bayesian.py --model wmrl_m4 | output/bayesian/wmrl_m4_posterior.nc | _placeholder — cluster refit pending_ |
 | Pscan benchmarks | cluster/13_bayesian_pscan.slurm | output/bayesian/pscan_benchmark.json | available |
 | M6b posterior diagnostics | scripts/legacy/visualization/plot_posterior_diagnostics.py | figures/m6b_posterior_diagnostics.png | _placeholder — needs posterior first_ |
 | M6b posterior vs MLE | validation/compare_posterior_to_mle.py | figures/m6b_posterior_vs_mle.png | _placeholder — needs posterior first_ |

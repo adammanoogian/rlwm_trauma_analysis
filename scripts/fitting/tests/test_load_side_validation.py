@@ -19,7 +19,7 @@ _ENUMERATED_FILES: list[Path] = [
     # Canonical paths after plan 29-01 reorganisation
     _PROJECT_ROOT / "scripts" / "06_fit_analyses" / "compare_models.py",
     _PROJECT_ROOT / "scripts" / "06_fit_analyses" / "bayesian_level2_effects.py",
-    _PROJECT_ROOT / "scripts" / "04_model_fitting" / "c_level2" / "21_fit_with_l2.py",
+    _PROJECT_ROOT / "scripts" / "04_model_fitting" / "c_level2" / "fit_with_l2.py",
     _PROJECT_ROOT / "scripts" / "06_fit_analyses" / "compute_loo_stacking.py",
     _PROJECT_ROOT / "scripts" / "05_post_fitting_checks" / "baseline_audit.py",
     _PROJECT_ROOT / "scripts" / "06_fit_analyses" / "model_averaging.py",

@@ -160,10 +160,10 @@ Install with `pip install -e .` (required to import `rlwm`).
 **Fitting with Practice Data:**
 ```bash
 # MLE fitting with practice blocks
-python scripts/04_model_fitting/a_mle/12_fit_mle.py --model qlearning --data output/task_trials_long_all.csv --include-practice
+python scripts/04_model_fitting/a_mle/fit_mle.py --model qlearning --data output/task_trials_long_all.csv --include-practice
 
 # Bayesian fitting with practice blocks
-python scripts/04_model_fitting/b_bayesian/13_fit_bayesian.py --model qlearning --data output/task_trials_long_all.csv --include-practice
+python scripts/04_model_fitting/b_bayesian/fit_bayesian.py --model qlearning --data output/task_trials_long_all.csv --include-practice
 ```
 
 ---
@@ -201,13 +201,13 @@ python scripts/02_behav_analyses/03_analyze_trauma_groups.py
 python scripts/02_behav_analyses/04_run_statistical_analyses.py
 
 # Model Fitting (04_model_fitting/)
-python scripts/04_model_fitting/a_mle/12_fit_mle.py --model qlearning
-python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl
-python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl_m3
-python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl_m5
-python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl_m6a
-python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl_m6b
-python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl_m4
+python scripts/04_model_fitting/a_mle/fit_mle.py --model qlearning
+python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl
+python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m3
+python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m5
+python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m6a
+python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m6b
+python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m4
 python scripts/06_fit_analyses/compare_models.py
 
 # Post-fit Results Analysis (06_fit_analyses/)
@@ -220,31 +220,31 @@ python scripts/06_fit_analyses/analyze_winner_heterogeneity.py
 
 ```bash
 # Q-learning (M1)
-python scripts/04_model_fitting/a_mle/12_fit_mle.py --model qlearning --data output/task_trials_long.csv
+python scripts/04_model_fitting/a_mle/fit_mle.py --model qlearning --data output/task_trials_long.csv
 
 # WM-RL (M2)
-python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl --data output/task_trials_long.csv
+python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl --data output/task_trials_long.csv
 
 # WM-RL with perseveration (M3)
-python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl_m3 --data output/task_trials_long.csv
+python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m3 --data output/task_trials_long.csv
 
 # M5: WM-RL + RL Forgetting
-python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl_m5 --data output/task_trials_long.csv
+python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m5 --data output/task_trials_long.csv
 
 # M6a: WM-RL + Stimulus-Specific Perseveration
-python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl_m6a --data output/task_trials_long.csv
+python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m6a --data output/task_trials_long.csv
 
 # M6b: WM-RL + Dual Perseveration
-python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl_m6b --data output/task_trials_long.csv
+python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m6b --data output/task_trials_long.csv
 
 # M4: RLWM-LBA Joint Choice+RT (requires float64)
-python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl_m4 --data output/task_trials_long.csv
+python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m4 --data output/task_trials_long.csv
 
 # Parallel fitting (multi-core, ~4-8x speedup)
-python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl_m5 --data output/task_trials_long.csv --n-jobs 16
+python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m5 --data output/task_trials_long.csv --n-jobs 16
 
 # GPU-accelerated (requires rlwm_gpu environment)
-python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl_m5 --data output/task_trials_long.csv --use-gpu
+python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m5 --data output/task_trials_long.csv --use-gpu
 ```
 
 ### Run Bayesian Pipeline (Full Hierarchical Fit)
@@ -256,10 +256,10 @@ bash cluster/21_submit_pipeline.sh
 # Individual steps (new canonical locations)
 python scripts/03_model_prefitting/04_run_prior_predictive.py
 python scripts/03_model_prefitting/05_run_bayesian_recovery.py
-python scripts/04_model_fitting/b_bayesian/21_fit_baseline.py
+python scripts/04_model_fitting/b_bayesian/fit_baseline.py
 python scripts/05_post_fitting_checks/baseline_audit.py
 python scripts/06_fit_analyses/compute_loo_stacking.py
-python scripts/04_model_fitting/c_level2/21_fit_with_l2.py
+python scripts/04_model_fitting/c_level2/fit_with_l2.py
 python scripts/05_post_fitting_checks/scale_audit.py
 python scripts/06_fit_analyses/model_averaging.py
 python scripts/06_fit_analyses/manuscript_tables.py
@@ -293,13 +293,13 @@ sbatch cluster/13_bayesian_gpu.slurm
 
 ```bash
 # Q-learning
-python scripts/04_model_fitting/b_bayesian/13_fit_bayesian.py --model qlearning --data output/task_trials_long.csv
+python scripts/04_model_fitting/b_bayesian/fit_bayesian.py --model qlearning --data output/task_trials_long.csv
 
 # WM-RL
-python scripts/04_model_fitting/b_bayesian/13_fit_bayesian.py --model wmrl --data output/task_trials_long.csv
+python scripts/04_model_fitting/b_bayesian/fit_bayesian.py --model wmrl --data output/task_trials_long.csv
 
 # With custom MCMC settings
-python scripts/04_model_fitting/b_bayesian/13_fit_bayesian.py --model wmrl --data data.csv --chains 4 --warmup 1000 --samples 2000
+python scripts/04_model_fitting/b_bayesian/fit_bayesian.py --model wmrl --data data.csv --chains 4 --warmup 1000 --samples 2000
 ```
 
 ### Model Comparison

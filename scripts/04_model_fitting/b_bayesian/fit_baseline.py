@@ -8,8 +8,9 @@ ranking in step 21.5. Every candidate model — not a pre-selected winner —
 starts with equal footing.
 
 All outputs are routed under ``output/bayesian/21_baseline/`` via the
-``--output-subdir`` flag on :mod:`scripts.fitting.fit_bayesian` (plumbed
-through ``save_results``, ``write_bayesian_summary``, and
+``--output-subdir`` flag on the co-located Bayesian engine
+(``scripts/04_model_fitting/b_bayesian/_engine.py``, plumbed through
+``save_results``, ``write_bayesian_summary``, and
 ``run_posterior_predictive_check`` in plan 21-04 Task 1). This ensures the
 Phase 16 posteriors at ``output/bayesian/{model}_posterior.nc`` are **never
 overwritten**.
@@ -28,9 +29,9 @@ Convergence behaviour
 
 Usage
 -----
->>> python scripts/21_fit_baseline.py --model wmrl_m6b
->>> python scripts/21_fit_baseline.py --model qlearning --warmup 500 \
-...     --samples 1000 --chains 2 --seed 123
+>>> python scripts/04_model_fitting/b_bayesian/fit_baseline.py --model wmrl_m6b
+>>> python scripts/04_model_fitting/b_bayesian/fit_baseline.py --model qlearning \\
+...     --warmup 500 --samples 1000 --chains 2 --seed 123
 
 See also
 --------
@@ -42,17 +43,32 @@ See also
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import sys
 from pathlib import Path
 
 # -- Path bootstrap so this script runs both interactively and under SLURM.
-# Mirrors the pattern in scripts/21_run_bayesian_recovery.py line 73-77.
 _THIS_FILE = Path(__file__).resolve()
-_PROJECT_ROOT = _THIS_FILE.parent.parent.parent
+_PROJECT_ROOT = _THIS_FILE.parents[3]
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
-from scripts.fitting.fit_bayesian import main as fit_main  # noqa: E402
+# Load the co-located Bayesian engine by absolute path.  The parent package
+# `scripts.04_model_fitting.b_bayesian` cannot be imported via the standard
+# dotted form because Python dotted names cannot start with a digit.  Plan
+# 29-04b renamed the engine from `fit_bayesian.py` → `_engine.py` (Scheme
+# D underscore-private convention) so the canonical name is free for the
+# thin CLI entry script (`fit_bayesian.py`).
+_ENGINE_PATH = _THIS_FILE.with_name("_engine.py")
+_spec = importlib.util.spec_from_file_location(
+    "_bayesian_engine", str(_ENGINE_PATH)
+)
+assert _spec is not None and _spec.loader is not None, (
+    f"Could not create import spec for Bayesian engine at {_ENGINE_PATH}"
+)
+_engine = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_engine)
+fit_main = _engine.main
 
 # The 6 choice-only models that go through `STACKED_MODEL_DISPATCH` in
 # fit_bayesian.py.  M4 (wmrl_m4) is the joint RT+choice LBA model and
@@ -74,11 +90,11 @@ BASELINE_SUBDIR: str = "21_baseline"
 
 
 def main() -> None:
-    """Thin orchestrator over :func:`scripts.fitting.fit_bayesian.main`.
+    """Thin orchestrator over the co-located Bayesian engine's ``main()``.
 
     Rewrites :data:`sys.argv` with the fixed baseline configuration
     (``--output-subdir 21_baseline`` always injected, no ``--subscale``, no
-    ``--permutation-shuffle``) and delegates to ``fit_bayesian.main()``.
+    ``--permutation-shuffle``) and delegates to the engine's ``main()``.
     After the fit returns, explicitly checks that the expected posterior
     NetCDF exists — if it does not, the inner convergence gate failed and
     this runner exits ``1`` so SLURM captures a real failure.

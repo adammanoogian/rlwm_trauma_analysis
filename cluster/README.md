@@ -13,9 +13,9 @@ cluster/
 ├── 01_diagnostic_gpu.slurm  # GPU/JAX validation (run first)
 ├── 09_ppc_gpu.slurm         # Posterior predictive checks  → scripts/05_post_fitting_checks/run_posterior_ppc.py
 ├── 11_recovery_gpu.slurm    # Parameter recovery           → scripts/03_model_prefitting/03_run_model_recovery.py
-├── 12_mle.slurm             # MLE fitting (CPU parallel)   → scripts/04_model_fitting/a_mle/12_fit_mle.py
-├── 12_mle_gpu.slurm         # MLE fitting (GPU)            → scripts/04_model_fitting/a_mle/12_fit_mle.py
-├── 12_mle_single.slurm      # MLE fitting (single model)   → scripts/04_model_fitting/a_mle/12_fit_mle.py
+├── 12_mle.slurm             # MLE fitting (CPU parallel)   → scripts/04_model_fitting/a_mle/fit_mle.py
+├── 12_mle_gpu.slurm         # MLE fitting (GPU)            → scripts/04_model_fitting/a_mle/fit_mle.py
+├── 12_mle_single.slurm      # MLE fitting (single model)   → scripts/04_model_fitting/a_mle/fit_mle.py
 ├── 12_submit_all.sh         # Submit all CPU MLE jobs
 ├── 12_submit_all_gpu.sh     # Submit all GPU MLE jobs
 ├── 13_full_pipeline.slurm   # FULL PIPELINE: steps 05-16 (GPU)

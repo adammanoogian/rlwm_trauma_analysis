@@ -150,8 +150,8 @@ if command -v nvidia-smi &>/dev/null; then
 fi
 
 for model in qlearning wmrl wmrl_m3 wmrl_m5 wmrl_m6a wmrl_m6b wmrl_m4; do
-    run_step "12 — Fit MLE: $model (GPU)" \
-        python scripts/04_model_fitting/a_mle/12_fit_mle.py \
+    run_step "Fit MLE: $model (GPU)" \
+        python scripts/04_model_fitting/a_mle/fit_mle.py \
             --model "$model" \
             --data "$DATA_FILE" \
             --output output/mle/ \

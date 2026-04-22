@@ -13,7 +13,7 @@
 #     `covariate_iesr` kwarg from plan 21-11 (LEC total + IES-R total).
 #   - M6b (wmrl_m6b) — full 4-covariate subscale (32 betas).
 #
-# Delegates to scripts/21_fit_with_l2.py which routes outputs through
+# Delegates to scripts/04_model_fitting/c_level2/fit_with_l2.py which routes outputs through
 # save_results(..., output_subdir="21_l2") so Phase 16 posteriors at
 # output/bayesian/{model}_posterior.nc and 21.3 baselines at
 # output/bayesian/21_baseline/{model}_posterior.nc are NEVER overwritten.
@@ -139,7 +139,7 @@ for f in output/task_trials_long.csv output/summary_participant_metrics.csv "$WI
     fi
 done
 
-# --- Run Step 21.6 winner L2 refit via 21_fit_with_l2.py orchestrator ---
+# --- Run Step 21.6 winner L2 refit via fit_with_l2.py orchestrator ---
 # The orchestrator:
 #   1. Parses $WINNERS_FILE (comma-separated display names) into internal ids.
 #   2. Validates $MODEL is in the winner set (exits 1 otherwise).
@@ -149,7 +149,7 @@ done
 echo ""
 echo "[$(date)] Starting Step 21.6 L2 refit for $MODEL"
 
-python scripts/04_model_fitting/c_level2/21_fit_with_l2.py \
+python scripts/04_model_fitting/c_level2/fit_with_l2.py \
     --model "$MODEL" \
     --data output/task_trials_long.csv \
     --chains "$CHAINS" \
@@ -182,7 +182,7 @@ if [ $EXIT_CODE -eq 0 ]; then
         fi
     done
 else
-    echo "ERROR: scripts/21_fit_with_l2.py exited with code $EXIT_CODE"
+    echo "ERROR: scripts/04_model_fitting/c_level2/fit_with_l2.py exited with code $EXIT_CODE"
     echo "Either convergence gate failed (R-hat, ESS, divergences),"
     echo "winners.txt validation rejected --model, or the copy-source"
     echo "baseline NetCDF was missing. See stderr above for details."

@@ -8,8 +8,9 @@
 # + RFX-BMS/PXP ranking (step 21.5). Every candidate model starts as equal
 # — no MLE-preselected winner.
 #
-# Delegates to scripts/21_fit_baseline.py which forces
-# --output-subdir 21_baseline on fit_bayesian.py, so all artefacts land under
+# Delegates to scripts/04_model_fitting/b_bayesian/fit_baseline.py which
+# forces --output-subdir 21_baseline on the co-located Bayesian engine, so
+# all artefacts land under
 # output/bayesian/21_baseline/ and Phase 16 posteriors at
 # output/bayesian/{model}_posterior.nc are NEVER overwritten.
 #
@@ -111,15 +112,16 @@ echo "JAX cache: ${JAX_COMPILATION_CACHE_DIR:-disabled}"
 mkdir -p output/bayesian/21_baseline
 mkdir -p logs
 
-# --- Run Step 21.3 baseline fit via 21_fit_baseline.py orchestrator ---
-# Orchestrator forces --output-subdir 21_baseline on fit_bayesian.py so all
-# artefacts are routed to output/bayesian/21_baseline/, and adds a
-# load-bearing post-fit expected.exists() check that exits 1 on convergence
-# gate failure (see scripts/21_fit_baseline.py docstring).
+# --- Run Step 21.3 baseline fit via fit_baseline.py orchestrator ---
+# Orchestrator forces --output-subdir 21_baseline on the co-located
+# Bayesian engine so all artefacts are routed to output/bayesian/21_baseline/,
+# and adds a load-bearing post-fit expected.exists() check that exits 1 on
+# convergence gate failure (see
+# scripts/04_model_fitting/b_bayesian/fit_baseline.py docstring).
 echo ""
 echo "[$(date)] Starting Step 21.3 baseline hierarchical Bayesian fit for $MODEL"
 
-python scripts/04_model_fitting/b_bayesian/21_fit_baseline.py \
+python scripts/04_model_fitting/b_bayesian/fit_baseline.py \
     --model "$MODEL" \
     --data output/task_trials_long.csv \
     --chains "$CHAINS" \
@@ -146,7 +148,7 @@ if [ $EXIT_CODE -eq 0 ]; then
         fi
     done
 else
-    echo "ERROR: scripts/21_fit_baseline.py exited with code $EXIT_CODE"
+    echo "ERROR: scripts/04_model_fitting/b_bayesian/fit_baseline.py exited with code $EXIT_CODE"
     echo "Either convergence gate failed (R-hat, ESS, divergences) or the"
     echo "data/model/argparse layer rejected the inputs. Check log for the"
     echo "CONVERGENCE GATE FAIL message or Python traceback."

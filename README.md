@@ -39,7 +39,7 @@ python scripts/03_model_prefitting/05_run_bayesian_recovery.py --mode aggregate 
 
 # MLE fitting + frequentist comparison (04_model_fitting/, 06_fit_analyses/)
 for m in qlearning wmrl wmrl_m3 wmrl_m5 wmrl_m6a wmrl_m6b wmrl_m4; do
-  python scripts/04_model_fitting/a_mle/12_fit_mle.py --model $m --n-jobs 16
+  python scripts/04_model_fitting/a_mle/fit_mle.py --model $m --n-jobs 16
 done
 python scripts/06_fit_analyses/compare_models.py
 

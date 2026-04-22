@@ -118,44 +118,44 @@ Maximum likelihood estimation with multi-start optimization. Fast, reliable poin
 
 ```bash
 # Q-learning (M1): alpha_pos, alpha_neg, epsilon
-python scripts/04_model_fitting/a_mle/12_fit_mle.py --model qlearning
+python scripts/04_model_fitting/a_mle/fit_mle.py --model qlearning
 
 # WM-RL (M2): alpha_pos, alpha_neg, phi, rho, K, epsilon
-python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl
+python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl
 
 # WM-RL with perseveration (M3): alpha_pos, alpha_neg, phi, rho, K, kappa, epsilon
-python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl_m3
+python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m3
 
 # WM-RL + RL forgetting (M5): alpha_pos, alpha_neg, phi, rho, K, kappa, phi_rl, epsilon
-python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl_m5
+python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m5
 
 # WM-RL + stimulus-specific perseveration (M6a): alpha_pos, alpha_neg, phi, rho, K, kappa_s, epsilon
-python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl_m6a
+python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m6a
 
 # WM-RL + dual perseveration (M6b): alpha_pos, alpha_neg, phi, rho, K, kappa_total, kappa_share, epsilon
 # Current winning model (AIC rank 1, Akaike weight ~1.0 across N=154)
-python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl_m6b
+python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m6b
 
 # RLWM-LBA joint choice+RT (M4): alpha_pos, alpha_neg, phi, rho, K, kappa, v_scale, A, delta, t0
 # NOTE: M4 AIC is NOT comparable to choice-only models (M1-M3, M5, M6a, M6b).
 # M4 is the only model requiring GPU (float64 LBA likelihood).
-python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl_m4
+python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m4
 ```
 
 **Speed options:**
 
 ```bash
 # Parallel CPU (multi-core, ~4-8x speedup)
-python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl_m3 --n-jobs 16
+python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m3 --n-jobs 16
 
 # GPU-accelerated (requires rlwm_gpu environment)
-python scripts/04_model_fitting/a_mle/12_fit_mle.py --model wmrl_m3 --use-gpu
+python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m3 --use-gpu
 ```
 
 **With practice data:**
 
 ```bash
-python scripts/04_model_fitting/a_mle/12_fit_mle.py --model qlearning --data output/task_trials_long_all.csv --include-practice
+python scripts/04_model_fitting/a_mle/fit_mle.py --model qlearning --data output/task_trials_long_all.csv --include-practice
 ```
 
 **Outputs:** `output/mle/<model>_mle_results.csv` — per-participant parameter estimates, NLL, AIC, BIC.
@@ -165,8 +165,8 @@ python scripts/04_model_fitting/a_mle/12_fit_mle.py --model qlearning --data out
 Hierarchical Bayesian models via JAX/NumPyro (NUTS sampler).
 
 ```bash
-python scripts/04_model_fitting/b_bayesian/13_fit_bayesian.py --model qlearning
-python scripts/04_model_fitting/b_bayesian/13_fit_bayesian.py --model wmrl --chains 4 --warmup 1000 --samples 2000
+python scripts/04_model_fitting/b_bayesian/fit_bayesian.py --model qlearning
+python scripts/04_model_fitting/b_bayesian/fit_bayesian.py --model wmrl --chains 4 --warmup 1000 --samples 2000
 ```
 
 **Outputs:** ArviZ InferenceData (`.nc`), parameter summaries (`.csv`), trace plots.

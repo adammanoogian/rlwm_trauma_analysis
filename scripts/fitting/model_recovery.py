@@ -1321,7 +1321,7 @@ def run_model_recovery_check(
             print(f"\nFitting {model} to synthetic data...")
 
         cmd = [
-            'python', 'scripts/04_model_fitting/a_mle/12_fit_mle.py',
+            'python', 'scripts/04_model_fitting/a_mle/fit_mle.py',
             '--model', model,
             '--data', str(synthetic_data_path),
             '--output', str(mle_results_dir),

@@ -71,8 +71,13 @@ import sys
 from pathlib import Path
 
 # -- Path bootstrap so this script runs both interactively and under SLURM.
+# parents[3] = project root from c_level2/ (c_level2 → 04_model_fitting
+# → scripts → <project root>).  Plan 29-04b corrected this from a
+# pre-existing `.parent.parent.parent` bug (which resolved to `scripts/`
+# instead of the project root, causing `from config import ...` to fail
+# when this file was invoked as a script).
 _THIS_FILE = Path(__file__).resolve()
-_PROJECT_ROOT = _THIS_FILE.parent.parent.parent
+_PROJECT_ROOT = _THIS_FILE.parents[3]
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
