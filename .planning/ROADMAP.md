@@ -573,12 +573,54 @@ Plans:
 **Details:**
 Origin 2026-04-22 user discussion. Phase 28 deliberately executed Option A-modified ("narrow migration") to ship before paper.qmd restructure deadline. Phase 29 is the *finishing* pass: canonical paper-directional structure (01–06 maps to IMRaD sections); shared utilities library; dead cluster cleanup; docs consolidation; cluster SLURM consolidation. User execution order: (1) scripts reorg FIRST, (2) utils + dead folder audit SECOND, (3) docs/cluster/paper.qmd can parallelize, (4) fitting/ refactor LAST and optional. Positioned as Phase 29 (numerically after 28 but logically BEFORE 24 cold-start and 26 manuscript finalization; neither has run yet, so sequencing remains valid).
 
+#### Phase 30: JAX Simulator Consolidation (PROPOSED; may defer to v5.1)
+
+**Goal:** Add JAX-based simulators as siblings to the likelihoods in `src/rlwm/fitting/models/<m>.py`, refactor `scripts/utils/ppc.py` to delegate to them, and delete the now-obsolete `src/rlwm/models/` NumPy Agent classes (644 lines of unused cargo per 2026-04-23 audit). End state: every model's math (likelihood + hierarchical Bayesian + simulation) lives in ONE file per model, matching the Phase-29-08 vertical-by-model architecture. Expected downstream payoff: 10–100× PPC speedup via JIT + vmap over posterior draws (currently a NumPy Python-loop over N=138 × 2000 draws × 21 blocks × 100 trials = 579M trials).
+
+**Depends on:** Phase 29-08 (vertical-by-model home for per-model simulator code); v5 shim cleanup 2026-04-23 (commits 5841069 + d20bca6 — canonical `rlwm.fitting.*` names without shims).
+
+**Requirements:** SIM-01 (per-model JAX `<m>_block_simulate` + multi-block + multi-participant variants); SIM-02 (PPC delegation — `scripts/utils/ppc.py` no longer reimplements generative math in NumPy); SIM-03 (simulator↔likelihood consistency pytest gate; 12/12 PASS); SIM-04 (`src/rlwm/models/` deleted + 5 stale callers updated/removed); SIM-05 (PPC speedup benchmark documented in 30-VERIFICATION.md).
+
+**Success Criteria (what must be TRUE):**
+  1. Each of the 6 choice-only model files under `src/rlwm/fitting/models/` exports `<m>_block_simulate`, `<m>_multiblock_simulate`, `<m>_multiparticipant_simulate` in `__all__`; smoke test with known params and fixed RNG seed reproduces reference output.
+  2. `scripts/utils/ppc.py` no longer contains `_simulate_qlearning` / `_simulate_wmrl_family` standalone implementations; grep invariant `grep -n "def _simulate_" scripts/utils/ppc.py` returns zero matches. Public API (`simulate_from_samples`, `run_prior_ppc`, `run_posterior_ppc`) preserved byte-identical at the call signature level.
+  3. `pytest scripts/fitting/tests/test_simulator_likelihood_consistency.py` exits 0 with 12/12 PASS (2 seeds × 6 models): sampling from `<m>_block_simulate` followed by scoring with `<m>_block_likelihood` at the same params produces a log-prob consistent with the sampler's per-trial categorical log-probs within floating-point tolerance.
+  4. `src/rlwm/models/` does not exist; `grep -rn "from rlwm.models\|import rlwm.models" scripts/ tests/ validation/ src/ --include="*.py"` (excluding `/legacy/`) returns zero matches; `tests/test_rlwm_package.py` canonical-path block no longer asserts `rlwm.models` imports.
+  5. `30-VERIFICATION.md` contains wall-clock measurement for a representative PPC run (N=138, 500 draws, M6b) showing the post-refactor runtime; `docs/` updated to reference the JAX simulator as the canonical PPC entry point.
+  6. `python validation/check_v4_closure.py --milestone v4.0` exits 0 on Phase-30 HEAD — architectural refactor did not break any v4.0 closure invariant.
+  7. `pytest scripts/fitting/tests/ tests/ validation/` exits 0 with zero NEW failures vs the pre-Phase-30 baseline.
+
+**Plans:** 5 plans (draft; planner finalizes)
+
+Plans:
+- [ ] 30-01-PLAN.md (Wave 1) — Add JAX `<m>_block_simulate` + `<m>_multiblock_simulate` + `<m>_multiparticipant_simulate` to all 6 choice-only model files; reuse `<m>_step` shared primitive already exported in `__all__`; update `__all__` with new symbols.
+- [ ] 30-02-PLAN.md (Wave 2, after 30-01) — Refactor `scripts/utils/ppc.py._simulate_{qlearning,wmrl_family}` to delegate to JAX simulators via JIT + vmap; preserve public API; delete ~400 lines of NumPy duplicates.
+- [ ] 30-03-PLAN.md (Wave 2, parallel with 30-02) — New `scripts/fitting/tests/test_simulator_likelihood_consistency.py` asserting generative/inferential math alignment (12 test cases: 6 models × 2 seeds).
+- [ ] 30-04-PLAN.md (Wave 3, after 30-01..30-03, **autonomous: false — user-approval gate because this is a breaking API removal**) — Delete `src/rlwm/models/` (3 files, 644 lines); update/delete 5 active importers (`tests/test_wmrl_exploration.py`, `tests/test_rlwm_package.py`, `validation/test_{model_consistency,parameter_recovery,unified_simulator}.py`).
+- [ ] 30-05-PLAN.md (Wave 3, parallel with 30-04) — PPC wall-clock benchmark (N=138, 500 draws, M6b) in `30-VERIFICATION.md`; `docs/03_methods_reference/MODEL_REFERENCE.md` or `docs/04_methods/` updated with the "one file per model (likelihood + hierarchical + simulate)" architectural story.
+
+**Out of scope (deferred):**
+- M4 LBA JAX simulator — LBA choice+RT generative model is substantially more complex; M4 PPC stays on CPU (current behavior).
+- Gym-env-wrapped JAX agent (if interactive exploration is ever needed again, resurrect from git history or build a new small JAX-backed Gym agent).
+- Replacing `rlwm.fitting.numpyro_helpers.py` (hBayesDM non-centered helpers) with JAX-native equivalents — unrelated to simulators.
+
+**Sequencing:**
+Phase 30 is architectural tech debt — NOT a prerequisite for Phase 24 cold-start, Phase 25 reproducibility regression, Phase 26 manuscript finalization, or Phase 27 closure. Three options:
+- **(A)** Execute in v5.0 before Phase 27 closure — fits the "final clean form" narrative user requested during v5.0 shim cleanup. Adds ~1 day of work.
+- **(B) RECOMMENDED: Defer to v5.1.** v5.0 goal is Empirical Artifacts & Manuscript Finalization; Phase 30 is pure refactor with no empirical payoff. Becomes the opening phase of v5.1 (Architecture & Performance).
+- **(C)** Hold indefinitely as tech debt.
+
+User decides at planning time. See `.planning/phases/30-jax-simulator-consolidation/30-CONTEXT.md` for full proposal.
+
+**Details:**
+Origin 2026-04-23 user discussion during v5.0 shim cleanup. Question arose from asking "is `rlwm/models/` still needed now that we have `rlwm/fitting/models/`?" — audit found `rlwm.models/` is NumPy Gym-stateful Agent classes (orthogonal purpose vs. the JAX likelihoods in `rlwm.fitting.models/`) but is effectively cargo: zero production pipeline consumers; 5 active importers are themselves testing-of-legacy or pre-v4.0 recovery tests superseded by the Phase 21 pipeline. Deleting it cleanly requires replacing the one remaining useful capability (simulating trajectories from the model) — which the existing JAX likelihood code can do with minor extension (each model already exports a `<m>_step` primitive). Phase 30 captures that extension plus the downstream cleanup.
+
 </details>
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 13 → 14 → 15 → 16 → 17 → 18 → 19 → 20 → 21 → 22 → 23 → 24 → 25 → 26 → 27 → 28 → 29 (Phase 28 ran before Phase 24; Phase 29 must also run before Phase 24 cold-start + Phase 26 manuscript finalization — path stability prerequisite)
+Phases execute in numeric order: 13 → 14 → 15 → 16 → 17 → 18 → 19 → 20 → 21 → 22 → 23 → 24 → 25 → 26 → 27 → 28 → 29 → 30 (Phase 28 ran before Phase 24; Phase 29 must also run before Phase 24 cold-start + Phase 26 manuscript finalization — path stability prerequisite; Phase 30 is proposed architectural refactor — may run in v5.0 before Phase 27 OR defer to v5.1, no downstream dependency)
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -610,4 +652,5 @@ Phases execute in numeric order: 13 → 14 → 15 → 16 → 17 → 18 → 19 �
 | 26. Manuscript Finalization | v5.0 | 0/3 | Not started | — |
 | 27. Milestone v5.0 Closure | v5.0 | 0/3 | Not started | — |
 | 28. Bayesian-First Manuscript Restructure & Repo Consolidation | v5.0 | 12/12 | Complete (execution reversed sequencing: Phase 28 ran before Phase 24) | 2026-04-22 |
-| 29. Pipeline Canonical Reorganization & Utilities Consolidation | v5.0 | 0/TBD | Planning (added 2026-04-22; completes Phase 28 scope; runs before Phase 24 cold-start) | — |
+| 29. Pipeline Canonical Reorganization & Utilities Consolidation | v5.0 | 9/9 | Complete | 2026-04-22 |
+| 30. JAX Simulator Consolidation | v5.0/v5.1 | 0/5 | Proposed (added 2026-04-23; may defer to v5.1 per CONTEXT.md sequencing recommendation B) | — |
