@@ -59,6 +59,39 @@ echo "  stages:  ${FROM_STAGE}..6"
 echo "  models:  ${MODELS}"
 echo "============================================================"
 
+# =============================================================================
+# CPU vs GPU dispatch resolution (Phase 23.1)
+# =============================================================================
+# Default: dispatch the GPU variants of the 3 NUTS-fitting stage scripts:
+#   Stage 03 prefitting:    03_prefitting_gpu.slurm   (single-GPU)
+#   Stage 04b Bayesian fit: 04b_bayesian_gpu.slurm    (Template C — 4 GPUs + pmap)
+#   Stage 04c L2 refit:     04c_level2_gpu.slurm      (Template C — 4 GPUs + pmap)
+#
+# Escape hatch: `USE_CPU=1 bash cluster/submit_all.sh` reverts those 3 stages
+# to their CPU siblings. Stages 01, 02, 05, 06 are CPU-only regardless
+# (no NUTS MCMC — pure pandas / ArviZ / NumPy / SciPy / matplotlib).
+#
+# Per CLUSTER_GPU_LESSONS.md §6 + the M6b proof at job 54894258, the GPU path
+# delivers ~3-4x wall-clock speedup at production scale. Phase 24 cold-start
+# runs the default (GPU) path.
+if [[ "${USE_CPU:-0}" == "1" ]]; then
+    echo "[$(date)] USE_CPU=1 detected — dispatching CPU SLURM variants"
+    PREFIT_SCRIPT="cluster/03_prefitting_cpu.slurm"
+    BAYES_SCRIPT="cluster/04b_bayesian_cpu.slurm"
+    L2_SCRIPT="cluster/04c_level2.slurm"
+    DISPATCH_MODE="CPU (USE_CPU=1)"
+else
+    echo "[$(date)] Default GPU dispatch — Phase 23.1 multi-GPU pipeline"
+    PREFIT_SCRIPT="cluster/03_prefitting_gpu.slurm"
+    BAYES_SCRIPT="cluster/04b_bayesian_gpu.slurm"
+    L2_SCRIPT="cluster/04c_level2_gpu.slurm"
+    DISPATCH_MODE="GPU (Phase 23.1 default)"
+fi
+echo "  03 prefitting:  $PREFIT_SCRIPT"
+echo "  04b Bayesian:   $BAYES_SCRIPT"
+echo "  04c L2 refit:   $L2_SCRIPT"
+echo ""
+
 # ---------------------------------------------------------------------------
 # Strip Windows CRLF from sibling SLURM/sh files (sbatch rejects \r)
 # ---------------------------------------------------------------------------
@@ -145,11 +178,11 @@ if [[ "$FROM_STAGE" -le 3 ]]; then
   DEP_STAGE03=()
   [[ -n "$J02" ]] && DEP_STAGE03=(--dependency=afterok:"$J02")
   for m in $MODELS; do
-    PRIOR_JOBS[$m]=$(submit cluster/03_prefitting_cpu.slurm "${DEP_STAGE03[@]}" \
+    PRIOR_JOBS[$m]=$(submit "$PREFIT_SCRIPT" "${DEP_STAGE03[@]}" \
                       --export=ALL,STEP=prior_predictive,MODEL="$m")
     echo "  [03.prior_predictive] $m -> ${PRIOR_JOBS[$m]}"
     J03_ALL+=("${PRIOR_JOBS[$m]}")
-    REC_JOBS[$m]=$(submit cluster/03_prefitting_cpu.slurm \
+    REC_JOBS[$m]=$(submit "$PREFIT_SCRIPT" \
                     --dependency=afterok:"${PRIOR_JOBS[$m]}" \
                     --export=ALL,STEP=bayesian_recovery,MODEL="$m")
     echo "  [03.bayesian_recovery] $m -> ${REC_JOBS[$m]}"
@@ -173,7 +206,7 @@ if [[ "$FROM_STAGE" -le 4 ]]; then
     # M6b needs 36h walltime
     TIME_OVERRIDE=()
     [[ "$m" == "wmrl_m6b" ]] && TIME_OVERRIDE=(--time=36:00:00)
-    BAYES_JOBS[$m]=$(submit cluster/04b_bayesian_cpu.slurm "${DEP[@]}" "${TIME_OVERRIDE[@]}" \
+    BAYES_JOBS[$m]=$(submit "$BAYES_SCRIPT" "${DEP[@]}" "${TIME_OVERRIDE[@]}" \
                       --export=ALL,MODEL="$m")
     echo "  [04b] $m -> ${BAYES_JOBS[$m]}"
     J04_ALL+=("${BAYES_JOBS[$m]}")
@@ -185,6 +218,29 @@ BAYES_DEP=""
 if [[ ${#J04_ALL[@]} -gt 0 ]]; then
   BAYES_DEP="afterok:$(IFS=:; echo "${J04_ALL[*]}")"
 fi
+
+# ---------------------------------------------------------------------------
+# Stage 04c — L2 winner refit (runs after 04b; gated on winners.txt existing)
+# ---------------------------------------------------------------------------
+# The L2 refit is a fan-out per winner (M1/M2 copy-through, M3/M5/M6a 2-cov,
+# M6b subscale). `cluster/21_6_dispatch_l2.slurm` wraps the dispatcher
+# `cluster/21_dispatch_l2_winners.sh` which reads
+# output/bayesian/21_baseline/winners.txt and submits one $L2_SCRIPT per
+# winner via `sbatch --wait`. The --wait pattern + &+wait in the dispatcher
+# ensures the SLURM job stays alive until every L2 fit completes.
+#
+# We pass L2_FIT_SCRIPT through so the dispatcher routes to $L2_SCRIPT
+# (the GPU variant by default; CPU when USE_CPU=1).
+#
+# Note: winners.txt is produced by step loo_stacking in stage 06. In the
+# Phase-29 orchestrator flow, stage 06 loo_stacking runs AFTER stage 05 and
+# before the remaining compare/averaging/tables steps. This means stage 04c
+# must run AFTER a partial stage 06 (loo_stacking specifically) produces
+# winners.txt. To preserve chain integrity, the master orchestrator emits
+# ONE `21_6_dispatch_l2.slurm` submission with a dependency on the LOO
+# step inside stage 06, and downstream averaging/tables depend on the
+# dispatcher. The chain is built at stage-06 time (see Stage 06 block).
+L2_DISPATCH_JID=""
 
 # ---------------------------------------------------------------------------
 # Stage 05 — Post-fitting checks (baseline_audit -> scale_audit)
@@ -230,6 +286,18 @@ if [[ "$FROM_STAGE" -le 6 ]]; then
     echo "  [06.$step] -> $JID"
     J06_ALL+=("$JID")
     PREV="$JID"
+
+    # After loo_stacking, insert L2 winner dispatcher (reads winners.txt
+    # produced by loo_stacking, submits one $L2_SCRIPT per winner via
+    # sbatch --wait inside cluster/21_dispatch_l2_winners.sh).
+    if [[ "$step" == "loo_stacking" ]]; then
+      L2_DISPATCH_JID=$(submit cluster/21_6_dispatch_l2.slurm \
+        --dependency=afterok:"$PREV" \
+        --export=ALL,L2_FIT_SCRIPT="$L2_SCRIPT")
+      echo "  [04c.l2_dispatch] -> $L2_DISPATCH_JID (L2_FIT_SCRIPT=$L2_SCRIPT)"
+      J06_ALL+=("$L2_DISPATCH_JID")
+      PREV="$L2_DISPATCH_JID"   # model_averaging + manuscript_tables wait on L2 dispatcher
+    fi
   done
 fi
 
@@ -237,10 +305,12 @@ echo ""
 echo "============================================================"
 echo "[submit_all.sh] done — $(date)"
 echo "============================================================"
+echo "Mode:     $DISPATCH_MODE"
 echo "Stage 01: $J01"
 echo "Stage 02: $J02"
 echo "Stage 03: ${J03_ALL[*]}"
 echo "Stage 04: ${J04_ALL[*]}"
+echo "Stage 04c L2 dispatch: ${L2_DISPATCH_JID:-<not dispatched; no winners.txt>}"
 echo "Stage 05: $J05_BASELINE $J05_SCALE"
 echo "Stage 06: ${J06_ALL[*]}"
 echo "============================================================"

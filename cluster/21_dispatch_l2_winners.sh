@@ -4,8 +4,14 @@
 # =============================================================================
 # Reads output/bayesian/21_baseline/winners.txt (comma-separated display
 # names from step 21.5), maps display names to internal model ids, and
-# submits one cluster/04c_level2.slurm per winner via
+# submits one L2 fit SLURM per winner via
 # `sbatch --wait` so this dispatcher BLOCKS until each L2 fit completes.
+#
+# Env-var dispatch (Phase 23.1):
+#   Submitter passes L2_FIT_SCRIPT via --export=ALL,L2_FIT_SCRIPT=... on
+#   cluster/21_6_dispatch_l2.slurm. If unset, defaults to the CPU script
+#   (cluster/04c_level2.slurm) as the safe fallback. GPU dispatch via
+#   submit_all.sh sets L2_FIT_SCRIPT=cluster/04c_level2_gpu.slurm.
 #
 # Parallelisation: each `sbatch --wait` is backgrounded with `&`, then a
 # single `wait` at the end blocks until all background waits return.
@@ -60,7 +66,7 @@ echo ""
 for name in $WINNERS; do
   model=${NAME_MAP[$name]:-$name}
   echo "[DISPATCH] Submitting L2 fit for $name ($model) and blocking on --wait"
-  sbatch --wait --export=ALL,MODEL=$model cluster/04c_level2.slurm &
+  sbatch --wait --export=ALL,MODEL=$model "${L2_FIT_SCRIPT:-cluster/04c_level2.slurm}" &
 done
 
 wait
