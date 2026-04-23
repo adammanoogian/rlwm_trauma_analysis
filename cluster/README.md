@@ -27,14 +27,8 @@ cluster/
 ├── 05_post_checks.slurm              # Stage 05: STEP=baseline_audit|scale_audit|posterior_ppc
 ├── 06_fit_analyses.slurm             # Stage 06: STEP=compare_models|loo_stacking|model_averaging|manuscript_tables|...
 │
-├── 13_full_pipeline.slurm            # [RETAINED] single-job full pipeline (legacy, for quick runs)
 ├── 13_bayesian_multigpu.slurm        # [RETAINED-SPECIALIZED] multi-GPU chains (pmap across 4 GPUs)
 ├── 13_bayesian_permutation.slurm     # [RETAINED-SPECIALIZED] permutation null test (array 0-49)
-├── 13_bayesian_pscan.slurm           # [RETAINED-SPECIALIZED] parallel-scan A/B benchmark
-├── 13_bayesian_pscan_smoke.slurm     # [RETAINED-SPECIALIZED] pscan smoke test
-├── 13_bayesian_fullybatched_smoke.slurm  # [RETAINED-SPECIALIZED] fully-batched vmap smoke
-├── 19_benchmark_pscan_cpu.slurm      # [RETAINED-SPECIALIZED] pscan CPU micro-benchmark
-├── 19_benchmark_pscan_gpu.slurm      # [RETAINED-SPECIALIZED] pscan GPU micro-benchmark
 ├── 23.1_mgpu_smoke.slurm             # [RETAINED-SPECIALIZED] Phase 23.1 multi-GPU smoke
 ├── 21_6_dispatch_l2.slurm            # [RETAINED] L2 winner dispatcher wrapper (sbatch --wait blocker)
 ├── 21_dispatch_l2_winners.sh         # [RETAINED] L2 winner fan-out shell driver
@@ -44,7 +38,7 @@ cluster/
 ├── 00_setup_env.sh                   # CPU conda environment setup
 ├── 00_setup_env_gpu.sh               # GPU conda environment setup (JAX CUDA)
 ├── autopush.sh                       # Auto-push helper (sourced by SLURMs)
-├── submit_full_pipeline.sh           # [RETAINED] wave-based pipeline (alt to submit_all.sh)
+├── legacy/                           # Archived shipped-milestone SLURMs (pscan/fullybatched benchmarks, wave-based orchestrator)
 ├── logs/                             # SLURM output (gitignored)
 └── README.md                         # this file
 ```
@@ -86,15 +80,24 @@ cluster/
 
 | SLURM | Why kept |
 |---|---|
-| `13_full_pipeline.slurm` | Single-job full run (all-in-one, quick sanity) — useful for smoke testing |
 | `13_bayesian_multigpu.slurm` | Multi-GPU chain pmap (not just model selection — different chain_method) |
 | `13_bayesian_permutation.slurm` | Permutation-null SLURM array (50 shuffles); orthogonal dispatch surface |
-| `13_bayesian_pscan.slurm`, `13_bayesian_pscan_smoke.slurm`, `13_bayesian_fullybatched_smoke.slurm` | Parallel-scan A/B benchmarks and smokes (benchmarking, not production fits) |
-| `19_benchmark_pscan_{cpu,gpu}.slurm` | Micro-benchmarks (validation/benchmark_parallel_scan.py wrapper) |
 | `23.1_mgpu_smoke.slurm` | Phase 23.1 multi-GPU validation (per-model 10-minute smoke) |
 | `21_6_dispatch_l2.slurm` + `21_dispatch_l2_winners.sh` | L2 winner fan-out (sbatch --wait blocker, referenced from winners.txt) |
 | `01_diagnostic_gpu.slurm` | GPU/JAX readiness check (run-first template for new users) |
 | `99_push_results.slurm` | Auto-push results to git (dependency-chained from fitting SLURMs) |
+
+### Archived to `cluster/legacy/` (2026-04-23, post-Phase-29)
+
+Seven shipped-milestone SLURMs moved to `cluster/legacy/` — all referenced milestones are closed (Phases 19 + 20 shipped in v4.0) and none are invoked by `submit_all.sh`. Resurrect via `git mv cluster/legacy/<file> cluster/` if a rerun is needed.
+
+| Archived | Original purpose |
+|---|---|
+| `13_full_pipeline.slurm` | Single-job all-in-one quick-smoke (superseded by `submit_all.sh`) |
+| `13_bayesian_pscan.slurm`, `13_bayesian_pscan_smoke.slurm` | Parallel-scan A/B benchmark (Phase 19 shipped) |
+| `13_bayesian_fullybatched_smoke.slurm` | Fully-batched vmap smoke (Phase 20 shipped) |
+| `19_benchmark_pscan_{cpu,gpu}.slurm` | pscan micro-benchmark wrappers (Phase 19 shipped) |
+| `submit_full_pipeline.sh` | Wave-based pipeline orchestrator (alt to `submit_all.sh` — redundant entry point) |
 
 ---
 
