@@ -39,7 +39,9 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:4
-#SBATCH --constraint=${GPU_TYPE:-l40s}
+# GPU-type selection via CLI only (shell-var expansion does not work in #SBATCH directives).
+# To pin a specific GPU type, override on the sbatch command line:
+#   sbatch --constraint=l40s cluster/23.1_mgpu_smoke.slurm
 
 # =============================================================================
 # Configuration — Phase 23.1 smoke budget

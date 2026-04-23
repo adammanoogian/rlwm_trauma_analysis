@@ -29,7 +29,8 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --gres=gpu:1
 #SBATCH --partition=gpu
-#SBATCH --constraint=${GPU_TYPE:-l40s}
+# GPU-type selection via CLI only (shell-var expansion does not work in #SBATCH directives).
+# Override on command line if needed:  sbatch --constraint=l40s cluster/03_prefitting_gpu.slurm
 
 set -euo pipefail
 

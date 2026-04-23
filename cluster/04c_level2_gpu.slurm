@@ -66,7 +66,8 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --gres=gpu:4
 #SBATCH --partition=gpu
-#SBATCH --constraint=${GPU_TYPE:-l40s}
+# GPU-type selection via CLI only (shell-var expansion does not work in #SBATCH directives).
+# Override on command line if needed:  sbatch --constraint=l40s cluster/04c_level2_gpu.slurm
 
 # --- Step 21.6 fit parameters (override via --export=KEY=VAL,...) ---
 MODEL="${MODEL:-wmrl_m6b}"
