@@ -43,7 +43,6 @@ See also
 from __future__ import annotations
 
 import argparse
-import importlib.util
 import sys
 from pathlib import Path
 
@@ -53,22 +52,9 @@ _PROJECT_ROOT = _THIS_FILE.parents[3]
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
-# Load the co-located Bayesian engine by absolute path.  The parent package
-# `scripts.04_model_fitting.b_bayesian` cannot be imported via the standard
-# dotted form because Python dotted names cannot start with a digit.  Plan
-# 29-04b renamed the engine from `fit_bayesian.py` → `_engine.py` (Scheme
-# D underscore-private convention) so the canonical name is free for the
-# thin CLI entry script (`fit_bayesian.py`).
-_ENGINE_PATH = _THIS_FILE.with_name("_engine.py")
-_spec = importlib.util.spec_from_file_location(
-    "_bayesian_engine", str(_ENGINE_PATH)
-)
-assert _spec is not None and _spec.loader is not None, (
-    f"Could not create import spec for Bayesian engine at {_ENGINE_PATH}"
-)
-_engine = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(_engine)
-fit_main = _engine.main
+# v5.0 shim cleanup: engine moved from scripts/04_model_fitting/b_bayesian/_engine.py
+# to canonical home rlwm.fitting.bayesian (importable via standard dotted form).
+from rlwm.fitting.bayesian import main as fit_main
 
 # The 6 choice-only models that go through `STACKED_MODEL_DISPATCH` in
 # fit_bayesian.py.  M4 (wmrl_m4) is the joint RT+choice LBA model and

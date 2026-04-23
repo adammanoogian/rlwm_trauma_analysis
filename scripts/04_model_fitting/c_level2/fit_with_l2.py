@@ -263,7 +263,7 @@ def _fit_two_covariate_l2(
     # Local imports keep jax/numpyro startup cost out of --help path.
     import pandas as pd  # noqa: PLC0415
     import jax.numpy as jnp  # noqa: PLC0415
-    from scripts.fitting.fit_bayesian import (  # noqa: PLC0415
+    from rlwm.fitting.bayesian import (  # noqa: PLC0415
         STACKED_MODEL_DISPATCH,
         load_and_prepare_data,
         run_inference_with_bump,
@@ -420,7 +420,7 @@ def _fit_subscale(model: str, args: argparse.Namespace) -> Path:
             f"_fit_subscale: expected model='wmrl_m6b', got '{model}'."
         )
 
-    from scripts.fitting.fit_bayesian import main as fit_main  # noqa: PLC0415
+    from rlwm.fitting.bayesian import main as fit_main  # noqa: PLC0415
 
     sys.argv = [
         "fit_bayesian.py",

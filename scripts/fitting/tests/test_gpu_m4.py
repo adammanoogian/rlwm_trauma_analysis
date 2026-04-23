@@ -21,7 +21,7 @@ def test_fit_all_gpu_m4_smoke(m4_synthetic_data_small):
 
     jax.config.update("jax_enable_x64", True)
 
-    from scripts.fitting.fit_mle import fit_all_gpu_m4
+    from rlwm.fitting.mle import fit_all_gpu_m4
 
     df, timing_info, timing_records = fit_all_gpu_m4(
         m4_synthetic_data_small,

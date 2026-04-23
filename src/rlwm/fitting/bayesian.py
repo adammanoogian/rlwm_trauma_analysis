@@ -1,16 +1,17 @@
-"""Bayesian hierarchical library engine (04/b-bayesian/_engine.py).
+"""Bayesian hierarchical library engine (canonical home: rlwm.fitting.bayesian).
 
 Fits choice-only hierarchical models (M1-M3, M5, M6a, M6b) using
 Hamiltonian Monte Carlo (NUTS) via NumPyro.  All six models use the
 canonical stacked hBayesDM non-centered parameterization introduced in
 Phase 15.
 
-This file is the library engine (``_engine.py``, underscore-private per
-Scheme D). CLI entry points are the sibling ``fit_bayesian.py`` (ad-hoc
-single-model) and ``fit_baseline.py`` (Phase 21 pipeline entry with
-``--output-subdir 21_baseline`` forced). Plan 29-04b renamed the old
-``fit_bayesian.py`` library here so the canonical name was free for the
-thin CLI wrapper.
+Canonical import path (v5.0 cleanup)::
+
+    from rlwm.fitting.bayesian import STACKED_MODEL_DISPATCH, _fit_stacked_model, main
+
+The thin CLI wrappers at
+``scripts/04_model_fitting/b_bayesian/{fit_bayesian,fit_baseline}.py``
+import from this module.
 
 Usage (via the CLI wrapper)
 ---------------------------
@@ -20,7 +21,7 @@ Usage (via the CLI wrapper)
 
 Originally authored 2026-04-13 for RLWM trauma analysis; refactored for
 all 6 choice-only models in Phase 16-04; extracted to underscore-private
-engine in plan 29-04b.
+engine in plan 29-04b; moved to canonical home in v5.0 shim cleanup.
 """
 
 from __future__ import annotations
@@ -34,10 +35,10 @@ from datetime import datetime
 import pandas as pd
 import numpy as np
 
-# Add project root to path
-project_root = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(project_root))
-
+# Project root is expected to be on sys.path by the caller (thin CLI
+# wrappers at scripts/04_model_fitting/b_bayesian/{fit_bayesian,fit_baseline}.py
+# do this; pip install -e . makes rlwm importable directly). No sys.path
+# mutation here — libraries should not.
 import jax
 import jax.numpy as jnp
 import numpyro

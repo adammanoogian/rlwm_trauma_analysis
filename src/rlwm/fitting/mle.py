@@ -1,4 +1,4 @@
-"""MLE library engine for RLWM models (04/a-mle/_engine.py).
+"""MLE library engine for RLWM models (canonical home: rlwm.fitting.mle).
 
 Following Senta et al. (2025) methodology:
 - Individual fits with 50 starting points (Latin Hypercube Sampling)
@@ -6,10 +6,12 @@ Following Senta et al. (2025) methodology:
 - AIC/BIC for model comparison
 - Group statistics: mean +/- SEM across participants
 
-This file is the library engine (``_engine.py``, underscore-private per
-Scheme D). The CLI entry point is the sibling ``fit_mle.py`` — invoke that
-for actual runs. Plan 29-04b renamed the old ``fit_mle.py`` library here
-so the canonical name was free for the thin CLI wrapper.
+Canonical import path (v5.0 cleanup)::
+
+    from rlwm.fitting.mle import fit_participant_mle, main
+
+The thin CLI wrapper at ``scripts/04_model_fitting/a_mle/fit_mle.py``
+imports ``main`` from this module.
 
 Usage (via the CLI wrapper)
 ---------------------------
@@ -81,11 +83,10 @@ import numpy as np
 import pandas as pd
 from jaxopt import ScipyBoundedMinimize
 
-# Add project root to path
-project_root = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(project_root))
-
-# Import config for exclusions
+# Project root is expected to be on sys.path by the caller (the thin CLI
+# wrapper at scripts/04_model_fitting/a_mle/fit_mle.py does this; pip
+# install -e . makes rlwm importable directly, and tests add project root
+# via conftest). No sys.path mutation here — libraries should not.
 from config import EXCLUDED_PARTICIPANTS, EXPECTED_PARAMETERIZATION
 
 # Import JAX likelihood functions

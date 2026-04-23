@@ -33,7 +33,7 @@ import pandas as pd
 from scipy.stats import pearsonr
 from tqdm import tqdm
 
-from scripts.fitting.fit_mle import fit_participant_mle, prepare_participant_data
+from rlwm.fitting.mle import fit_participant_mle, prepare_participant_data
 from scripts.fitting.mle_utils import (
     QLEARNING_BOUNDS,
     QLEARNING_PARAMS,

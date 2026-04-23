@@ -654,7 +654,7 @@ def run_prior_ppc(
     import jax
     from numpyro.infer import Predictive
 
-    from scripts.fitting.fit_bayesian import (
+    from rlwm.fitting.bayesian import (
         STACKED_MODEL_DISPATCH,
         load_and_prepare_data,
     )

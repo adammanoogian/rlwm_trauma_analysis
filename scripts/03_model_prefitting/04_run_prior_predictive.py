@@ -37,7 +37,7 @@ sys.path.insert(0, str(_PROJECT_ROOT))
 
 import numpyro  # noqa: E402
 
-from scripts.fitting.fit_bayesian import STACKED_MODEL_DISPATCH  # noqa: E402
+from rlwm.fitting.bayesian import STACKED_MODEL_DISPATCH  # noqa: E402
 from scripts.utils.ppc import run_prior_ppc  # noqa: E402
 
 

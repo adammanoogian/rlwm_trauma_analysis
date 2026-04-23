@@ -83,7 +83,7 @@ import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 
 from config import MODEL_REGISTRY  # noqa: E402
-from scripts.fitting.fit_bayesian import STACKED_MODEL_DISPATCH, _fit_stacked_model  # noqa: E402
+from rlwm.fitting.bayesian import STACKED_MODEL_DISPATCH, _fit_stacked_model  # noqa: E402
 from scripts.fitting.model_recovery import generate_synthetic_participant  # noqa: E402
 from rlwm.fitting.numpyro_helpers import PARAM_PRIOR_DEFAULTS, phi_approx  # noqa: E402
 
