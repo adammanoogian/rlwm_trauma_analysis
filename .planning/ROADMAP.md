@@ -615,12 +615,42 @@ User decides at planning time. See `.planning/phases/30-jax-simulator-consolidat
 **Details:**
 Origin 2026-04-23 user discussion during v5.0 shim cleanup. Question arose from asking "is `rlwm/models/` still needed now that we have `rlwm/fitting/models/`?" — audit found `rlwm.models/` is NumPy Gym-stateful Agent classes (orthogonal purpose vs. the JAX likelihoods in `rlwm.fitting.models/`) but is effectively cargo: zero production pipeline consumers; 5 active importers are themselves testing-of-legacy or pre-v4.0 recovery tests superseded by the Phase 21 pipeline. Deleting it cleanly requires replacing the one remaining useful capability (simulating trajectories from the model) — which the existing JAX likelihood code can do with minor extension (each model already exports a `<m>_step` primitive). Phase 30 captures that extension plus the downstream cleanup.
 
+#### Phase 31: Final-Package Restructure — CCDS Data Layout, Test/Log Consolidation, Workflow Research
+
+**Goal:** Transition the repo from a development layout to a final-package layout suitable for journal submission + long-term reuse. Five coordinated moves: (a) adopt Cookiecutter Data Science `data/{raw,interim,processed,external}` split to separate immutable drops from pipeline products; (b) reorganize `output/` into CCDS-aligned `models/` (fitted posteriors + MLE) and `reports/{figures,tables}/` (analysis products); (c) consolidate `tests/` + `validation/` into a single top-level `tests/` with clear unit/integration/scientific tiers for reader simplicity (lose the tests-vs-validation distinction documented in global CLAUDE.md); (d) consolidate `logs/` + `cluster/logs/` into one gitignored location; (e) execute a preceding workflow + data-structure research step because the user has flagged they need more context on CCDS conventions, Python-package research-code layouts, and reproducibility best practices (JOSS, Chorizo-template, pyOpenSci) before committing to a final shape.
+
+**Depends on:** Phase 30 (JAX simulator consolidation is orthogonal; may run in either order), Phase 27 (v5.0 closure) — framing assumption is v5.1 opening phase, but may execute in-place if user decides to close v5.0 in a post-restructure state.
+
+**Proposed scope (research phase precedes concrete plan):**
+
+1. **Research step (R-01):** Survey CCDS, pyOpenSci template, JOSS submission conventions, and 2–3 exemplar computational-psych research repos for final-package layouts. Produce `.planning/phases/31-final-package-restructure/31-RESEARCH.md` with a concrete recommended structure BEFORE plan files land. User explicitly flagged this as "i need more research to know what these are."
+2. **Data layout (D-01..04):** `data/raw/` (current `data/` contents, immutable jsPsych CSVs) + `data/interim/` (parsed_*.csv, collated_*.csv from `output/` root) + `data/processed/` (task_trials_long*.csv, summary CSVs) + `data/external/` (trauma scale reference data if any). Update `config.py` Path constants, every pipeline script, cluster SLURMs, manuscript Quarto cells.
+3. **Models/reports layout (M-01..03):** Promote `output/bayesian/` + `output/mle/` → top-level `models/`. Promote `output/descriptives/`, `output/model_comparison/`, `output/behavioral_summary/`, `figures/` → top-level `reports/{figures,tables}/`. Handle `output/legacy/` + stray log files.
+4. **Test consolidation (T-01):** Merge `validation/` (scientific) into `tests/` as a subdirectory (`tests/scientific/` or `tests/integration/`) — lose the top-level `validation/` folder for simpler reader mental model. Keep `scripts/fitting/tests/` as co-located unit tests (that pattern is standard). Update pytest config, CLAUDE.md conventions, all references.
+5. **Log consolidation (L-01):** Merge `logs/` (dev) + `cluster/logs/` (SLURM) into a single `logs/` or pick one canonical location. Ensure .gitignore covers it.
+6. **Documentation + closure-guard updates (C-01..02):** Refresh `cluster/README.md`, `CLAUDE.md`, `docs/` methods references. Extend Phase 29 structure guard (`tests/test_v5_phase29_structure.py`) to assert the new CCDS layout.
+
+**Plans:** 0 plans (run `/gsd:discuss-phase 31` to gather context, then `/gsd:plan-phase 31` to break down)
+
+**Success Criteria** (to be refined during planning):
+1. Top-level layout matches CCDS conventions (documented in `docs/PROJECT_STRUCTURE.md`).
+2. `config.py` Path constants updated; every pipeline script resolves new paths without hardcoded `output/...` references (closure-guard grep).
+3. `tests/` is a single top-level tree; `validation/` no longer exists at top level; pytest discovers the consolidated suite with 0 broken imports.
+4. `cluster/submit_all.sh --dry-run` exits 0 against the new layout.
+5. `quarto render manuscript/paper.qmd` still produces `paper.pdf` after path updates.
+6. Phase 29 closure guard (plus any Phase 31 additions) still passes 31/31.
+7. A fresh `git clone` + `pip install -e .` + `pytest` completes green without manual path fiddling — "final package" readiness check.
+
+**Sequencing Note:** This phase is intentionally LARGE and flagged as research-gated. The planner (`/gsd:plan-phase 31`) should first emit a Wave-1 research plan (31-01 = R-01) before emitting any file-move plans. Data reorganization invalidates cached MCMC posteriors and requires re-running Phase 24 cold-start after — so this phase should NOT execute before Phase 24 has produced the empirical artifacts. Recommended sequencing: Phase 24 (cold-start) → Phase 25 (reproducibility regression) → Phase 26 (manuscript) → Phase 27 (v5.0 closure) → Phase 31 (v5.1 opening). Alternative if v5.0 is closed early: Phase 31 becomes v5.1's Phase 32 opening.
+
+**Origin:** 2026-04-23 user discussion during Phase 29 UAT — user requested: "1) adopt the data structure 2) fix the outputs and reports structure 3) consider the workflow and data structures more deeply. i need more research to know what these are 4) but let's also consider merging the two tests together for simplicity on a reader, as well as two logs together. we want to move away from development to a final package."
+
 </details>
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 13 → 14 → 15 → 16 → 17 → 18 → 19 → 20 → 21 → 22 → 23 → 24 → 25 → 26 → 27 → 28 → 29 → 30 (Phase 28 ran before Phase 24; Phase 29 must also run before Phase 24 cold-start + Phase 26 manuscript finalization — path stability prerequisite; Phase 30 is proposed architectural refactor — may run in v5.0 before Phase 27 OR defer to v5.1, no downstream dependency)
+Phases execute in numeric order: 13 → 14 → 15 → 16 → 17 → 18 → 19 → 20 → 21 → 22 → 23 → 24 → 25 → 26 → 27 → 28 → 29 → 30 → 31 (Phase 28 ran before Phase 24; Phase 29 must also run before Phase 24 cold-start + Phase 26 manuscript finalization — path stability prerequisite; Phase 30 is proposed architectural refactor — may run in v5.0 before Phase 27 OR defer to v5.1; Phase 31 is proposed v5.1 opening "final-package restructure" — data invalidation risk means it MUST run after Phase 24 cold-start has produced empirical artifacts; recommended sequencing 24 → 25 → 26 → 27 → 31, or Phase 31 as v5.1 opener)
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -654,3 +684,4 @@ Phases execute in numeric order: 13 → 14 → 15 → 16 → 17 → 18 → 19 �
 | 28. Bayesian-First Manuscript Restructure & Repo Consolidation | v5.0 | 12/12 | Complete (execution reversed sequencing: Phase 28 ran before Phase 24) | 2026-04-22 |
 | 29. Pipeline Canonical Reorganization & Utilities Consolidation | v5.0 | 9/9 | Complete | 2026-04-22 |
 | 30. JAX Simulator Consolidation | v5.0/v5.1 | 0/5 | Proposed (added 2026-04-23; may defer to v5.1 per CONTEXT.md sequencing recommendation B) | — |
+| 31. Final-Package Restructure (CCDS layout + test/log consolidation) | v5.0/v5.1 | 0/TBD | Proposed (added 2026-04-23; research-gated — run /gsd:discuss-phase 31 to scope) | — |
