@@ -8,11 +8,11 @@ re-export shims were deleted in the v5.0 shim cleanup.
 Senta et al. (2025) M3 extends M2 with a global perseveration bonus ``kappa``
 added to the last chosen action's log-probability (pre-softmax).
 """
+
 from __future__ import annotations
 
 import jax
 import jax.numpy as jnp
-import numpy as np
 import numpyro
 import numpyro.distributions as dist
 from jax import lax
@@ -20,19 +20,15 @@ from jax import lax
 from ..core import (
     DEFAULT_EPSILON,
     FIXED_BETA,
-    MAX_BLOCKS,
-    MAX_TRIALS_PER_BLOCK,
-    NUM_ACTIONS,
-    affine_scan,
     apply_epsilon_noise,
     associative_scan_q_update,
     associative_scan_wm_update,
     pad_block_to_max,
     precompute_last_action_global,
-    prepare_stacked_participant_data,
     softmax_policy,
     stack_across_participants,
 )
+from .wmrl import wmrl_block_likelihood
 
 __all__ = [
     "wmrl_m3_block_likelihood",
@@ -210,7 +206,9 @@ def wmrl_m3_block_likelihood(
         # P_M3 = (1-κ)*P_noisy + κ*Ck where Ck = one-hot(last_action)
         # =================================================================
         # Choice kernel = one-hot of last action (τ=1 simplification)
-        choice_kernel = jnp.eye(num_actions)[jnp.maximum(last_action, 0)]  # Clamp for indexing
+        choice_kernel = jnp.eye(num_actions)[
+            jnp.maximum(last_action, 0)
+        ]  # Clamp for indexing
 
         # Probability mixing: (1-κ)*noisy_base + κ*choice_kernel
         hybrid_probs_m3 = (1 - kappa) * noisy_base + kappa * choice_kernel
@@ -251,14 +249,23 @@ def wmrl_m3_block_likelihood(
         new_last_action = jnp.where(valid, action, last_action).astype(jnp.int32)
 
         # Return updated carry with current action as last_action for next trial
-        return (Q_updated, WM_updated, WM_baseline, log_lik_new, new_last_action), log_prob_masked
+        return (
+            Q_updated,
+            WM_updated,
+            WM_baseline,
+            log_lik_new,
+            new_last_action,
+        ), log_prob_masked
 
     # Run scan over trials
-    (Q_final, WM_final, _, log_lik_total, _), log_probs = lax.scan(step_fn, init_carry, scan_inputs)
+    (Q_final, WM_final, _, log_lik_total, _), log_probs = lax.scan(
+        step_fn, init_carry, scan_inputs
+    )
 
     if return_pointwise:
         return log_lik_total, log_probs
     return log_lik_total
+
 
 def wmrl_m3_multiblock_likelihood(
     stimuli_blocks: list,
@@ -278,7 +285,7 @@ def wmrl_m3_multiblock_likelihood(
     wm_init: float = 1.0 / 3.0,  # WM baseline = 1/nA (uniform)
     masks_blocks: list = None,
     verbose: bool = False,
-    participant_id: str = None
+    participant_id: str = None,
 ) -> float:
     """
     Compute log-likelihood for WM-RL M3 (with perseveration) across MULTIPLE BLOCKS.
@@ -349,7 +356,9 @@ def wmrl_m3_multiblock_likelihood(
     num_blocks = len(stimuli_blocks)
 
     if verbose:
-        print(f"\n  >> Processing {num_blocks} blocks for participant {participant_id}...")
+        print(
+            f"\n  >> Processing {num_blocks} blocks for participant {participant_id}..."
+        )
 
     # Check if blocks are uniformly sized (for JAX-native fori_loop)
     block_sizes = [len(b) for b in stimuli_blocks]
@@ -380,7 +389,7 @@ def wmrl_m3_multiblock_likelihood(
                 num_actions=num_actions,
                 q_init=q_init,
                 wm_init=wm_init,
-                mask=masks_stacked[block_idx]
+                mask=masks_stacked[block_idx],
             )
             return total_ll + block_ll
 
@@ -393,8 +402,21 @@ def wmrl_m3_multiblock_likelihood(
         if masks_blocks is None:
             masks_blocks = [None] * num_blocks
 
-        for block_idx, (stim_block, act_block, rew_block, set_block, mask_block) in enumerate(
-            zip(stimuli_blocks, actions_blocks, rewards_blocks, set_sizes_blocks, masks_blocks)
+        for _block_idx, (
+            stim_block,
+            act_block,
+            rew_block,
+            set_block,
+            mask_block,
+        ) in enumerate(
+            zip(
+                stimuli_blocks,
+                actions_blocks,
+                rewards_blocks,
+                set_sizes_blocks,
+                masks_blocks,
+                strict=False,
+            )
         ):
             block_log_lik = wmrl_m3_block_likelihood(
                 stimuli=stim_block,
@@ -412,14 +434,18 @@ def wmrl_m3_multiblock_likelihood(
                 num_actions=num_actions,
                 q_init=q_init,
                 wm_init=wm_init,
-                mask=mask_block
+                mask=mask_block,
             )
             total_log_lik += block_log_lik
 
     if verbose:
-        print(f"  >> Total log-likelihood: {float(total_log_lik):.2f} ({num_blocks} blocks)\n", flush=True)
+        print(
+            f"  >> Total log-likelihood: {float(total_log_lik):.2f} ({num_blocks} blocks)\n",
+            flush=True,
+        )
 
     return total_log_lik
+
 
 def wmrl_m3_multiblock_likelihood_stacked(
     stimuli_stacked: jnp.ndarray,
@@ -457,6 +483,7 @@ def wmrl_m3_multiblock_likelihood_stacked(
     num_blocks = stimuli_stacked.shape[0]
 
     if return_pointwise:
+
         def scan_body(total_ll, block_idx):
             block_ll, block_probs = wmrl_m3_block_likelihood(
                 stimuli=stimuli_stacked[block_idx],
@@ -479,11 +506,10 @@ def wmrl_m3_multiblock_likelihood_stacked(
             )
             return total_ll + block_ll, block_probs
 
-        total_ll, all_block_probs = lax.scan(
-            scan_body, 0.0, jnp.arange(num_blocks)
-        )
+        total_ll, all_block_probs = lax.scan(scan_body, 0.0, jnp.arange(num_blocks))
         return total_ll, all_block_probs.reshape(-1)
     else:
+
         def body_fn(block_idx, total_ll):
             block_ll = wmrl_m3_block_likelihood(
                 stimuli=stimuli_stacked[block_idx],
@@ -501,11 +527,12 @@ def wmrl_m3_multiblock_likelihood_stacked(
                 num_actions=num_actions,
                 q_init=q_init,
                 wm_init=wm_init,
-                mask=masks_stacked[block_idx]
+                mask=masks_stacked[block_idx],
             )
             return total_ll + block_ll
 
         return lax.fori_loop(0, num_blocks, body_fn, 0.0)
+
 
 def wmrl_m3_fully_batched_likelihood(
     stimuli: jnp.ndarray,
@@ -601,8 +628,18 @@ def wmrl_m3_fully_batched_likelihood(
         )
 
     def _block_ll(
-        stim, act, rew, ss, mask,
-        ap, an, ph, rh, cap, k, e,
+        stim,
+        act,
+        rew,
+        ss,
+        mask,
+        ap,
+        an,
+        ph,
+        rh,
+        cap,
+        k,
+        e,
     ):
         # Scalar log-lik for a single (participant, block).
         return wmrl_m3_block_likelihood(
@@ -633,11 +670,32 @@ def wmrl_m3_fully_batched_likelihood(
     )
 
     def _participant_ll(
-        stim, act, rew, ss, mask,
-        ap, an, ph, rh, cap, k, e,
+        stim,
+        act,
+        rew,
+        ss,
+        mask,
+        ap,
+        an,
+        ph,
+        rh,
+        cap,
+        k,
+        e,
     ):
         block_lls = _over_blocks(
-            stim, act, rew, ss, mask, ap, an, ph, rh, cap, k, e,
+            stim,
+            act,
+            rew,
+            ss,
+            mask,
+            ap,
+            an,
+            ph,
+            rh,
+            cap,
+            k,
+            e,
         )
         return block_lls.sum()
 
@@ -648,9 +706,20 @@ def wmrl_m3_fully_batched_likelihood(
         out_axes=0,
     )
     return _over_participants(
-        stimuli, actions, rewards, set_sizes, masks,
-        alpha_pos, alpha_neg, phi, rho, capacity, kappa, epsilon,
+        stimuli,
+        actions,
+        rewards,
+        set_sizes,
+        masks,
+        alpha_pos,
+        alpha_neg,
+        phi,
+        rho,
+        capacity,
+        kappa,
+        epsilon,
     )
+
 
 def wmrl_m3_block_likelihood_pscan(
     stimuli: jnp.ndarray,
@@ -702,22 +771,34 @@ def wmrl_m3_block_likelihood_pscan(
     # Phase 1: parallel Q and WM trajectories
     T = stimuli.shape[0]
     Q_for_policy = associative_scan_q_update(
-        stimuli, actions, rewards, mask,
-        alpha_pos, alpha_neg, q_init,
-        num_stimuli, num_actions,
+        stimuli,
+        actions,
+        rewards,
+        mask,
+        alpha_pos,
+        alpha_neg,
+        q_init,
+        num_stimuli,
+        num_actions,
     )  # (T, S, A)
 
     wm_for_policy, _ = associative_scan_wm_update(
-        stimuli, actions, rewards, mask,
-        phi, wm_init, num_stimuli, num_actions,
+        stimuli,
+        actions,
+        rewards,
+        mask,
+        phi,
+        wm_init,
+        num_stimuli,
+        num_actions,
     )  # (T, S, A)
 
     # ------------------------------------------------------------------
     # Phase 2 (vectorized): hybrid policy + global perseveration
     # ------------------------------------------------------------------
     t_idx = jnp.arange(T)
-    q_vals = Q_for_policy[t_idx, stimuli]      # (T, A)
-    wm_vals = wm_for_policy[t_idx, stimuli]    # (T, A)
+    q_vals = Q_for_policy[t_idx, stimuli]  # (T, A)
+    wm_vals = wm_for_policy[t_idx, stimuli]  # (T, A)
 
     omega = rho * jnp.minimum(1.0, capacity / set_sizes)  # (T,)
     rl_probs = jax.vmap(softmax_policy, in_axes=(0, None))(q_vals, FIXED_BETA)
@@ -741,6 +822,7 @@ def wmrl_m3_block_likelihood_pscan(
     if return_pointwise:
         return jnp.sum(log_probs), log_probs
     return jnp.sum(log_probs)
+
 
 def wmrl_m3_multiblock_likelihood_stacked_pscan(
     stimuli_stacked: jnp.ndarray,
@@ -784,6 +866,7 @@ def wmrl_m3_multiblock_likelihood_stacked_pscan(
     num_blocks = stimuli_stacked.shape[0]
 
     if return_pointwise:
+
         def scan_body(total_ll, block_idx):
             block_ll, block_probs = wmrl_m3_block_likelihood_pscan(
                 stimuli=stimuli_stacked[block_idx],
@@ -806,11 +889,10 @@ def wmrl_m3_multiblock_likelihood_stacked_pscan(
             )
             return total_ll + block_ll, block_probs
 
-        total_ll, all_block_probs = lax.scan(
-            scan_body, 0.0, jnp.arange(num_blocks)
-        )
+        total_ll, all_block_probs = lax.scan(scan_body, 0.0, jnp.arange(num_blocks))
         return total_ll, all_block_probs.reshape(-1)
     else:
+
         def body_fn(block_idx, total_ll):
             block_ll = wmrl_m3_block_likelihood_pscan(
                 stimuli=stimuli_stacked[block_idx],
@@ -834,6 +916,7 @@ def wmrl_m3_multiblock_likelihood_stacked_pscan(
 
         return lax.fori_loop(0, num_blocks, body_fn, 0.0)
 
+
 def test_wmrl_m3_single_block():
     """Test WM-RL M3 likelihood on a single block."""
     print("\nTesting WM-RL M3 single block likelihood...")
@@ -851,23 +934,22 @@ def test_wmrl_m3_single_block():
     set_sizes = jnp.ones((n_trials,)) * 5
 
     params = {
-        'alpha_pos': 0.3,
-        'alpha_neg': 0.1,
-        'phi': 0.1,
-        'rho': 0.7,
-        'capacity': 4.0,
-        'epsilon': 0.05,
-        'kappa': 0.3  # Moderate perseveration
+        "alpha_pos": 0.3,
+        "alpha_neg": 0.1,
+        "phi": 0.1,
+        "rho": 0.7,
+        "capacity": 4.0,
+        "epsilon": 0.05,
+        "kappa": 0.3,  # Moderate perseveration
     }
 
-    log_lik = wmrl_m3_block_likelihood(
-        stimuli, actions, rewards, set_sizes, **params
-    )
+    log_lik = wmrl_m3_block_likelihood(stimuli, actions, rewards, set_sizes, **params)
 
     print(f"  WM-RL M3 single block log-likelihood: {log_lik:.2f}")
     print(f"  Average log-prob per trial: {log_lik / n_trials:.3f}")
 
     return log_lik
+
 
 def test_wmrl_m3_backward_compatibility():
     """Verify M3 with kappa=0 matches M2 exactly."""
@@ -884,12 +966,12 @@ def test_wmrl_m3_backward_compatibility():
     set_sizes = jnp.ones((n_trials,)) * 5
 
     params_m2 = {
-        'alpha_pos': 0.3,
-        'alpha_neg': 0.1,
-        'phi': 0.1,
-        'rho': 0.7,
-        'capacity': 4.0,
-        'epsilon': 0.05
+        "alpha_pos": 0.3,
+        "alpha_neg": 0.1,
+        "phi": 0.1,
+        "rho": 0.7,
+        "capacity": 4.0,
+        "epsilon": 0.05,
     }
 
     # M2 likelihood
@@ -910,6 +992,7 @@ def test_wmrl_m3_backward_compatibility():
     assert match, "M3 with kappa=0 should match M2 exactly!"
     return match
 
+
 def test_padding_equivalence_wmrl_m3():
     """
     Verify padded and unpadded WM-RL M3 likelihoods are mathematically equivalent.
@@ -928,8 +1011,13 @@ def test_padding_equivalence_wmrl_m3():
     set_sizes = jnp.full((n_real_trials,), 5, dtype=jnp.int32)
 
     params = {
-        'alpha_pos': 0.3, 'alpha_neg': 0.1, 'phi': 0.1,
-        'rho': 0.7, 'capacity': 4.0, 'kappa': 0.3, 'epsilon': 0.05
+        "alpha_pos": 0.3,
+        "alpha_neg": 0.1,
+        "phi": 0.1,
+        "rho": 0.7,
+        "capacity": 4.0,
+        "kappa": 0.3,
+        "epsilon": 0.05,
     }
 
     # Unpadded likelihood (original)
@@ -954,6 +1042,7 @@ def test_padding_equivalence_wmrl_m3():
 
     assert match, "WM-RL M3 padded/unpadded must be IDENTICAL!"
     return match
+
 
 def wmrl_m3_hierarchical_model(
     participant_data_stacked: dict,
@@ -1049,7 +1138,7 @@ def wmrl_m3_hierarchical_model(
         )
 
     n_participants = len(participant_data_stacked)
-    participant_ids = sorted(participant_data_stacked.keys())
+    sorted(participant_data_stacked.keys())
 
     # ------------------------------------------------------------------
     # Level-2: LEC-total + IES-R-total -> kappa regression coefficients
@@ -1061,9 +1150,7 @@ def wmrl_m3_hierarchical_model(
         beta_lec_kappa = 0.0
 
     if covariate_iesr is not None:
-        beta_iesr_kappa = numpyro.sample(
-            "beta_iesr_kappa", dist.Normal(0.0, 1.0)
-        )
+        beta_iesr_kappa = numpyro.sample("beta_iesr_kappa", dist.Normal(0.0, 1.0))
     else:
         beta_iesr_kappa = 0.0
 
@@ -1097,9 +1184,7 @@ def wmrl_m3_hierarchical_model(
         dist.Normal(0, 1).expand([n_participants]),
     )
     lec_shift = beta_lec_kappa * covariate_lec if covariate_lec is not None else 0.0
-    iesr_shift = (
-        beta_iesr_kappa * covariate_iesr if covariate_iesr is not None else 0.0
-    )
+    iesr_shift = beta_iesr_kappa * covariate_iesr if covariate_iesr is not None else 0.0
     kappa_unc = kappa_mu_pr + kappa_sigma_pr * kappa_z + lec_shift + iesr_shift
     kappa = numpyro.deterministic(
         "kappa",

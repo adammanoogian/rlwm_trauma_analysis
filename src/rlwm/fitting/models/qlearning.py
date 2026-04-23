@@ -8,31 +8,23 @@ re-export shims were deleted in the v5.0 shim cleanup.
 Senta et al. (2025) M1: Q-learning with asymmetric learning rates
 ``(alpha_pos, alpha_neg)`` and epsilon noise.
 """
+
 from __future__ import annotations
 
 from typing import Any
 
 import jax
 import jax.numpy as jnp
-import numpy as np
 import numpyro
 import numpyro.distributions as dist
-import pandas as pd
 from jax import lax
-from numpyro.infer import MCMC, NUTS
 
 from ..core import (
     DEFAULT_EPSILON,
     FIXED_BETA,
-    MAX_BLOCKS,
-    MAX_TRIALS_PER_BLOCK,
-    NUM_ACTIONS,
-    affine_scan,
     apply_epsilon_noise,
     associative_scan_q_update,
     pad_block_to_max,
-    pad_blocks_to_max,
-    prepare_stacked_participant_data,
     softmax_policy,
     stack_across_participants,
 )
@@ -56,8 +48,7 @@ __all__ = [
 
 
 def q_learning_step(
-    carry: tuple[jnp.ndarray, float],
-    inputs: tuple[int, int, float]
+    carry: tuple[jnp.ndarray, float], inputs: tuple[int, int, float]
 ) -> tuple[tuple[jnp.ndarray, float], float]:
     """
     Single Q-learning trial (functional, JIT-compilable).
@@ -123,6 +114,7 @@ def q_learning_step(
     log_lik_new = log_lik_accum + log_prob
 
     return (Q_table_new, log_lik_new), log_prob
+
 
 def q_learning_block_likelihood(
     stimuli: jnp.ndarray,
@@ -196,17 +188,21 @@ def q_learning_block_likelihood(
     >>> actions = jnp.array([0, 1, 0, 2, 1])
     >>> rewards = jnp.array([1.0, 0.0, 1.0, 1.0, 0.0])
     >>> log_lik = q_learning_block_likelihood(
-    ...     stimuli, actions, rewards,
-    ...     alpha_pos=0.3, alpha_neg=0.1, epsilon=0.05
+    ...     stimuli, actions, rewards, alpha_pos=0.3, alpha_neg=0.1, epsilon=0.05
     ... )
 
     # With padding (same result for real trials):
-    >>> mask = jnp.array([1., 1., 1., 1., 1., 0., 0., 0.])  # 5 real + 3 padding
+    >>> mask = jnp.array([1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0])  # 5 real + 3 padding
     >>> stimuli_pad = jnp.concatenate([stimuli, jnp.zeros(3, dtype=jnp.int32)])
     >>> # ... pad other arrays similarly
     >>> log_lik_padded = q_learning_block_likelihood(
-    ...     stimuli_pad, actions_pad, rewards_pad,
-    ...     alpha_pos=0.3, alpha_neg=0.1, epsilon=0.05, mask=mask
+    ...     stimuli_pad,
+    ...     actions_pad,
+    ...     rewards_pad,
+    ...     alpha_pos=0.3,
+    ...     alpha_neg=0.1,
+    ...     epsilon=0.05,
+    ...     mask=mask,
     ... )
     >>> assert jnp.allclose(log_lik, log_lik_padded)  # Mathematical equivalence
     """
@@ -262,6 +258,7 @@ def q_learning_block_likelihood(
         return log_lik_total, log_probs
     return log_lik_total
 
+
 def q_learning_multiblock_likelihood(
     stimuli_blocks: list,
     actions_blocks: list,
@@ -274,7 +271,7 @@ def q_learning_multiblock_likelihood(
     q_init: float = 0.5,
     masks_blocks: list = None,
     verbose: bool = False,
-    participant_id: str = None
+    participant_id: str = None,
 ) -> float:
     """
     Compute log-likelihood across MULTIPLE BLOCKS.
@@ -326,18 +323,24 @@ def q_learning_multiblock_likelihood(
     Examples
     --------
     >>> # Two blocks of data
-    >>> stimuli_blocks = [jnp.array([0,1,0]), jnp.array([2,1,2])]
-    >>> actions_blocks = [jnp.array([0,1,0]), jnp.array([1,1,2])]
-    >>> rewards_blocks = [jnp.array([1,0,1]), jnp.array([0,1,1])]
+    >>> stimuli_blocks = [jnp.array([0, 1, 0]), jnp.array([2, 1, 2])]
+    >>> actions_blocks = [jnp.array([0, 1, 0]), jnp.array([1, 1, 2])]
+    >>> rewards_blocks = [jnp.array([1, 0, 1]), jnp.array([0, 1, 1])]
     >>> log_lik = q_learning_multiblock_likelihood(
-    ...     stimuli_blocks, actions_blocks, rewards_blocks,
-    ...     alpha_pos=0.3, alpha_neg=0.1, epsilon=0.05
+    ...     stimuli_blocks,
+    ...     actions_blocks,
+    ...     rewards_blocks,
+    ...     alpha_pos=0.3,
+    ...     alpha_neg=0.1,
+    ...     epsilon=0.05,
     ... )
     """
     num_blocks = len(stimuli_blocks)
 
     if verbose:
-        print(f"\n  >> Processing {num_blocks} blocks for participant {participant_id}...")
+        print(
+            f"\n  >> Processing {num_blocks} blocks for participant {participant_id}..."
+        )
 
     # Check if blocks are uniformly sized (for JAX-native fori_loop)
     # This is the case when data comes from prepare_participant_data with padding
@@ -349,10 +352,10 @@ def q_learning_multiblock_likelihood(
         # This compiles into a single XLA computation for massive GPU speedup
 
         # Stack all blocks into arrays for JAX-native loop
-        stimuli_stacked = jnp.stack(stimuli_blocks)    # Shape: (n_blocks, max_trials)
-        actions_stacked = jnp.stack(actions_blocks)    # Shape: (n_blocks, max_trials)
-        rewards_stacked = jnp.stack(rewards_blocks)    # Shape: (n_blocks, max_trials)
-        masks_stacked = jnp.stack(masks_blocks)        # Shape: (n_blocks, max_trials)
+        stimuli_stacked = jnp.stack(stimuli_blocks)  # Shape: (n_blocks, max_trials)
+        actions_stacked = jnp.stack(actions_blocks)  # Shape: (n_blocks, max_trials)
+        rewards_stacked = jnp.stack(rewards_blocks)  # Shape: (n_blocks, max_trials)
+        masks_stacked = jnp.stack(masks_blocks)  # Shape: (n_blocks, max_trials)
 
         # Define the loop body for fori_loop
         def body_fn(block_idx, total_ll):
@@ -366,7 +369,7 @@ def q_learning_multiblock_likelihood(
                 num_stimuli=num_stimuli,
                 num_actions=num_actions,
                 q_init=q_init,
-                mask=masks_stacked[block_idx]
+                mask=masks_stacked[block_idx],
             )
             return total_ll + block_ll
 
@@ -382,8 +385,14 @@ def q_learning_multiblock_likelihood(
         if masks_blocks is None:
             masks_blocks = [None] * num_blocks
 
-        for block_idx, (stim_block, act_block, rew_block, mask_block) in enumerate(
-            zip(stimuli_blocks, actions_blocks, rewards_blocks, masks_blocks)
+        for _block_idx, (stim_block, act_block, rew_block, mask_block) in enumerate(
+            zip(
+                stimuli_blocks,
+                actions_blocks,
+                rewards_blocks,
+                masks_blocks,
+                strict=False,
+            )
         ):
             block_log_lik = q_learning_block_likelihood(
                 stimuli=stim_block,
@@ -395,20 +404,29 @@ def q_learning_multiblock_likelihood(
                 num_stimuli=num_stimuli,
                 num_actions=num_actions,
                 q_init=q_init,
-                mask=mask_block
+                mask=mask_block,
             )
             total_log_lik += block_log_lik
 
     if verbose:
-        print(f"  >> Total log-likelihood: {float(total_log_lik):.2f} ({num_blocks} blocks)\n", flush=True)
+        print(
+            f"  >> Total log-likelihood: {float(total_log_lik):.2f} ({num_blocks} blocks)\n",
+            flush=True,
+        )
 
     return total_log_lik
 
+
 q_learning_block_likelihood_jit = jax.jit(
     q_learning_block_likelihood,
-    static_argnums=(6, 7, 8),  # num_stimuli, num_actions, q_init are static (epsilon is at index 5)
+    static_argnums=(
+        6,
+        7,
+        8,
+    ),  # num_stimuli, num_actions, q_init are static (epsilon is at index 5)
     static_argnames=("return_pointwise",),
 )
+
 
 def q_learning_multiblock_likelihood_stacked(
     stimuli_stacked: jnp.ndarray,
@@ -461,6 +479,7 @@ def q_learning_multiblock_likelihood_stacked(
     num_blocks = stimuli_stacked.shape[0]
 
     if return_pointwise:
+
         def scan_body(total_ll, block_idx):
             block_ll, block_probs = q_learning_block_likelihood(
                 stimuli=stimuli_stacked[block_idx],
@@ -477,11 +496,10 @@ def q_learning_multiblock_likelihood_stacked(
             )
             return total_ll + block_ll, block_probs
 
-        total_ll, all_block_probs = lax.scan(
-            scan_body, 0.0, jnp.arange(num_blocks)
-        )
+        total_ll, all_block_probs = lax.scan(scan_body, 0.0, jnp.arange(num_blocks))
         return total_ll, all_block_probs.reshape(-1)
     else:
+
         def body_fn(block_idx, total_ll):
             block_ll = q_learning_block_likelihood(
                 stimuli=stimuli_stacked[block_idx],
@@ -493,19 +511,20 @@ def q_learning_multiblock_likelihood_stacked(
                 num_stimuli=num_stimuli,
                 num_actions=num_actions,
                 q_init=q_init,
-                mask=masks_stacked[block_idx]
+                mask=masks_stacked[block_idx],
             )
             return total_ll + block_ll
 
         return lax.fori_loop(0, num_blocks, body_fn, 0.0)
 
+
 def prepare_block_data(
     data_df,
-    participant_col: str = 'sona_id',
-    block_col: str = 'block',
-    stimulus_col: str = 'stimulus',
-    action_col: str = 'key_press',
-    reward_col: str = 'reward'
+    participant_col: str = "sona_id",
+    block_col: str = "block",
+    stimulus_col: str = "stimulus",
+    action_col: str = "key_press",
+    reward_col: str = "reward",
 ) -> dict[Any, dict[int, dict[str, jnp.ndarray]]]:
     """
     Prepare data in block-structured format for JAX likelihoods.
@@ -529,15 +548,17 @@ def prepare_block_data(
     Examples
     --------
     >>> import pandas as pd
-    >>> df = pd.DataFrame({
-    ...     'sona_id': [1, 1, 1, 1, 2, 2],
-    ...     'block': [3, 3, 4, 4, 3, 3],
-    ...     'stimulus': [0, 1, 0, 2, 1, 0],
-    ...     'key_press': [0, 1, 0, 1, 1, 0],
-    ...     'reward': [1, 0, 1, 0, 1, 1]
-    ... })
+    >>> df = pd.DataFrame(
+    ...     {
+    ...         "sona_id": [1, 1, 1, 1, 2, 2],
+    ...         "block": [3, 3, 4, 4, 3, 3],
+    ...         "stimulus": [0, 1, 0, 2, 1, 0],
+    ...         "key_press": [0, 1, 0, 1, 1, 0],
+    ...         "reward": [1, 0, 1, 0, 1, 1],
+    ...     }
+    ... )
     >>> block_data = prepare_block_data(df)
-    >>> print(block_data[1][3]['stimuli'])  # Participant 1, Block 3
+    >>> print(block_data[1][3]["stimuli"])  # Participant 1, Block 3
     """
     block_data = {}
 
@@ -550,12 +571,17 @@ def prepare_block_data(
             block_trials = participant_data[participant_data[block_col] == block_num]
 
             block_data[participant_id][int(block_num)] = {
-                'stimuli': jnp.array(block_trials[stimulus_col].values, dtype=jnp.int32),
-                'actions': jnp.array(block_trials[action_col].values, dtype=jnp.int32),
-                'rewards': jnp.array(block_trials[reward_col].values, dtype=jnp.float32)
+                "stimuli": jnp.array(
+                    block_trials[stimulus_col].values, dtype=jnp.int32
+                ),
+                "actions": jnp.array(block_trials[action_col].values, dtype=jnp.int32),
+                "rewards": jnp.array(
+                    block_trials[reward_col].values, dtype=jnp.float32
+                ),
             }
 
     return block_data
+
 
 def q_learning_fully_batched_likelihood(
     stimuli: jnp.ndarray,
@@ -666,9 +692,15 @@ def q_learning_fully_batched_likelihood(
         out_axes=0,
     )
     return _over_participants(
-        stimuli, actions, rewards, masks,
-        alpha_pos, alpha_neg, epsilon,
+        stimuli,
+        actions,
+        rewards,
+        masks,
+        alpha_pos,
+        alpha_neg,
+        epsilon,
     )
+
 
 def q_learning_block_likelihood_pscan(
     stimuli: jnp.ndarray,
@@ -721,9 +753,15 @@ def q_learning_block_likelihood_pscan(
     # ------------------------------------------------------------------
     T = stimuli.shape[0]
     Q_for_policy = associative_scan_q_update(
-        stimuli, actions, rewards, mask,
-        alpha_pos, alpha_neg, q_init,
-        num_stimuli, num_actions,
+        stimuli,
+        actions,
+        rewards,
+        mask,
+        alpha_pos,
+        alpha_neg,
+        q_init,
+        num_stimuli,
+        num_actions,
     )  # (T, S, A)
 
     # ------------------------------------------------------------------
@@ -740,6 +778,7 @@ def q_learning_block_likelihood_pscan(
     if return_pointwise:
         return jnp.sum(log_probs), log_probs
     return jnp.sum(log_probs)
+
 
 def q_learning_multiblock_likelihood_stacked_pscan(
     stimuli_stacked: jnp.ndarray,
@@ -778,6 +817,7 @@ def q_learning_multiblock_likelihood_stacked_pscan(
     num_blocks = stimuli_stacked.shape[0]
 
     if return_pointwise:
+
         def scan_body(total_ll, block_idx):
             block_ll, block_probs = q_learning_block_likelihood_pscan(
                 stimuli=stimuli_stacked[block_idx],
@@ -794,11 +834,10 @@ def q_learning_multiblock_likelihood_stacked_pscan(
             )
             return total_ll + block_ll, block_probs
 
-        total_ll, all_block_probs = lax.scan(
-            scan_body, 0.0, jnp.arange(num_blocks)
-        )
+        total_ll, all_block_probs = lax.scan(scan_body, 0.0, jnp.arange(num_blocks))
         return total_ll, all_block_probs.reshape(-1)
     else:
+
         def body_fn(block_idx, total_ll):
             block_ll = q_learning_block_likelihood_pscan(
                 stimuli=stimuli_stacked[block_idx],
@@ -815,6 +854,7 @@ def q_learning_multiblock_likelihood_stacked_pscan(
             return total_ll + block_ll
 
         return lax.fori_loop(0, num_blocks, body_fn, 0.0)
+
 
 def test_single_block():
     """Test Q-learning likelihood on a single block."""
@@ -836,8 +876,7 @@ def test_single_block():
 
     # Compute likelihood
     log_lik = q_learning_block_likelihood(
-        stimuli, actions, rewards,
-        alpha_pos, alpha_neg, epsilon
+        stimuli, actions, rewards, alpha_pos, alpha_neg, epsilon
     )
 
     print(f"[OK] Single block log-likelihood: {log_lik:.2f}")
@@ -845,13 +884,13 @@ def test_single_block():
 
     # Test JIT compilation
     log_lik_jit = q_learning_block_likelihood_jit(
-        stimuli, actions, rewards,
-        alpha_pos, alpha_neg, epsilon
+        stimuli, actions, rewards, alpha_pos, alpha_neg, epsilon
     )
 
     print(f"[OK] JIT-compiled result matches: {jnp.allclose(log_lik, log_lik_jit)}")
 
     return log_lik
+
 
 def test_multiblock():
     """Test Q-learning likelihood on multiple blocks."""
@@ -866,7 +905,7 @@ def test_multiblock():
     actions_blocks = []
     rewards_blocks = []
 
-    for i, size in enumerate(block_sizes):
+    for _i, size in enumerate(block_sizes):
         key, subkey = jax.random.split(key)
         stimuli_blocks.append(jax.random.randint(subkey, (size,), 0, 6))
 
@@ -874,7 +913,9 @@ def test_multiblock():
         actions_blocks.append(jax.random.randint(subkey, (size,), 0, 3))
 
         key, subkey = jax.random.split(key)
-        rewards_blocks.append(jax.random.bernoulli(subkey, 0.7, (size,)).astype(jnp.float32))
+        rewards_blocks.append(
+            jax.random.bernoulli(subkey, 0.7, (size,)).astype(jnp.float32)
+        )
 
     # Test parameters (no beta - it's fixed at 50)
     alpha_pos = 0.3
@@ -883,8 +924,7 @@ def test_multiblock():
 
     # Compute likelihood
     log_lik = q_learning_multiblock_likelihood(
-        stimuli_blocks, actions_blocks, rewards_blocks,
-        alpha_pos, alpha_neg, epsilon
+        stimuli_blocks, actions_blocks, rewards_blocks, alpha_pos, alpha_neg, epsilon
     )
 
     total_trials = sum(block_sizes)
@@ -893,13 +933,18 @@ def test_multiblock():
     print(f"  Average log-prob per trial: {log_lik / total_trials:.3f}")
 
     # Verify it equals sum of individual blocks
-    manual_sum = sum([
-        q_learning_block_likelihood(stim, act, rew, alpha_pos, alpha_neg, epsilon)
-        for stim, act, rew in zip(stimuli_blocks, actions_blocks, rewards_blocks)
-    ])
+    manual_sum = sum(
+        [
+            q_learning_block_likelihood(stim, act, rew, alpha_pos, alpha_neg, epsilon)
+            for stim, act, rew in zip(
+                stimuli_blocks, actions_blocks, rewards_blocks, strict=False
+            )
+        ]
+    )
     print(f"[OK] Matches manual block summation: {jnp.allclose(log_lik, manual_sum)}")
 
     return log_lik
+
 
 def test_padding_equivalence_qlearning():
     """
@@ -926,12 +971,10 @@ def test_padding_equivalence_qlearning():
     key, subkey = jax.random.split(key)
     rewards = jax.random.bernoulli(subkey, 0.7, (n_real_trials,)).astype(jnp.float32)
 
-    params = {'alpha_pos': 0.3, 'alpha_neg': 0.1, 'epsilon': 0.05}
+    params = {"alpha_pos": 0.3, "alpha_neg": 0.1, "epsilon": 0.05}
 
     # Unpadded likelihood (original)
-    log_lik_original = q_learning_block_likelihood(
-        stimuli, actions, rewards, **params
-    )
+    log_lik_original = q_learning_block_likelihood(stimuli, actions, rewards, **params)
 
     # Padded likelihood (with mask)
     stimuli_pad, actions_pad, rewards_pad, mask = pad_block_to_max(
@@ -950,6 +993,7 @@ def test_padding_equivalence_qlearning():
 
     assert match, "Q-learning padded/unpadded must be IDENTICAL!"
     return match
+
 
 def qlearning_hierarchical_model(
     participant_data: dict[Any, dict[str, list]],
@@ -1084,6 +1128,7 @@ def qlearning_hierarchical_model(
 
         # Add to model via factor (log probability)
         numpyro.factor(f"obs_p{participant_id}", log_lik)
+
 
 def qlearning_hierarchical_model_stacked(
     participant_data_stacked: dict,

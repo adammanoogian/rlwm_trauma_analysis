@@ -9,11 +9,11 @@ M6b parameterizes perseveration as ``kappa_total`` (total magnitude) and
 ``kappa_share`` (fraction routed to global vs. stimulus-specific tracks).
 At ``kappa_share=0`` M6b reduces to M6a; at ``kappa_share=1`` to M3.
 """
+
 from __future__ import annotations
 
 import jax
 import jax.numpy as jnp
-import numpy as np
 import numpyro
 import numpyro.distributions as dist
 from jax import lax
@@ -21,20 +21,17 @@ from jax import lax
 from ..core import (
     DEFAULT_EPSILON,
     FIXED_BETA,
-    MAX_BLOCKS,
-    MAX_TRIALS_PER_BLOCK,
-    NUM_ACTIONS,
-    affine_scan,
     apply_epsilon_noise,
     associative_scan_q_update,
     associative_scan_wm_update,
     pad_block_to_max,
     precompute_last_action_global,
     precompute_last_actions_per_stimulus,
-    prepare_stacked_participant_data,
     softmax_policy,
     stack_across_participants,
 )
+from .wmrl_m3 import wmrl_m3_block_likelihood
+from .wmrl_m6a import wmrl_m6a_block_likelihood
 
 __all__ = [
     "wmrl_m6b_fully_batched_likelihood",
@@ -127,7 +124,19 @@ def wmrl_m6b_fully_batched_likelihood(
 
     def _participant_ll(stim, act, rew, ss, mask, ap, an, ph, rh, cap, k, ks, e):
         return _over_blocks(
-            stim, act, rew, ss, mask, ap, an, ph, rh, cap, k, ks, e,
+            stim,
+            act,
+            rew,
+            ss,
+            mask,
+            ap,
+            an,
+            ph,
+            rh,
+            cap,
+            k,
+            ks,
+            e,
         ).sum()
 
     _over_participants = jax.vmap(
@@ -136,9 +145,21 @@ def wmrl_m6b_fully_batched_likelihood(
         out_axes=0,
     )
     return _over_participants(
-        stimuli, actions, rewards, set_sizes, masks,
-        alpha_pos, alpha_neg, phi, rho, capacity, kappa, kappa_s, epsilon,
+        stimuli,
+        actions,
+        rewards,
+        set_sizes,
+        masks,
+        alpha_pos,
+        alpha_neg,
+        phi,
+        rho,
+        capacity,
+        kappa,
+        kappa_s,
+        epsilon,
     )
+
 
 def wmrl_m6b_block_likelihood(
     stimuli: jnp.ndarray,
@@ -150,8 +171,8 @@ def wmrl_m6b_block_likelihood(
     phi: float,
     rho: float,
     capacity: float,
-    kappa: float,   # DECODED global perseveration (= kappa_total * kappa_share)
-    kappa_s: float, # DECODED stimulus-specific perseveration (= kappa_total * (1 - kappa_share))
+    kappa: float,  # DECODED global perseveration (= kappa_total * kappa_share)
+    kappa_s: float,  # DECODED stimulus-specific perseveration (= kappa_total * (1 - kappa_share))
     epsilon: float = DEFAULT_EPSILON,
     num_stimuli: int = 6,
     num_actions: int = 3,
@@ -334,8 +355,14 @@ def wmrl_m6b_block_likelihood(
             jnp.where(valid, action, last_action_s).astype(jnp.int32)
         )
 
-        return (Q_updated, WM_updated, WM_baseline, log_lik_new,
-                new_last_action, new_last_actions), log_prob_masked
+        return (
+            Q_updated,
+            WM_updated,
+            WM_baseline,
+            log_lik_new,
+            new_last_action,
+            new_last_actions,
+        ), log_prob_masked
 
     # Run scan over trials
     (Q_final, WM_final, _, log_lik_total, _, _), log_probs = lax.scan(
@@ -345,6 +372,7 @@ def wmrl_m6b_block_likelihood(
     if return_pointwise:
         return log_lik_total, log_probs
     return log_lik_total
+
 
 def wmrl_m6b_multiblock_likelihood(
     stimuli_blocks: list,
@@ -356,8 +384,8 @@ def wmrl_m6b_multiblock_likelihood(
     phi: float,
     rho: float,
     capacity: float,
-    kappa: float,   # DECODED global perseveration (= kappa_total * kappa_share)
-    kappa_s: float, # DECODED stimulus-specific perseveration (= kappa_total * (1 - kappa_share))
+    kappa: float,  # DECODED global perseveration (= kappa_total * kappa_share)
+    kappa_s: float,  # DECODED stimulus-specific perseveration (= kappa_total * (1 - kappa_share))
     epsilon: float = DEFAULT_EPSILON,
     num_stimuli: int = 6,
     num_actions: int = 3,
@@ -365,7 +393,7 @@ def wmrl_m6b_multiblock_likelihood(
     wm_init: float = 1.0 / 3.0,
     masks_blocks: list = None,
     verbose: bool = False,
-    participant_id: str = None
+    participant_id: str = None,
 ) -> float:
     """
     Compute log-likelihood for WM-RL M6b (dual perseveration) across MULTIPLE BLOCKS.
@@ -379,7 +407,9 @@ def wmrl_m6b_multiblock_likelihood(
     num_blocks = len(stimuli_blocks)
 
     if verbose:
-        print(f"\n  >> Processing {num_blocks} blocks for participant {participant_id}...")
+        print(
+            f"\n  >> Processing {num_blocks} blocks for participant {participant_id}..."
+        )
 
     # Check if blocks are uniformly sized (for JAX-native fori_loop)
     block_sizes = [len(b) for b in stimuli_blocks]
@@ -411,7 +441,7 @@ def wmrl_m6b_multiblock_likelihood(
                 num_actions=num_actions,
                 q_init=q_init,
                 wm_init=wm_init,
-                mask=masks_stacked[block_idx]
+                mask=masks_stacked[block_idx],
             )
             return total_ll + block_ll
 
@@ -424,8 +454,21 @@ def wmrl_m6b_multiblock_likelihood(
         if masks_blocks is None:
             masks_blocks = [None] * num_blocks
 
-        for block_idx, (stim_block, act_block, rew_block, set_block, mask_block) in enumerate(
-            zip(stimuli_blocks, actions_blocks, rewards_blocks, set_sizes_blocks, masks_blocks)
+        for _block_idx, (
+            stim_block,
+            act_block,
+            rew_block,
+            set_block,
+            mask_block,
+        ) in enumerate(
+            zip(
+                stimuli_blocks,
+                actions_blocks,
+                rewards_blocks,
+                set_sizes_blocks,
+                masks_blocks,
+                strict=False,
+            )
         ):
             block_log_lik = wmrl_m6b_block_likelihood(
                 stimuli=stim_block,
@@ -444,14 +487,18 @@ def wmrl_m6b_multiblock_likelihood(
                 num_actions=num_actions,
                 q_init=q_init,
                 wm_init=wm_init,
-                mask=mask_block
+                mask=mask_block,
             )
             total_log_lik += block_log_lik
 
     if verbose:
-        print(f"  >> Total log-likelihood: {float(total_log_lik):.2f} ({num_blocks} blocks)\n", flush=True)
+        print(
+            f"  >> Total log-likelihood: {float(total_log_lik):.2f} ({num_blocks} blocks)\n",
+            flush=True,
+        )
 
     return total_log_lik
+
 
 def wmrl_m6b_multiblock_likelihood_stacked(
     stimuli_stacked: jnp.ndarray,
@@ -464,8 +511,8 @@ def wmrl_m6b_multiblock_likelihood_stacked(
     phi: float,
     rho: float,
     capacity: float,
-    kappa: float,   # DECODED global perseveration (= kappa_total * kappa_share)
-    kappa_s: float, # DECODED stimulus-specific perseveration (= kappa_total * (1 - kappa_share))
+    kappa: float,  # DECODED global perseveration (= kappa_total * kappa_share)
+    kappa_s: float,  # DECODED stimulus-specific perseveration (= kappa_total * (1 - kappa_share))
     epsilon: float = DEFAULT_EPSILON,
     num_stimuli: int = 6,
     num_actions: int = 3,
@@ -492,6 +539,7 @@ def wmrl_m6b_multiblock_likelihood_stacked(
     num_blocks = stimuli_stacked.shape[0]
 
     if return_pointwise:
+
         def scan_body(total_ll, block_idx):
             block_ll, block_probs = wmrl_m6b_block_likelihood(
                 stimuli=stimuli_stacked[block_idx],
@@ -515,11 +563,10 @@ def wmrl_m6b_multiblock_likelihood_stacked(
             )
             return total_ll + block_ll, block_probs
 
-        total_ll, all_block_probs = lax.scan(
-            scan_body, 0.0, jnp.arange(num_blocks)
-        )
+        total_ll, all_block_probs = lax.scan(scan_body, 0.0, jnp.arange(num_blocks))
         return total_ll, all_block_probs.reshape(-1)
     else:
+
         def body_fn(block_idx, total_ll):
             block_ll = wmrl_m6b_block_likelihood(
                 stimuli=stimuli_stacked[block_idx],
@@ -538,11 +585,12 @@ def wmrl_m6b_multiblock_likelihood_stacked(
                 num_actions=num_actions,
                 q_init=q_init,
                 wm_init=wm_init,
-                mask=masks_stacked[block_idx]
+                mask=masks_stacked[block_idx],
             )
             return total_ll + block_ll
 
         return lax.fori_loop(0, num_blocks, body_fn, 0.0)
+
 
 def wmrl_m6b_block_likelihood_pscan(
     stimuli: jnp.ndarray,
@@ -596,22 +644,34 @@ def wmrl_m6b_block_likelihood_pscan(
     # Phase 1: parallel Q and WM trajectories
     T = stimuli.shape[0]
     Q_for_policy = associative_scan_q_update(
-        stimuli, actions, rewards, mask,
-        alpha_pos, alpha_neg, q_init,
-        num_stimuli, num_actions,
+        stimuli,
+        actions,
+        rewards,
+        mask,
+        alpha_pos,
+        alpha_neg,
+        q_init,
+        num_stimuli,
+        num_actions,
     )
 
     wm_for_policy, _ = associative_scan_wm_update(
-        stimuli, actions, rewards, mask,
-        phi, wm_init, num_stimuli, num_actions,
+        stimuli,
+        actions,
+        rewards,
+        mask,
+        phi,
+        wm_init,
+        num_stimuli,
+        num_actions,
     )
 
     # ------------------------------------------------------------------
     # Phase 2 (vectorized): hybrid policy + dual perseveration
     # ------------------------------------------------------------------
     t_idx = jnp.arange(T)
-    q_vals = Q_for_policy[t_idx, stimuli]      # (T, A)
-    wm_vals = wm_for_policy[t_idx, stimuli]    # (T, A)
+    q_vals = Q_for_policy[t_idx, stimuli]  # (T, A)
+    wm_vals = wm_for_policy[t_idx, stimuli]  # (T, A)
 
     omega = rho * jnp.minimum(1.0, capacity / set_sizes)  # (T,)
     rl_probs = jax.vmap(softmax_policy, in_axes=(0, None))(q_vals, FIXED_BETA)
@@ -650,6 +710,7 @@ def wmrl_m6b_block_likelihood_pscan(
     if return_pointwise:
         return jnp.sum(log_probs), log_probs
     return jnp.sum(log_probs)
+
 
 def wmrl_m6b_multiblock_likelihood_stacked_pscan(
     stimuli_stacked: jnp.ndarray,
@@ -694,6 +755,7 @@ def wmrl_m6b_multiblock_likelihood_stacked_pscan(
     num_blocks = stimuli_stacked.shape[0]
 
     if return_pointwise:
+
         def scan_body(total_ll, block_idx):
             block_ll, block_probs = wmrl_m6b_block_likelihood_pscan(
                 stimuli=stimuli_stacked[block_idx],
@@ -717,11 +779,10 @@ def wmrl_m6b_multiblock_likelihood_stacked_pscan(
             )
             return total_ll + block_ll, block_probs
 
-        total_ll, all_block_probs = lax.scan(
-            scan_body, 0.0, jnp.arange(num_blocks)
-        )
+        total_ll, all_block_probs = lax.scan(scan_body, 0.0, jnp.arange(num_blocks))
         return total_ll, all_block_probs.reshape(-1)
     else:
+
         def body_fn(block_idx, total_ll):
             block_ll = wmrl_m6b_block_likelihood_pscan(
                 stimuli=stimuli_stacked[block_idx],
@@ -746,6 +807,7 @@ def wmrl_m6b_multiblock_likelihood_stacked_pscan(
 
         return lax.fori_loop(0, num_blocks, body_fn, 0.0)
 
+
 def test_wmrl_m6b_single_block():
     """Smoke test for WM-RL M6b single block likelihood (dual perseveration)."""
     print("\nTesting WM-RL M6b single block likelihood (smoke test)...")
@@ -762,19 +824,17 @@ def test_wmrl_m6b_single_block():
 
     # kappa_total=0.3, kappa_share=0.667 => kappa=0.2, kappa_s=0.1
     params = {
-        'alpha_pos': 0.3,
-        'alpha_neg': 0.1,
-        'phi': 0.1,
-        'rho': 0.7,
-        'capacity': 4.0,
-        'kappa': 0.2,   # decoded global
-        'kappa_s': 0.1, # decoded stim-specific
-        'epsilon': 0.05,
+        "alpha_pos": 0.3,
+        "alpha_neg": 0.1,
+        "phi": 0.1,
+        "rho": 0.7,
+        "capacity": 4.0,
+        "kappa": 0.2,  # decoded global
+        "kappa_s": 0.1,  # decoded stim-specific
+        "epsilon": 0.05,
     }
 
-    log_lik = wmrl_m6b_block_likelihood(
-        stimuli, actions, rewards, set_sizes, **params
-    )
+    log_lik = wmrl_m6b_block_likelihood(stimuli, actions, rewards, set_sizes, **params)
 
     nll = -float(log_lik)
     is_finite = jnp.isfinite(log_lik)
@@ -788,6 +848,7 @@ def test_wmrl_m6b_single_block():
     assert bool(is_finite), "M6b log-likelihood must be finite!"
     print("[OK] WM-RL M6b single block smoke test passed")
     return log_lik
+
 
 def test_wmrl_m6b_kappa_share_one_matches_m3():
     """Verify M6b with kappa_share=1.0 reduces exactly to M3 (all budget to global)."""
@@ -804,29 +865,33 @@ def test_wmrl_m6b_kappa_share_one_matches_m3():
     set_sizes = jnp.ones((n_trials,)) * 5
 
     shared_params = {
-        'alpha_pos': 0.3,
-        'alpha_neg': 0.1,
-        'phi': 0.1,
-        'rho': 0.7,
-        'capacity': 4.0,
-        'epsilon': 0.05,
+        "alpha_pos": 0.3,
+        "alpha_neg": 0.1,
+        "phi": 0.1,
+        "rho": 0.7,
+        "capacity": 4.0,
+        "epsilon": 0.05,
     }
 
     # kappa_total=0.3, kappa_share=1.0 => kappa=0.3, kappa_s=0.0
     kappa_total = 0.3
     kappa_share = 1.0
-    kappa = kappa_total * kappa_share        # = 0.3
+    kappa = kappa_total * kappa_share  # = 0.3
     kappa_s = kappa_total * (1 - kappa_share)  # = 0.0
 
     log_lik_m6b = wmrl_m6b_block_likelihood(
-        stimuli, actions, rewards, set_sizes,
-        **shared_params, kappa=kappa, kappa_s=kappa_s
+        stimuli,
+        actions,
+        rewards,
+        set_sizes,
+        **shared_params,
+        kappa=kappa,
+        kappa_s=kappa_s,
     )
 
     # M3 with same kappa=0.3
     log_lik_m3 = wmrl_m3_block_likelihood(
-        stimuli, actions, rewards, set_sizes,
-        **shared_params, kappa=kappa
+        stimuli, actions, rewards, set_sizes, **shared_params, kappa=kappa
     )
 
     diff = abs(float(log_lik_m6b) - float(log_lik_m3))
@@ -837,6 +902,7 @@ def test_wmrl_m6b_kappa_share_one_matches_m3():
     assert diff < 1e-6, f"M6b kappa_share=1.0 must match M3! Diff={diff}"
     print("[OK] M6b kappa_share=1.0 matches M3 exactly (diff < 1e-6)")
     return diff
+
 
 def test_wmrl_m6b_kappa_share_zero_matches_m6a():
     """Verify M6b with kappa_share=0.0 reduces exactly to M6a (all budget to stim-specific)."""
@@ -853,29 +919,33 @@ def test_wmrl_m6b_kappa_share_zero_matches_m6a():
     set_sizes = jnp.ones((n_trials,)) * 5
 
     shared_params = {
-        'alpha_pos': 0.3,
-        'alpha_neg': 0.1,
-        'phi': 0.1,
-        'rho': 0.7,
-        'capacity': 4.0,
-        'epsilon': 0.05,
+        "alpha_pos": 0.3,
+        "alpha_neg": 0.1,
+        "phi": 0.1,
+        "rho": 0.7,
+        "capacity": 4.0,
+        "epsilon": 0.05,
     }
 
     # kappa_total=0.3, kappa_share=0.0 => kappa=0.0, kappa_s=0.3
     kappa_total = 0.3
     kappa_share = 0.0
-    kappa = kappa_total * kappa_share        # = 0.0
+    kappa = kappa_total * kappa_share  # = 0.0
     kappa_s = kappa_total * (1 - kappa_share)  # = 0.3
 
     log_lik_m6b = wmrl_m6b_block_likelihood(
-        stimuli, actions, rewards, set_sizes,
-        **shared_params, kappa=kappa, kappa_s=kappa_s
+        stimuli,
+        actions,
+        rewards,
+        set_sizes,
+        **shared_params,
+        kappa=kappa,
+        kappa_s=kappa_s,
     )
 
     # M6a with same kappa_s=0.3
     log_lik_m6a = wmrl_m6a_block_likelihood(
-        stimuli, actions, rewards, set_sizes,
-        **shared_params, kappa_s=kappa_s
+        stimuli, actions, rewards, set_sizes, **shared_params, kappa_s=kappa_s
     )
 
     diff = abs(float(log_lik_m6b) - float(log_lik_m6a))
@@ -886,6 +956,7 @@ def test_wmrl_m6b_kappa_share_zero_matches_m6a():
     assert diff < 1e-6, f"M6b kappa_share=0.0 must match M6a! Diff={diff}"
     print("[OK] M6b kappa_share=0.0 matches M6a exactly (diff < 1e-6)")
     return diff
+
 
 def test_padding_equivalence_wmrl_m6b():
     """
@@ -905,9 +976,14 @@ def test_padding_equivalence_wmrl_m6b():
     set_sizes = jnp.full((n_real_trials,), 5, dtype=jnp.int32)
 
     params = {
-        'alpha_pos': 0.3, 'alpha_neg': 0.1, 'phi': 0.1,
-        'rho': 0.7, 'capacity': 4.0,
-        'kappa': 0.2, 'kappa_s': 0.1, 'epsilon': 0.05
+        "alpha_pos": 0.3,
+        "alpha_neg": 0.1,
+        "phi": 0.1,
+        "rho": 0.7,
+        "capacity": 4.0,
+        "kappa": 0.2,
+        "kappa_s": 0.1,
+        "epsilon": 0.05,
     }
 
     # Unpadded likelihood (original)
@@ -932,6 +1008,7 @@ def test_padding_equivalence_wmrl_m6b():
 
     assert bool(match), "WM-RL M6b padded/unpadded must be IDENTICAL!"
     return match
+
 
 def wmrl_m6b_hierarchical_model(
     participant_data_stacked: dict,
@@ -1061,9 +1138,7 @@ def wmrl_m6b_hierarchical_model(
         "kappa_total_mu_pr",
         dist.Normal(kt_defaults["mu_prior_loc"], 1.0),
     )
-    kappa_total_sigma_pr = numpyro.sample(
-        "kappa_total_sigma_pr", dist.HalfNormal(0.2)
-    )
+    kappa_total_sigma_pr = numpyro.sample("kappa_total_sigma_pr", dist.HalfNormal(0.2))
     kappa_total_z = numpyro.sample(
         "kappa_total_z",
         dist.Normal(0, 1).expand([n_participants]),
@@ -1077,8 +1152,7 @@ def wmrl_m6b_hierarchical_model(
     kappa_total = numpyro.deterministic(
         "kappa_total",
         kt_defaults["lower"]
-        + (kt_defaults["upper"] - kt_defaults["lower"])
-        * phi_approx(kappa_total_unc),
+        + (kt_defaults["upper"] - kt_defaults["lower"]) * phi_approx(kappa_total_unc),
     )
     sampled["kappa_total"] = kappa_total
 
@@ -1091,9 +1165,7 @@ def wmrl_m6b_hierarchical_model(
         "kappa_share_mu_pr",
         dist.Normal(ks_defaults["mu_prior_loc"], 1.0),
     )
-    kappa_share_sigma_pr = numpyro.sample(
-        "kappa_share_sigma_pr", dist.HalfNormal(0.2)
-    )
+    kappa_share_sigma_pr = numpyro.sample("kappa_share_sigma_pr", dist.HalfNormal(0.2))
     kappa_share_z = numpyro.sample(
         "kappa_share_z",
         dist.Normal(0, 1).expand([n_participants]),
@@ -1107,8 +1179,7 @@ def wmrl_m6b_hierarchical_model(
     kappa_share = numpyro.deterministic(
         "kappa_share",
         ks_defaults["lower"]
-        + (ks_defaults["upper"] - ks_defaults["lower"])
-        * phi_approx(kappa_share_unc),
+        + (ks_defaults["upper"] - ks_defaults["lower"]) * phi_approx(kappa_share_unc),
     )
     sampled["kappa_share"] = kappa_share
 
@@ -1150,6 +1221,7 @@ def wmrl_m6b_hierarchical_model(
         wm_init=wm_init,
     )
     numpyro.factor("obs", per_participant_ll.sum())
+
 
 def wmrl_m6b_hierarchical_model_subscale(
     participant_data_stacked: dict,
@@ -1197,7 +1269,7 @@ def wmrl_m6b_hierarchical_model_subscale(
     M6b stick-breaking decode (per participant, inside for-loop):
     ::
 
-        kappa   = kappa_total_i * kappa_share_i
+        kappa = kappa_total_i * kappa_share_i
         kappa_s = kappa_total_i * (1 - kappa_share_i)
 
     Parameters
@@ -1326,7 +1398,9 @@ def wmrl_m6b_hierarchical_model_subscale(
         # Add L2 shifts from each covariate column
         if covariate_matrix is not None:
             for j, cov_name in enumerate(covariate_names):
-                theta_unc = theta_unc + betas[(pname, cov_name)] * covariate_matrix[:, j]
+                theta_unc = (
+                    theta_unc + betas[(pname, cov_name)] * covariate_matrix[:, j]
+                )
 
         # Transform to constrained space via Phi_approx
         theta = lower + (upper - lower) * phi_approx(theta_unc)

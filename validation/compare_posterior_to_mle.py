@@ -50,23 +50,46 @@ if str(_PROJECT_ROOT) not in sys.path:
 
 from config import load_netcdf_with_validation  # noqa: E402
 
-
 _MODEL_PARAM_KEYS: dict[str, list[str]] = {
     "qlearning": ["alpha_pos", "alpha_neg", "epsilon"],
     "wmrl": ["alpha_pos", "alpha_neg", "phi", "rho", "capacity", "epsilon"],
     "wmrl_m3": [
-        "alpha_pos", "alpha_neg", "phi", "rho", "capacity", "kappa", "epsilon",
+        "alpha_pos",
+        "alpha_neg",
+        "phi",
+        "rho",
+        "capacity",
+        "kappa",
+        "epsilon",
     ],
     "wmrl_m5": [
-        "alpha_pos", "alpha_neg", "phi", "rho", "capacity",
-        "kappa", "phi_rl", "epsilon",
+        "alpha_pos",
+        "alpha_neg",
+        "phi",
+        "rho",
+        "capacity",
+        "kappa",
+        "phi_rl",
+        "epsilon",
     ],
     "wmrl_m6a": [
-        "alpha_pos", "alpha_neg", "phi", "rho", "capacity", "kappa_s", "epsilon",
+        "alpha_pos",
+        "alpha_neg",
+        "phi",
+        "rho",
+        "capacity",
+        "kappa_s",
+        "epsilon",
     ],
     "wmrl_m6b": [
-        "alpha_pos", "alpha_neg", "phi", "rho", "capacity",
-        "kappa_total", "kappa_share", "epsilon",
+        "alpha_pos",
+        "alpha_neg",
+        "phi",
+        "rho",
+        "capacity",
+        "kappa_total",
+        "kappa_share",
+        "epsilon",
     ],
 }
 
@@ -131,9 +154,7 @@ def _mle_point_and_se(
             f"  Note: MLE CSV missing SE columns {missing_se} — SE-based "
             "coverage stats will be skipped."
         )
-        se = pd.DataFrame(
-            np.nan, index=point.index, columns=[p for p in param_keys]
-        )
+        se = pd.DataFrame(np.nan, index=point.index, columns=[p for p in param_keys])
     else:
         se = mle_df[se_cols].copy()
         se.columns = param_keys
@@ -198,20 +219,23 @@ def compare(
         )
 
         for pid, pm, mm, d, se_i in zip(
-            shared, post_vec, mle_vec, diff, se_vec
+            shared, post_vec, mle_vec, diff, se_vec, strict=False
         ):
-            rows.append({
-                "participant_id": int(pid),
-                "param": param,
-                "posterior_mean": float(pm),
-                "mle_point": float(mm),
-                "diff": float(d),
-                "mle_se": float(se_i) if np.isfinite(se_i) else np.nan,
-                "abs_diff_over_se": (
-                    float(abs(d) / se_i) if np.isfinite(se_i) and se_i > 0
-                    else np.nan
-                ),
-            })
+            rows.append(
+                {
+                    "participant_id": int(pid),
+                    "param": param,
+                    "posterior_mean": float(pm),
+                    "mle_point": float(mm),
+                    "diff": float(d),
+                    "mle_se": float(se_i) if np.isfinite(se_i) else np.nan,
+                    "abs_diff_over_se": (
+                        float(abs(d) / se_i)
+                        if np.isfinite(se_i) and se_i > 0
+                        else np.nan
+                    ),
+                }
+            )
 
     comparison = pd.DataFrame(rows)
     output_csv.parent.mkdir(parents=True, exist_ok=True)
@@ -237,7 +261,7 @@ def compare(
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Compare hierarchical Bayesian posterior means to MLE "
-                    "point estimates."
+        "point estimates."
     )
     parser.add_argument(
         "--model",

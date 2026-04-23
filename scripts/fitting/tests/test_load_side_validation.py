@@ -8,8 +8,6 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-import pytest
-
 # ---------------------------------------------------------------------------
 # Enumerated consumer files that must NOT contain bare NetCDF calls
 # ---------------------------------------------------------------------------
@@ -29,7 +27,11 @@ _ENUMERATED_FILES: list[Path] = [
     # (no bare NetCDF loads) applies to any file historically loading NetCDF,
     # even when archived — a future re-activation of these scripts must not
     # reintroduce the forbidden pattern.
-    _PROJECT_ROOT / "scripts" / "legacy" / "visualization" / "plot_posterior_diagnostics.py",
+    _PROJECT_ROOT
+    / "scripts"
+    / "legacy"
+    / "visualization"
+    / "plot_posterior_diagnostics.py",
     _PROJECT_ROOT / "scripts" / "legacy" / "visualization" / "plot_group_parameters.py",
     _PROJECT_ROOT / "scripts" / "legacy" / "visualization" / "plot_model_comparison.py",
     _PROJECT_ROOT / "scripts" / "legacy" / "visualization" / "quick_arviz_plots.py",

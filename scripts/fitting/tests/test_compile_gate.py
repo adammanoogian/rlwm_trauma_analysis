@@ -13,14 +13,15 @@ from __future__ import annotations
 
 import time
 
-import numpy as np
 import jax
 import jax.numpy as jnp
+import numpy as np
 import pytest
 
 # ---------------------------------------------------------------------------
 # Synthetic data helper
 # ---------------------------------------------------------------------------
+
 
 def _make_minimal_synthetic_data(
     n_ppts: int = 2,
@@ -55,9 +56,15 @@ def _make_minimal_synthetic_data(
         rewards_blocks = []
 
         for _ in range(n_blocks):
-            stimuli_blocks.append(jnp.array(rng.integers(0, 3, n_trials), dtype=jnp.int32))
-            actions_blocks.append(jnp.array(rng.integers(0, 3, n_trials), dtype=jnp.int32))
-            rewards_blocks.append(jnp.array(rng.integers(0, 2, n_trials).astype(np.float32)))
+            stimuli_blocks.append(
+                jnp.array(rng.integers(0, 3, n_trials), dtype=jnp.int32)
+            )
+            actions_blocks.append(
+                jnp.array(rng.integers(0, 3, n_trials), dtype=jnp.int32)
+            )
+            rewards_blocks.append(
+                jnp.array(rng.integers(0, 2, n_trials).astype(np.float32))
+            )
 
         participant_data[i] = {
             "stimuli_blocks": stimuli_blocks,
@@ -72,6 +79,7 @@ def _make_minimal_synthetic_data(
 # Tests
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.slow
 def test_compile_gate():
     """Warm invocation of qlearning_hierarchical_model must complete in < 60s.
@@ -81,6 +89,7 @@ def test_compile_gate():
     2. Warm run: second MCMC call reuses compiled kernels; must be < 60s.
     """
     from numpyro.infer import MCMC, NUTS
+
     from rlwm.fitting.models.qlearning import qlearning_hierarchical_model
 
     model_args = _make_minimal_synthetic_data(n_ppts=2, n_blocks=2, n_trials=20)
@@ -119,6 +128,7 @@ def test_compile_gate():
 def test_compile_gate_samples_accessible():
     """After warm run, MCMC samples must be accessible and have correct shape."""
     from numpyro.infer import MCMC, NUTS
+
     from rlwm.fitting.models.qlearning import qlearning_hierarchical_model
 
     model_args = _make_minimal_synthetic_data(n_ppts=2, n_blocks=2, n_trials=20)

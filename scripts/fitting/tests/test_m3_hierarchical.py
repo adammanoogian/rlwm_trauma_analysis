@@ -188,6 +188,7 @@ def test_wmrl_m3_fully_batched_matches_sequential():
     This is the correctness gate for the vmap refactor (Task 4/5).
     """
     import pandas as pd
+
     from rlwm.fitting.core import (
         prepare_stacked_participant_data,
         stack_across_participants,
@@ -205,15 +206,17 @@ def test_wmrl_m3_fully_batched_matches_sequential():
     for pid, n_blocks in ppt_configs:
         for b in range(n_blocks):
             trials_in_block = int(rng.integers(60, 100))
-            for t in range(trials_in_block):
-                rows.append({
-                    "sona_id": pid,
-                    "block": b,
-                    "stimulus": int(rng.integers(0, 6)),
-                    "key_press": int(rng.integers(0, 3)),
-                    "reward": float(rng.integers(0, 2)),
-                    "set_size": float(rng.choice([2.0, 3.0, 6.0])),
-                })
+            for _t in range(trials_in_block):
+                rows.append(
+                    {
+                        "sona_id": pid,
+                        "block": b,
+                        "stimulus": int(rng.integers(0, 6)),
+                        "key_press": int(rng.integers(0, 3)),
+                        "reward": float(rng.integers(0, 2)),
+                        "set_size": float(rng.choice([2.0, 3.0, 6.0])),
+                    }
+                )
     df = pd.DataFrame(rows)
 
     pdata = prepare_stacked_participant_data(df)
@@ -227,11 +230,11 @@ def test_wmrl_m3_fully_batched_matches_sequential():
         k1, k2, k3, k4, k5, k6, k7 = jax.random.split(key, 7)
         alpha_pos = jax.random.uniform(k1, (N,), minval=0.1, maxval=0.9)
         alpha_neg = jax.random.uniform(k2, (N,), minval=0.1, maxval=0.9)
-        phi       = jax.random.uniform(k3, (N,), minval=0.05, maxval=0.5)
-        rho       = jax.random.uniform(k4, (N,), minval=0.2, maxval=0.9)
-        capacity  = jax.random.uniform(k5, (N,), minval=2.0, maxval=6.0)
-        kappa     = jax.random.uniform(k6, (N,), minval=0.0, maxval=0.5)
-        epsilon   = jax.random.uniform(k7, (N,), minval=0.01, maxval=0.1)
+        phi = jax.random.uniform(k3, (N,), minval=0.05, maxval=0.5)
+        rho = jax.random.uniform(k4, (N,), minval=0.2, maxval=0.9)
+        capacity = jax.random.uniform(k5, (N,), minval=2.0, maxval=6.0)
+        kappa = jax.random.uniform(k6, (N,), minval=0.0, maxval=0.5)
+        epsilon = jax.random.uniform(k7, (N,), minval=0.01, maxval=0.1)
 
         # Path A: fully-batched
         batched_ll = wmrl_m3_fully_batched_likelihood(
@@ -240,8 +243,13 @@ def test_wmrl_m3_fully_batched_matches_sequential():
             rewards=stacked["rewards"],
             set_sizes=stacked["set_sizes"],
             masks=stacked["masks"],
-            alpha_pos=alpha_pos, alpha_neg=alpha_neg, phi=phi,
-            rho=rho, capacity=capacity, kappa=kappa, epsilon=epsilon,
+            alpha_pos=alpha_pos,
+            alpha_neg=alpha_neg,
+            phi=phi,
+            rho=rho,
+            capacity=capacity,
+            kappa=kappa,
+            epsilon=epsilon,
         )
         # Shape check
         assert batched_ll.shape == (N,), (
@@ -296,6 +304,7 @@ def test_qlearning_fully_batched_matches_sequential():
     rollout.
     """
     import pandas as pd
+
     from rlwm.fitting.core import (
         prepare_stacked_participant_data,
         stack_across_participants,
@@ -313,15 +322,17 @@ def test_qlearning_fully_batched_matches_sequential():
     for pid, n_blocks in ppt_configs:
         for b in range(n_blocks):
             trials_in_block = int(rng.integers(60, 100))
-            for t in range(trials_in_block):
-                rows.append({
-                    "sona_id": pid,
-                    "block": b,
-                    "stimulus": int(rng.integers(0, 6)),
-                    "key_press": int(rng.integers(0, 3)),
-                    "reward": float(rng.integers(0, 2)),
-                    "set_size": float(rng.choice([2.0, 3.0, 6.0])),
-                })
+            for _t in range(trials_in_block):
+                rows.append(
+                    {
+                        "sona_id": pid,
+                        "block": b,
+                        "stimulus": int(rng.integers(0, 6)),
+                        "key_press": int(rng.integers(0, 3)),
+                        "reward": float(rng.integers(0, 2)),
+                        "set_size": float(rng.choice([2.0, 3.0, 6.0])),
+                    }
+                )
     df = pd.DataFrame(rows)
 
     pdata = prepare_stacked_participant_data(df)
@@ -334,7 +345,7 @@ def test_qlearning_fully_batched_matches_sequential():
         k1, k2, k3 = jax.random.split(key, 3)
         alpha_pos = jax.random.uniform(k1, (N,), minval=0.1, maxval=0.9)
         alpha_neg = jax.random.uniform(k2, (N,), minval=0.1, maxval=0.9)
-        epsilon   = jax.random.uniform(k3, (N,), minval=0.01, maxval=0.1)
+        epsilon = jax.random.uniform(k3, (N,), minval=0.01, maxval=0.1)
 
         # Path A: fully-batched
         batched_ll = q_learning_fully_batched_likelihood(
@@ -385,6 +396,7 @@ def _make_wmrl_family_synthetic():
     B in {12, 17}, and variable block lengths.  Matches the M3 test design.
     """
     import pandas as pd
+
     from rlwm.fitting.core import (
         prepare_stacked_participant_data,
         stack_across_participants,
@@ -396,15 +408,17 @@ def _make_wmrl_family_synthetic():
     for pid, n_blocks in ppt_configs:
         for b in range(n_blocks):
             trials_in_block = int(rng.integers(60, 100))
-            for t in range(trials_in_block):
-                rows.append({
-                    "sona_id": pid,
-                    "block": b,
-                    "stimulus": int(rng.integers(0, 6)),
-                    "key_press": int(rng.integers(0, 3)),
-                    "reward": float(rng.integers(0, 2)),
-                    "set_size": float(rng.choice([2.0, 3.0, 6.0])),
-                })
+            for _t in range(trials_in_block):
+                rows.append(
+                    {
+                        "sona_id": pid,
+                        "block": b,
+                        "stimulus": int(rng.integers(0, 6)),
+                        "key_press": int(rng.integers(0, 3)),
+                        "reward": float(rng.integers(0, 2)),
+                        "set_size": float(rng.choice([2.0, 3.0, 6.0])),
+                    }
+                )
     df = pd.DataFrame(rows)
     pdata = prepare_stacked_participant_data(df)
     stacked = stack_across_participants(pdata)
@@ -430,10 +444,10 @@ def test_wmrl_fully_batched_matches_sequential():
         k1, k2, k3, k4, k5, k6 = jax.random.split(key, 6)
         alpha_pos = jax.random.uniform(k1, (N,), minval=0.1, maxval=0.9)
         alpha_neg = jax.random.uniform(k2, (N,), minval=0.1, maxval=0.9)
-        phi       = jax.random.uniform(k3, (N,), minval=0.05, maxval=0.5)
-        rho       = jax.random.uniform(k4, (N,), minval=0.2, maxval=0.9)
-        capacity  = jax.random.uniform(k5, (N,), minval=2.0, maxval=6.0)
-        epsilon   = jax.random.uniform(k6, (N,), minval=0.01, maxval=0.1)
+        phi = jax.random.uniform(k3, (N,), minval=0.05, maxval=0.5)
+        rho = jax.random.uniform(k4, (N,), minval=0.2, maxval=0.9)
+        capacity = jax.random.uniform(k5, (N,), minval=2.0, maxval=6.0)
+        epsilon = jax.random.uniform(k6, (N,), minval=0.01, maxval=0.1)
 
         batched_ll = wmrl_fully_batched_likelihood(
             stimuli=stacked["stimuli"],
@@ -441,8 +455,12 @@ def test_wmrl_fully_batched_matches_sequential():
             rewards=stacked["rewards"],
             set_sizes=stacked["set_sizes"],
             masks=stacked["masks"],
-            alpha_pos=alpha_pos, alpha_neg=alpha_neg, phi=phi,
-            rho=rho, capacity=capacity, epsilon=epsilon,
+            alpha_pos=alpha_pos,
+            alpha_neg=alpha_neg,
+            phi=phi,
+            rho=rho,
+            capacity=capacity,
+            epsilon=epsilon,
         )
         assert batched_ll.shape == (N,)
 
@@ -494,12 +512,12 @@ def test_wmrl_m5_fully_batched_matches_sequential():
         k1, k2, k3, k4, k5, k6, k7, k8 = jax.random.split(key, 8)
         alpha_pos = jax.random.uniform(k1, (N,), minval=0.1, maxval=0.9)
         alpha_neg = jax.random.uniform(k2, (N,), minval=0.1, maxval=0.9)
-        phi       = jax.random.uniform(k3, (N,), minval=0.05, maxval=0.5)
-        rho       = jax.random.uniform(k4, (N,), minval=0.2, maxval=0.9)
-        capacity  = jax.random.uniform(k5, (N,), minval=2.0, maxval=6.0)
-        kappa     = jax.random.uniform(k6, (N,), minval=0.0, maxval=0.5)
-        phi_rl    = jax.random.uniform(k7, (N,), minval=0.0, maxval=0.3)
-        epsilon   = jax.random.uniform(k8, (N,), minval=0.01, maxval=0.1)
+        phi = jax.random.uniform(k3, (N,), minval=0.05, maxval=0.5)
+        rho = jax.random.uniform(k4, (N,), minval=0.2, maxval=0.9)
+        capacity = jax.random.uniform(k5, (N,), minval=2.0, maxval=6.0)
+        kappa = jax.random.uniform(k6, (N,), minval=0.0, maxval=0.5)
+        phi_rl = jax.random.uniform(k7, (N,), minval=0.0, maxval=0.3)
+        epsilon = jax.random.uniform(k8, (N,), minval=0.01, maxval=0.1)
 
         batched_ll = wmrl_m5_fully_batched_likelihood(
             stimuli=stacked["stimuli"],
@@ -507,8 +525,13 @@ def test_wmrl_m5_fully_batched_matches_sequential():
             rewards=stacked["rewards"],
             set_sizes=stacked["set_sizes"],
             masks=stacked["masks"],
-            alpha_pos=alpha_pos, alpha_neg=alpha_neg, phi=phi,
-            rho=rho, capacity=capacity, kappa=kappa, phi_rl=phi_rl,
+            alpha_pos=alpha_pos,
+            alpha_neg=alpha_neg,
+            phi=phi,
+            rho=rho,
+            capacity=capacity,
+            kappa=kappa,
+            phi_rl=phi_rl,
             epsilon=epsilon,
         )
         assert batched_ll.shape == (N,)
@@ -563,11 +586,11 @@ def test_wmrl_m6a_fully_batched_matches_sequential():
         k1, k2, k3, k4, k5, k6, k7 = jax.random.split(key, 7)
         alpha_pos = jax.random.uniform(k1, (N,), minval=0.1, maxval=0.9)
         alpha_neg = jax.random.uniform(k2, (N,), minval=0.1, maxval=0.9)
-        phi       = jax.random.uniform(k3, (N,), minval=0.05, maxval=0.5)
-        rho       = jax.random.uniform(k4, (N,), minval=0.2, maxval=0.9)
-        capacity  = jax.random.uniform(k5, (N,), minval=2.0, maxval=6.0)
-        kappa_s   = jax.random.uniform(k6, (N,), minval=0.0, maxval=0.5)
-        epsilon   = jax.random.uniform(k7, (N,), minval=0.01, maxval=0.1)
+        phi = jax.random.uniform(k3, (N,), minval=0.05, maxval=0.5)
+        rho = jax.random.uniform(k4, (N,), minval=0.2, maxval=0.9)
+        capacity = jax.random.uniform(k5, (N,), minval=2.0, maxval=6.0)
+        kappa_s = jax.random.uniform(k6, (N,), minval=0.0, maxval=0.5)
+        epsilon = jax.random.uniform(k7, (N,), minval=0.01, maxval=0.1)
 
         batched_ll = wmrl_m6a_fully_batched_likelihood(
             stimuli=stacked["stimuli"],
@@ -575,8 +598,13 @@ def test_wmrl_m6a_fully_batched_matches_sequential():
             rewards=stacked["rewards"],
             set_sizes=stacked["set_sizes"],
             masks=stacked["masks"],
-            alpha_pos=alpha_pos, alpha_neg=alpha_neg, phi=phi,
-            rho=rho, capacity=capacity, kappa_s=kappa_s, epsilon=epsilon,
+            alpha_pos=alpha_pos,
+            alpha_neg=alpha_neg,
+            phi=phi,
+            rho=rho,
+            capacity=capacity,
+            kappa_s=kappa_s,
+            epsilon=epsilon,
         )
         assert batched_ll.shape == (N,)
 
@@ -629,15 +657,15 @@ def test_wmrl_m6b_fully_batched_matches_sequential():
     for draw_idx in range(3):
         key = jax.random.PRNGKey(6000 + draw_idx)
         k1, k2, k3, k4, k5, k6, k7, k8 = jax.random.split(key, 8)
-        alpha_pos   = jax.random.uniform(k1, (N,), minval=0.1, maxval=0.9)
-        alpha_neg   = jax.random.uniform(k2, (N,), minval=0.1, maxval=0.9)
-        phi         = jax.random.uniform(k3, (N,), minval=0.05, maxval=0.5)
-        rho         = jax.random.uniform(k4, (N,), minval=0.2, maxval=0.9)
-        capacity    = jax.random.uniform(k5, (N,), minval=2.0, maxval=6.0)
+        alpha_pos = jax.random.uniform(k1, (N,), minval=0.1, maxval=0.9)
+        alpha_neg = jax.random.uniform(k2, (N,), minval=0.1, maxval=0.9)
+        phi = jax.random.uniform(k3, (N,), minval=0.05, maxval=0.5)
+        rho = jax.random.uniform(k4, (N,), minval=0.2, maxval=0.9)
+        capacity = jax.random.uniform(k5, (N,), minval=2.0, maxval=6.0)
         # Stick-breaking: draw kappa_total in [0, 0.9], kappa_share in [0, 1]
         kappa_total = jax.random.uniform(k6, (N,), minval=0.0, maxval=0.9)
         kappa_share = jax.random.uniform(k7, (N,), minval=0.0, maxval=1.0)
-        kappa   = kappa_total * kappa_share
+        kappa = kappa_total * kappa_share
         kappa_s = kappa_total * (1.0 - kappa_share)
         epsilon = jax.random.uniform(k8, (N,), minval=0.01, maxval=0.1)
 
@@ -647,8 +675,13 @@ def test_wmrl_m6b_fully_batched_matches_sequential():
             rewards=stacked["rewards"],
             set_sizes=stacked["set_sizes"],
             masks=stacked["masks"],
-            alpha_pos=alpha_pos, alpha_neg=alpha_neg, phi=phi,
-            rho=rho, capacity=capacity, kappa=kappa, kappa_s=kappa_s,
+            alpha_pos=alpha_pos,
+            alpha_neg=alpha_neg,
+            phi=phi,
+            rho=rho,
+            capacity=capacity,
+            kappa=kappa,
+            kappa_s=kappa_s,
             epsilon=epsilon,
         )
         assert batched_ll.shape == (N,)

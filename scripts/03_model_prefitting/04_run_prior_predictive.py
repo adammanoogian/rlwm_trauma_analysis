@@ -84,9 +84,7 @@ def _parse_args() -> argparse.Namespace:
         "--output-dir",
         type=Path,
         default=Path("output/bayesian/21_prior_predictive"),
-        help=(
-            "Output directory (default: output/bayesian/21_prior_predictive)."
-        ),
+        help=("Output directory (default: output/bayesian/21_prior_predictive)."),
     )
     return parser.parse_args()
 

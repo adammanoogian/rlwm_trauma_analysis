@@ -18,12 +18,11 @@ All comparisons use element-wise relative error thresholds documented in
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
-import numpy as np
 import jax
 import jax.numpy as jnp
+import numpy as np
 import pytest
 
 from rlwm.fitting.core import (
@@ -150,7 +149,7 @@ def _sequential_wm_decay_only(
     WM = np.ones((num_stimuli, num_actions)) * wm_init
     WM_decayed_history = []
 
-    for t in range(T):
+    for _t in range(T):
         WM_decayed = (1 - phi) * WM + phi * wm_init  # decay first
         WM_decayed_history.append(WM_decayed.copy())
         WM = WM_decayed  # no overwrite (decay only)
@@ -343,15 +342,31 @@ def test_q_update_agreement_synthetic():
 
     # Sequential ground truth
     Q_seq = _sequential_q_update(
-        stimuli, actions, rewards, masks,
-        alpha_pos, alpha_neg, q_init, S, A,
+        stimuli,
+        actions,
+        rewards,
+        masks,
+        alpha_pos,
+        alpha_neg,
+        q_init,
+        S,
+        A,
     )
 
     # Parallel scan
-    Q_par = np.array(associative_scan_q_update(
-        jnp.array(stimuli), jnp.array(actions), jnp.array(rewards),
-        jnp.array(masks), alpha_pos, alpha_neg, q_init, S, A,
-    ))
+    Q_par = np.array(
+        associative_scan_q_update(
+            jnp.array(stimuli),
+            jnp.array(actions),
+            jnp.array(rewards),
+            jnp.array(masks),
+            alpha_pos,
+            alpha_neg,
+            q_init,
+            S,
+            A,
+        )
+    )
 
     rel_err = _rel_error(Q_par, Q_seq)
     assert rel_err < 1e-5, (
@@ -388,14 +403,30 @@ def test_q_update_agreement_extreme_alpha():
     masks = np.ones(T, dtype=np.float32)
 
     Q_seq = _sequential_q_update(
-        stimuli, actions, rewards, masks,
-        alpha_pos, alpha_neg, q_init, S, A,
+        stimuli,
+        actions,
+        rewards,
+        masks,
+        alpha_pos,
+        alpha_neg,
+        q_init,
+        S,
+        A,
     )
 
-    Q_par = np.array(associative_scan_q_update(
-        jnp.array(stimuli), jnp.array(actions), jnp.array(rewards),
-        jnp.array(masks), alpha_pos, alpha_neg, q_init, S, A,
-    ))
+    Q_par = np.array(
+        associative_scan_q_update(
+            jnp.array(stimuli),
+            jnp.array(actions),
+            jnp.array(rewards),
+            jnp.array(masks),
+            alpha_pos,
+            alpha_neg,
+            q_init,
+            S,
+            A,
+        )
+    )
 
     rel_err = _rel_error(Q_par, Q_seq)
     # Relaxed tolerance for extreme alpha: alpha approximation breaks down
@@ -436,15 +467,19 @@ def test_wm_update_decay_only():
 
     # Parallel scan
     wm_for_policy_par, _ = associative_scan_wm_update(
-        jnp.array(stimuli), jnp.array(actions), jnp.array(rewards),
-        jnp.array(masks), phi, wm_init, S, A,
+        jnp.array(stimuli),
+        jnp.array(actions),
+        jnp.array(rewards),
+        jnp.array(masks),
+        phi,
+        wm_init,
+        S,
+        A,
     )
     wm_for_policy_par = np.array(wm_for_policy_par)
 
     rel_err = _rel_error(wm_for_policy_par, WM_seq)
-    assert rel_err < 1e-5, (
-        f"WM decay-only relative error {rel_err:.2e} > 1e-5"
-    )
+    assert rel_err < 1e-5, f"WM decay-only relative error {rel_err:.2e} > 1e-5"
 
 
 # =============================================================================
@@ -471,14 +506,26 @@ def test_wm_update_with_overwrite():
     masks = np.zeros(T, dtype=np.float32)
 
     # Overwrite at trial 5: s=2, a=1, r=1.0
-    stimuli[5] = 2; actions[5] = 1; rewards[5] = 1.0; masks[5] = 1.0
+    stimuli[5] = 2
+    actions[5] = 1
+    rewards[5] = 1.0
+    masks[5] = 1.0
 
     # Overwrite at trial 12: s=4, a=2, r=0.0
-    stimuli[12] = 4; actions[12] = 2; rewards[12] = 0.0; masks[12] = 1.0
+    stimuli[12] = 4
+    actions[12] = 2
+    rewards[12] = 0.0
+    masks[12] = 1.0
 
     _, wm_after = associative_scan_wm_update(
-        jnp.array(stimuli), jnp.array(actions), jnp.array(rewards),
-        jnp.array(masks), phi, wm_init, S, A,
+        jnp.array(stimuli),
+        jnp.array(actions),
+        jnp.array(rewards),
+        jnp.array(masks),
+        phi,
+        wm_init,
+        S,
+        A,
     )
     wm_after = np.array(wm_after)
 
@@ -494,20 +541,31 @@ def test_wm_update_with_overwrite():
 
     # Direct check: compute sequential ground truth
     _, wm_after_seq = _sequential_wm_with_overwrite(
-        stimuli, actions, rewards, masks, phi, wm_init, S, A,
+        stimuli,
+        actions,
+        rewards,
+        masks,
+        phi,
+        wm_init,
+        S,
+        A,
     )
 
     # wm_after from pscan should match sequential
     rel_err = _rel_error(wm_after, wm_after_seq)
-    assert rel_err < 1e-5, (
-        f"WM after-overwrite relative error {rel_err:.2e} > 1e-5"
-    )
+    assert rel_err < 1e-5, f"WM after-overwrite relative error {rel_err:.2e} > 1e-5"
 
     # Explicit spot-check: at trial 5 (wm_for_policy[5] = WM before overwrite at t=5)
     # After overwrite: WM[2,1] = 1.0. This is wm_after_seq[5, 2, 1].
     wm_for_policy_par, wm_after_par = associative_scan_wm_update(
-        jnp.array(stimuli), jnp.array(actions), jnp.array(rewards),
-        jnp.array(masks), phi, wm_init, S, A,
+        jnp.array(stimuli),
+        jnp.array(actions),
+        jnp.array(rewards),
+        jnp.array(masks),
+        phi,
+        wm_init,
+        S,
+        A,
     )
     wm_for_policy_par = np.array(wm_for_policy_par)
     wm_after_par = np.array(wm_after_par)
@@ -563,13 +621,26 @@ def test_wm_update_agreement_with_sequential():
 
     # Sequential ground truth
     wm_for_policy_seq, wm_after_seq = _sequential_wm_with_overwrite(
-        stimuli, actions, rewards, masks, phi, wm_init, S, A,
+        stimuli,
+        actions,
+        rewards,
+        masks,
+        phi,
+        wm_init,
+        S,
+        A,
     )
 
     # Parallel scan
     wm_for_policy_par, wm_after_par = associative_scan_wm_update(
-        jnp.array(stimuli), jnp.array(actions), jnp.array(rewards),
-        jnp.array(masks), phi, wm_init, S, A,
+        jnp.array(stimuli),
+        jnp.array(actions),
+        jnp.array(rewards),
+        jnp.array(masks),
+        phi,
+        wm_init,
+        S,
+        A,
     )
     wm_for_policy_par = np.array(wm_for_policy_par)
     wm_after_par = np.array(wm_after_par)
@@ -731,55 +802,65 @@ def _call_seq_and_pscan(model: str, data: dict, params: dict) -> tuple[float, fl
     mask = data["masks_stacked"]
 
     if model == "qlearning":
-        nll_seq = float(q_learning_multiblock_likelihood_stacked(
-            stim, act, rew, mask, **params
-        ))
-        nll_pscan = float(q_learning_multiblock_likelihood_stacked_pscan(
-            stim, act, rew, mask, **params
-        ))
+        nll_seq = float(
+            q_learning_multiblock_likelihood_stacked(stim, act, rew, mask, **params)
+        )
+        nll_pscan = float(
+            q_learning_multiblock_likelihood_stacked_pscan(
+                stim, act, rew, mask, **params
+            )
+        )
         return nll_seq, nll_pscan
 
     ss = data["set_sizes_stacked"]
 
     if model == "wmrl":
-        nll_seq = float(wmrl_multiblock_likelihood_stacked(
-            stim, act, rew, ss, mask, **params
-        ))
-        nll_pscan = float(wmrl_multiblock_likelihood_stacked_pscan(
-            stim, act, rew, ss, mask, **params
-        ))
+        nll_seq = float(
+            wmrl_multiblock_likelihood_stacked(stim, act, rew, ss, mask, **params)
+        )
+        nll_pscan = float(
+            wmrl_multiblock_likelihood_stacked_pscan(stim, act, rew, ss, mask, **params)
+        )
 
     elif model == "wmrl_m3":
-        nll_seq = float(wmrl_m3_multiblock_likelihood_stacked(
-            stim, act, rew, ss, mask, **params
-        ))
-        nll_pscan = float(wmrl_m3_multiblock_likelihood_stacked_pscan(
-            stim, act, rew, ss, mask, **params
-        ))
+        nll_seq = float(
+            wmrl_m3_multiblock_likelihood_stacked(stim, act, rew, ss, mask, **params)
+        )
+        nll_pscan = float(
+            wmrl_m3_multiblock_likelihood_stacked_pscan(
+                stim, act, rew, ss, mask, **params
+            )
+        )
 
     elif model == "wmrl_m5":
-        nll_seq = float(wmrl_m5_multiblock_likelihood_stacked(
-            stim, act, rew, ss, mask, **params
-        ))
-        nll_pscan = float(wmrl_m5_multiblock_likelihood_stacked_pscan(
-            stim, act, rew, ss, mask, **params
-        ))
+        nll_seq = float(
+            wmrl_m5_multiblock_likelihood_stacked(stim, act, rew, ss, mask, **params)
+        )
+        nll_pscan = float(
+            wmrl_m5_multiblock_likelihood_stacked_pscan(
+                stim, act, rew, ss, mask, **params
+            )
+        )
 
     elif model == "wmrl_m6a":
-        nll_seq = float(wmrl_m6a_multiblock_likelihood_stacked(
-            stim, act, rew, ss, mask, **params
-        ))
-        nll_pscan = float(wmrl_m6a_multiblock_likelihood_stacked_pscan(
-            stim, act, rew, ss, mask, **params
-        ))
+        nll_seq = float(
+            wmrl_m6a_multiblock_likelihood_stacked(stim, act, rew, ss, mask, **params)
+        )
+        nll_pscan = float(
+            wmrl_m6a_multiblock_likelihood_stacked_pscan(
+                stim, act, rew, ss, mask, **params
+            )
+        )
 
     elif model == "wmrl_m6b":
-        nll_seq = float(wmrl_m6b_multiblock_likelihood_stacked(
-            stim, act, rew, ss, mask, **params
-        ))
-        nll_pscan = float(wmrl_m6b_multiblock_likelihood_stacked_pscan(
-            stim, act, rew, ss, mask, **params
-        ))
+        nll_seq = float(
+            wmrl_m6b_multiblock_likelihood_stacked(stim, act, rew, ss, mask, **params)
+        )
+        nll_pscan = float(
+            wmrl_m6b_multiblock_likelihood_stacked_pscan(
+                stim, act, rew, ss, mask, **params
+            )
+        )
 
     else:
         raise ValueError(f"Unknown model: {model}")
@@ -794,26 +875,50 @@ def _call_seq_and_pscan(model: str, data: dict, params: dict) -> tuple[float, fl
 _TYPICAL_PARAMS = {
     "qlearning": {"alpha_pos": 0.3, "alpha_neg": 0.1, "epsilon": 0.05},
     "wmrl": {
-        "alpha_pos": 0.3, "alpha_neg": 0.1,
-        "phi": 0.1, "rho": 0.7, "capacity": 3.0, "epsilon": 0.05,
+        "alpha_pos": 0.3,
+        "alpha_neg": 0.1,
+        "phi": 0.1,
+        "rho": 0.7,
+        "capacity": 3.0,
+        "epsilon": 0.05,
     },
     "wmrl_m3": {
-        "alpha_pos": 0.3, "alpha_neg": 0.1,
-        "phi": 0.1, "rho": 0.7, "capacity": 3.0, "kappa": 0.2, "epsilon": 0.05,
+        "alpha_pos": 0.3,
+        "alpha_neg": 0.1,
+        "phi": 0.1,
+        "rho": 0.7,
+        "capacity": 3.0,
+        "kappa": 0.2,
+        "epsilon": 0.05,
     },
     "wmrl_m5": {
-        "alpha_pos": 0.3, "alpha_neg": 0.1,
-        "phi": 0.1, "rho": 0.7, "capacity": 3.0, "kappa": 0.2,
-        "phi_rl": 0.05, "epsilon": 0.05,
+        "alpha_pos": 0.3,
+        "alpha_neg": 0.1,
+        "phi": 0.1,
+        "rho": 0.7,
+        "capacity": 3.0,
+        "kappa": 0.2,
+        "phi_rl": 0.05,
+        "epsilon": 0.05,
     },
     "wmrl_m6a": {
-        "alpha_pos": 0.3, "alpha_neg": 0.1,
-        "phi": 0.1, "rho": 0.7, "capacity": 3.0, "kappa_s": 0.2, "epsilon": 0.05,
+        "alpha_pos": 0.3,
+        "alpha_neg": 0.1,
+        "phi": 0.1,
+        "rho": 0.7,
+        "capacity": 3.0,
+        "kappa_s": 0.2,
+        "epsilon": 0.05,
     },
     "wmrl_m6b": {
-        "alpha_pos": 0.3, "alpha_neg": 0.1,
-        "phi": 0.1, "rho": 0.7, "capacity": 3.0,
-        "kappa": 0.15, "kappa_s": 0.10, "epsilon": 0.05,
+        "alpha_pos": 0.3,
+        "alpha_neg": 0.1,
+        "phi": 0.1,
+        "rho": 0.7,
+        "capacity": 3.0,
+        "kappa": 0.15,
+        "kappa_s": 0.10,
+        "epsilon": 0.05,
     },
 }
 
@@ -823,9 +928,17 @@ _TYPICAL_PARAMS = {
 # =============================================================================
 
 
-@pytest.mark.parametrize("model", [
-    "qlearning", "wmrl", "wmrl_m3", "wmrl_m5", "wmrl_m6a", "wmrl_m6b",
-])
+@pytest.mark.parametrize(
+    "model",
+    [
+        "qlearning",
+        "wmrl",
+        "wmrl_m3",
+        "wmrl_m5",
+        "wmrl_m6a",
+        "wmrl_m6b",
+    ],
+)
 def test_pscan_agreement_synthetic(model, synthetic_stacked_data):
     """
     Each pscan multiblock likelihood must agree with its sequential counterpart
@@ -898,9 +1011,17 @@ def test_pscan_agreement_synthetic(model, synthetic_stacked_data):
 
 
 @pytest.mark.slow
-@pytest.mark.parametrize("model", [
-    "qlearning", "wmrl", "wmrl_m3", "wmrl_m5", "wmrl_m6a", "wmrl_m6b",
-])
+@pytest.mark.parametrize(
+    "model",
+    [
+        "qlearning",
+        "wmrl",
+        "wmrl_m3",
+        "wmrl_m5",
+        "wmrl_m6a",
+        "wmrl_m6b",
+    ],
+)
 def test_pscan_agreement_real_data(model):
     """
     Pscan variant must agree with sequential to < 1e-4 relative error on the
@@ -915,6 +1036,7 @@ def test_pscan_agreement_real_data(model):
         pytest.skip(f"Trial data not found: {_DATA_PATH}")
 
     import pandas as pd
+
     from rlwm.fitting.core import prepare_stacked_participant_data
 
     # Load trial data
@@ -954,9 +1076,17 @@ def test_pscan_agreement_real_data(model):
 
 
 @pytest.mark.slow
-@pytest.mark.parametrize("model", [
-    "qlearning", "wmrl", "wmrl_m3", "wmrl_m5", "wmrl_m6a", "wmrl_m6b",
-])
+@pytest.mark.parametrize(
+    "model",
+    [
+        "qlearning",
+        "wmrl",
+        "wmrl_m3",
+        "wmrl_m5",
+        "wmrl_m6a",
+        "wmrl_m6b",
+    ],
+)
 def test_pscan_full_n154_agreement(model):
     """
     PSCAN-04: Pscan multiblock likelihood must agree with sequential to
@@ -972,6 +1102,7 @@ def test_pscan_full_n154_agreement(model):
         pytest.skip(f"Trial data not found: {_DATA_PATH}")
 
     import pandas as pd
+
     from rlwm.fitting.core import prepare_stacked_participant_data
 
     data_df = pd.read_csv(_DATA_PATH)
@@ -1130,10 +1261,10 @@ class TestPrecomputeAgreesWithScan:
         mask = np.ones(T, dtype=np.float32)
         mask[45:] = 0.0
 
-        stimuli_j = jnp.array(stimuli)
+        jnp.array(stimuli)
         actions_j = jnp.array(actions)
-        rewards_j = jnp.array(rewards)
-        set_sizes_j = jnp.array(set_sizes)
+        jnp.array(rewards)
+        jnp.array(set_sizes)
         mask_j = jnp.array(mask)
 
         # Precompute using the new function
@@ -1145,9 +1276,7 @@ class TestPrecomputeAgreesWithScan:
             last_action = carry
             action, valid = inputs
             out = last_action
-            new_last_action = jnp.where(valid, action, last_action).astype(
-                jnp.int32
-            )
+            new_last_action = jnp.where(valid, action, last_action).astype(jnp.int32)
             return new_last_action, out
 
         _, sequential_last_action = jax.lax.scan(
@@ -1275,12 +1404,14 @@ class TestVectorizedPhase2:
         mask = data["masks_stacked"]
 
         # Total NLL comparison
-        nll_seq = float(wmrl_m3_multiblock_likelihood_stacked(
-            stim, act, rew, ss, mask, **params
-        ))
-        nll_pscan = float(wmrl_m3_multiblock_likelihood_stacked_pscan(
-            stim, act, rew, ss, mask, **params
-        ))
+        nll_seq = float(
+            wmrl_m3_multiblock_likelihood_stacked(stim, act, rew, ss, mask, **params)
+        )
+        nll_pscan = float(
+            wmrl_m3_multiblock_likelihood_stacked_pscan(
+                stim, act, rew, ss, mask, **params
+            )
+        )
 
         abs_err = abs(nll_seq - nll_pscan)
         max_nll = max(abs(nll_seq), 1e-8)
@@ -1322,12 +1453,14 @@ class TestVectorizedPhase2:
         ss = data["set_sizes_stacked"]
         mask = data["masks_stacked"]
 
-        nll_seq = float(wmrl_m6b_multiblock_likelihood_stacked(
-            stim, act, rew, ss, mask, **params
-        ))
-        nll_pscan = float(wmrl_m6b_multiblock_likelihood_stacked_pscan(
-            stim, act, rew, ss, mask, **params
-        ))
+        nll_seq = float(
+            wmrl_m6b_multiblock_likelihood_stacked(stim, act, rew, ss, mask, **params)
+        )
+        nll_pscan = float(
+            wmrl_m6b_multiblock_likelihood_stacked_pscan(
+                stim, act, rew, ss, mask, **params
+            )
+        )
 
         abs_err = abs(nll_seq - nll_pscan)
         max_nll = max(abs(nll_seq), 1e-8)
@@ -1346,19 +1479,23 @@ class TestVectorizedPhase2:
             stim, act, rew, ss, mask, return_pointwise=True, **params
         )
 
-        max_pw_err = float(np.max(np.abs(
-            np.array(probs_seq) - np.array(probs_pscan)
-        )))
+        max_pw_err = float(np.max(np.abs(np.array(probs_seq) - np.array(probs_pscan))))
         assert max_pw_err < 1e-4, (
             f"[M6b 17-block] pointwise max deviation: {max_pw_err:.2e} > 1e-4"
         )
 
-    @pytest.mark.parametrize("model", [
-        "qlearning", "wmrl", "wmrl_m3", "wmrl_m5", "wmrl_m6a", "wmrl_m6b",
-    ])
-    def test_vectorized_all_models_agreement(
-        self, model, synthetic_stacked_data
-    ):
+    @pytest.mark.parametrize(
+        "model",
+        [
+            "qlearning",
+            "wmrl",
+            "wmrl_m3",
+            "wmrl_m5",
+            "wmrl_m6a",
+            "wmrl_m6b",
+        ],
+    )
+    def test_vectorized_all_models_agreement(self, model, synthetic_stacked_data):
         """
         Parametrized: all 6 models agree < 1e-4 on synthetic 3-block data.
 
@@ -1453,7 +1590,10 @@ def _call_fully_batched(model: str, stacked: dict, params_per_ppt: dict):
 
     if model == "qlearning":
         return q_learning_fully_batched_likelihood(
-            stimuli=stim, actions=act, rewards=rew, masks=mask,
+            stimuli=stim,
+            actions=act,
+            rewards=rew,
+            masks=mask,
             **params_per_ppt,
         )
 
@@ -1467,16 +1607,27 @@ def _call_fully_batched(model: str, stacked: dict, params_per_ppt: dict):
     }[model]
 
     return batched_fn(
-        stimuli=stim, actions=act, rewards=rew,
-        set_sizes=ss, masks=mask,
+        stimuli=stim,
+        actions=act,
+        rewards=rew,
+        set_sizes=ss,
+        masks=mask,
         **params_per_ppt,
     )
 
 
 @pytest.mark.slow
-@pytest.mark.parametrize("model", [
-    "qlearning", "wmrl", "wmrl_m3", "wmrl_m5", "wmrl_m6a", "wmrl_m6b",
-])
+@pytest.mark.parametrize(
+    "model",
+    [
+        "qlearning",
+        "wmrl",
+        "wmrl_m3",
+        "wmrl_m5",
+        "wmrl_m6a",
+        "wmrl_m6b",
+    ],
+)
 def test_fully_batched_full_n154_agreement(model):
     """Fully-batched vmap likelihood must agree with sequential on ALL 154 real participants.
 
@@ -1501,6 +1652,7 @@ def test_fully_batched_full_n154_agreement(model):
         pytest.skip(f"Trial data not found: {_DATA_PATH}")
 
     import pandas as pd
+
     from rlwm.fitting.core import (
         prepare_stacked_participant_data,
         stack_across_participants,

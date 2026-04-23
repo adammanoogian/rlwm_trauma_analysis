@@ -12,6 +12,7 @@ here), to avoid a circular import between the per-model files (which call
 stacking helpers inside their hierarchical-model functions) and this
 orchestration layer.
 """
+
 from __future__ import annotations
 
 import os
@@ -19,14 +20,15 @@ from typing import Any
 
 import jax
 import jax.numpy as jnp
-import numpy as np
 import numpyro
-import numpyro.distributions as dist
 import pandas as pd
 from numpyro.infer import MCMC, NUTS
 
-from .core import MAX_TRIALS_PER_BLOCK, pad_block_to_max
-from .models.qlearning import prepare_block_data, q_learning_multiblock_likelihood
+from .models.qlearning import (
+    prepare_block_data,
+    q_learning_multiblock_likelihood,
+    qlearning_hierarchical_model,
+)
 
 __all__ = [
     "_select_chain_method",
@@ -67,6 +69,7 @@ def _select_chain_method(num_chains: int) -> str:
         return "parallel" if n_devices >= num_chains else "vectorized"
     # cpu
     return "parallel" if n_devices >= num_chains else "sequential"
+
 
 def prepare_data_for_numpyro(
     data_df: pd.DataFrame,
@@ -154,6 +157,7 @@ def prepare_data_for_numpyro(
 
     return participant_data
 
+
 def test_likelihood_compilation(
     participant_data: dict,
     verbose: bool = True,
@@ -213,6 +217,7 @@ def test_likelihood_compilation(
 
     return log_lik
 
+
 def run_inference(
     model: Any,
     model_args: dict[str, Any],
@@ -256,16 +261,16 @@ def run_inference(
     Examples
     --------
     >>> participant_data = prepare_data_for_numpyro(df)
-    >>> model_args = {'participant_data': participant_data}
+    >>> model_args = {"participant_data": participant_data}
     >>> mcmc = run_inference(
     ...     qlearning_hierarchical_model,
     ...     model_args,
     ...     num_warmup=500,
     ...     num_samples=1000,
-    ...     num_chains=2
+    ...     num_chains=2,
     ... )
     >>> samples = mcmc.get_samples()
-    >>> print(samples['mu_alpha_pos'].mean())
+    >>> print(samples["mu_alpha_pos"].mean())
     """
     # Test compilation first
     if test_compilation and "participant_data" in model_args:
@@ -309,6 +314,7 @@ def run_inference(
     mcmc.print_summary()
 
     return mcmc
+
 
 def run_inference_with_bump(
     model: Any,
@@ -368,7 +374,6 @@ def run_inference_with_bump(
     if num_chains > 1:
         numpyro.set_host_device_count(num_chains)
 
-    import os
     import time
 
     print(">> Starting MCMC sampling with convergence auto-bump...")
@@ -437,13 +442,16 @@ def run_inference_with_bump(
             print("[convergence-gate] Zero divergences — accepting this run.")
             return mcmc
 
-        print(f"[convergence-gate] {n_div} divergences remain — bumping target_accept_prob.")
+        print(
+            f"[convergence-gate] {n_div} divergences remain — bumping target_accept_prob."
+        )
 
     print(
         "[convergence-gate] WARNING: divergences remain after all acceptance-probability "
         "levels exhausted.  Returning last run; downstream gate will flag this."
     )
     return last_mcmc
+
 
 def samples_to_arviz(mcmc: MCMC, data_df: pd.DataFrame | None = None) -> Any:
     """
@@ -469,7 +477,7 @@ def samples_to_arviz(mcmc: MCMC, data_df: pd.DataFrame | None = None) -> Any:
     >>> mcmc = run_inference(...)
     >>> idata = samples_to_arviz(mcmc, data_df)
     >>> import arviz as az
-    >>> az.plot_trace(idata, var_names=['mu_alpha_pos'])
+    >>> az.plot_trace(idata, var_names=["mu_alpha_pos"])
     >>> az.summary(idata)
     """
     import arviz as az
@@ -478,6 +486,7 @@ def samples_to_arviz(mcmc: MCMC, data_df: pd.DataFrame | None = None) -> Any:
     idata = az.from_numpyro(mcmc)
 
     return idata
+
 
 def test_model_with_synthetic_data() -> MCMC:
     """
@@ -511,21 +520,21 @@ def test_model_with_synthetic_data() -> MCMC:
         ],
     }
 
-    print(f"\nTrue parameters:")
+    print("\nTrue parameters:")
     print(f"  mu_alpha_pos: {true_params['mu_alpha_pos']}")
     print(f"  mu_alpha_neg: {true_params['mu_alpha_neg']}")
     print(f"  mu_epsilon: {true_params['mu_epsilon']}")
-    print(f"  beta (fixed): 50")
+    print("  beta (fixed): 50")
 
     # Generate synthetic data
     participant_data: dict = {}
-    for i, p_params in enumerate(true_params["participants"]):
+    for i, _p_params in enumerate(true_params["participants"]):
         stimuli_blocks = []
         actions_blocks = []
         rewards_blocks = []
 
         # 3 blocks of 30 trials each
-        for block in range(3):
+        for _block in range(3):
             key, subkey = jax.random.split(key)
             stimuli = jax.random.randint(subkey, (30,), 0, 6)
 
@@ -545,7 +554,7 @@ def test_model_with_synthetic_data() -> MCMC:
             "rewards_blocks": rewards_blocks,
         }
 
-    print(f"\nGenerated data:")
+    print("\nGenerated data:")
     print(f"  Participants: {len(participant_data)}")
     print(f"  Blocks per participant: {len(participant_data[0]['stimuli_blocks'])}")
     print(f"  Trials per block: {len(participant_data[0]['stimuli_blocks'][0])}")

@@ -11,9 +11,10 @@ Usage:
     python tests/examples/example_model_comparison.py
 """
 
-import pandas as pd
-from pathlib import Path
 import sys
+from pathlib import Path
+
+import pandas as pd
 
 # Add project root
 project_root = Path(__file__).parent.parent.parent
@@ -133,33 +134,43 @@ print("the output. Here's what you might see:")
 print()
 
 # Create example results
-example_results = pd.DataFrame({
-    'model': ['Q-Learning', 'WM-RL'],
-    'n_params': [39, 98],  # Example: 13 participants × (3 or 7) + group-level
-    'log_likelihood': [-1234.5, -1189.2],
-    'AIC': [2547.0, 2574.4],
-    'BIC': [2631.8, 2759.2],
-    'WAIC': [2545.2, 2568.9],
-    'LOO': [2546.1, 2570.3],
-    'AIC_rank': [1, 2],
-    'BIC_rank': [1, 2],
-    'WAIC_rank': [1, 2],
-    'LOO_rank': [1, 2],
-    'AIC_weight': [0.89, 0.11],
-    'BIC_weight': [0.998, 0.002]
-})
+example_results = pd.DataFrame(
+    {
+        "model": ["Q-Learning", "WM-RL"],
+        "n_params": [39, 98],  # Example: 13 participants × (3 or 7) + group-level
+        "log_likelihood": [-1234.5, -1189.2],
+        "AIC": [2547.0, 2574.4],
+        "BIC": [2631.8, 2759.2],
+        "WAIC": [2545.2, 2568.9],
+        "LOO": [2546.1, 2570.3],
+        "AIC_rank": [1, 2],
+        "BIC_rank": [1, 2],
+        "WAIC_rank": [1, 2],
+        "LOO_rank": [1, 2],
+        "AIC_weight": [0.89, 0.11],
+        "BIC_weight": [0.998, 0.002],
+    }
+)
 
 print("COMPARISON TABLE:")
 print("=" * 80)
-print(example_results[['model', 'n_params', 'AIC', 'BIC', 'WAIC', 'LOO']].to_string(index=False))
+print(
+    example_results[["model", "n_params", "AIC", "BIC", "WAIC", "LOO"]].to_string(
+        index=False
+    )
+)
 print()
 
 print("RANKINGS (1 = best):")
-print(example_results[['model', 'AIC_rank', 'BIC_rank', 'WAIC_rank', 'LOO_rank']].to_string(index=False))
+print(
+    example_results[
+        ["model", "AIC_rank", "BIC_rank", "WAIC_rank", "LOO_rank"]
+    ].to_string(index=False)
+)
 print()
 
 print("MODEL WEIGHTS (probability that model is best):")
-print(example_results[['model', 'AIC_weight', 'BIC_weight']].to_string(index=False))
+print(example_results[["model", "AIC_weight", "BIC_weight"]].to_string(index=False))
 print()
 
 # ============================================================================
@@ -172,10 +183,10 @@ print("-" * 80)
 print()
 
 # Calculate deltas
-delta_aic = example_results.loc[1, 'AIC'] - example_results.loc[0, 'AIC']
-delta_bic = example_results.loc[1, 'BIC'] - example_results.loc[0, 'BIC']
-delta_waic = example_results.loc[1, 'WAIC'] - example_results.loc[0, 'WAIC']
-delta_loo = example_results.loc[1, 'LOO'] - example_results.loc[0, 'LOO']
+delta_aic = example_results.loc[1, "AIC"] - example_results.loc[0, "AIC"]
+delta_bic = example_results.loc[1, "BIC"] - example_results.loc[0, "BIC"]
+delta_waic = example_results.loc[1, "WAIC"] - example_results.loc[0, "WAIC"]
+delta_loo = example_results.loc[1, "LOO"] - example_results.loc[0, "LOO"]
 
 print("DELTAS (how much worse is WM-RL?):")
 print(f"  ΔAIC = {delta_aic:.1f}")
@@ -198,7 +209,9 @@ elif delta_aic < 10:
 else:
     strength = "very strong"
 print(f"  → {strength.upper()} evidence for Q-Learning")
-print(f"  → Q-Learning has {example_results.loc[0, 'AIC_weight']*100:.1f}% probability of being best model")
+print(
+    f"  → Q-Learning has {example_results.loc[0, 'AIC_weight'] * 100:.1f}% probability of being best model"
+)
 print()
 
 # BIC interpretation
@@ -212,8 +225,12 @@ elif delta_bic < 10:
 else:
     strength = "very strong"
 print(f"  → {strength.upper()} evidence for Q-Learning")
-print(f"  → BIC penalizes WM-RL heavily for having {example_results.loc[1, 'n_params']} parameters")
-print(f"  → Q-Learning has {example_results.loc[0, 'BIC_weight']*100:.1f}% probability of being best model")
+print(
+    f"  → BIC penalizes WM-RL heavily for having {example_results.loc[1, 'n_params']} parameters"
+)
+print(
+    f"  → Q-Learning has {example_results.loc[0, 'BIC_weight'] * 100:.1f}% probability of being best model"
+)
 print()
 
 # WAIC interpretation
@@ -227,7 +244,7 @@ elif delta_waic < 10:
 else:
     strength = "very strong"
 print(f"  → {strength.upper()} evidence for Q-Learning")
-print(f"  → Fully Bayesian criterion using entire posterior")
+print("  → Fully Bayesian criterion using entire posterior")
 print()
 
 # LOO interpretation
@@ -241,7 +258,7 @@ elif delta_loo < 10:
 else:
     strength = "very strong"
 print(f"  → {strength.upper()} evidence for Q-Learning")
-print(f"  → Gold standard: estimates out-of-sample prediction")
+print("  → Gold standard: estimates out-of-sample prediction")
 print()
 
 # ============================================================================

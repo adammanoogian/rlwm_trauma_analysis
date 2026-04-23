@@ -28,9 +28,9 @@ pytest.skip(
 def generate_mock_predictions(
     n_blocks: int = 10,
     trials_per_block: int = 50,
-    set_sizes: list = [2, 3, 5, 6],
+    set_sizes: list = None,
     reversal_trial: int = 25,
-    seed: int = 42
+    seed: int = 42,
 ) -> pd.DataFrame:
     """
     Generate mock prediction data for testing visualizations.
@@ -40,6 +40,8 @@ def generate_mock_predictions(
     - Reversal effect (accuracy drops then recovers)
     - Set size effect (harder with larger sets)
     """
+    if set_sizes is None:
+        set_sizes = [2, 3, 5, 6]
     np.random.seed(seed)
 
     predictions = []
@@ -57,7 +59,9 @@ def generate_mock_predictions(
 
             # Reversal effect
             is_post_reversal = trial_num > reversal_trial
-            trials_since_reversal = trial_num - reversal_trial if is_post_reversal else 0
+            trials_since_reversal = (
+                trial_num - reversal_trial if is_post_reversal else 0
+            )
 
             if is_post_reversal:
                 # Accuracy drops after reversal then recovers
@@ -75,18 +79,20 @@ def generate_mock_predictions(
             # Bernoulli trial
             correct = int(np.random.random() < trial_acc)
 
-            predictions.append({
-                'subject_id': 1,
-                'block': block_id,
-                'trial': trial_num,
-                'trial_num': trial_num,
-                'set_size': set_size,
-                'stimulus': np.random.randint(0, set_size),
-                'model_choice': np.random.randint(0, 2),
-                'correct': correct,
-                'trials_since_reversal': trials_since_reversal,
-                'is_post_reversal': is_post_reversal
-            })
+            predictions.append(
+                {
+                    "subject_id": 1,
+                    "block": block_id,
+                    "trial": trial_num,
+                    "trial_num": trial_num,
+                    "set_size": set_size,
+                    "stimulus": np.random.randint(0, set_size),
+                    "model_choice": np.random.randint(0, 2),
+                    "correct": correct,
+                    "trials_since_reversal": trials_since_reversal,
+                    "is_post_reversal": is_post_reversal,
+                }
+            )
 
     return pd.DataFrame(predictions)
 
@@ -103,7 +109,7 @@ def main():
         trials_per_block=50,
         set_sizes=[2, 3, 5, 6],
         reversal_trial=25,
-        seed=42
+        seed=42,
     )
 
     print(f"  Generated {len(predictions_df)} trials")
@@ -111,53 +117,52 @@ def main():
     print(f"  Overall accuracy: {predictions_df['correct'].mean():.3f}")
 
     # Create test output directory
-    test_dir = FIGURES_DIR / 'test_performance'
+    test_dir = FIGURES_DIR / "test_performance"
     test_dir.mkdir(parents=True, exist_ok=True)
 
     print("\nCreating visualizations...")
 
     # 1. Learning curve (since start)
     print("  1. Learning curve (since block start)...")
-    plot_learning_curves(
+    plot_learning_curves(  # noqa: F821
         predictions_df,
-        trial_type='since_start',
-        save_path=test_dir / 'test_learning_curve_since_start.png',
-        title='Test: Learning Curve (Since Block Start)'
+        trial_type="since_start",
+        save_path=test_dir / "test_learning_curve_since_start.png",
+        title="Test: Learning Curve (Since Block Start)",
     )
 
     # 2. Learning curve (since reversal)
     print("  2. Learning curve (since reversal)...")
-    plot_learning_curves(
+    plot_learning_curves(  # noqa: F821
         predictions_df,
-        trial_type='since_reversal',
-        save_path=test_dir / 'test_learning_curve_since_reversal.png',
-        title='Test: Learning Curve (Since Reversal)'
+        trial_type="since_reversal",
+        save_path=test_dir / "test_learning_curve_since_reversal.png",
+        title="Test: Learning Curve (Since Reversal)",
     )
 
     # 3. Performance by trial position
     print("  3. Performance by trial position...")
-    plot_performance_by_trial_position(
+    plot_performance_by_trial_position(  # noqa: F821
         predictions_df,
         n_trials_threshold=4,
-        save_path=test_dir / 'test_performance_by_position.png',
-        title='Test: Performance by Trial Position'
+        save_path=test_dir / "test_performance_by_position.png",
+        title="Test: Performance by Trial Position",
     )
 
     # 4. Combined analysis
     print("  4. Combined performance analysis...")
-    plot_combined_performance_analysis(
-        predictions_df,
-        n_trials_threshold=4,
-        save_dir=test_dir,
-        model_name='Test Model'
+    plot_combined_performance_analysis(  # noqa: F821
+        predictions_df, n_trials_threshold=4, save_dir=test_dir, model_name="Test Model"
     )
 
     print("\n" + "=" * 80)
     print(f"Test figures saved to: {test_dir}")
     print("=" * 80)
-    print("\nIf plots look good, you can use scripts/06_fit_analyses/01_compare_models.py with real data:")
+    print(
+        "\nIf plots look good, you can use scripts/06_fit_analyses/01_compare_models.py with real data:"
+    )
     print("  python scripts/06_fit_analyses/01_compare_models.py --model qlearning")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

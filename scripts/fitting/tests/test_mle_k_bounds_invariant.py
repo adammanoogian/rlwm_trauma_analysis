@@ -39,9 +39,7 @@ _LEGACY_SUBSTRINGS: list[str] = [
     "(1, 7)",
 ]
 
-_MLEUTILS_PATH = (
-    pathlib.Path(__file__).parent.parent / "mle_utils.py"
-)
+_MLEUTILS_PATH = pathlib.Path(__file__).parent.parent / "mle_utils.py"
 
 
 # ---------------------------------------------------------------------------

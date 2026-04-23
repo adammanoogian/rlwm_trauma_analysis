@@ -261,20 +261,21 @@ def _fit_two_covariate_l2(
         )
 
     # Local imports keep jax/numpyro startup cost out of --help path.
-    import pandas as pd  # noqa: PLC0415
     import jax.numpy as jnp  # noqa: PLC0415
+    import pandas as pd  # noqa: PLC0415
+
     from rlwm.fitting.bayesian import (  # noqa: PLC0415
         STACKED_MODEL_DISPATCH,
         load_and_prepare_data,
         run_inference_with_bump,
         save_results,
     )
-    from scripts.fitting.level2_design import (  # noqa: PLC0415
-        build_level2_design_matrix_2cov,
-    )
     from rlwm.fitting.core import (
         prepare_stacked_participant_data,
         stack_across_participants,
+    )
+    from scripts.fitting.level2_design import (  # noqa: PLC0415
+        build_level2_design_matrix_2cov,
     )
 
     # ------------------------------------------------------------------
@@ -416,23 +417,30 @@ def _fit_subscale(model: str, args: argparse.Namespace) -> Path:
         Expected NetCDF path.
     """
     if model != "wmrl_m6b":
-        raise ValueError(
-            f"_fit_subscale: expected model='wmrl_m6b', got '{model}'."
-        )
+        raise ValueError(f"_fit_subscale: expected model='wmrl_m6b', got '{model}'.")
 
     from rlwm.fitting.bayesian import main as fit_main  # noqa: PLC0415
 
     sys.argv = [
         "fit_bayesian.py",
-        "--model", model,
-        "--data", args.data,
-        "--chains", str(args.chains),
-        "--warmup", str(args.warmup),
-        "--samples", str(args.samples),
-        "--seed", str(args.seed),
-        "--max-tree-depth", str(args.max_tree_depth),
-        "--output", args.output,
-        "--output-subdir", L2_SUBDIR,
+        "--model",
+        model,
+        "--data",
+        args.data,
+        "--chains",
+        str(args.chains),
+        "--warmup",
+        str(args.warmup),
+        "--samples",
+        str(args.samples),
+        "--seed",
+        str(args.seed),
+        "--max-tree-depth",
+        str(args.max_tree_depth),
+        "--output",
+        args.output,
+        "--output-subdir",
+        L2_SUBDIR,
         "--subscale",
     ]
     fit_main()
@@ -655,8 +663,10 @@ def main() -> None:
     print("[STEP 21.6 COMPLETE]")
     print("=" * 80)
     print(f"  Output NetCDF: {final_expected}")
-    print(f"  beta_* site count: {beta_count} "
-          f"({'copy (no L2)' if beta_count == 0 else 'L2 refit'})")
+    print(
+        f"  beta_* site count: {beta_count} "
+        f"({'copy (no L2)' if beta_count == 0 else 'L2 refit'})"
+    )
     print(f"  Model: {model_internal} ({INTERNAL_TO_DISPLAY[model_internal]})")
     print("  Proceed to step 21.7.")
     sys.exit(0)

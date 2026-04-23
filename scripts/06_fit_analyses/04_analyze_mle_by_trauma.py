@@ -94,7 +94,7 @@ from utils.plotting import (
 )
 
 from config import load_fits_with_validation
-from plotting_config import PlotConfig
+from utils.plotting_config import PlotConfig
 
 # Paths
 OUTPUT_DIR = PROJECT_ROOT / "output" / "mle"
@@ -104,39 +104,87 @@ FIGURES_DIR = PROJECT_ROOT / "figures" / "mle_trauma_analysis"
 GROUP_COLORS = TRAUMA_GROUP_COLORS
 
 # Model parameters
-QLEARNING_PARAMS = ['alpha_pos', 'alpha_neg', 'epsilon']
-WMRL_PARAMS = ['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'epsilon']
-WMRL_M3_PARAMS = ['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'kappa', 'epsilon']
-WMRL_M4_PARAMS = ['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'kappa',
-                  'v_scale', 'A', 'delta', 't0']
-WMRL_M5_PARAMS = ['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'kappa', 'phi_rl', 'epsilon']
-WMRL_M6A_PARAMS = ['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'kappa_s', 'epsilon']
-WMRL_M6B_PARAMS = ['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'kappa_total', 'kappa_share', 'epsilon']
+QLEARNING_PARAMS = ["alpha_pos", "alpha_neg", "epsilon"]
+WMRL_PARAMS = ["alpha_pos", "alpha_neg", "phi", "rho", "capacity", "epsilon"]
+WMRL_M3_PARAMS = [
+    "alpha_pos",
+    "alpha_neg",
+    "phi",
+    "rho",
+    "capacity",
+    "kappa",
+    "epsilon",
+]
+WMRL_M4_PARAMS = [
+    "alpha_pos",
+    "alpha_neg",
+    "phi",
+    "rho",
+    "capacity",
+    "kappa",
+    "v_scale",
+    "A",
+    "delta",
+    "t0",
+]
+WMRL_M5_PARAMS = [
+    "alpha_pos",
+    "alpha_neg",
+    "phi",
+    "rho",
+    "capacity",
+    "kappa",
+    "phi_rl",
+    "epsilon",
+]
+WMRL_M6A_PARAMS = [
+    "alpha_pos",
+    "alpha_neg",
+    "phi",
+    "rho",
+    "capacity",
+    "kappa_s",
+    "epsilon",
+]
+WMRL_M6B_PARAMS = [
+    "alpha_pos",
+    "alpha_neg",
+    "phi",
+    "rho",
+    "capacity",
+    "kappa_total",
+    "kappa_share",
+    "epsilon",
+]
 
 # Trauma scale predictors
 TRAUMA_PREDICTORS = [
-    'lec_total', 'lec_personal',
-    'ies_intrusion', 'ies_avoidance', 'ies_hyperarousal'
+    "lec_total",
+    "lec_personal",
+    "ies_intrusion",
+    "ies_avoidance",
+    "ies_hyperarousal",
 ]
 
 # Parameter display names
 PARAM_NAMES = {
-    'alpha_pos': r'$\alpha_+$',
-    'alpha_neg': r'$\alpha_-$',
-    'epsilon': r'$\varepsilon$',
-    'phi': r'$\phi$',
-    'rho': r'$\rho$',
-    'capacity': 'K',
-    'kappa': r'$\kappa$',
-    'phi_rl': r'$\phi_{RL}$',
-    'kappa_s': r'$\kappa_s$',
-    'kappa_total': r'$\kappa_{total}$',
-    'kappa_share': r'$\kappa_{share}$',
-    'v_scale': r'$v_{scale}$',
-    'A': r'$A$',
-    'delta': r'$\delta$',
-    't0': r'$t_0$',
+    "alpha_pos": r"$\alpha_+$",
+    "alpha_neg": r"$\alpha_-$",
+    "epsilon": r"$\varepsilon$",
+    "phi": r"$\phi$",
+    "rho": r"$\rho$",
+    "capacity": "K",
+    "kappa": r"$\kappa$",
+    "phi_rl": r"$\phi_{RL}$",
+    "kappa_s": r"$\kappa_s$",
+    "kappa_total": r"$\kappa_{total}$",
+    "kappa_share": r"$\kappa_{share}$",
+    "v_scale": r"$v_{scale}$",
+    "A": r"$A$",
+    "delta": r"$\delta$",
+    "t0": r"$t_0$",
 }
+
 
 def load_data(fits_dir: Path = OUTPUT_DIR) -> tuple:
     """Load and merge model fits with survey/group data.
@@ -157,16 +205,22 @@ def load_data(fits_dir: Path = OUTPUT_DIR) -> tuple:
     # Load survey data
     surveys = pd.read_csv(PROJECT_ROOT / "output" / "summary_participant_metrics.csv")
     # Rename columns to match names expected throughout this script
-    surveys = surveys.rename(columns={
-        'less_total_events': 'lec_total',
-        'less_personal_events': 'lec_personal',
-    })
-    print(f"Loaded survey data: {len(surveys)} participants from summary_participant_metrics.csv")
-    groups = pd.read_csv(PROJECT_ROOT / "output" / "trauma_groups" / "group_assignments.csv")
+    surveys = surveys.rename(
+        columns={
+            "less_total_events": "lec_total",
+            "less_personal_events": "lec_personal",
+        }
+    )
+    print(
+        f"Loaded survey data: {len(surveys)} participants from summary_participant_metrics.csv"
+    )
+    groups = pd.read_csv(
+        PROJECT_ROOT / "output" / "trauma_groups" / "group_assignments.csv"
+    )
 
     # Convert sona_id to string for consistent merging (handles both numeric and anon IDs)
-    surveys['sona_id'] = surveys['sona_id'].astype(str)
-    groups['sona_id'] = groups['sona_id'].astype(str)
+    surveys["sona_id"] = surveys["sona_id"].astype(str)
+    groups["sona_id"] = groups["sona_id"].astype(str)
 
     # Load fits from fits_dir.  For MLE source, fall back to the legacy output/
     # root when a file is absent from output/mle/. For Bayesian source, files
@@ -176,9 +230,7 @@ def load_data(fits_dir: Path = OUTPUT_DIR) -> tuple:
     qlearning = load_fits_with_validation(
         fits_dir / "qlearning_individual_fits.csv", "qlearning"
     )
-    wmrl = load_fits_with_validation(
-        fits_dir / "wmrl_individual_fits.csv", "wmrl"
-    )
+    wmrl = load_fits_with_validation(fits_dir / "wmrl_individual_fits.csv", "wmrl")
     wmrl_m3 = load_fits_with_validation(
         fits_dir / "wmrl_m3_individual_fits.csv", "wmrl_m3"
     )
@@ -224,77 +276,68 @@ def load_data(fits_dir: Path = OUTPUT_DIR) -> tuple:
     )
 
     # Convert participant_id to string for consistent merging
-    qlearning['participant_id'] = qlearning['participant_id'].astype(str)
-    wmrl['participant_id'] = wmrl['participant_id'].astype(str)
-    wmrl_m3['participant_id'] = wmrl_m3['participant_id'].astype(str)
+    qlearning["participant_id"] = qlearning["participant_id"].astype(str)
+    wmrl["participant_id"] = wmrl["participant_id"].astype(str)
+    wmrl_m3["participant_id"] = wmrl_m3["participant_id"].astype(str)
     if wmrl_m5 is not None:
-        wmrl_m5['participant_id'] = wmrl_m5['participant_id'].astype(str)
+        wmrl_m5["participant_id"] = wmrl_m5["participant_id"].astype(str)
     if wmrl_m6a is not None:
-        wmrl_m6a['participant_id'] = wmrl_m6a['participant_id'].astype(str)
+        wmrl_m6a["participant_id"] = wmrl_m6a["participant_id"].astype(str)
     if wmrl_m6b is not None:
-        wmrl_m6b['participant_id'] = wmrl_m6b['participant_id'].astype(str)
+        wmrl_m6b["participant_id"] = wmrl_m6b["participant_id"].astype(str)
     if wmrl_m4 is not None:
-        wmrl_m4['participant_id'] = wmrl_m4['participant_id'].astype(str)
+        wmrl_m4["participant_id"] = wmrl_m4["participant_id"].astype(str)
 
     # Merge with surveys
     qlearning = qlearning.merge(
-        surveys, left_on='participant_id', right_on='sona_id', how='inner'
+        surveys, left_on="participant_id", right_on="sona_id", how="inner"
     )
     qlearning = qlearning.merge(
-        groups[['sona_id', 'hypothesis_group']],
-        on='sona_id', how='left'
+        groups[["sona_id", "hypothesis_group"]], on="sona_id", how="left"
     )
 
     wmrl = wmrl.merge(
-        surveys, left_on='participant_id', right_on='sona_id', how='inner'
+        surveys, left_on="participant_id", right_on="sona_id", how="inner"
     )
-    wmrl = wmrl.merge(
-        groups[['sona_id', 'hypothesis_group']],
-        on='sona_id', how='left'
-    )
+    wmrl = wmrl.merge(groups[["sona_id", "hypothesis_group"]], on="sona_id", how="left")
 
     wmrl_m3 = wmrl_m3.merge(
-        surveys, left_on='participant_id', right_on='sona_id', how='inner'
+        surveys, left_on="participant_id", right_on="sona_id", how="inner"
     )
     wmrl_m3 = wmrl_m3.merge(
-        groups[['sona_id', 'hypothesis_group']],
-        on='sona_id', how='left'
+        groups[["sona_id", "hypothesis_group"]], on="sona_id", how="left"
     )
 
     if wmrl_m5 is not None:
         wmrl_m5 = wmrl_m5.merge(
-            surveys, left_on='participant_id', right_on='sona_id', how='inner'
+            surveys, left_on="participant_id", right_on="sona_id", how="inner"
         )
         wmrl_m5 = wmrl_m5.merge(
-            groups[['sona_id', 'hypothesis_group']],
-            on='sona_id', how='left'
+            groups[["sona_id", "hypothesis_group"]], on="sona_id", how="left"
         )
 
     if wmrl_m6a is not None:
         wmrl_m6a = wmrl_m6a.merge(
-            surveys, left_on='participant_id', right_on='sona_id', how='inner'
+            surveys, left_on="participant_id", right_on="sona_id", how="inner"
         )
         wmrl_m6a = wmrl_m6a.merge(
-            groups[['sona_id', 'hypothesis_group']],
-            on='sona_id', how='left'
+            groups[["sona_id", "hypothesis_group"]], on="sona_id", how="left"
         )
 
     if wmrl_m6b is not None:
         wmrl_m6b = wmrl_m6b.merge(
-            surveys, left_on='participant_id', right_on='sona_id', how='inner'
+            surveys, left_on="participant_id", right_on="sona_id", how="inner"
         )
         wmrl_m6b = wmrl_m6b.merge(
-            groups[['sona_id', 'hypothesis_group']],
-            on='sona_id', how='left'
+            groups[["sona_id", "hypothesis_group"]], on="sona_id", how="left"
         )
 
     if wmrl_m4 is not None:
         wmrl_m4 = wmrl_m4.merge(
-            surveys, left_on='participant_id', right_on='sona_id', how='inner'
+            surveys, left_on="participant_id", right_on="sona_id", how="inner"
         )
         wmrl_m4 = wmrl_m4.merge(
-            groups[['sona_id', 'hypothesis_group']],
-            on='sona_id', how='left'
+            groups[["sona_id", "hypothesis_group"]], on="sona_id", how="left"
         )
 
     print(f"Q-learning participants with surveys: {len(qlearning)}")
@@ -317,7 +360,18 @@ def load_data(fits_dir: Path = OUTPUT_DIR) -> tuple:
     else:
         print("WM-RL+M4: not found (run 12_fit_mle.py --model wmrl_m4 first)")
 
-    return qlearning, wmrl, wmrl_m3, surveys, groups, wmrl_m5, wmrl_m6a, wmrl_m6b, wmrl_m4
+    return (
+        qlearning,
+        wmrl,
+        wmrl_m3,
+        surveys,
+        groups,
+        wmrl_m5,
+        wmrl_m6a,
+        wmrl_m6b,
+        wmrl_m4,
+    )
+
 
 def mann_whitney_with_effect_size(group1: np.ndarray, group2: np.ndarray) -> dict:
     """
@@ -341,15 +395,22 @@ def mann_whitney_with_effect_size(group1: np.ndarray, group2: np.ndarray) -> dic
     group2 = group2[~np.isnan(group2)]
 
     if len(group1) < 3 or len(group2) < 3:
-        return {'U': np.nan, 'p': np.nan, 'r_rb': np.nan, 'n1': len(group1), 'n2': len(group2)}
+        return {
+            "U": np.nan,
+            "p": np.nan,
+            "r_rb": np.nan,
+            "n1": len(group1),
+            "n2": len(group2),
+        }
 
-    stat, p = stats.mannwhitneyu(group1, group2, alternative='two-sided')
+    stat, p = stats.mannwhitneyu(group1, group2, alternative="two-sided")
 
     # Rank-biserial correlation: r = 1 - (2U)/(n1*n2)
     n1, n2 = len(group1), len(group2)
     r_rb = 1 - (2 * stat) / (n1 * n2)
 
-    return {'U': stat, 'p': p, 'r_rb': r_rb, 'n1': n1, 'n2': n2}
+    return {"U": stat, "p": p, "r_rb": r_rb, "n1": n1, "n2": n2}
+
 
 def group_comparisons(df: pd.DataFrame, params: list, model_name: str) -> pd.DataFrame:
     """
@@ -373,7 +434,7 @@ def group_comparisons(df: pd.DataFrame, params: list, model_name: str) -> pd.Dat
     """
     # Define groups to compare (actual group names from group_assignments.csv)
     # Note: All participants have trauma exposure - no "No Trauma" group
-    groups = ['Trauma Exposure - No Ongoing Impact', 'Trauma Exposure - Ongoing Impact']
+    groups = ["Trauma Exposure - No Ongoing Impact", "Trauma Exposure - Ongoing Impact"]
     group_pairs = list(combinations(groups, 2))
 
     results = []
@@ -381,49 +442,55 @@ def group_comparisons(df: pd.DataFrame, params: list, model_name: str) -> pd.Dat
     alpha_corrected = 0.05 / n_tests
 
     print(f"\n{model_name} Group Comparisons")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print(f"Bonferroni-corrected alpha: {alpha_corrected:.5f} ({n_tests} tests)")
 
     for param in params:
         for g1, g2 in group_pairs:
-            data1 = df[df['hypothesis_group'] == g1][param].values
-            data2 = df[df['hypothesis_group'] == g2][param].values
+            data1 = df[df["hypothesis_group"] == g1][param].values
+            data2 = df[df["hypothesis_group"] == g2][param].values
 
             test_result = mann_whitney_with_effect_size(data1, data2)
 
             # Bonferroni correction
-            p_corrected = min(test_result['p'] * n_tests, 1.0)
+            p_corrected = min(test_result["p"] * n_tests, 1.0)
 
-            results.append({
-                'model': model_name,
-                'parameter': param,
-                'group1': g1,
-                'group2': g2,
-                'n1': test_result['n1'],
-                'n2': test_result['n2'],
-                'U': test_result['U'],
-                'p_uncorrected': test_result['p'],
-                'p_bonferroni': p_corrected,
-                'significant': p_corrected < 0.05,
-                'r_rank_biserial': test_result['r_rb'],
-                'mean1': np.nanmean(data1),
-                'mean2': np.nanmean(data2),
-                'std1': np.nanstd(data1),
-                'std2': np.nanstd(data2),
-            })
+            results.append(
+                {
+                    "model": model_name,
+                    "parameter": param,
+                    "group1": g1,
+                    "group2": g2,
+                    "n1": test_result["n1"],
+                    "n2": test_result["n2"],
+                    "U": test_result["U"],
+                    "p_uncorrected": test_result["p"],
+                    "p_bonferroni": p_corrected,
+                    "significant": p_corrected < 0.05,
+                    "r_rank_biserial": test_result["r_rb"],
+                    "mean1": np.nanmean(data1),
+                    "mean2": np.nanmean(data2),
+                    "std1": np.nanstd(data1),
+                    "std2": np.nanstd(data2),
+                }
+            )
 
             # Print significant results
             if p_corrected < 0.05:
                 print(f"\n*** {param}: {g1} vs {g2}")
-                print(f"    U = {test_result['U']:.1f}, p = {test_result['p']:.4f} (corrected: {p_corrected:.4f})")
+                print(
+                    f"    U = {test_result['U']:.1f}, p = {test_result['p']:.4f} (corrected: {p_corrected:.4f})"
+                )
                 print(f"    Effect size (r_rb) = {test_result['r_rb']:.3f}")
                 print(f"    {g1}: {np.nanmean(data1):.3f} +/- {np.nanstd(data1):.3f}")
                 print(f"    {g2}: {np.nanmean(data2):.3f} +/- {np.nanstd(data2):.3f}")
 
     return pd.DataFrame(results)
 
-def spearman_correlations(df: pd.DataFrame, params: list, predictors: list,
-                          model_name: str) -> pd.DataFrame:
+
+def spearman_correlations(
+    df: pd.DataFrame, params: list, predictors: list, model_name: str
+) -> pd.DataFrame:
     """
     Compute Spearman correlations between trauma scales and parameters.
 
@@ -448,7 +515,7 @@ def spearman_correlations(df: pd.DataFrame, params: list, predictors: list,
     alpha_corrected = 0.05 / n_tests
 
     print(f"\n{model_name} Spearman Correlations")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print(f"FWE-corrected alpha: {alpha_corrected:.5f} ({n_tests} tests)")
 
     for param in params:
@@ -464,22 +531,25 @@ def spearman_correlations(df: pd.DataFrame, params: list, predictors: list,
             rho, p = stats.spearmanr(x, y)
             p_corrected = min(p * n_tests, 1.0)
 
-            results.append({
-                'model': model_name,
-                'parameter': param,
-                'predictor': pred,
-                'n': len(x),
-                'rho': rho,
-                'p_uncorrected': p,
-                'p_fwe': p_corrected,
-                'significant': p_corrected < 0.05,
-            })
+            results.append(
+                {
+                    "model": model_name,
+                    "parameter": param,
+                    "predictor": pred,
+                    "n": len(x),
+                    "rho": rho,
+                    "p_uncorrected": p,
+                    "p_fwe": p_corrected,
+                    "significant": p_corrected < 0.05,
+                }
+            )
 
             if p_corrected < 0.05:
                 print(f"\n*** {param} ~ {pred}")
                 print(f"    rho = {rho:.3f}, p = {p:.4f} (FWE: {p_corrected:.4f})")
 
     return pd.DataFrame(results)
+
 
 def ols_regression(df: pd.DataFrame, params: list, model_name: str) -> pd.DataFrame:
     """
@@ -499,12 +569,12 @@ def ols_regression(df: pd.DataFrame, params: list, model_name: str) -> pd.DataFr
     pd.DataFrame
         Regression results
     """
-    predictors = ['ies_intrusion', 'ies_avoidance', 'ies_hyperarousal']
+    predictors = ["ies_intrusion", "ies_avoidance", "ies_hyperarousal"]
 
     results = []
 
     print(f"\n{model_name} OLS Regressions")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print(f"Model: param ~ {' + '.join(predictors)}")
 
     for param in params:
@@ -521,36 +591,51 @@ def ols_regression(df: pd.DataFrame, params: list, model_name: str) -> pd.DataFr
             model = sm.OLS(y, X).fit()
 
             # Store results
-            for i, pred in enumerate(['intercept'] + predictors):
-                results.append({
-                    'model': model_name,
-                    'outcome': param,
-                    'predictor': pred,
-                    'beta': model.params[i],
-                    'se': model.bse[i],
-                    'ci_lower': model.conf_int()[i, 0],
-                    'ci_upper': model.conf_int()[i, 1],
-                    't': model.tvalues[i],
-                    'p': model.pvalues[i],
-                    'r2': model.rsquared,
-                    'r2_adj': model.rsquared_adj,
-                    'n': len(y),
-                })
+            for i, pred in enumerate(["intercept"] + predictors):
+                results.append(
+                    {
+                        "model": model_name,
+                        "outcome": param,
+                        "predictor": pred,
+                        "beta": model.params[i],
+                        "se": model.bse[i],
+                        "ci_lower": model.conf_int()[i, 0],
+                        "ci_upper": model.conf_int()[i, 1],
+                        "t": model.tvalues[i],
+                        "p": model.pvalues[i],
+                        "r2": model.rsquared,
+                        "r2_adj": model.rsquared_adj,
+                        "n": len(y),
+                    }
+                )
 
             # Print summary for each outcome
             print(f"\n{param}:")
             print(f"  R² = {model.rsquared:.3f}, R²_adj = {model.rsquared_adj:.3f}")
             for i, pred in enumerate(predictors):
                 p = model.pvalues[i + 1]
-                sig = "***" if p < 0.001 else "**" if p < 0.01 else "*" if p < 0.05 else ""
-                print(f"  {pred}: β = {model.params[i+1]:.4f} [{model.conf_int()[i+1, 0]:.4f}, {model.conf_int()[i+1, 1]:.4f}], p = {p:.4f} {sig}")
+                sig = (
+                    "***"
+                    if p < 0.001
+                    else "**"
+                    if p < 0.01
+                    else "*"
+                    if p < 0.05
+                    else ""
+                )
+                print(
+                    f"  {pred}: β = {model.params[i + 1]:.4f} [{model.conf_int()[i + 1, 0]:.4f}, {model.conf_int()[i + 1, 1]:.4f}], p = {p:.4f} {sig}"
+                )
 
         except Exception as e:
             print(f"  Error fitting {param}: {e}")
 
     return pd.DataFrame(results)
 
-def ols_regression_extended(df: pd.DataFrame, params: list, model_name: str) -> pd.DataFrame:
+
+def ols_regression_extended(
+    df: pd.DataFrame, params: list, model_name: str
+) -> pd.DataFrame:
     """
     Run extended OLS regressions with LESS and IES-R total scores.
 
@@ -575,15 +660,15 @@ def ols_regression_extended(df: pd.DataFrame, params: list, model_name: str) -> 
     """
     # Define predictor specifications
     predictor_specs = [
-        (['lec_total'], 'LESS'),
-        (['ies_total'], 'IES-R'),
-        (['lec_total', 'ies_total'], 'LESS + IES-R'),
+        (["lec_total"], "LESS"),
+        (["ies_total"], "IES-R"),
+        (["lec_total", "ies_total"], "LESS + IES-R"),
     ]
 
     results = []
 
     print(f"\n{model_name} Extended OLS Regressions")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     for param in params:
         print(f"\n{param}:")
@@ -606,59 +691,81 @@ def ols_regression_extended(df: pd.DataFrame, params: list, model_name: str) -> 
                 model = sm.OLS(y, X).fit()
 
                 # Store results for intercept
-                results.append({
-                    'model': model_name,
-                    'outcome': param,
-                    'predictor_set': model_spec,
-                    'predictor': 'intercept',
-                    'beta': model.params[0],
-                    'se': model.bse[0],
-                    'ci_lower': model.conf_int()[0, 0],
-                    'ci_upper': model.conf_int()[0, 1],
-                    't': model.tvalues[0],
-                    'p': model.pvalues[0],
-                    'r2': model.rsquared,
-                    'r2_adj': model.rsquared_adj,
-                    'n': len(y),
-                })
+                results.append(
+                    {
+                        "model": model_name,
+                        "outcome": param,
+                        "predictor_set": model_spec,
+                        "predictor": "intercept",
+                        "beta": model.params[0],
+                        "se": model.bse[0],
+                        "ci_lower": model.conf_int()[0, 0],
+                        "ci_upper": model.conf_int()[0, 1],
+                        "t": model.tvalues[0],
+                        "p": model.pvalues[0],
+                        "r2": model.rsquared,
+                        "r2_adj": model.rsquared_adj,
+                        "n": len(y),
+                    }
+                )
 
                 # Store results for each predictor
                 for i, pred in enumerate(predictors):
-                    results.append({
-                        'model': model_name,
-                        'outcome': param,
-                        'predictor_set': model_spec,
-                        'predictor': pred,
-                        'beta': model.params[i + 1],
-                        'se': model.bse[i + 1],
-                        'ci_lower': model.conf_int()[i + 1, 0],
-                        'ci_upper': model.conf_int()[i + 1, 1],
-                        't': model.tvalues[i + 1],
-                        'p': model.pvalues[i + 1],
-                        'r2': model.rsquared,
-                        'r2_adj': model.rsquared_adj,
-                        'n': len(y),
-                    })
+                    results.append(
+                        {
+                            "model": model_name,
+                            "outcome": param,
+                            "predictor_set": model_spec,
+                            "predictor": pred,
+                            "beta": model.params[i + 1],
+                            "se": model.bse[i + 1],
+                            "ci_lower": model.conf_int()[i + 1, 0],
+                            "ci_upper": model.conf_int()[i + 1, 1],
+                            "t": model.tvalues[i + 1],
+                            "p": model.pvalues[i + 1],
+                            "r2": model.rsquared,
+                            "r2_adj": model.rsquared_adj,
+                            "n": len(y),
+                        }
+                    )
 
                 # Print summary
-                print(f"  {model_spec}: R² = {model.rsquared:.3f}, R²_adj = {model.rsquared_adj:.3f}, n = {len(y)}")
+                print(
+                    f"  {model_spec}: R² = {model.rsquared:.3f}, R²_adj = {model.rsquared_adj:.3f}, n = {len(y)}"
+                )
                 for i, pred in enumerate(predictors):
                     p = model.pvalues[i + 1]
-                    sig = "***" if p < 0.001 else "**" if p < 0.01 else "*" if p < 0.05 else ""
-                    print(f"    {pred}: β = {model.params[i+1]:.4f} [{model.conf_int()[i+1, 0]:.4f}, {model.conf_int()[i+1, 1]:.4f}], p = {p:.4f} {sig}")
+                    sig = (
+                        "***"
+                        if p < 0.001
+                        else "**"
+                        if p < 0.01
+                        else "*"
+                        if p < 0.05
+                        else ""
+                    )
+                    print(
+                        f"    {pred}: β = {model.params[i + 1]:.4f} [{model.conf_int()[i + 1, 0]:.4f}, {model.conf_int()[i + 1, 1]:.4f}], p = {p:.4f} {sig}"
+                    )
 
             except Exception as e:
                 print(f"  {model_spec}: Error - {e}")
 
     return pd.DataFrame(results)
 
-def plot_parameters_by_group(df: pd.DataFrame, params: list, model_name: str,
-                             figsize: tuple = None) -> plt.Figure:
+
+def plot_parameters_by_group(
+    df: pd.DataFrame, params: list, model_name: str, figsize: tuple = None
+) -> plt.Figure:
     """
     Create violin + swarm plots of parameters by trauma group.
     """
     # Filter to main comparison groups (actual group names from data)
-    plot_df = df[df['hypothesis_group'].isin(['Trauma Exposure - No Ongoing Impact', 'Trauma Exposure - Ongoing Impact'])].copy()
+    plot_df = df[
+        df["hypothesis_group"].isin(
+            ["Trauma Exposure - No Ongoing Impact", "Trauma Exposure - Ongoing Impact"]
+        )
+    ].copy()
 
     n_params = len(params)
     ncols = 3
@@ -670,42 +777,68 @@ def plot_parameters_by_group(df: pd.DataFrame, params: list, model_name: str,
     fig, axes = plt.subplots(nrows, ncols, figsize=figsize)
     axes = np.atleast_2d(axes)
 
-    group_order = ['Trauma Exposure - No Ongoing Impact', 'Trauma Exposure - Ongoing Impact']
-    palette = [GROUP_COLORS.get(g, '#808080') for g in group_order]
+    group_order = [
+        "Trauma Exposure - No Ongoing Impact",
+        "Trauma Exposure - Ongoing Impact",
+    ]
+    [GROUP_COLORS.get(g, "#808080") for g in group_order]
 
     for idx, param in enumerate(params):
         row, col = idx // ncols, idx % ncols
         ax = axes[row, col]
 
         # Violin plot (using hue for seaborn v0.14+ compatibility)
-        sns.violinplot(data=plot_df, x='hypothesis_group', y=param,
-                       hue='hypothesis_group', order=group_order,
-                       palette=GROUP_COLORS, inner=None, alpha=0.7,
-                       legend=False, ax=ax)
+        sns.violinplot(
+            data=plot_df,
+            x="hypothesis_group",
+            y=param,
+            hue="hypothesis_group",
+            order=group_order,
+            palette=GROUP_COLORS,
+            inner=None,
+            alpha=0.7,
+            legend=False,
+            ax=ax,
+        )
 
         # Swarm plot overlay
-        sns.swarmplot(data=plot_df, x='hypothesis_group', y=param,
-                      order=group_order, color='black', alpha=0.5,
-                      size=4, ax=ax)
+        sns.swarmplot(
+            data=plot_df,
+            x="hypothesis_group",
+            y=param,
+            order=group_order,
+            color="black",
+            alpha=0.5,
+            size=4,
+            ax=ax,
+        )
 
-        ax.set_xlabel('')
-        ax.set_ylabel(PARAM_NAMES.get(param, param), fontsize=PlotConfig.AXIS_LABEL_SIZE)
+        ax.set_xlabel("")
+        ax.set_ylabel(
+            PARAM_NAMES.get(param, param), fontsize=PlotConfig.AXIS_LABEL_SIZE
+        )
         ax.set_xticks([0, 1])
-        ax.set_xticklabels(['No Ongoing\nImpact', 'Ongoing\nImpact'],
-                          fontsize=PlotConfig.TICK_LABEL_SIZE - 2)
+        ax.set_xticklabels(
+            ["No Ongoing\nImpact", "Ongoing\nImpact"],
+            fontsize=PlotConfig.TICK_LABEL_SIZE - 2,
+        )
 
     # Remove empty subplots
     for idx in range(n_params, nrows * ncols):
         row, col = idx // ncols, idx % ncols
         axes[row, col].set_visible(False)
 
-    plt.suptitle(f'{model_name} Parameters by Trauma Group',
-                 fontsize=PlotConfig.SUPTITLE_SIZE)
+    plt.suptitle(
+        f"{model_name} Parameters by Trauma Group", fontsize=PlotConfig.SUPTITLE_SIZE
+    )
     plt.tight_layout()
 
     return fig
 
-def plot_correlation_heatmap(corr_df: pd.DataFrame, params: list, model_name: str) -> plt.Figure:
+
+def plot_correlation_heatmap(
+    corr_df: pd.DataFrame, params: list, model_name: str
+) -> plt.Figure:
     """
     Create heatmap of Spearman correlations.
 
@@ -719,7 +852,7 @@ def plot_correlation_heatmap(corr_df: pd.DataFrame, params: list, model_name: st
         Model name for title
     """
     # Pivot to matrix form
-    pivot = corr_df.pivot(index='parameter', columns='predictor', values='rho')
+    pivot = corr_df.pivot(index="parameter", columns="predictor", values="rho")
 
     # Reorder
     param_order = [p for p in params if p in pivot.index]
@@ -729,59 +862,95 @@ def plot_correlation_heatmap(corr_df: pd.DataFrame, params: list, model_name: st
     fig, ax = plt.subplots(figsize=(10, 6))
 
     # Create mask for non-significant correlations (optional: for highlighting)
-    sig_df = corr_df.pivot(index='parameter', columns='predictor', values='significant')
+    corr_df.pivot(index="parameter", columns="predictor", values="significant")
 
-    sns.heatmap(pivot, annot=True, fmt='.2f', cmap='RdBu_r', center=0,
-                vmin=-0.5, vmax=0.5,
-                xticklabels=['LEC Total', 'LEC Personal', 'Intrusion', 'Avoidance', 'Hyperarousal'],
-                yticklabels=[PARAM_NAMES.get(p, p) for p in param_order],
-                ax=ax, cbar_kws={'label': 'Spearman rho'})
+    sns.heatmap(
+        pivot,
+        annot=True,
+        fmt=".2f",
+        cmap="RdBu_r",
+        center=0,
+        vmin=-0.5,
+        vmax=0.5,
+        xticklabels=[
+            "LEC Total",
+            "LEC Personal",
+            "Intrusion",
+            "Avoidance",
+            "Hyperarousal",
+        ],
+        yticklabels=[PARAM_NAMES.get(p, p) for p in param_order],
+        ax=ax,
+        cbar_kws={"label": "Spearman rho"},
+    )
 
-    ax.set_xlabel('Trauma Scale', fontsize=PlotConfig.AXIS_LABEL_SIZE)
-    ax.set_ylabel('Parameter', fontsize=PlotConfig.AXIS_LABEL_SIZE)
-    ax.set_title(f'{model_name} Parameters × Trauma Scales Correlations',
-                 fontsize=PlotConfig.TITLE_SIZE)
+    ax.set_xlabel("Trauma Scale", fontsize=PlotConfig.AXIS_LABEL_SIZE)
+    ax.set_ylabel("Parameter", fontsize=PlotConfig.AXIS_LABEL_SIZE)
+    ax.set_title(
+        f"{model_name} Parameters × Trauma Scales Correlations",
+        fontsize=PlotConfig.TITLE_SIZE,
+    )
 
     plt.tight_layout()
     return fig
 
-def plot_forest_group_means(df: pd.DataFrame, params: list, model_name: str) -> plt.Figure:
+
+def plot_forest_group_means(
+    df: pd.DataFrame, params: list, model_name: str
+) -> plt.Figure:
     """
     Create forest plot showing group means with error bars.
     """
-    group_order = ['Trauma Exposure - No Ongoing Impact', 'Trauma Exposure - Ongoing Impact']
-    plot_df = df[df['hypothesis_group'].isin(group_order)].copy()
+    group_order = [
+        "Trauma Exposure - No Ongoing Impact",
+        "Trauma Exposure - Ongoing Impact",
+    ]
+    plot_df = df[df["hypothesis_group"].isin(group_order)].copy()
 
     fig, axes = plt.subplots(1, len(params), figsize=(3 * len(params), 4))
     if len(params) == 1:
         axes = [axes]
 
-    for ax, param in zip(axes, params):
+    for ax, param in zip(axes, params, strict=False):
         y_positions = np.arange(len(group_order))
 
         for i, group in enumerate(group_order):
-            data = plot_df[plot_df['hypothesis_group'] == group][param].dropna()
+            data = plot_df[plot_df["hypothesis_group"] == group][param].dropna()
             if len(data) == 0:
                 continue
             mean = data.mean()
             sem = data.std() / np.sqrt(len(data))
 
-            ax.errorbar(mean, i, xerr=sem, fmt='o',
-                       color=GROUP_COLORS.get(group, '#808080'), markersize=10,
-                       capsize=5, capthick=2, elinewidth=2)
+            ax.errorbar(
+                mean,
+                i,
+                xerr=sem,
+                fmt="o",
+                color=GROUP_COLORS.get(group, "#808080"),
+                markersize=10,
+                capsize=5,
+                capthick=2,
+                elinewidth=2,
+            )
 
         ax.set_yticks(y_positions)
-        ax.set_yticklabels(['No Ongoing Impact', 'Ongoing Impact'])
-        ax.set_xlabel(PARAM_NAMES.get(param, param), fontsize=PlotConfig.AXIS_LABEL_SIZE)
-        ax.axvline(x=plot_df[param].mean(), color='gray', linestyle='--', alpha=0.5)
+        ax.set_yticklabels(["No Ongoing Impact", "Ongoing Impact"])
+        ax.set_xlabel(
+            PARAM_NAMES.get(param, param), fontsize=PlotConfig.AXIS_LABEL_SIZE
+        )
+        ax.axvline(x=plot_df[param].mean(), color="gray", linestyle="--", alpha=0.5)
 
-    plt.suptitle(f'{model_name} Group Means (Mean ± SEM)',
-                 fontsize=PlotConfig.SUPTITLE_SIZE)
+    plt.suptitle(
+        f"{model_name} Group Means (Mean ± SEM)", fontsize=PlotConfig.SUPTITLE_SIZE
+    )
     plt.tight_layout()
 
     return fig
 
-def plot_key_scatter(df: pd.DataFrame, model_name: str, color_by: str | None = None) -> plt.Figure:
+
+def plot_key_scatter(
+    df: pd.DataFrame, model_name: str, color_by: str | None = None
+) -> plt.Figure:
     """
     Scatter plots for key correlations with regression lines.
 
@@ -796,20 +965,20 @@ def plot_key_scatter(df: pd.DataFrame, model_name: str, color_by: str | None = N
     """
     # Key relationships to plot
     plots = [
-        ('ies_intrusion', 'epsilon', 'Intrusion', r'$\varepsilon$ (Noise)'),
-        ('ies_total', 'phi', 'IES-R Total', r'$\phi$ (WM Decay)'),
-        ('lec_total', 'alpha_pos', 'LEC Total', r'$\alpha_+$ (Positive LR)'),
+        ("ies_intrusion", "epsilon", "Intrusion", r"$\varepsilon$ (Noise)"),
+        ("ies_total", "phi", "IES-R Total", r"$\phi$ (WM Decay)"),
+        ("lec_total", "alpha_pos", "LEC Total", r"$\alpha_+$ (Positive LR)"),
     ]
 
     # Filter to plots that exist in params
-    if model_name == 'Q-Learning':
+    if model_name == "Q-Learning":
         plots = [p for p in plots if p[1] in QLEARNING_PARAMS]
 
     fig, axes = plt.subplots(1, len(plots), figsize=(5 * len(plots), 4))
     if len(plots) == 1:
         axes = [axes]
 
-    for ax, (pred, param, xlabel, ylabel) in zip(axes, plots):
+    for ax, (pred, param, xlabel, ylabel) in zip(axes, plots, strict=False):
         if param not in df.columns or pred not in df.columns:
             ax.set_visible(False)
             continue
@@ -817,17 +986,36 @@ def plot_key_scatter(df: pd.DataFrame, model_name: str, color_by: str | None = N
         # Color by specified column or default to hypothesis_group
         if color_by is not None:
             # Use plotting utility for flexible color-by
-            custom_colors = TRAUMA_GROUP_COLORS if color_by == 'hypothesis_group' else None
+            custom_colors = (
+                TRAUMA_GROUP_COLORS if color_by == "hypothesis_group" else None
+            )
             palette = get_color_palette(df, color_by, custom_colors=custom_colors)
-            add_colored_scatter(ax, pred, param, df, color_by, palette,
-                              alpha=0.7, s=50, show_legend=True)
+            add_colored_scatter(
+                ax,
+                pred,
+                param,
+                df,
+                color_by,
+                palette,
+                alpha=0.7,
+                s=50,
+                show_legend=True,
+            )
         else:
             # Default: color by hypothesis_group (actual group names from data)
-            for group in ['Trauma Exposure - No Ongoing Impact', 'Trauma Exposure - Ongoing Impact']:
-                group_data = df[df['hypothesis_group'] == group]
-                ax.scatter(group_data[pred], group_data[param],
-                          c=GROUP_COLORS.get(group, 'gray'),
-                          label=group.replace('Trauma Exposure - ', ''), alpha=0.7, s=50)
+            for group in [
+                "Trauma Exposure - No Ongoing Impact",
+                "Trauma Exposure - Ongoing Impact",
+            ]:
+                group_data = df[df["hypothesis_group"] == group]
+                ax.scatter(
+                    group_data[pred],
+                    group_data[param],
+                    c=GROUP_COLORS.get(group, "gray"),
+                    label=group.replace("Trauma Exposure - ", ""),
+                    alpha=0.7,
+                    s=50,
+                )
             ax.legend(fontsize=PlotConfig.SMALL_TEXT_SIZE)
 
         # Overall regression line
@@ -837,39 +1025,68 @@ def plot_key_scatter(df: pd.DataFrame, model_name: str, color_by: str | None = N
         if len(x) > 5:
             slope, intercept, r, p, _ = stats.linregress(x, y)
             x_line = np.linspace(x.min(), x.max(), 100)
-            ax.plot(x_line, slope * x_line + intercept, 'k--', alpha=0.5,
-                   label=f'r={r:.2f}, p={p:.3f}')
+            ax.plot(
+                x_line,
+                slope * x_line + intercept,
+                "k--",
+                alpha=0.5,
+                label=f"r={r:.2f}, p={p:.3f}",
+            )
 
         ax.set_xlabel(xlabel, fontsize=PlotConfig.AXIS_LABEL_SIZE)
         ax.set_ylabel(ylabel, fontsize=PlotConfig.AXIS_LABEL_SIZE)
 
-    plt.suptitle(f'{model_name}: Key Parameter-Trauma Relationships',
-                 fontsize=PlotConfig.SUPTITLE_SIZE)
+    plt.suptitle(
+        f"{model_name}: Key Parameter-Trauma Relationships",
+        fontsize=PlotConfig.SUPTITLE_SIZE,
+    )
     plt.tight_layout()
 
     return fig
+
 
 def main():
     """Main analysis pipeline."""
     # Parse command-line arguments
     parser = argparse.ArgumentParser(
-        description='Analyze MLE parameters by trauma group',
+        description="Analyze MLE parameters by trauma group",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
   python scripts/06_fit_analyses/04_analyze_mle_by_trauma.py --model qlearning
   python scripts/06_fit_analyses/04_analyze_mle_by_trauma.py --model all
   python scripts/06_fit_analyses/04_analyze_mle_by_trauma.py --model wmrl --color-by hypothesis_group
-        """
+        """,
     )
-    parser.add_argument('--model', type=str, default='all',
-                       choices=['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b', 'wmrl_m4', 'all'],
-                       help='Model to analyze (default: all)')
-    parser.add_argument('--color-by', type=str, default=None,
-                       help='Column to color scatter plots by (default: hypothesis_group)')
-    parser.add_argument('--source', type=str, default='mle',
-                       choices=['mle', 'bayesian'],
-                       help='Fit source: mle (default) or bayesian')
+    parser.add_argument(
+        "--model",
+        type=str,
+        default="all",
+        choices=[
+            "qlearning",
+            "wmrl",
+            "wmrl_m3",
+            "wmrl_m5",
+            "wmrl_m6a",
+            "wmrl_m6b",
+            "wmrl_m4",
+            "all",
+        ],
+        help="Model to analyze (default: all)",
+    )
+    parser.add_argument(
+        "--color-by",
+        type=str,
+        default=None,
+        help="Column to color scatter plots by (default: hypothesis_group)",
+    )
+    parser.add_argument(
+        "--source",
+        type=str,
+        default="mle",
+        choices=["mle", "bayesian"],
+        help="Fit source: mle (default) or bayesian",
+    )
     args = parser.parse_args()
 
     print("=" * 70)
@@ -881,7 +1098,7 @@ Examples:
     PlotConfig.apply_defaults()
 
     # Resolve fits directory and output paths based on --source
-    if args.source == 'bayesian':
+    if args.source == "bayesian":
         fits_dir = PROJECT_ROOT / "output" / "bayesian"
         figures_dir = PROJECT_ROOT / "figures" / "bayesian_trauma_analysis"
         analysis_output_dir = PROJECT_ROOT / "output" / "bayesian" / "analysis"
@@ -895,31 +1112,66 @@ Examples:
     analysis_output_dir.mkdir(parents=True, exist_ok=True)
 
     # Load data
-    qlearning, wmrl, wmrl_m3, surveys, groups, wmrl_m5, wmrl_m6a, wmrl_m6b, wmrl_m4 = load_data(fits_dir)
+    qlearning, wmrl, wmrl_m3, surveys, groups, wmrl_m5, wmrl_m6a, wmrl_m6b, wmrl_m4 = (
+        load_data(fits_dir)
+    )
 
     # Model configuration
     MODEL_CONFIG = {
-        'qlearning': {'name': 'Q-Learning', 'params': QLEARNING_PARAMS, 'data': qlearning},
-        'wmrl': {'name': 'WM-RL', 'params': WMRL_PARAMS, 'data': wmrl},
-        'wmrl_m3': {'name': 'WM-RL+K', 'params': WMRL_M3_PARAMS, 'data': wmrl_m3},
+        "qlearning": {
+            "name": "Q-Learning",
+            "params": QLEARNING_PARAMS,
+            "data": qlearning,
+        },
+        "wmrl": {"name": "WM-RL", "params": WMRL_PARAMS, "data": wmrl},
+        "wmrl_m3": {"name": "WM-RL+K", "params": WMRL_M3_PARAMS, "data": wmrl_m3},
     }
     if wmrl_m5 is not None:
-        MODEL_CONFIG['wmrl_m5'] = {'name': 'WM-RL+M5', 'params': WMRL_M5_PARAMS, 'data': wmrl_m5}
+        MODEL_CONFIG["wmrl_m5"] = {
+            "name": "WM-RL+M5",
+            "params": WMRL_M5_PARAMS,
+            "data": wmrl_m5,
+        }
     if wmrl_m6a is not None:
-        MODEL_CONFIG['wmrl_m6a'] = {'name': 'WM-RL+M6a', 'params': WMRL_M6A_PARAMS, 'data': wmrl_m6a}
+        MODEL_CONFIG["wmrl_m6a"] = {
+            "name": "WM-RL+M6a",
+            "params": WMRL_M6A_PARAMS,
+            "data": wmrl_m6a,
+        }
     if wmrl_m6b is not None:
-        MODEL_CONFIG['wmrl_m6b'] = {'name': 'WM-RL+M6b', 'params': WMRL_M6B_PARAMS, 'data': wmrl_m6b}
+        MODEL_CONFIG["wmrl_m6b"] = {
+            "name": "WM-RL+M6b",
+            "params": WMRL_M6B_PARAMS,
+            "data": wmrl_m6b,
+        }
     if wmrl_m4 is not None:
-        MODEL_CONFIG['wmrl_m4'] = {'name': 'WM-RL+M4 (LBA)', 'params': WMRL_M4_PARAMS, 'data': wmrl_m4}
+        MODEL_CONFIG["wmrl_m4"] = {
+            "name": "WM-RL+M4 (LBA)",
+            "params": WMRL_M4_PARAMS,
+            "data": wmrl_m4,
+        }
 
     # Determine which models to analyze
-    if args.model == 'all':
-        models_to_analyze = [m for m in ['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b', 'wmrl_m4']
-                             if m in MODEL_CONFIG]
+    if args.model == "all":
+        models_to_analyze = [
+            m
+            for m in [
+                "qlearning",
+                "wmrl",
+                "wmrl_m3",
+                "wmrl_m5",
+                "wmrl_m6a",
+                "wmrl_m6b",
+                "wmrl_m4",
+            ]
+            if m in MODEL_CONFIG
+        ]
     else:
         if args.model not in MODEL_CONFIG:
-            print(f"ERROR: Model '{args.model}' not available. "
-                  f"Run 12_fit_mle.py --model {args.model} first.")
+            print(
+                f"ERROR: Model '{args.model}' not available. "
+                f"Run 12_fit_mle.py --model {args.model} first."
+            )
             return
         models_to_analyze = [args.model]
 
@@ -932,9 +1184,9 @@ Examples:
     # ========================================
     for model_key in models_to_analyze:
         config = MODEL_CONFIG[model_key]
-        model_name = config['name']
-        params = config['params']
-        data = config['data']
+        model_name = config["name"]
+        params = config["params"]
+        data = config["data"]
 
         print("\n" + "=" * 70)
         print(f"{model_name.upper()} MODEL")
@@ -942,14 +1194,16 @@ Examples:
 
         # Check data
         print("\nGroup distribution:")
-        print(data['hypothesis_group'].value_counts())
+        print(data["hypothesis_group"].value_counts())
 
         # Group comparisons
         group_results = group_comparisons(data, params, model_name)
         all_group_results.append(group_results)
 
         # Spearman correlations
-        corr_results = spearman_correlations(data, params, TRAUMA_PREDICTORS, model_name)
+        corr_results = spearman_correlations(
+            data, params, TRAUMA_PREDICTORS, model_name
+        )
         all_corr_results.append(corr_results)
 
         # OLS regressions
@@ -988,13 +1242,13 @@ Examples:
 
     for model_key in models_to_analyze:
         config = MODEL_CONFIG[model_key]
-        model_name = config['name']
-        params = config['params']
-        data = config['data']
+        model_name = config["name"]
+        params = config["params"]
+        data = config["data"]
 
         # Get correlation results for this model (corr_df may be empty if n < 5)
-        if 'model' in corr_df.columns:
-            model_corr_results = corr_df[corr_df['model'] == model_name]
+        if "model" in corr_df.columns:
+            model_corr_results = corr_df[corr_df["model"] == model_name]
         else:
             model_corr_results = pd.DataFrame()
 
@@ -1004,26 +1258,42 @@ Examples:
         nrows = int(np.ceil(n_params / ncols))
         figsize = (12, 4 * nrows)
         fig = plot_parameters_by_group(data, params, model_name, figsize=figsize)
-        fig.savefig(figures_dir / f"parameters_by_group_{model_key}.png", dpi=300, bbox_inches='tight')
+        fig.savefig(
+            figures_dir / f"parameters_by_group_{model_key}.png",
+            dpi=300,
+            bbox_inches="tight",
+        )
         plt.close(fig)
         print(f"Saved: parameters_by_group_{model_key}.png")
 
         # Correlation heatmap
         if len(model_corr_results) > 0:
             fig = plot_correlation_heatmap(model_corr_results, params, model_name)
-            fig.savefig(figures_dir / f"correlation_heatmap_{model_key}.png", dpi=300, bbox_inches='tight')
+            fig.savefig(
+                figures_dir / f"correlation_heatmap_{model_key}.png",
+                dpi=300,
+                bbox_inches="tight",
+            )
             plt.close(fig)
             print(f"Saved: correlation_heatmap_{model_key}.png")
 
         # Forest plot
         fig = plot_forest_group_means(data, params, model_name)
-        fig.savefig(figures_dir / f"forest_plot_group_means_{model_key}.png", dpi=300, bbox_inches='tight')
+        fig.savefig(
+            figures_dir / f"forest_plot_group_means_{model_key}.png",
+            dpi=300,
+            bbox_inches="tight",
+        )
         plt.close(fig)
         print(f"Saved: forest_plot_group_means_{model_key}.png")
 
         # Key scatter plots (with color-by support)
         fig = plot_key_scatter(data, model_name, color_by=args.color_by)
-        fig.savefig(figures_dir / f"scatter_key_correlations_{model_key}.png", dpi=300, bbox_inches='tight')
+        fig.savefig(
+            figures_dir / f"scatter_key_correlations_{model_key}.png",
+            dpi=300,
+            bbox_inches="tight",
+        )
         plt.close(fig)
         print(f"Saved: scatter_key_correlations_{model_key}.png")
 
@@ -1035,31 +1305,39 @@ Examples:
     print("=" * 70)
 
     print("\nSignificant Group Comparisons (Bonferroni p < 0.05):")
-    sig_groups = group_df[group_df['significant']]
+    sig_groups = group_df[group_df["significant"]]
     if len(sig_groups) > 0:
         for _, row in sig_groups.iterrows():
-            print(f"  {row['model']} {row['parameter']}: {row['group1']} vs {row['group2']}")
-            print(f"    r_rb = {row['r_rank_biserial']:.3f}, p_corrected = {row['p_bonferroni']:.4f}")
+            print(
+                f"  {row['model']} {row['parameter']}: {row['group1']} vs {row['group2']}"
+            )
+            print(
+                f"    r_rb = {row['r_rank_biserial']:.3f}, p_corrected = {row['p_bonferroni']:.4f}"
+            )
     else:
         print("  None")
 
     print("\nSignificant Correlations (FWE p < 0.05):")
-    if 'significant' in corr_df.columns:
-        sig_corrs = corr_df[corr_df['significant']]
+    if "significant" in corr_df.columns:
+        sig_corrs = corr_df[corr_df["significant"]]
         if len(sig_corrs) > 0:
             for _, row in sig_corrs.iterrows():
-                print(f"  {row['model']} {row['parameter']} ~ {row['predictor']}: rho = {row['rho']:.3f}, p_FWE = {row['p_fwe']:.4f}")
+                print(
+                    f"  {row['model']} {row['parameter']} ~ {row['predictor']}: rho = {row['rho']:.3f}, p_FWE = {row['p_fwe']:.4f}"
+                )
         else:
             print("  None")
     else:
         print("  None (insufficient data for correlation analysis)")
 
     print("\nSignificant OLS Predictors (uncorrected p < 0.05):")
-    if 'p' in ols_df.columns and 'predictor' in ols_df.columns:
-        sig_ols = ols_df[(ols_df['p'] < 0.05) & (ols_df['predictor'] != 'intercept')]
+    if "p" in ols_df.columns and "predictor" in ols_df.columns:
+        sig_ols = ols_df[(ols_df["p"] < 0.05) & (ols_df["predictor"] != "intercept")]
         if len(sig_ols) > 0:
             for _, row in sig_ols.iterrows():
-                print(f"  {row['model']} {row['outcome']} ~ {row['predictor']}: beta = {row['beta']:.4f}, p = {row['p']:.4f}")
+                print(
+                    f"  {row['model']} {row['outcome']} ~ {row['predictor']}: beta = {row['beta']:.4f}, p = {row['p']:.4f}"
+                )
         else:
             print("  None")
     else:
@@ -1068,6 +1346,7 @@ Examples:
     print("\n" + "=" * 70)
     print("Analysis Complete!")
     print("=" * 70)
+
 
 if __name__ == "__main__":
     main()

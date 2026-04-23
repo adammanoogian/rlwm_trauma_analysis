@@ -1,4 +1,5 @@
 """Tests for pointwise log-likelihood return path (INFRA-03 prerequisite)."""
+
 from __future__ import annotations
 
 import jax.numpy as jnp
@@ -51,9 +52,7 @@ def _make_qlearning_block() -> tuple[jnp.ndarray, ...]:
     s = rng.integers(0, N_STIM, size=N_REAL).astype(np.int32)
     a = rng.integers(0, N_ACT, size=N_REAL).astype(np.int32)
     r = rng.binomial(1, 0.6, size=N_REAL).astype(np.float32)
-    padded = pad_block_to_max(
-        jnp.array(s), jnp.array(a), jnp.array(r)
-    )
+    padded = pad_block_to_max(jnp.array(s), jnp.array(a), jnp.array(r))
     stimuli_p, actions_p, rewards_p, mask_p = padded
     return stimuli_p, actions_p, rewards_p, mask_p
 
@@ -70,7 +69,9 @@ def _make_wmrl_block() -> tuple[jnp.ndarray, ...]:
     r = rng.binomial(1, 0.6, size=N_REAL).astype(np.float32)
     ss = np.full(N_REAL, SET_SIZE, dtype=np.int32)
     stimuli_p, actions_p, rewards_p, set_sizes_p, mask_p = pad_block_to_max(
-        jnp.array(s), jnp.array(a), jnp.array(r),
+        jnp.array(s),
+        jnp.array(a),
+        jnp.array(r),
         set_sizes=jnp.array(ss),
     )
     return stimuli_p, actions_p, rewards_p, set_sizes_p, mask_p
@@ -123,7 +124,9 @@ def _make_stacked_wmrl(n_blocks: int = N_BLOCKS) -> dict:
 def test_qlearning_block_default_returns_scalar():
     """Default call (no return_pointwise) must return a scalar float."""
     stimuli, actions, rewards, mask = _make_qlearning_block()
-    result = q_learning_block_likelihood(stimuli, actions, rewards, 0.3, 0.15, mask=mask)
+    result = q_learning_block_likelihood(
+        stimuli, actions, rewards, 0.3, 0.15, mask=mask
+    )
     # Must be a scalar (0-d JAX array), NOT a tuple
     assert not isinstance(result, tuple), "Default should return scalar, not tuple"
     assert result.ndim == 0, f"Expected 0-d array, got shape {result.shape}"
@@ -150,7 +153,8 @@ def test_qlearning_block_pointwise_sum_equals_total():
         stimuli, actions, rewards, 0.3, 0.15, mask=mask, return_pointwise=True
     )
     np.testing.assert_allclose(
-        float(total), float(per_trial.sum()),
+        float(total),
+        float(per_trial.sum()),
         atol=1e-5,
         err_msg=f"sum mismatch: total={float(total)}, sum={float(per_trial.sum())}",
     )
@@ -166,7 +170,8 @@ def test_qlearning_block_padding_zeros():
     padding_mask = mask == 0.0
     padding_probs = per_trial[padding_mask]
     np.testing.assert_allclose(
-        np.array(padding_probs), 0.0,
+        np.array(padding_probs),
+        0.0,
         atol=1e-7,
         err_msg="Padding trials must have log_prob = 0.0",
     )
@@ -180,9 +185,7 @@ def test_qlearning_block_padding_zeros():
 def test_qlearning_stacked_pointwise_shape():
     """Stacked wrapper with return_pointwise=True must return flat (n_blocks * max_trials,)."""
     kwargs = _make_stacked_qlearning(n_blocks=3)
-    result = q_learning_multiblock_likelihood_stacked(
-        **kwargs, return_pointwise=True
-    )
+    result = q_learning_multiblock_likelihood_stacked(**kwargs, return_pointwise=True)
     assert isinstance(result, tuple), "return_pointwise=True should return tuple"
     total, per_trial = result
     expected_len = N_BLOCKS * MAX_TRIALS_PER_BLOCK
@@ -208,16 +211,24 @@ def _call_block_fn(fn, padded_block):
     """Call a block likelihood function with appropriate args."""
     if fn is q_learning_block_likelihood:
         stimuli, actions, rewards, mask = padded_block[:4]
-        return fn(stimuli, actions, rewards, 0.3, 0.15, mask=mask, return_pointwise=True)
+        return fn(
+            stimuli, actions, rewards, 0.3, 0.15, mask=mask, return_pointwise=True
+        )
     else:
         # All WMRL variants need set_sizes
         stimuli, actions, rewards, set_sizes, mask = padded_block
         base_kwargs = dict(
-            stimuli=stimuli, actions=actions, rewards=rewards,
+            stimuli=stimuli,
+            actions=actions,
+            rewards=rewards,
             set_sizes=set_sizes,
-            alpha_pos=0.3, alpha_neg=0.15,
-            phi=0.1, rho=0.7, capacity=4.0,
-            mask=mask, return_pointwise=True,
+            alpha_pos=0.3,
+            alpha_neg=0.15,
+            phi=0.1,
+            rho=0.7,
+            capacity=4.0,
+            mask=mask,
+            return_pointwise=True,
         )
         if fn is wmrl_block_likelihood:
             return fn(**base_kwargs)
@@ -254,7 +265,9 @@ def test_all_block_functions_have_pointwise(fn):
         padded_block = _make_wmrl_block()
 
     result = _call_block_fn(fn, padded_block)
-    assert isinstance(result, tuple), f"{fn.__name__}: return_pointwise=True must return tuple"
+    assert isinstance(result, tuple), (
+        f"{fn.__name__}: return_pointwise=True must return tuple"
+    )
     total, per_trial = result
     assert total.ndim == 0, f"{fn.__name__}: total must be scalar"
     assert per_trial.shape == (MAX_TRIALS_PER_BLOCK,), (
@@ -273,7 +286,8 @@ def test_pointwise_sum_equals_total(fn):
     result = _call_block_fn(fn, padded_block)
     total, per_trial = result
     np.testing.assert_allclose(
-        float(total), float(per_trial.sum()),
+        float(total),
+        float(per_trial.sum()),
         atol=1e-5,
         err_msg=f"{fn.__name__}: sum mismatch total={float(total):.6f} vs sum={float(per_trial.sum()):.6f}",
     )
@@ -311,7 +325,9 @@ def test_all_stacked_functions_have_pointwise(fn, builder):
     kwargs = builder(n_blocks=N_BLOCKS)
     extra = STACKED_EXTRA_KWARGS.get(fn, {})
     result = fn(**kwargs, **extra, return_pointwise=True)
-    assert isinstance(result, tuple), f"{fn.__name__}: return_pointwise=True must return tuple"
+    assert isinstance(result, tuple), (
+        f"{fn.__name__}: return_pointwise=True must return tuple"
+    )
     total, per_trial = result
     expected_len = N_BLOCKS * MAX_TRIALS_PER_BLOCK
     assert per_trial.shape == (expected_len,), (
@@ -330,7 +346,8 @@ def test_stacked_pointwise_sum_equals_total(fn, builder):
     extra = STACKED_EXTRA_KWARGS.get(fn, {})
     total, per_trial = fn(**kwargs, **extra, return_pointwise=True)
     np.testing.assert_allclose(
-        float(total), float(per_trial.sum()),
+        float(total),
+        float(per_trial.sum()),
         atol=1e-4,
         err_msg=f"{fn.__name__}: sum mismatch total={float(total):.6f} vs sum={float(per_trial.sum()):.6f}",
     )

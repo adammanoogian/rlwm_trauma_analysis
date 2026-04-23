@@ -16,11 +16,8 @@ is not marked slow because the budget is already small).
 from __future__ import annotations
 
 import json
-import os
 import sys
 from pathlib import Path
-
-import pytest
 
 # Ensure the project root is importable for `import scripts...` and `import config`
 _TEST_FILE = Path(__file__).resolve()
@@ -35,13 +32,13 @@ if str(_PROJECT_ROOT) not in sys.path:
 # Use importlib to load it by path.
 import importlib.util
 
-_RUNNER_PATH = _PROJECT_ROOT / "scripts" / "03_model_prefitting" / "05_run_bayesian_recovery.py"
+_RUNNER_PATH = (
+    _PROJECT_ROOT / "scripts" / "03_model_prefitting" / "05_run_bayesian_recovery.py"
+)
 _spec = importlib.util.spec_from_file_location(
     "_bayes_recovery_runner", str(_RUNNER_PATH)
 )
-assert _spec is not None and _spec.loader is not None, (
-    f"Could not load {_RUNNER_PATH}"
-)
+assert _spec is not None and _spec.loader is not None, f"Could not load {_RUNNER_PATH}"
 recovery = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(recovery)
 
@@ -127,9 +124,7 @@ def test_single_subject_recovery_qlearning_smoke(tmp_path: Path) -> None:
     for pname in expected_params:
         pdata = result["params"][pname]
         for key in ("true", "posterior_mean", "hdi_low", "hdi_high", "in_hdi"):
-            assert key in pdata, (
-                f"Missing key {key!r} for parameter {pname!r} in JSON"
-            )
+            assert key in pdata, f"Missing key {key!r} for parameter {pname!r} in JSON"
         # in_hdi must be 0 or 1
         assert pdata["in_hdi"] in (0, 1), (
             f"in_hdi must be 0 or 1, got {pdata['in_hdi']!r}"
@@ -189,25 +184,59 @@ def test_aggregate_handles_missing(tmp_path: Path) -> None:
     """
     # Two stub qlearning subjects out of 5 expected
     _write_stub_subject_json(
-        tmp_path, "qlearning", 1,
+        tmp_path,
+        "qlearning",
+        1,
         {
-            "alpha_pos": {"true": 0.3, "posterior_mean": 0.32,
-                          "hdi_low": 0.2, "hdi_high": 0.45, "in_hdi": 1},
-            "alpha_neg": {"true": 0.2, "posterior_mean": 0.25,
-                          "hdi_low": 0.1, "hdi_high": 0.40, "in_hdi": 1},
-            "epsilon": {"true": 0.1, "posterior_mean": 0.08,
-                        "hdi_low": 0.01, "hdi_high": 0.20, "in_hdi": 1},
+            "alpha_pos": {
+                "true": 0.3,
+                "posterior_mean": 0.32,
+                "hdi_low": 0.2,
+                "hdi_high": 0.45,
+                "in_hdi": 1,
+            },
+            "alpha_neg": {
+                "true": 0.2,
+                "posterior_mean": 0.25,
+                "hdi_low": 0.1,
+                "hdi_high": 0.40,
+                "in_hdi": 1,
+            },
+            "epsilon": {
+                "true": 0.1,
+                "posterior_mean": 0.08,
+                "hdi_low": 0.01,
+                "hdi_high": 0.20,
+                "in_hdi": 1,
+            },
         },
     )
     _write_stub_subject_json(
-        tmp_path, "qlearning", 2,
+        tmp_path,
+        "qlearning",
+        2,
         {
-            "alpha_pos": {"true": 0.7, "posterior_mean": 0.68,
-                          "hdi_low": 0.55, "hdi_high": 0.85, "in_hdi": 1},
-            "alpha_neg": {"true": 0.5, "posterior_mean": 0.45,
-                          "hdi_low": 0.30, "hdi_high": 0.60, "in_hdi": 1},
-            "epsilon": {"true": 0.4, "posterior_mean": 0.50,
-                        "hdi_low": 0.25, "hdi_high": 0.60, "in_hdi": 1},
+            "alpha_pos": {
+                "true": 0.7,
+                "posterior_mean": 0.68,
+                "hdi_low": 0.55,
+                "hdi_high": 0.85,
+                "in_hdi": 1,
+            },
+            "alpha_neg": {
+                "true": 0.5,
+                "posterior_mean": 0.45,
+                "hdi_low": 0.30,
+                "hdi_high": 0.60,
+                "in_hdi": 1,
+            },
+            "epsilon": {
+                "true": 0.4,
+                "posterior_mean": 0.50,
+                "hdi_low": 0.25,
+                "hdi_high": 0.60,
+                "in_hdi": 1,
+            },
         },
     )
 
@@ -222,8 +251,13 @@ def test_aggregate_handles_missing(tmp_path: Path) -> None:
 
     df = pd.read_csv(csv_path)
     expected_cols = {
-        "model", "parameter", "n_subjects",
-        "pearson_r", "hdi_coverage", "pass_criterion", "status",
+        "model",
+        "parameter",
+        "n_subjects",
+        "pearson_r",
+        "hdi_coverage",
+        "pass_criterion",
+        "status",
     }
     assert set(df.columns) == expected_cols
 
@@ -263,23 +297,57 @@ def test_aggregate_kappa_pass_and_fail(tmp_path: Path) -> None:
     true_kappa = np.linspace(0.05, 0.8, 5)
     post_kappa = true_kappa + np.random.normal(0, 0.02, size=5)
 
-    for idx, (tk, pk) in enumerate(zip(true_kappa, post_kappa), start=1):
+    for idx, (tk, pk) in enumerate(zip(true_kappa, post_kappa, strict=False), start=1):
         params = {
-            "alpha_pos": {"true": 0.3, "posterior_mean": 0.5,
-                          "hdi_low": 0.1, "hdi_high": 0.8, "in_hdi": 1},
-            "alpha_neg": {"true": 0.3, "posterior_mean": 0.5,
-                          "hdi_low": 0.1, "hdi_high": 0.8, "in_hdi": 1},
-            "phi": {"true": 0.2, "posterior_mean": 0.3,
-                    "hdi_low": 0.05, "hdi_high": 0.55, "in_hdi": 1},
-            "rho": {"true": 0.6, "posterior_mean": 0.65,
-                    "hdi_low": 0.5, "hdi_high": 0.85, "in_hdi": 1},
-            "capacity": {"true": 4.0, "posterior_mean": 4.2,
-                         "hdi_low": 2.5, "hdi_high": 5.5, "in_hdi": 1},
-            "kappa": {"true": float(tk), "posterior_mean": float(pk),
-                      "hdi_low": float(tk - 0.05), "hdi_high": float(tk + 0.05),
-                      "in_hdi": 1},
-            "epsilon": {"true": 0.1, "posterior_mean": 0.12,
-                        "hdi_low": 0.02, "hdi_high": 0.25, "in_hdi": 1},
+            "alpha_pos": {
+                "true": 0.3,
+                "posterior_mean": 0.5,
+                "hdi_low": 0.1,
+                "hdi_high": 0.8,
+                "in_hdi": 1,
+            },
+            "alpha_neg": {
+                "true": 0.3,
+                "posterior_mean": 0.5,
+                "hdi_low": 0.1,
+                "hdi_high": 0.8,
+                "in_hdi": 1,
+            },
+            "phi": {
+                "true": 0.2,
+                "posterior_mean": 0.3,
+                "hdi_low": 0.05,
+                "hdi_high": 0.55,
+                "in_hdi": 1,
+            },
+            "rho": {
+                "true": 0.6,
+                "posterior_mean": 0.65,
+                "hdi_low": 0.5,
+                "hdi_high": 0.85,
+                "in_hdi": 1,
+            },
+            "capacity": {
+                "true": 4.0,
+                "posterior_mean": 4.2,
+                "hdi_low": 2.5,
+                "hdi_high": 5.5,
+                "in_hdi": 1,
+            },
+            "kappa": {
+                "true": float(tk),
+                "posterior_mean": float(pk),
+                "hdi_low": float(tk - 0.05),
+                "hdi_high": float(tk + 0.05),
+                "in_hdi": 1,
+            },
+            "epsilon": {
+                "true": 0.1,
+                "posterior_mean": 0.12,
+                "hdi_low": 0.02,
+                "hdi_high": 0.25,
+                "in_hdi": 1,
+            },
         }
         _write_stub_subject_json(tmp_path, "wmrl_m3", idx, params)
 
@@ -291,6 +359,7 @@ def test_aggregate_kappa_pass_and_fail(tmp_path: Path) -> None:
     )
 
     import pandas as pd
+
     df = pd.read_csv(tmp_path / "wmrl_m3_recovery.csv")
     kappa_row = df[df["parameter"] == "kappa"].iloc[0]
     assert kappa_row["status"] == "PASS"
@@ -311,24 +380,58 @@ def test_aggregate_kappa_fail_low_coverage(tmp_path: Path) -> None:
     true_kappa = np.linspace(0.05, 0.8, 5)
     post_kappa = true_kappa.copy()  # Perfect correlation
 
-    for idx, (tk, pk) in enumerate(zip(true_kappa, post_kappa), start=1):
+    for idx, (tk, pk) in enumerate(zip(true_kappa, post_kappa, strict=False), start=1):
         params = {
-            "alpha_pos": {"true": 0.3, "posterior_mean": 0.3,
-                          "hdi_low": 0.2, "hdi_high": 0.4, "in_hdi": 1},
-            "alpha_neg": {"true": 0.3, "posterior_mean": 0.3,
-                          "hdi_low": 0.2, "hdi_high": 0.4, "in_hdi": 1},
-            "phi": {"true": 0.2, "posterior_mean": 0.2,
-                    "hdi_low": 0.1, "hdi_high": 0.3, "in_hdi": 1},
-            "rho": {"true": 0.6, "posterior_mean": 0.6,
-                    "hdi_low": 0.5, "hdi_high": 0.7, "in_hdi": 1},
-            "capacity": {"true": 4.0, "posterior_mean": 4.0,
-                         "hdi_low": 3.0, "hdi_high": 5.0, "in_hdi": 1},
+            "alpha_pos": {
+                "true": 0.3,
+                "posterior_mean": 0.3,
+                "hdi_low": 0.2,
+                "hdi_high": 0.4,
+                "in_hdi": 1,
+            },
+            "alpha_neg": {
+                "true": 0.3,
+                "posterior_mean": 0.3,
+                "hdi_low": 0.2,
+                "hdi_high": 0.4,
+                "in_hdi": 1,
+            },
+            "phi": {
+                "true": 0.2,
+                "posterior_mean": 0.2,
+                "hdi_low": 0.1,
+                "hdi_high": 0.3,
+                "in_hdi": 1,
+            },
+            "rho": {
+                "true": 0.6,
+                "posterior_mean": 0.6,
+                "hdi_low": 0.5,
+                "hdi_high": 0.7,
+                "in_hdi": 1,
+            },
+            "capacity": {
+                "true": 4.0,
+                "posterior_mean": 4.0,
+                "hdi_low": 3.0,
+                "hdi_high": 5.0,
+                "in_hdi": 1,
+            },
             # kappa: perfect correlation but HDI NEVER contains truth
-            "kappa": {"true": float(tk), "posterior_mean": float(pk),
-                      "hdi_low": float(tk + 0.2), "hdi_high": float(tk + 0.3),
-                      "in_hdi": 0},
-            "epsilon": {"true": 0.1, "posterior_mean": 0.1,
-                        "hdi_low": 0.05, "hdi_high": 0.2, "in_hdi": 1},
+            "kappa": {
+                "true": float(tk),
+                "posterior_mean": float(pk),
+                "hdi_low": float(tk + 0.2),
+                "hdi_high": float(tk + 0.3),
+                "in_hdi": 0,
+            },
+            "epsilon": {
+                "true": 0.1,
+                "posterior_mean": 0.1,
+                "hdi_low": 0.05,
+                "hdi_high": 0.2,
+                "in_hdi": 1,
+            },
         }
         _write_stub_subject_json(tmp_path, "wmrl_m3", idx, params)
 
@@ -343,9 +446,7 @@ def test_safe_pearson_r_handles_zero_variance() -> None:
     import numpy as np
 
     # Zero variance in posterior
-    r = recovery._safe_pearson_r(
-        np.array([0.1, 0.3, 0.5]), np.array([0.2, 0.2, 0.2])
-    )
+    r = recovery._safe_pearson_r(np.array([0.1, 0.3, 0.5]), np.array([0.2, 0.2, 0.2]))
     assert np.isnan(r)
 
     # Valid case

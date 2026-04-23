@@ -90,13 +90,13 @@ from scipy import stats
 #   utils/ lives under scripts/utils/ after the plan 29-03 consolidation).
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from config import EXCLUDED_PARTICIPANTS, load_fits_with_validation
-
 from utils.plotting import (
     TRAUMA_GROUP_COLORS,
     add_colored_scatter,
     get_color_palette,
 )
+
+from config import EXCLUDED_PARTICIPANTS, load_fits_with_validation
 
 # Try statsmodels for regression
 try:
@@ -104,21 +104,26 @@ try:
     from statsmodels.stats.diagnostic import het_breuschpagan
     from statsmodels.stats.multitest import multipletests
     from statsmodels.stats.outliers_influence import variance_inflation_factor
+
     HAS_STATSMODELS = True
 except ImportError:
     HAS_STATSMODELS = False
     print("Warning: statsmodels not installed. Using scipy for basic regressions only.")
 
-warnings.filterwarnings('ignore')
+warnings.filterwarnings("ignore")
 
 # Set plotting style
 sns.set_style("whitegrid")
 sns.set_context("paper", font_scale=1.2)
-plt.rcParams['figure.dpi'] = 300
+plt.rcParams["figure.dpi"] = 300
 
 
-def load_integrated_data(params_path: Path, model_type: str = 'qlearning',
-                         min_accuracy: float = None, max_epsilon: float = None) -> pd.DataFrame:
+def load_integrated_data(
+    params_path: Path,
+    model_type: str = "qlearning",
+    min_accuracy: float = None,
+    max_epsilon: float = None,
+) -> pd.DataFrame:
     """
     Load integrated dataset with parameters and trauma scales.
 
@@ -136,148 +141,172 @@ def load_integrated_data(params_path: Path, model_type: str = 'qlearning',
     params_df = load_fits_with_validation(params_path, model_type)
 
     # Standardize participant ID column name
-    if 'participant_id' in params_df.columns:
-        params_df = params_df.rename(columns={'participant_id': 'sona_id'})
+    if "participant_id" in params_df.columns:
+        params_df = params_df.rename(columns={"participant_id": "sona_id"})
 
     # Convert sona_id to string for consistent merging
-    params_df['sona_id'] = params_df['sona_id'].astype(str)
+    params_df["sona_id"] = params_df["sona_id"].astype(str)
 
     # Rename parameter columns to match expected format (add _mean suffix)
     param_rename = {}
-    if model_type == 'qlearning':
-        if 'alpha_pos' in params_df.columns:
-            param_rename['alpha_pos'] = 'alpha_pos_mean'
-        if 'alpha_neg' in params_df.columns:
-            param_rename['alpha_neg'] = 'alpha_neg_mean'
-        if 'beta' in params_df.columns:
-            param_rename['beta'] = 'beta_mean'
-        if 'epsilon' in params_df.columns:
-            param_rename['epsilon'] = 'epsilon_mean'
+    if model_type == "qlearning":
+        if "alpha_pos" in params_df.columns:
+            param_rename["alpha_pos"] = "alpha_pos_mean"
+        if "alpha_neg" in params_df.columns:
+            param_rename["alpha_neg"] = "alpha_neg_mean"
+        if "beta" in params_df.columns:
+            param_rename["beta"] = "beta_mean"
+        if "epsilon" in params_df.columns:
+            param_rename["epsilon"] = "epsilon_mean"
     else:  # wmrl, wmrl_m3, or wmrl_m5
-        if 'alpha_pos' in params_df.columns:
-            param_rename['alpha_pos'] = 'alpha_pos_mean'
-        if 'alpha_neg' in params_df.columns:
-            param_rename['alpha_neg'] = 'alpha_neg_mean'
-        if 'phi' in params_df.columns:
-            param_rename['phi'] = 'phi_mean'
-        if 'rho' in params_df.columns:
-            param_rename['rho'] = 'rho_mean'
-        if 'capacity' in params_df.columns:
-            param_rename['capacity'] = 'wm_capacity_mean'
-        if 'kappa' in params_df.columns:
-            param_rename['kappa'] = 'kappa_mean'
-        if 'phi_rl' in params_df.columns:
-            param_rename['phi_rl'] = 'phi_rl_mean'
-        if 'kappa_s' in params_df.columns:
-            param_rename['kappa_s'] = 'kappa_s_mean'
-        if 'kappa_total' in params_df.columns:
-            param_rename['kappa_total'] = 'kappa_total_mean'
-        if 'kappa_share' in params_df.columns:
-            param_rename['kappa_share'] = 'kappa_share_mean'
-        if 'epsilon' in params_df.columns:
-            param_rename['epsilon'] = 'epsilon_mean'
-        if 'v_scale' in params_df.columns:
-            param_rename['v_scale'] = 'v_scale_mean'
-        if 'A' in params_df.columns:
-            param_rename['A'] = 'A_mean'
-        if 'delta' in params_df.columns:
-            param_rename['delta'] = 'delta_mean'
-        if 't0' in params_df.columns:
-            param_rename['t0'] = 't0_mean'
+        if "alpha_pos" in params_df.columns:
+            param_rename["alpha_pos"] = "alpha_pos_mean"
+        if "alpha_neg" in params_df.columns:
+            param_rename["alpha_neg"] = "alpha_neg_mean"
+        if "phi" in params_df.columns:
+            param_rename["phi"] = "phi_mean"
+        if "rho" in params_df.columns:
+            param_rename["rho"] = "rho_mean"
+        if "capacity" in params_df.columns:
+            param_rename["capacity"] = "wm_capacity_mean"
+        if "kappa" in params_df.columns:
+            param_rename["kappa"] = "kappa_mean"
+        if "phi_rl" in params_df.columns:
+            param_rename["phi_rl"] = "phi_rl_mean"
+        if "kappa_s" in params_df.columns:
+            param_rename["kappa_s"] = "kappa_s_mean"
+        if "kappa_total" in params_df.columns:
+            param_rename["kappa_total"] = "kappa_total_mean"
+        if "kappa_share" in params_df.columns:
+            param_rename["kappa_share"] = "kappa_share_mean"
+        if "epsilon" in params_df.columns:
+            param_rename["epsilon"] = "epsilon_mean"
+        if "v_scale" in params_df.columns:
+            param_rename["v_scale"] = "v_scale_mean"
+        if "A" in params_df.columns:
+            param_rename["A"] = "A_mean"
+        if "delta" in params_df.columns:
+            param_rename["delta"] = "delta_mean"
+        if "t0" in params_df.columns:
+            param_rename["t0"] = "t0_mean"
 
     params_df = params_df.rename(columns=param_rename)
     print(f"  Loaded {len(params_df)} participant fits")
 
     # Load trauma scales from summary_participant_metrics.csv (169 rows, complete dataset)
-    participant_data = pd.read_csv(Path('output/summary_participant_metrics.csv'))
+    participant_data = pd.read_csv(Path("output/summary_participant_metrics.csv"))
     # Rename columns to match expected names used throughout this script
     rename_map = {
-        'less_total_events': 'lec_total_events',
-        'less_personal_events': 'lec_personal_events',
+        "less_total_events": "lec_total_events",
+        "less_personal_events": "lec_personal_events",
     }
     participant_data = participant_data.rename(columns=rename_map)
-    print(f"  Loaded survey data: {len(participant_data)} participants from summary_participant_metrics.csv")
-    participant_data['sona_id'] = participant_data['sona_id'].astype(str)
+    print(
+        f"  Loaded survey data: {len(participant_data)} participants from summary_participant_metrics.csv"
+    )
+    participant_data["sona_id"] = participant_data["sona_id"].astype(str)
 
     # Load trauma group assignments for --color-by hypothesis_group support
-    groups_path = Path('output/trauma_groups/group_assignments.csv')
+    groups_path = Path("output/trauma_groups/group_assignments.csv")
     if groups_path.exists():
         groups_df = pd.read_csv(groups_path)
-        groups_df['sona_id'] = groups_df['sona_id'].astype(str)
+        groups_df["sona_id"] = groups_df["sona_id"].astype(str)
         participant_data = participant_data.merge(
-            groups_df[['sona_id', 'hypothesis_group']],
-            on='sona_id',
-            how='left'
+            groups_df[["sona_id", "hypothesis_group"]], on="sona_id", how="left"
         )
 
     # Load demographics for --color-by gender/age support
-    demographics_path = Path('output/parsed_demographics.csv')
+    demographics_path = Path("output/parsed_demographics.csv")
     if demographics_path.exists():
         demographics_df = pd.read_csv(demographics_path)
-        demographics_df['sona_id'] = demographics_df['sona_id'].astype(str)
+        demographics_df["sona_id"] = demographics_df["sona_id"].astype(str)
         participant_data = participant_data.merge(
-            demographics_df[['sona_id', 'gender', 'age_years']],
-            on='sona_id',
-            how='left'
+            demographics_df[["sona_id", "gender", "age_years"]],
+            on="sona_id",
+            how="left",
         )
 
     # Load accuracy data separately (from task_trials to compute per-participant accuracy)
     accuracy_data = None
-    trials_path = Path('output/task_trials_long_all_participants.csv')
+    trials_path = Path("output/task_trials_long_all_participants.csv")
     if trials_path.exists():
         trials_df = pd.read_csv(trials_path)
-        trials_df['sona_id'] = trials_df['sona_id'].astype(str)
-        accuracy_data = trials_df.groupby('sona_id')['correct'].mean().reset_index()
-        accuracy_data.columns = ['sona_id', 'accuracy_overall']
+        trials_df["sona_id"] = trials_df["sona_id"].astype(str)
+        accuracy_data = trials_df.groupby("sona_id")["correct"].mean().reset_index()
+        accuracy_data.columns = ["sona_id", "accuracy_overall"]
         # Merge accuracy into participant_data
-        participant_data = participant_data.merge(accuracy_data, on='sona_id', how='left')
+        participant_data = participant_data.merge(
+            accuracy_data, on="sona_id", how="left"
+        )
 
     # Exclude participants based on data quality (convert to string for comparison)
     excluded_str = [str(x) for x in EXCLUDED_PARTICIPANTS]
-    participant_data = participant_data[~participant_data['sona_id'].isin(excluded_str)].copy()
+    participant_data = participant_data[
+        ~participant_data["sona_id"].isin(excluded_str)
+    ].copy()
     print(f"  {len(participant_data)} participants after data quality exclusions")
 
     # Optional accuracy-based exclusion
     if min_accuracy is not None:
-        if 'accuracy_overall' not in participant_data.columns:
-            print(f"  Warning: accuracy_overall column not found, cannot apply {min_accuracy:.0%} cutoff")
+        if "accuracy_overall" not in participant_data.columns:
+            print(
+                f"  Warning: accuracy_overall column not found, cannot apply {min_accuracy:.0%} cutoff"
+            )
         else:
-            low_accuracy_mask = participant_data['accuracy_overall'] < min_accuracy
-            low_accuracy_ids = participant_data.loc[low_accuracy_mask, 'sona_id'].tolist()
-            low_accuracy_values = participant_data.loc[low_accuracy_mask, ['sona_id', 'accuracy_overall']]
-            print(f"  Excluding {len(low_accuracy_ids)} participants below {min_accuracy:.0%} accuracy:")
+            low_accuracy_mask = participant_data["accuracy_overall"] < min_accuracy
+            low_accuracy_ids = participant_data.loc[
+                low_accuracy_mask, "sona_id"
+            ].tolist()
+            low_accuracy_values = participant_data.loc[
+                low_accuracy_mask, ["sona_id", "accuracy_overall"]
+            ]
+            print(
+                f"  Excluding {len(low_accuracy_ids)} participants below {min_accuracy:.0%} accuracy:"
+            )
             for _, row in low_accuracy_values.iterrows():
                 print(f"    - {row['sona_id']}: {row['accuracy_overall']:.2%}")
             # Exclude from both dataframes
-            params_df = params_df[~params_df['sona_id'].isin(low_accuracy_ids)]
-            participant_data = participant_data[~participant_data['sona_id'].isin(low_accuracy_ids)]
+            params_df = params_df[~params_df["sona_id"].isin(low_accuracy_ids)]
+            participant_data = participant_data[
+                ~participant_data["sona_id"].isin(low_accuracy_ids)
+            ]
 
     # Optional epsilon-based exclusion (alternative performance filter using MLE epsilon parameter)
     if max_epsilon is not None:
-        if 'epsilon' in params_df.columns or 'epsilon_mean' in params_df.columns:
-            eps_col = 'epsilon' if 'epsilon' in params_df.columns else 'epsilon_mean'
+        if "epsilon" in params_df.columns or "epsilon_mean" in params_df.columns:
+            eps_col = "epsilon" if "epsilon" in params_df.columns else "epsilon_mean"
             high_epsilon_mask = params_df[eps_col] > max_epsilon
-            high_epsilon_ids = params_df.loc[high_epsilon_mask, 'sona_id'].tolist()
-            high_epsilon_values = params_df.loc[high_epsilon_mask, ['sona_id', eps_col]]
-            print(f"  Excluding {len(high_epsilon_ids)} participants with epsilon > {max_epsilon:.2f}:")
+            high_epsilon_ids = params_df.loc[high_epsilon_mask, "sona_id"].tolist()
+            high_epsilon_values = params_df.loc[high_epsilon_mask, ["sona_id", eps_col]]
+            print(
+                f"  Excluding {len(high_epsilon_ids)} participants with epsilon > {max_epsilon:.2f}:"
+            )
             for _, row in high_epsilon_values.iterrows():
                 print(f"    - {row['sona_id']}: epsilon={row[eps_col]:.3f}")
             # Exclude from params_df (participant_data doesn't have epsilon)
-            params_df = params_df[~params_df['sona_id'].isin(high_epsilon_ids)]
+            params_df = params_df[~params_df["sona_id"].isin(high_epsilon_ids)]
         else:
-            print(f"  Warning: epsilon column not found, cannot apply max_epsilon={max_epsilon:.2f} filter")
+            print(
+                f"  Warning: epsilon column not found, cannot apply max_epsilon={max_epsilon:.2f} filter"
+            )
 
     # Merge parameters with participant data
-    merge_cols = ['sona_id', 'lec_total_events', 'lec_personal_events',
-                  'ies_total', 'ies_intrusion', 'ies_avoidance', 'ies_hyperarousal',
-                  'accuracy_overall', 'hypothesis_group', 'gender', 'age_years']
+    merge_cols = [
+        "sona_id",
+        "lec_total_events",
+        "lec_personal_events",
+        "ies_total",
+        "ies_intrusion",
+        "ies_avoidance",
+        "ies_hyperarousal",
+        "accuracy_overall",
+        "hypothesis_group",
+        "gender",
+        "age_years",
+    ]
     merge_cols = [c for c in merge_cols if c in participant_data.columns]
 
-    df = params_df.merge(
-        participant_data[merge_cols],
-        on='sona_id',
-        how='inner'
-    )
+    df = params_df.merge(participant_data[merge_cols], on="sona_id", how="inner")
 
     print(f"\nLoaded data for {len(df)} participants")
     print(f"  {df['alpha_pos_mean'].notna().sum()} with fitted parameters")
@@ -295,7 +324,7 @@ def run_simple_regression(df: pd.DataFrame, param_name: str, predictor: str) -> 
     data = df[[param_name, predictor]].dropna()
 
     if len(data) < 3:
-        return {'error': 'Insufficient data', 'n': len(data)}
+        return {"error": "Insufficient data", "n": len(data)}
 
     X = data[predictor].values
     y = data[param_name].values
@@ -306,70 +335,72 @@ def run_simple_regression(df: pd.DataFrame, param_name: str, predictor: str) -> 
         model = sm.OLS(y, X_with_const).fit()
 
         results = {
-            'n': len(data),
-            'beta': model.params[1],
-            'se': model.bse[1],
-            'ci_lower': model.conf_int()[1, 0],
-            'ci_upper': model.conf_int()[1, 1],
-            't_stat': model.tvalues[1],
-            'p_value': model.pvalues[1],
-            'r_squared': model.rsquared,
-            'f_stat': model.fvalue,
-            'residuals': model.resid,
-            'fitted': model.fittedvalues,
-            'model': model
+            "n": len(data),
+            "beta": model.params[1],
+            "se": model.bse[1],
+            "ci_lower": model.conf_int()[1, 0],
+            "ci_upper": model.conf_int()[1, 1],
+            "t_stat": model.tvalues[1],
+            "p_value": model.pvalues[1],
+            "r_squared": model.rsquared,
+            "f_stat": model.fvalue,
+            "residuals": model.resid,
+            "fitted": model.fittedvalues,
+            "model": model,
         }
 
         # Residual diagnostics
         # 1. Shapiro-Wilk test for normality of residuals
         if len(model.resid) >= 3:
             sw_stat, sw_p = stats.shapiro(model.resid)
-            results['shapiro_w'] = sw_stat
-            results['shapiro_p'] = sw_p
+            results["shapiro_w"] = sw_stat
+            results["shapiro_p"] = sw_p
 
         # 2. Breusch-Pagan test for homoscedasticity
         try:
             bp_lm, bp_lm_p, bp_f, bp_f_p = het_breuschpagan(model.resid, X_with_const)
-            results['bp_stat'] = bp_lm
-            results['bp_p'] = bp_lm_p
+            results["bp_stat"] = bp_lm
+            results["bp_p"] = bp_lm_p
         except Exception:
-            results['bp_stat'] = np.nan
-            results['bp_p'] = np.nan
+            results["bp_stat"] = np.nan
+            results["bp_p"] = np.nan
     else:
         # Use scipy for basic regression
         slope, intercept, r_value, p_value, std_err = stats.linregress(X, y)
 
         results = {
-            'n': len(data),
-            'beta': slope,
-            'se': std_err,
-            'p_value': p_value,
-            'r_squared': r_value**2,
-            't_stat': slope / std_err if std_err > 0 else np.nan
+            "n": len(data),
+            "beta": slope,
+            "se": std_err,
+            "p_value": p_value,
+            "r_squared": r_value**2,
+            "t_stat": slope / std_err if std_err > 0 else np.nan,
         }
 
     # Add Pearson correlation
     r, p = stats.pearsonr(X, y)
-    results['r'] = r
-    results['r_p'] = p
+    results["r"] = r
+    results["r_p"] = p
 
     return results
 
 
-def run_multiple_regression(df: pd.DataFrame, param_name: str, predictors: list) -> dict:
+def run_multiple_regression(
+    df: pd.DataFrame, param_name: str, predictors: list
+) -> dict:
     """
     Run multiple linear regression: param ~ predictor1 + predictor2 + ...
 
     Returns dictionary with regression results.
     """
     if not HAS_STATSMODELS:
-        return {'error': 'statsmodels required for multiple regression'}
+        return {"error": "statsmodels required for multiple regression"}
 
     # Filter to complete cases
     data = df[[param_name] + predictors].dropna()
 
     if len(data) < len(predictors) + 2:
-        return {'error': 'Insufficient data', 'n': len(data)}
+        return {"error": "Insufficient data", "n": len(data)}
 
     X = data[predictors].values
     y = data[param_name].values
@@ -382,35 +413,35 @@ def run_multiple_regression(df: pd.DataFrame, param_name: str, predictors: list)
 
     # Extract results
     results = {
-        'n': len(data),
-        'r_squared': model.rsquared,
-        'adj_r_squared': model.rsquared_adj,
-        'f_stat': model.fvalue,
-        'f_pvalue': model.f_pvalue,
-        'aic': model.aic,
-        'bic': model.bic,
-        'coefficients': {},
-        'model': model
+        "n": len(data),
+        "r_squared": model.rsquared,
+        "adj_r_squared": model.rsquared_adj,
+        "f_stat": model.fvalue,
+        "f_pvalue": model.f_pvalue,
+        "aic": model.aic,
+        "bic": model.bic,
+        "coefficients": {},
+        "model": model,
     }
 
     # Extract coefficient info for each predictor
-    for i, pred in enumerate(['Intercept'] + predictors):
+    for i, pred in enumerate(["Intercept"] + predictors):
         idx = i
-        results['coefficients'][pred] = {
-            'beta': model.params[idx],
-            'se': model.bse[idx],
-            'ci_lower': model.conf_int()[idx, 0],
-            'ci_upper': model.conf_int()[idx, 1],
-            't_stat': model.tvalues[idx],
-            'p_value': model.pvalues[idx]
+        results["coefficients"][pred] = {
+            "beta": model.params[idx],
+            "se": model.bse[idx],
+            "ci_lower": model.conf_int()[idx, 0],
+            "ci_upper": model.conf_int()[idx, 1],
+            "t_stat": model.tvalues[idx],
+            "p_value": model.pvalues[idx],
         }
 
     # Check multicollinearity (VIF)
     if len(predictors) > 1:
         vif_data = pd.DataFrame()
-        vif_data['predictor'] = predictors
-        vif_data['VIF'] = [variance_inflation_factor(X, i) for i in range(X.shape[1])]
-        results['vif'] = vif_data
+        vif_data["predictor"] = predictors
+        vif_data["VIF"] = [variance_inflation_factor(X, i) for i in range(X.shape[1])]
+        results["vif"] = vif_data
 
     return results
 
@@ -422,50 +453,50 @@ def create_regression_table(results_dict: dict, output_path: Path):
 
     for param_name, param_results in results_dict.items():
         for predictor, res in param_results.items():
-            if 'error' in res:
+            if "error" in res:
                 continue
 
             row = {
-                'Section': f"{format_label(param_name)} ~ {format_label(predictor)}",
-                'Parameter': param_name,
-                'Predictor': predictor,
-                'N': res['n'],
-                'β': f"{res['beta']:.3f}",
-                'SE': f"{res['se']:.3f}",
-                't': f"{res['t_stat']:.2f}",
-                'p': format_pvalue(res['p_value']),
-                'R²': f"{res['r_squared']:.3f}"
+                "Section": f"{format_label(param_name)} ~ {format_label(predictor)}",
+                "Parameter": param_name,
+                "Predictor": predictor,
+                "N": res["n"],
+                "β": f"{res['beta']:.3f}",
+                "SE": f"{res['se']:.3f}",
+                "t": f"{res['t_stat']:.2f}",
+                "p": format_pvalue(res["p_value"]),
+                "R²": f"{res['r_squared']:.3f}",
             }
 
-            if 'ci_lower' in res:
-                row['95% CI'] = f"[{res['ci_lower']:.3f}, {res['ci_upper']:.3f}]"
+            if "ci_lower" in res:
+                row["95% CI"] = f"[{res['ci_lower']:.3f}, {res['ci_upper']:.3f}]"
 
-            if 'r' in res:
-                row['r'] = f"{res['r']:.3f}"
+            if "r" in res:
+                row["r"] = f"{res['r']:.3f}"
 
             # FDR-corrected p-value (added after all regressions computed)
-            if 'p_fdr' in res:
-                row['p_fdr'] = format_pvalue(res['p_fdr'])
-                row['sig_fdr'] = res.get('sig_fdr', False)
+            if "p_fdr" in res:
+                row["p_fdr"] = format_pvalue(res["p_fdr"])
+                row["sig_fdr"] = res.get("sig_fdr", False)
 
             # Residual diagnostics
-            if 'shapiro_w' in res:
-                row['shapiro_w'] = f"{res['shapiro_w']:.3f}"
-                row['shapiro_p'] = f"{res['shapiro_p']:.4f}"
-                row['residuals_normal'] = res['shapiro_p'] > 0.05
+            if "shapiro_w" in res:
+                row["shapiro_w"] = f"{res['shapiro_w']:.3f}"
+                row["shapiro_p"] = f"{res['shapiro_p']:.4f}"
+                row["residuals_normal"] = res["shapiro_p"] > 0.05
 
-            if 'bp_stat' in res and not np.isnan(res['bp_stat']):
-                row['bp_stat'] = f"{res['bp_stat']:.3f}"
-                row['bp_p'] = f"{res['bp_p']:.4f}"
-                row['homoscedastic'] = res['bp_p'] > 0.05
+            if "bp_stat" in res and not np.isnan(res["bp_stat"]):
+                row["bp_stat"] = f"{res['bp_stat']:.3f}"
+                row["bp_p"] = f"{res['bp_p']:.4f}"
+                row["homoscedastic"] = res["bp_p"] > 0.05
 
             rows.append(row)
 
     df_table = pd.DataFrame(rows)
 
     # Sort by Section for structured output (groups each scale x parameter regression)
-    if 'Section' in df_table.columns:
-        df_table = df_table.sort_values('Section')
+    if "Section" in df_table.columns:
+        df_table = df_table.sort_values("Section")
 
     # Save to CSV
     df_table.to_csv(output_path, index=False)
@@ -486,9 +517,15 @@ def format_pvalue(p: float) -> str:
         return f"{p:.3f}"
 
 
-def plot_regression_scatter(df: pd.DataFrame, param_name: str, predictor: str,
-                           results: dict, output_path: Path,
-                           color_by: str = None, color_palette: dict = None):
+def plot_regression_scatter(
+    df: pd.DataFrame,
+    param_name: str,
+    predictor: str,
+    results: dict,
+    output_path: Path,
+    color_by: str = None,
+    color_palette: dict = None,
+):
     """Create scatter plot with regression line."""
 
     # Filter to complete cases
@@ -506,38 +543,63 @@ def plot_regression_scatter(df: pd.DataFrame, param_name: str, predictor: str,
     # Scatter plot (colored or single color)
     if color_by is not None and color_palette is not None:
         # Use colored scatter with legend
-        add_colored_scatter(ax, predictor, param_name, data, color_by, color_palette,
-                          alpha=0.6, s=80, edgecolors='black', linewidths=0.5)
+        add_colored_scatter(
+            ax,
+            predictor,
+            param_name,
+            data,
+            color_by,
+            color_palette,
+            alpha=0.6,
+            s=80,
+            edgecolors="black",
+            linewidths=0.5,
+        )
     else:
         # Single color scatter (legacy behavior)
-        ax.scatter(data[predictor], data[param_name],
-                  alpha=0.6, s=80, edgecolors='black', linewidths=0.5)
+        ax.scatter(
+            data[predictor],
+            data[param_name],
+            alpha=0.6,
+            s=80,
+            edgecolors="black",
+            linewidths=0.5,
+        )
 
     # Regression line
     X = data[predictor].values
     y = data[param_name].values
 
-    if HAS_STATSMODELS and 'fitted' in results:
+    if HAS_STATSMODELS and "fitted" in results:
         # Use model-fitted values
         sorted_idx = np.argsort(X)
-        ax.plot(X[sorted_idx], results['fitted'][sorted_idx],
-               'r-', linewidth=2, label='Regression line')
+        ax.plot(
+            X[sorted_idx],
+            results["fitted"][sorted_idx],
+            "r-",
+            linewidth=2,
+            label="Regression line",
+        )
 
         # Add confidence interval if available
-        if 'model' in results:
-            pred = results['model'].get_prediction()
+        if "model" in results:
+            pred = results["model"].get_prediction()
             pred_summary = pred.summary_frame(alpha=0.05)
-            ax.fill_between(X[sorted_idx],
-                           pred_summary['obs_ci_lower'][sorted_idx],
-                           pred_summary['obs_ci_upper'][sorted_idx],
-                           alpha=0.2, color='red', label='95% CI')
+            ax.fill_between(
+                X[sorted_idx],
+                pred_summary["obs_ci_lower"][sorted_idx],
+                pred_summary["obs_ci_upper"][sorted_idx],
+                alpha=0.2,
+                color="red",
+                label="95% CI",
+            )
     else:
         # Simple line fit
-        slope = results['beta']
+        slope = results["beta"]
         intercept = np.mean(y) - slope * np.mean(X)
         x_line = np.array([X.min(), X.max()])
         y_line = slope * x_line + intercept
-        ax.plot(x_line, y_line, 'r-', linewidth=2, label='Regression line')
+        ax.plot(x_line, y_line, "r-", linewidth=2, label="Regression line")
 
     # Labels
     ax.set_xlabel(format_label(predictor), fontsize=12)
@@ -548,13 +610,19 @@ def plot_regression_scatter(df: pd.DataFrame, param_name: str, predictor: str,
     stats_text += f"β = {results['beta']:.3f} ± {results['se']:.3f}\n"
     stats_text += f"R² = {results['r_squared']:.3f}, n = {results['n']}"
 
-    ax.text(0.05, 0.95, stats_text, transform=ax.transAxes,
-           fontsize=10, verticalalignment='top',
-           bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+    ax.text(
+        0.05,
+        0.95,
+        stats_text,
+        transform=ax.transAxes,
+        fontsize=10,
+        verticalalignment="top",
+        bbox=dict(boxstyle="round", facecolor="wheat", alpha=0.5),
+    )
 
-    ax.legend(loc='lower right')
+    ax.legend(loc="lower right")
     plt.tight_layout()
-    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    plt.savefig(output_path, dpi=300, bbox_inches="tight")
     plt.close()
 
     print(f"Saved plot: {output_path}")
@@ -564,44 +632,54 @@ def format_label(col_name: str) -> str:
     """Format column name for plotting."""
     label_map = {
         # Q-learning parameters
-        'alpha_pos_mean': 'alpha+ (Positive Learning Rate)',
-        'alpha_neg_mean': 'alpha- (Negative Learning Rate)',
-        'beta_mean': 'beta (Inverse Temperature)',
-        'epsilon_mean': 'epsilon (Random Responding)',
+        "alpha_pos_mean": "alpha+ (Positive Learning Rate)",
+        "alpha_neg_mean": "alpha- (Negative Learning Rate)",
+        "beta_mean": "beta (Inverse Temperature)",
+        "epsilon_mean": "epsilon (Random Responding)",
         # WM-RL parameters
-        'phi_mean': 'phi (WM Decay Rate)',
-        'rho_mean': 'rho (WM Weight)',
-        'wm_capacity_mean': 'K (WM Capacity)',
-        'kappa_mean': 'kappa (Perseveration)',
-        'phi_rl_mean': 'phi_rl (RL Forgetting Rate)',
-        'kappa_s_mean': 'kappa_s (Stimulus-Specific Perseveration)',
-        'kappa_total_mean': 'kappa_total (Total Perseveration Budget)',
-        'kappa_share_mean': 'kappa_share (Global Kernel Fraction)',
+        "phi_mean": "phi (WM Decay Rate)",
+        "rho_mean": "rho (WM Weight)",
+        "wm_capacity_mean": "K (WM Capacity)",
+        "kappa_mean": "kappa (Perseveration)",
+        "phi_rl_mean": "phi_rl (RL Forgetting Rate)",
+        "kappa_s_mean": "kappa_s (Stimulus-Specific Perseveration)",
+        "kappa_total_mean": "kappa_total (Total Perseveration Budget)",
+        "kappa_share_mean": "kappa_share (Global Kernel Fraction)",
         # Trauma scales
-        'lec_total_events': 'LEC-5 Total Events',
-        'lec_personal_events': 'LEC-5 Personal Events',
-        'ies_total': 'IES-R Total Score',
-        'ies_intrusion': 'IES-R Intrusion',
-        'ies_avoidance': 'IES-R Avoidance',
-        'ies_hyperarousal': 'IES-R Hyperarousal'
+        "lec_total_events": "LEC-5 Total Events",
+        "lec_personal_events": "LEC-5 Personal Events",
+        "ies_total": "IES-R Total Score",
+        "ies_intrusion": "IES-R Intrusion",
+        "ies_avoidance": "IES-R Avoidance",
+        "ies_hyperarousal": "IES-R Hyperarousal",
     }
     return label_map.get(col_name, col_name)
 
 
-def plot_regression_matrix(df: pd.DataFrame, results_dict: dict, output_dir: Path,
-                           param_cols: list = None, color_by: str = None,
-                           color_palette: dict = None):
+def plot_regression_matrix(
+    df: pd.DataFrame,
+    results_dict: dict,
+    output_dir: Path,
+    param_cols: list = None,
+    color_by: str = None,
+    color_palette: dict = None,
+):
     """Create matrix of all regression scatter plots."""
 
     # Default param_cols for backwards compatibility
     if param_cols is None:
-        param_cols = ['alpha_pos_mean', 'alpha_neg_mean', 'beta_mean']
+        param_cols = ["alpha_pos_mean", "alpha_neg_mean", "beta_mean"]
 
     # Filter to available params
     param_cols = [p for p in param_cols if p in df.columns]
 
-    predictor_cols = ['lec_total_events', 'ies_total',
-                     'ies_intrusion', 'ies_avoidance', 'ies_hyperarousal']
+    predictor_cols = [
+        "lec_total_events",
+        "ies_total",
+        "ies_intrusion",
+        "ies_avoidance",
+        "ies_hyperarousal",
+    ]
 
     # Filter to available predictors
     predictor_cols = [p for p in predictor_cols if p in df.columns]
@@ -609,7 +687,7 @@ def plot_regression_matrix(df: pd.DataFrame, results_dict: dict, output_dir: Pat
     n_params = len(param_cols)
     n_preds = len(predictor_cols)
 
-    fig, axes = plt.subplots(n_params, n_preds, figsize=(4*n_preds, 4*n_params))
+    fig, axes = plt.subplots(n_params, n_preds, figsize=(4 * n_preds, 4 * n_params))
 
     if n_params == 1:
         axes = axes.reshape(1, -1)
@@ -627,8 +705,14 @@ def plot_regression_matrix(df: pd.DataFrame, results_dict: dict, output_dir: Pat
                 data = df[[param, pred]].dropna()
 
             if len(data) < 3:
-                ax.text(0.5, 0.5, 'Insufficient\ndata',
-                       transform=ax.transAxes, ha='center', va='center')
+                ax.text(
+                    0.5,
+                    0.5,
+                    "Insufficient\ndata",
+                    transform=ax.transAxes,
+                    ha="center",
+                    va="center",
+                )
                 ax.set_xlabel(format_label(pred))
                 if j == 0:
                     ax.set_ylabel(format_label(param))
@@ -637,8 +721,17 @@ def plot_regression_matrix(df: pd.DataFrame, results_dict: dict, output_dir: Pat
             # Scatter (colored or single color)
             if color_by is not None and color_palette is not None:
                 # Use colored scatter (no legend in matrix cells)
-                add_colored_scatter(ax, pred, param, data, color_by, color_palette,
-                                  alpha=0.6, s=50, show_legend=False)
+                add_colored_scatter(
+                    ax,
+                    pred,
+                    param,
+                    data,
+                    color_by,
+                    color_palette,
+                    alpha=0.6,
+                    s=50,
+                    show_legend=False,
+                )
             else:
                 # Single color scatter (legacy behavior)
                 ax.scatter(data[pred], data[param], alpha=0.6, s=50)
@@ -646,33 +739,39 @@ def plot_regression_matrix(df: pd.DataFrame, results_dict: dict, output_dir: Pat
             # Get results
             results = results_dict.get(param, {}).get(pred, {})
 
-            if 'beta' in results:
+            if "beta" in results:
                 # Regression line
                 X = data[pred].values
                 y = data[param].values
-                slope = results['beta']
+                slope = results["beta"]
                 intercept = np.mean(y) - slope * np.mean(X)
                 x_line = np.array([X.min(), X.max()])
                 y_line = slope * x_line + intercept
 
                 # Color by significance
-                color = 'red' if results['p_value'] < 0.05 else 'gray'
-                linestyle = '-' if results['p_value'] < 0.05 else '--'
+                color = "red" if results["p_value"] < 0.05 else "gray"
+                linestyle = "-" if results["p_value"] < 0.05 else "--"
                 ax.plot(x_line, y_line, color=color, linestyle=linestyle, linewidth=2)
 
                 # Stats text
                 stats_text = f"r={results['r']:.2f}\np={results['p_value']:.3f}"
-                ax.text(0.05, 0.95, stats_text, transform=ax.transAxes,
-                       fontsize=8, verticalalignment='top',
-                       bbox=dict(boxstyle='round', facecolor='white', alpha=0.7))
+                ax.text(
+                    0.05,
+                    0.95,
+                    stats_text,
+                    transform=ax.transAxes,
+                    fontsize=8,
+                    verticalalignment="top",
+                    bbox=dict(boxstyle="round", facecolor="white", alpha=0.7),
+                )
 
-            ax.set_xlabel(format_label(pred) if i == n_params-1 else '')
+            ax.set_xlabel(format_label(pred) if i == n_params - 1 else "")
             if j == 0:
                 ax.set_ylabel(format_label(param))
 
     plt.tight_layout()
-    output_path = output_dir / 'regression_matrix_all.png'
-    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    output_path = output_dir / "regression_matrix_all.png"
+    plt.savefig(output_path, dpi=300, bbox_inches="tight")
     plt.close()
 
     print(f"Saved regression matrix: {output_path}")
@@ -680,51 +779,60 @@ def plot_regression_matrix(df: pd.DataFrame, results_dict: dict, output_dir: Pat
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Regression analysis of model parameters on trauma scales'
+        description="Regression analysis of model parameters on trauma scales"
     )
     parser.add_argument(
-        '--model',
+        "--model",
         type=str,
-        default='qlearning',
-        choices=['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b', 'wmrl_m4', 'all'],
-        help='Model type (qlearning, wmrl, wmrl_m3, wmrl_m5, wmrl_m6a, wmrl_m6b, wmrl_m4, or all)'
+        default="qlearning",
+        choices=[
+            "qlearning",
+            "wmrl",
+            "wmrl_m3",
+            "wmrl_m5",
+            "wmrl_m6a",
+            "wmrl_m6b",
+            "wmrl_m4",
+            "all",
+        ],
+        help="Model type (qlearning, wmrl, wmrl_m3, wmrl_m5, wmrl_m6a, wmrl_m6b, wmrl_m4, or all)",
     )
     parser.add_argument(
-        '--output-dir',
+        "--output-dir",
         type=str,
-        default='output/regressions',
-        help='Base output directory for CSV results (model subdirectories created automatically)'
+        default="output/regressions",
+        help="Base output directory for CSV results (model subdirectories created automatically)",
     )
     parser.add_argument(
-        '--figures-dir',
+        "--figures-dir",
         type=str,
-        default='figures/regressions',
-        help='Base output directory for figures (model subdirectories created automatically)'
+        default="figures/regressions",
+        help="Base output directory for figures (model subdirectories created automatically)",
     )
     parser.add_argument(
-        '--min-accuracy',
+        "--min-accuracy",
         type=float,
         default=None,
-        help='Minimum accuracy threshold (0-1) for participant inclusion'
+        help="Minimum accuracy threshold (0-1) for participant inclusion",
     )
     parser.add_argument(
-        '--max-epsilon',
+        "--max-epsilon",
         type=float,
         default=None,
-        help='Maximum epsilon threshold for participant inclusion (alternative to min-accuracy)'
+        help="Maximum epsilon threshold for participant inclusion (alternative to min-accuracy)",
     )
     parser.add_argument(
-        '--color-by',
+        "--color-by",
         type=str,
         default=None,
-        help='Column name to color scatter plots by (e.g., hypothesis_group, gender)'
+        help="Column name to color scatter plots by (e.g., hypothesis_group, gender)",
     )
     parser.add_argument(
-        '--source',
+        "--source",
         type=str,
-        default='mle',
-        choices=['mle', 'bayesian'],
-        help='Fit source: mle (default) or bayesian'
+        default="mle",
+        choices=["mle", "bayesian"],
+        help="Fit source: mle (default) or bayesian",
     )
 
     args = parser.parse_args()
@@ -732,13 +840,13 @@ def main():
     # Route output/figures directories based on --source.
     # Only change defaults; if the user explicitly passed --output-dir or
     # --figures-dir those values are honoured as-is.
-    _output_dir_default = 'output/regressions'
-    _figures_dir_default = 'figures/regressions'
-    if args.source == 'bayesian':
+    _output_dir_default = "output/regressions"
+    _figures_dir_default = "figures/regressions"
+    if args.source == "bayesian":
         if args.output_dir == _output_dir_default:
-            args.output_dir = 'output/regressions/bayesian'
+            args.output_dir = "output/regressions/bayesian"
         if args.figures_dir == _figures_dir_default:
-            args.figures_dir = 'figures/regressions/bayesian'
+            args.figures_dir = "figures/regressions/bayesian"
 
     # Setup
     base_output_dir = Path(args.output_dir)
@@ -752,14 +860,22 @@ def main():
     print("=" * 80)
     print(f"Source: {args.source.upper()}")
     if args.min_accuracy is not None:
-        print(f"[!] Accuracy filter: excluding participants below {args.min_accuracy:.0%}")
+        print(
+            f"[!] Accuracy filter: excluding participants below {args.min_accuracy:.0%}"
+        )
     if args.max_epsilon is not None:
-        print(f"[!] Epsilon filter: excluding participants with epsilon > {args.max_epsilon:.2f}")
+        print(
+            f"[!] Epsilon filter: excluding participants with epsilon > {args.max_epsilon:.2f}"
+        )
     if args.color_by is not None:
         print(f"[!] Color-by: {args.color_by}")
 
     # Determine models to run
-    models_to_run = ['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b', 'wmrl_m4'] if args.model == 'all' else [args.model]
+    models_to_run = (
+        ["qlearning", "wmrl", "wmrl_m3", "wmrl_m5", "wmrl_m6a", "wmrl_m6b", "wmrl_m4"]
+        if args.model == "all"
+        else [args.model]
+    )
 
     # Loop over models
     for model in models_to_run:
@@ -775,64 +891,121 @@ def main():
         model_figures_dir.mkdir(parents=True, exist_ok=True)
 
         # Auto-detect params path from model name and --source
-        if args.source == 'bayesian':
-            base_fits_dir = Path('output/bayesian')
-            params_path = base_fits_dir / f'{model}_individual_fits.csv'
+        if args.source == "bayesian":
+            base_fits_dir = Path("output/bayesian")
+            params_path = base_fits_dir / f"{model}_individual_fits.csv"
             if not params_path.exists():
-                print(f"Warning: {model}_individual_fits.csv not found in {base_fits_dir}, skipping {model}")
+                print(
+                    f"Warning: {model}_individual_fits.csv not found in {base_fits_dir}, skipping {model}"
+                )
                 continue
         else:
-            base_fits_dir = Path('output/mle')
+            base_fits_dir = Path("output/mle")
             # Check output/mle/ first, then output/ (M5 from plan 01 was written to output/)
-            params_path = base_fits_dir / f'{model}_individual_fits.csv'
+            params_path = base_fits_dir / f"{model}_individual_fits.csv"
             if not params_path.exists():
-                params_path = Path(f'output/{model}_individual_fits.csv')
+                params_path = Path(f"output/{model}_individual_fits.csv")
             if not params_path.exists():
-                print(f"Warning: {model}_individual_fits.csv not found in output/mle/ or output/, skipping {model}")
+                print(
+                    f"Warning: {model}_individual_fits.csv not found in output/mle/ or output/, skipping {model}"
+                )
                 continue
 
         # Load data
-        df = load_integrated_data(params_path, model, args.min_accuracy, args.max_epsilon)
+        df = load_integrated_data(
+            params_path, model, args.min_accuracy, args.max_epsilon
+        )
 
         # Validate color-by column if specified
         color_palette = None
         if args.color_by is not None:
             if args.color_by not in df.columns:
-                print(f"Warning: Column '{args.color_by}' not found in data, skipping color-by")
+                print(
+                    f"Warning: Column '{args.color_by}' not found in data, skipping color-by"
+                )
                 print(f"Available columns: {list(df.columns)}")
                 color_by = None
             else:
                 color_by = args.color_by
                 # Generate palette (use custom colors for hypothesis_group)
-                custom_colors = TRAUMA_GROUP_COLORS if color_by == 'hypothesis_group' else None
-                color_palette = get_color_palette(df, color_by, custom_colors=custom_colors)
+                custom_colors = (
+                    TRAUMA_GROUP_COLORS if color_by == "hypothesis_group" else None
+                )
+                color_palette = get_color_palette(
+                    df, color_by, custom_colors=custom_colors
+                )
                 print(f"  Color palette: {color_palette}")
         else:
             color_by = None
 
         # Define parameter columns based on model
-        if model == 'qlearning':
-            param_cols = ['alpha_pos_mean', 'alpha_neg_mean', 'epsilon_mean']
-        elif model == 'wmrl':
-            param_cols = ['alpha_pos_mean', 'alpha_neg_mean', 'phi_mean', 'rho_mean',
-                          'wm_capacity_mean', 'epsilon_mean']
-        elif model == 'wmrl_m3':
-            param_cols = ['alpha_pos_mean', 'alpha_neg_mean', 'phi_mean', 'rho_mean',
-                          'wm_capacity_mean', 'kappa_mean', 'epsilon_mean']
-        elif model == 'wmrl_m5':
-            param_cols = ['alpha_pos_mean', 'alpha_neg_mean', 'phi_mean', 'rho_mean',
-                          'wm_capacity_mean', 'kappa_mean', 'phi_rl_mean', 'epsilon_mean']
-        elif model == 'wmrl_m6a':
-            param_cols = ['alpha_pos_mean', 'alpha_neg_mean', 'phi_mean', 'rho_mean',
-                          'wm_capacity_mean', 'kappa_s_mean', 'epsilon_mean']
-        elif model == 'wmrl_m6b':
-            param_cols = ['alpha_pos_mean', 'alpha_neg_mean', 'phi_mean', 'rho_mean',
-                          'wm_capacity_mean', 'kappa_total_mean', 'kappa_share_mean', 'epsilon_mean']
-        elif model == 'wmrl_m4':
+        if model == "qlearning":
+            param_cols = ["alpha_pos_mean", "alpha_neg_mean", "epsilon_mean"]
+        elif model == "wmrl":
+            param_cols = [
+                "alpha_pos_mean",
+                "alpha_neg_mean",
+                "phi_mean",
+                "rho_mean",
+                "wm_capacity_mean",
+                "epsilon_mean",
+            ]
+        elif model == "wmrl_m3":
+            param_cols = [
+                "alpha_pos_mean",
+                "alpha_neg_mean",
+                "phi_mean",
+                "rho_mean",
+                "wm_capacity_mean",
+                "kappa_mean",
+                "epsilon_mean",
+            ]
+        elif model == "wmrl_m5":
+            param_cols = [
+                "alpha_pos_mean",
+                "alpha_neg_mean",
+                "phi_mean",
+                "rho_mean",
+                "wm_capacity_mean",
+                "kappa_mean",
+                "phi_rl_mean",
+                "epsilon_mean",
+            ]
+        elif model == "wmrl_m6a":
+            param_cols = [
+                "alpha_pos_mean",
+                "alpha_neg_mean",
+                "phi_mean",
+                "rho_mean",
+                "wm_capacity_mean",
+                "kappa_s_mean",
+                "epsilon_mean",
+            ]
+        elif model == "wmrl_m6b":
+            param_cols = [
+                "alpha_pos_mean",
+                "alpha_neg_mean",
+                "phi_mean",
+                "rho_mean",
+                "wm_capacity_mean",
+                "kappa_total_mean",
+                "kappa_share_mean",
+                "epsilon_mean",
+            ]
+        elif model == "wmrl_m4":
             # M4: LBA joint choice+RT model (no epsilon; has v_scale, A, delta, t0)
-            param_cols = ['alpha_pos_mean', 'alpha_neg_mean', 'phi_mean', 'rho_mean',
-                          'wm_capacity_mean', 'kappa_mean', 'v_scale_mean', 'A_mean',
-                          'delta_mean', 't0_mean']
+            param_cols = [
+                "alpha_pos_mean",
+                "alpha_neg_mean",
+                "phi_mean",
+                "rho_mean",
+                "wm_capacity_mean",
+                "kappa_mean",
+                "v_scale_mean",
+                "A_mean",
+                "delta_mean",
+                "t0_mean",
+            ]
         else:
             print(f"Unknown model: {model}")
             continue
@@ -840,8 +1013,14 @@ def main():
         # Only use parameters that exist in the data
         param_cols = [p for p in param_cols if p in df.columns]
 
-        predictor_cols = ['lec_total_events', 'lec_personal_events',
-                         'ies_total', 'ies_intrusion', 'ies_avoidance', 'ies_hyperarousal']
+        predictor_cols = [
+            "lec_total_events",
+            "lec_personal_events",
+            "ies_total",
+            "ies_intrusion",
+            "ies_avoidance",
+            "ies_hyperarousal",
+        ]
 
         # Only use predictors that exist
         predictor_cols = [p for p in predictor_cols if p in df.columns]
@@ -865,33 +1044,52 @@ def main():
                 results = run_simple_regression(df, param, pred)
                 results_dict[param][pred] = results
 
-                if 'error' in results:
+                if "error" in results:
                     print(f"  {pred}: {results['error']} (n={results.get('n', 0)})")
                 else:
-                    sig = '***' if results['p_value'] < 0.001 else \
-                          '**' if results['p_value'] < 0.01 else \
-                          '*' if results['p_value'] < 0.05 else ''
+                    sig = (
+                        "***"
+                        if results["p_value"] < 0.001
+                        else "**"
+                        if results["p_value"] < 0.01
+                        else "*"
+                        if results["p_value"] < 0.05
+                        else ""
+                    )
 
                     # Build diagnostic flags
                     diag_flags = []
-                    if 'shapiro_p' in results and results['shapiro_p'] < 0.05:
-                        diag_flags.append('non-normal resid')
-                    if 'bp_p' in results and not np.isnan(results['bp_p']) and results['bp_p'] < 0.05:
-                        diag_flags.append('heteroscedastic')
-                    diag_str = f"  [{', '.join(diag_flags)}]" if diag_flags else ''
+                    if "shapiro_p" in results and results["shapiro_p"] < 0.05:
+                        diag_flags.append("non-normal resid")
+                    if (
+                        "bp_p" in results
+                        and not np.isnan(results["bp_p"])
+                        and results["bp_p"] < 0.05
+                    ):
+                        diag_flags.append("heteroscedastic")
+                    diag_str = f"  [{', '.join(diag_flags)}]" if diag_flags else ""
 
-                    print(f"  {format_label(pred):30s}: "
-                          f"beta={results['beta']:7.3f} (SE={results['se']:.3f}), "
-                          f"t={results['t_stat']:6.2f}, "
-                          f"p={results['p_value']:.4f}{sig}, "
-                          f"r={results['r']:6.3f}, "
-                          f"R2={results['r_squared']:.3f}, "
-                          f"n={results['n']}{diag_str}")
+                    print(
+                        f"  {format_label(pred):30s}: "
+                        f"beta={results['beta']:7.3f} (SE={results['se']:.3f}), "
+                        f"t={results['t_stat']:6.2f}, "
+                        f"p={results['p_value']:.4f}{sig}, "
+                        f"r={results['r']:6.3f}, "
+                        f"R2={results['r_squared']:.3f}, "
+                        f"n={results['n']}{diag_str}"
+                    )
 
                     # Create individual plot (save to figures directory)
                     plot_path = model_figures_dir / f"{param}_{pred}.png"
-                    plot_regression_scatter(df, param, pred, results, plot_path,
-                                          color_by=color_by, color_palette=color_palette)
+                    plot_regression_scatter(
+                        df,
+                        param,
+                        pred,
+                        results,
+                        plot_path,
+                        color_by=color_by,
+                        color_palette=color_palette,
+                    )
 
         # Apply FDR correction across all simple regressions
         all_pvalues = []
@@ -899,8 +1097,8 @@ def main():
         for param in param_cols:
             for pred in predictor_cols:
                 res = results_dict.get(param, {}).get(pred, {})
-                if 'error' not in res and 'p_value' in res:
-                    all_pvalues.append(res['p_value'])
+                if "error" not in res and "p_value" in res:
+                    all_pvalues.append(res["p_value"])
                     all_keys.append((param, pred))
 
         # Multiple comparison corrections.
@@ -910,23 +1108,25 @@ def main():
         # data. Correcting across the whole model cube would overcount.
         if HAS_STATSMODELS and len(all_pvalues) > 1:
             reject_fdr, p_fdr, _, _ = multipletests(
-                all_pvalues, method='fdr_bh', alpha=0.05
+                all_pvalues, method="fdr_bh", alpha=0.05
             )
             reject_bonf, p_bonf, _, _ = multipletests(
-                all_pvalues, method='bonferroni', alpha=0.05
+                all_pvalues, method="bonferroni", alpha=0.05
             )
             for (param, pred), pf, sig_fdr, pb, sig_bonf in zip(
-                all_keys, p_fdr, reject_fdr, p_bonf, reject_bonf
+                all_keys, p_fdr, reject_fdr, p_bonf, reject_bonf, strict=False
             ):
-                results_dict[param][pred]['p_fdr'] = pf
-                results_dict[param][pred]['sig_fdr'] = bool(sig_fdr)
-                results_dict[param][pred]['p_bonferroni'] = pb
-                results_dict[param][pred]['sig_bonferroni'] = bool(sig_bonf)
+                results_dict[param][pred]["p_fdr"] = pf
+                results_dict[param][pred]["sig_fdr"] = bool(sig_fdr)
+                results_dict[param][pred]["p_bonferroni"] = pb
+                results_dict[param][pred]["sig_bonferroni"] = bool(sig_bonf)
 
             n_sig_uncorrected = sum(1 for p in all_pvalues if p < 0.05)
             n_sig_fdr = int(sum(reject_fdr))
             n_sig_bonf = int(sum(reject_bonf))
-            print(f"\n  Multiple comparison corrections: {len(all_pvalues)} tests (within-model family)")
+            print(
+                f"\n  Multiple comparison corrections: {len(all_pvalues)} tests (within-model family)"
+            )
             print(f"  Significant (uncorrected p < 0.05): {n_sig_uncorrected}")
             print(f"  Significant (FDR-BH q < 0.05):      {n_sig_fdr}")
             print(f"  Significant (Bonferroni p < 0.05):  {n_sig_bonf}")
@@ -941,27 +1141,32 @@ def main():
                 p_bonf,
                 reject_fdr,
                 reject_bonf,
+                strict=False,
             ):
                 res = results_dict[param][pred]
-                corrected_rows.append({
-                    'parameter': param,
-                    'scale': pred,
-                    'n': res.get('n'),
-                    'beta': res.get('beta'),
-                    'se': res.get('se'),
-                    't_stat': res.get('t_stat'),
-                    'p_uncorrected': p_raw,
-                    'p_fdr_bh': pf,
-                    'p_bonferroni': pb,
-                    'sig_uncorrected': p_raw < 0.05,
-                    'sig_fdr': bool(sig_fdr),
-                    'sig_bonferroni': bool(sig_bonf),
-                    'r_squared': res.get('r_squared'),
-                })
+                corrected_rows.append(
+                    {
+                        "parameter": param,
+                        "scale": pred,
+                        "n": res.get("n"),
+                        "beta": res.get("beta"),
+                        "se": res.get("se"),
+                        "t_stat": res.get("t_stat"),
+                        "p_uncorrected": p_raw,
+                        "p_fdr_bh": pf,
+                        "p_bonferroni": pb,
+                        "sig_uncorrected": p_raw < 0.05,
+                        "sig_fdr": bool(sig_fdr),
+                        "sig_bonferroni": bool(sig_bonf),
+                        "r_squared": res.get("r_squared"),
+                    }
+                )
             corrected_df = pd.DataFrame(corrected_rows)
             # Sort with strongest evidence first (smallest uncorrected p)
-            corrected_df = corrected_df.sort_values('p_uncorrected').reset_index(drop=True)
-            corrected_path = model_output_dir / 'significance_corrected.csv'
+            corrected_df = corrected_df.sort_values("p_uncorrected").reset_index(
+                drop=True
+            )
+            corrected_path = model_output_dir / "significance_corrected.csv"
             corrected_df.to_csv(corrected_path, index=False)
             print(f"  [SAVED] {corrected_path}")
 
@@ -969,7 +1174,9 @@ def main():
             summary_lines: list[str] = []
             summary_lines.append(f"# Significance summary: {model}")
             summary_lines.append("")
-            summary_lines.append(f"Family-wise correction within-model ({len(all_pvalues)} tests).")
+            summary_lines.append(
+                f"Family-wise correction within-model ({len(all_pvalues)} tests)."
+            )
             summary_lines.append("")
             summary_lines.append("## Counts")
             summary_lines.append("")
@@ -981,24 +1188,22 @@ def main():
             def _rows_to_markdown(rows: pd.DataFrame) -> list[str]:
                 if rows.empty:
                     return ["_none_", ""]
-                header = (
-                    "| parameter | scale | n | beta | se | t | p_uncorr | p_fdr | p_bonf |"
-                )
+                header = "| parameter | scale | n | beta | se | t | p_uncorr | p_fdr | p_bonf |"
                 sep = "|---|---|---|---|---|---|---|---|---|"
                 out = [header, sep]
                 for _, r in rows.iterrows():
                     out.append(
                         "| {param} | {scale} | {n} | {beta:.4f} | {se:.4f} | {t:.2f} | "
                         "{pu:.4f} | {pf:.4f} | {pb:.4f} |".format(
-                            param=r['parameter'],
-                            scale=r['scale'],
-                            n=int(r['n']) if pd.notna(r['n']) else 'NA',
-                            beta=r['beta'],
-                            se=r['se'],
-                            t=r['t_stat'],
-                            pu=r['p_uncorrected'],
-                            pf=r['p_fdr_bh'],
-                            pb=r['p_bonferroni'],
+                            param=r["parameter"],
+                            scale=r["scale"],
+                            n=int(r["n"]) if pd.notna(r["n"]) else "NA",
+                            beta=r["beta"],
+                            se=r["se"],
+                            t=r["t_stat"],
+                            pu=r["p_uncorrected"],
+                            pf=r["p_fdr_bh"],
+                            pb=r["p_bonferroni"],
                         )
                     )
                 out.append("")
@@ -1007,41 +1212,50 @@ def main():
             summary_lines.append("## Surviving uncorrected p < 0.05")
             summary_lines.append("")
             summary_lines.extend(
-                _rows_to_markdown(corrected_df[corrected_df['sig_uncorrected']])
+                _rows_to_markdown(corrected_df[corrected_df["sig_uncorrected"]])
             )
             summary_lines.append("## Surviving FDR-BH q < 0.05")
             summary_lines.append("")
             summary_lines.extend(
-                _rows_to_markdown(corrected_df[corrected_df['sig_fdr']])
+                _rows_to_markdown(corrected_df[corrected_df["sig_fdr"]])
             )
             summary_lines.append("## Surviving Bonferroni p < 0.05")
             summary_lines.append("")
             summary_lines.extend(
-                _rows_to_markdown(corrected_df[corrected_df['sig_bonferroni']])
+                _rows_to_markdown(corrected_df[corrected_df["sig_bonferroni"]])
             )
 
-            summary_path = model_output_dir / 'significance_summary.md'
-            summary_path.write_text("\n".join(summary_lines), encoding='utf-8')
+            summary_path = model_output_dir / "significance_summary.md"
+            summary_path.write_text("\n".join(summary_lines), encoding="utf-8")
             print(f"  [SAVED] {summary_path}")
 
         # Save results table
-        table_path = model_output_dir / 'regression_results_simple.csv'
-        df_table = create_regression_table(results_dict, table_path)
+        table_path = model_output_dir / "regression_results_simple.csv"
+        create_regression_table(results_dict, table_path)
 
         # Note: Skip console display due to Unicode encoding issues on Windows
         # Users can view the CSV file directly
 
         # Create matrix plot (save to figures directory)
-        plot_regression_matrix(df, results_dict, model_figures_dir, param_cols,
-                             color_by=color_by, color_palette=color_palette)
+        plot_regression_matrix(
+            df,
+            results_dict,
+            model_figures_dir,
+            param_cols,
+            color_by=color_by,
+            color_palette=color_palette,
+        )
 
         # Multiple regressions with IES-R subscales
-        if HAS_STATSMODELS and all(c in df.columns for c in ['ies_intrusion', 'ies_avoidance', 'ies_hyperarousal']):
+        if HAS_STATSMODELS and all(
+            c in df.columns
+            for c in ["ies_intrusion", "ies_avoidance", "ies_hyperarousal"]
+        ):
             print("\n" + "=" * 80)
             print("MULTIPLE REGRESSION: IES-R SUBSCALES")
             print("=" * 80)
 
-            subscales = ['ies_intrusion', 'ies_avoidance', 'ies_hyperarousal']
+            subscales = ["ies_intrusion", "ies_avoidance", "ies_hyperarousal"]
 
             multi_results = {}
 
@@ -1052,57 +1266,73 @@ def main():
                 results = run_multiple_regression(df, param, subscales)
                 multi_results[param] = results
 
-                if 'error' in results:
+                if "error" in results:
                     print(f"  Error: {results['error']}")
                     continue
 
-                print(f"  Model: R2 = {results['r_squared']:.3f}, "
-                      f"Adj R2 = {results['adj_r_squared']:.3f}")
-                print(f"  F({len(subscales)}, {results['n']-len(subscales)-1}) = {results['f_stat']:.2f}, "
-                      f"p = {results['f_pvalue']:.4f}")
+                print(
+                    f"  Model: R2 = {results['r_squared']:.3f}, "
+                    f"Adj R2 = {results['adj_r_squared']:.3f}"
+                )
+                print(
+                    f"  F({len(subscales)}, {results['n'] - len(subscales) - 1}) = {results['f_stat']:.2f}, "
+                    f"p = {results['f_pvalue']:.4f}"
+                )
                 print(f"  AIC = {results['aic']:.1f}, BIC = {results['bic']:.1f}")
                 print("\n  Coefficients:")
 
-                for pred, coef_info in results['coefficients'].items():
-                    if pred == 'Intercept':
+                for pred, coef_info in results["coefficients"].items():
+                    if pred == "Intercept":
                         continue
-                    sig = '***' if coef_info['p_value'] < 0.001 else \
-                          '**' if coef_info['p_value'] < 0.01 else \
-                          '*' if coef_info['p_value'] < 0.05 else ''
+                    sig = (
+                        "***"
+                        if coef_info["p_value"] < 0.001
+                        else "**"
+                        if coef_info["p_value"] < 0.01
+                        else "*"
+                        if coef_info["p_value"] < 0.05
+                        else ""
+                    )
 
-                    print(f"    {format_label(pred):30s}: "
-                          f"beta={coef_info['beta']:7.3f} (SE={coef_info['se']:.3f}), "
-                          f"t={coef_info['t_stat']:6.2f}, "
-                          f"p={coef_info['p_value']:.4f}{sig}")
+                    print(
+                        f"    {format_label(pred):30s}: "
+                        f"beta={coef_info['beta']:7.3f} (SE={coef_info['se']:.3f}), "
+                        f"t={coef_info['t_stat']:6.2f}, "
+                        f"p={coef_info['p_value']:.4f}{sig}"
+                    )
 
-                if 'vif' in results:
+                if "vif" in results:
                     print("\n  Multicollinearity (VIF):")
-                    for _, row in results['vif'].iterrows():
-                        warning = " (HIGH)" if row['VIF'] > 5 else ""
-                        print(f"    {format_label(row['predictor']):30s}: {row['VIF']:.2f}{warning}")
+                    for _, row in results["vif"].iterrows():
+                        warning = " (HIGH)" if row["VIF"] > 5 else ""
+                        print(
+                            f"    {format_label(row['predictor']):30s}: {row['VIF']:.2f}{warning}"
+                        )
 
             # Save multiple regression results
             multi_rows = []
             for param, results in multi_results.items():
-                if 'error' in results:
+                if "error" in results:
                     continue
 
-                for pred, coef_info in results['coefficients'].items():
-                    if pred == 'Intercept':
+                for pred, coef_info in results["coefficients"].items():
+                    if pred == "Intercept":
                         continue
 
-                    multi_rows.append({
-                        'Parameter': param,
-                        'Predictor': pred,
-                        'β': f"{coef_info['beta']:.3f}",
-                        'SE': f"{coef_info['se']:.3f}",
-                        '95% CI': f"[{coef_info['ci_lower']:.3f}, {coef_info['ci_upper']:.3f}]",
-                        't': f"{coef_info['t_stat']:.2f}",
-                        'p': format_pvalue(coef_info['p_value'])
-                    })
+                    multi_rows.append(
+                        {
+                            "Parameter": param,
+                            "Predictor": pred,
+                            "β": f"{coef_info['beta']:.3f}",
+                            "SE": f"{coef_info['se']:.3f}",
+                            "95% CI": f"[{coef_info['ci_lower']:.3f}, {coef_info['ci_upper']:.3f}]",
+                            "t": f"{coef_info['t_stat']:.2f}",
+                            "p": format_pvalue(coef_info["p_value"]),
+                        }
+                    )
 
             df_multi = pd.DataFrame(multi_rows)
-            multi_path = model_output_dir / 'regression_results_multiple.csv'
+            multi_path = model_output_dir / "regression_results_multiple.csv"
             df_multi.to_csv(multi_path, index=False)
             print(f"\nSaved multiple regression results: {multi_path}")
 
@@ -1116,11 +1346,11 @@ def main():
     print("=" * 80)
     print(f"\nCSV results: {base_output_dir}/")
     print(f"Figures: {base_figures_dir}/")
-    if args.model == 'all':
+    if args.model == "all":
         print("  Model-specific subdirectories:")
         for model in models_to_run:
             model_dir = base_output_dir / model
-            fig_dir = base_figures_dir / model
+            base_figures_dir / model
             if model_dir.exists():
                 print(f"    - {model}/ (CSV + figures)")
     print("\nNext steps:")
@@ -1140,5 +1370,5 @@ def main():
     print("- VIF > 5 indicates multicollinearity concerns")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

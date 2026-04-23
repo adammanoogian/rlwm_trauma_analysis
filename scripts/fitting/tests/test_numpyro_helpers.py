@@ -28,9 +28,7 @@ from rlwm.fitting.numpyro_helpers import (
     phi_approx,
     sample_bounded_param,
     sample_capacity,
-    sample_model_params,
 )
-
 
 # ---------------------------------------------------------------------------
 # phi_approx tests
@@ -113,9 +111,7 @@ def test_bounded_param_recovery_alpha():
 
     # Generate synthetic individual-level alpha values
     z_true = rng.standard_normal(n_participants)
-    alpha_true = 0.0 + 1.0 * phi_approx(
-        jnp.array(true_mu_pr + true_sigma_pr * z_true)
-    )
+    alpha_true = 0.0 + 1.0 * phi_approx(jnp.array(true_mu_pr + true_sigma_pr * z_true))
 
     def recovery_model(obs):
         theta = sample_bounded_param(
@@ -157,9 +153,7 @@ def test_bounded_param_recovery_capacity():
     true_sigma_pr = 0.1
 
     z_true = rng.standard_normal(n_participants)
-    k_true = 2.0 + 4.0 * phi_approx(
-        jnp.array(true_mu_pr + true_sigma_pr * z_true)
-    )
+    k_true = 2.0 + 4.0 * phi_approx(jnp.array(true_mu_pr + true_sigma_pr * z_true))
 
     def recovery_model(obs):
         theta = sample_capacity(
@@ -204,25 +198,27 @@ def test_bounded_param_recovery_stick_breaking():
 
     z_total = rng.standard_normal(n_participants)
     z_share = rng.standard_normal(n_participants)
-    kappa_total_true = phi_approx(
-        jnp.array(true_mu_pr_total + true_sigma_pr * z_total)
-    )
-    kappa_share_true = phi_approx(
-        jnp.array(true_mu_pr_share + true_sigma_pr * z_share)
-    )
+    kappa_total_true = phi_approx(jnp.array(true_mu_pr_total + true_sigma_pr * z_total))
+    kappa_share_true = phi_approx(jnp.array(true_mu_pr_share + true_sigma_pr * z_share))
     kappa_true = kappa_total_true * kappa_share_true
     kappa_s_true = kappa_total_true * (1.0 - kappa_share_true)
 
     def recovery_model(obs_kappa, obs_kappa_s):
         kt = sample_bounded_param(
-            "kappa_total", lower=0.0, upper=1.0,
+            "kappa_total",
+            lower=0.0,
+            upper=1.0,
             n_participants=n_participants,
-            mu_prior_loc=-2.0, sigma_prior_scale=0.2,
+            mu_prior_loc=-2.0,
+            sigma_prior_scale=0.2,
         )
         ks = sample_bounded_param(
-            "kappa_share", lower=0.0, upper=1.0,
+            "kappa_share",
+            lower=0.0,
+            upper=1.0,
             n_participants=n_participants,
-            mu_prior_loc=0.0, sigma_prior_scale=0.2,
+            mu_prior_loc=0.0,
+            sigma_prior_scale=0.2,
         )
         kappa = kt * ks
         kappa_s = kt * (1.0 - ks)
@@ -231,8 +227,11 @@ def test_bounded_param_recovery_stick_breaking():
 
     nuts = NUTS(recovery_model)
     mcmc = MCMC(
-        nuts, num_warmup=1000, num_samples=1000,
-        num_chains=1, progress_bar=False,
+        nuts,
+        num_warmup=1000,
+        num_samples=1000,
+        num_chains=1,
+        progress_bar=False,
     )
     mcmc.run(
         jax.random.PRNGKey(77),
@@ -303,10 +302,12 @@ def test_load_fits_with_validation_missing_column():
 
 def test_load_fits_with_validation_mismatch():
     """Raises ValueError with 'mismatch' when version string is wrong."""
-    df = pd.DataFrame({
-        "alpha_pos": [0.3],
-        "parameterization_version": ["v3.0-legacy"],
-    })
+    df = pd.DataFrame(
+        {
+            "alpha_pos": [0.3],
+            "parameterization_version": ["v3.0-legacy"],
+        }
+    )
     with tempfile.NamedTemporaryFile(suffix=".csv", delete=False, mode="w") as f:
         df.to_csv(f, index=False)
         tmp_path = Path(f.name)
@@ -322,10 +323,12 @@ def test_load_fits_with_validation_success():
     """Returns DataFrame without error when version matches expected."""
     model = "wmrl_m3"
     expected_version = EXPECTED_PARAMETERIZATION[model]
-    df = pd.DataFrame({
-        "alpha_pos": [0.3, 0.4],
-        "parameterization_version": [expected_version, expected_version],
-    })
+    df = pd.DataFrame(
+        {
+            "alpha_pos": [0.3, 0.4],
+            "parameterization_version": [expected_version, expected_version],
+        }
+    )
     with tempfile.NamedTemporaryFile(suffix=".csv", delete=False, mode="w") as f:
         df.to_csv(f, index=False)
         tmp_path = Path(f.name)

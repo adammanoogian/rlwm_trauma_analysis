@@ -75,6 +75,7 @@ Use ``--no-paper-edit`` to skip the paper.qmd modification (cluster invocation
 runs with this flag — paper.qmd lives in the repo root and edits are reviewed
 locally as a Git diff, not on the cluster).
 """
+
 from __future__ import annotations
 
 import argparse
@@ -272,9 +273,7 @@ def _df_to_markdown(df: pd.DataFrame, bold_rows: list[int] | None = None) -> str
         df_render = df_render.astype(object)
         for idx in bold_rows:
             if 0 <= idx < len(df_render):
-                df_render.iloc[idx] = df_render.iloc[idx].apply(
-                    lambda v: f"**{v}**"
-                )
+                df_render.iloc[idx] = df_render.iloc[idx].apply(lambda v: f"**{v}**")
     try:
         return df_render.to_markdown(index=False)
     except ImportError:
@@ -407,9 +406,7 @@ def generate_table1_loo_stacking(
         df = df.drop(columns=[first_col])
 
     # Promote ``Model`` to display names where possible (idempotent).
-    df["Model"] = df["Model"].apply(
-        lambda v: INTERNAL_TO_DISPLAY.get(str(v), str(v))
-    )
+    df["Model"] = df["Model"].apply(lambda v: INTERNAL_TO_DISPLAY.get(str(v), str(v)))
 
     # Compute rank from stacking weight (descending). step 21.5's CSV is
     # already sorted but we recompute for safety.
@@ -609,9 +606,7 @@ def generate_table3_winner_betas(
             else "covariate"
         )
         tgt_col = (
-            "target_parameter"
-            if "target_parameter" in averaged.columns
-            else "target"
+            "target_parameter" if "target_parameter" in averaged.columns else "target"
         )
         for _, row in averaged.iterrows():
             key = (str(row[cov_col]), str(row[tgt_col]))
@@ -631,9 +626,7 @@ def generate_table3_winner_betas(
             continue
         for _, brow in winner_df.iterrows():
             cov_family = str(brow.get("covariate_family", brow.get("covariate", "")))
-            target_param = str(
-                brow.get("target_parameter", brow.get("target", ""))
-            )
+            target_param = str(brow.get("target_parameter", brow.get("target", "")))
             new_row: dict[str, object] = {
                 "winner": winner,
                 "covariate_family": cov_family,
@@ -762,7 +755,7 @@ def generate_figure1_forest(
         # pipeline doesn't fail on a cosmetic step.
         legacy_candidates = [
             Path(f"output/bayesian/figures/{internal}_forest.png"),
-            Path(f"output/bayesian/figures/m6b_forest_lec5.png"),
+            Path("output/bayesian/figures/m6b_forest_lec5.png"),
             Path(f"output/bayesian/level2/{internal}_forest.png"),
         ]
         copied = False
@@ -830,8 +823,7 @@ def write_null_result_summary(
                     str(df.iloc[top_idx, 0]), str(df.iloc[top_idx, 0])
                 )
                 weight_blurb = (
-                    f"Stacking-weight winner: **{top_model}** "
-                    f"(w={top_w:.2f})."
+                    f"Stacking-weight winner: **{top_model}** (w={top_w:.2f})."
                 )
         except (KeyError, ValueError) as exc:
             logger.warning("Could not parse stacking results: %s", exc)
@@ -1041,9 +1033,7 @@ def main(argv: list[str] | None = None) -> int:
     args.figures_dir.mkdir(parents=True, exist_ok=True)
 
     # Read pipeline action + winners.
-    audit_action = _read_audit_pipeline_action(
-        args.l2_dir / "scale_audit_report.md"
-    )
+    audit_action = _read_audit_pipeline_action(args.l2_dir / "scale_audit_report.md")
     winners = _read_winners_txt(args.baseline_dir / "winners.txt")
     logger.info("Audit pipeline_action: %s", audit_action)
     logger.info("Winners: %s", winners)

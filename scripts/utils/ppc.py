@@ -61,7 +61,6 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-
 # Senta et al. (2025) canonical constants
 FIXED_BETA: float = 50.0
 NUM_ACTIONS: int = 3
@@ -233,7 +232,7 @@ def _simulate_wmrl_family(
     rewards_blocks: list[np.ndarray] = []
     Q0 = 1.0 / NUM_ACTIONS
 
-    for stim, ss in zip(stimuli_blocks, set_sizes_blocks):
+    for stim, ss in zip(stimuli_blocks, set_sizes_blocks, strict=False):
         n_trials = len(stim)
         Q = np.full((NUM_STIMULI, NUM_ACTIONS), Q_INIT, dtype=np.float32)
         WM = np.full((NUM_STIMULI, NUM_ACTIONS), WM_INIT, dtype=np.float32)
@@ -437,8 +436,7 @@ def _extract_param_vector(
             out[pname] = float(arr[draw_idx, ppt_idx])
 
     # M6b decode from (kappa_total, kappa_share)
-    if model == "wmrl_m6b":
-        if "kappa_total" in prior_samples and "kappa_share" in prior_samples:
+    if model == "wmrl_m6b" and "kappa_total" in prior_samples and "kappa_share" in prior_samples:
             kt = float(np.asarray(prior_samples["kappa_total"])[draw_idx, ppt_idx])
             ks = float(np.asarray(prior_samples["kappa_share"])[draw_idx, ppt_idx])
             out["kappa"] = kt * ks
@@ -658,11 +656,11 @@ def run_prior_ppc(
         STACKED_MODEL_DISPATCH,
         load_and_prepare_data,
     )
-    from rlwm.fitting.numpyro_helpers import PARAM_PRIOR_DEFAULTS
     from rlwm.fitting.core import (
         prepare_stacked_participant_data,
         stack_across_participants,
     )
+    from rlwm.fitting.numpyro_helpers import PARAM_PRIOR_DEFAULTS
 
     t0 = time.monotonic()
     output_dir.mkdir(parents=True, exist_ok=True)

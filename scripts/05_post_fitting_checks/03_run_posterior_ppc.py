@@ -104,7 +104,9 @@ def main() -> int:
 
     all_results: dict[str, dict] = {}
     for model in models:
-        fitted_params_path = Path(args.fitted_params_dir) / f"{model}_individual_fits.csv"
+        fitted_params_path = (
+            Path(args.fitted_params_dir) / f"{model}_individual_fits.csv"
+        )
         if not fitted_params_path.exists():
             print(f"Warning: Fitted params not found at {fitted_params_path}")
             continue

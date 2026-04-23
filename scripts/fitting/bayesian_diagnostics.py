@@ -31,10 +31,10 @@ from rlwm.fitting.models.wmrl_m5 import wmrl_m5_multiblock_likelihood_stacked
 from rlwm.fitting.models.wmrl_m6a import wmrl_m6a_multiblock_likelihood_stacked
 from rlwm.fitting.models.wmrl_m6b import wmrl_m6b_multiblock_likelihood_stacked
 
-
 # ---------------------------------------------------------------------------
 # Internal dispatch helpers
 # ---------------------------------------------------------------------------
+
 
 def _get_param_names(model_name: str) -> list[str]:
     """Return the individual-level parameter names stored in MCMC samples.
@@ -52,9 +52,34 @@ def _get_param_names(model_name: str) -> list[str]:
     _param_map: dict[str, list[str]] = {
         "qlearning": ["alpha_pos", "alpha_neg", "epsilon"],
         "wmrl": ["alpha_pos", "alpha_neg", "phi", "rho", "capacity", "epsilon"],
-        "wmrl_m3": ["alpha_pos", "alpha_neg", "phi", "rho", "capacity", "kappa", "epsilon"],
-        "wmrl_m5": ["alpha_pos", "alpha_neg", "phi", "rho", "capacity", "kappa", "phi_rl", "epsilon"],
-        "wmrl_m6a": ["alpha_pos", "alpha_neg", "phi", "rho", "capacity", "kappa_s", "epsilon"],
+        "wmrl_m3": [
+            "alpha_pos",
+            "alpha_neg",
+            "phi",
+            "rho",
+            "capacity",
+            "kappa",
+            "epsilon",
+        ],
+        "wmrl_m5": [
+            "alpha_pos",
+            "alpha_neg",
+            "phi",
+            "rho",
+            "capacity",
+            "kappa",
+            "phi_rl",
+            "epsilon",
+        ],
+        "wmrl_m6a": [
+            "alpha_pos",
+            "alpha_neg",
+            "phi",
+            "rho",
+            "capacity",
+            "kappa_s",
+            "epsilon",
+        ],
         "wmrl_m6b": [
             "alpha_pos",
             "alpha_neg",
@@ -103,7 +128,9 @@ def _get_likelihood_fn(model_name: str):
     return _fn_map[model_name]
 
 
-def _build_per_participant_fn(model_name: str, pdata: dict, num_stimuli: int, num_actions: int, q_init: float):
+def _build_per_participant_fn(
+    model_name: str, pdata: dict, num_stimuli: int, num_actions: int, q_init: float
+):
     """Build a vmappable per-participant pointwise log-lik function.
 
     The returned function maps a dict of per-participant parameter vectors
@@ -136,6 +163,7 @@ def _build_per_participant_fn(model_name: str, pdata: dict, num_stimuli: int, nu
     masks_stacked = pdata["masks_stacked"]
 
     if model_name == "qlearning":
+
         def _per_sample(alpha_pos, alpha_neg, epsilon):
             _, pointwise = fn(
                 stimuli_stacked=stimuli_stacked,
@@ -202,7 +230,9 @@ def _build_per_participant_fn(model_name: str, pdata: dict, num_stimuli: int, nu
     elif model_name == "wmrl_m5":
         set_sizes_stacked = pdata["set_sizes_stacked"]
 
-        def _per_sample(alpha_pos, alpha_neg, phi, rho, capacity, kappa, phi_rl, epsilon):
+        def _per_sample(
+            alpha_pos, alpha_neg, phi, rho, capacity, kappa, phi_rl, epsilon
+        ):
             _, pointwise = fn(
                 stimuli_stacked=stimuli_stacked,
                 actions_stacked=actions_stacked,
@@ -251,7 +281,9 @@ def _build_per_participant_fn(model_name: str, pdata: dict, num_stimuli: int, nu
     elif model_name == "wmrl_m6b":
         set_sizes_stacked = pdata["set_sizes_stacked"]
 
-        def _per_sample(alpha_pos, alpha_neg, phi, rho, capacity, kappa_total, kappa_share, epsilon):
+        def _per_sample(
+            alpha_pos, alpha_neg, phi, rho, capacity, kappa_total, kappa_share, epsilon
+        ):
             # Decode stick-breaking: kappa = kappa_total * kappa_share, kappa_s = kappa_total * (1 - kappa_share)
             kappa = kappa_total * kappa_share
             kappa_s = kappa_total * (1.0 - kappa_share)
@@ -286,8 +318,9 @@ def _build_per_participant_fn(model_name: str, pdata: dict, num_stimuli: int, nu
 # Public API
 # ---------------------------------------------------------------------------
 
+
 def compute_pointwise_log_lik(
-    mcmc: "MCMC",
+    mcmc: MCMC,
     participant_data_stacked: dict,
     model_name: str,
     *,
@@ -339,7 +372,7 @@ def compute_pointwise_log_lik(
     samples = mcmc.get_samples(group_by_chain=True)
     param_names = _get_param_names(model_name)
     participant_ids = list(participant_data_stacked.keys())
-    n_participants = len(participant_ids)
+    len(participant_ids)
 
     # Build per-participant pointwise arrays, one participant at a time.
     # Each call returns shape (chains, samples_per_chain, n_blocks_i * max_trials)
@@ -385,11 +418,11 @@ def compute_pointwise_log_lik(
 
 
 def build_inference_data_with_loglik(
-    mcmc: "MCMC",
+    mcmc: MCMC,
     pointwise_log_lik: jnp.ndarray,
     *,
     participant_ids: list | None = None,
-) -> "az.InferenceData":
+) -> az.InferenceData:
     """Convert MCMC to ArviZ InferenceData and attach the log_likelihood group.
 
     After this, ``az.waic(idata)`` and ``az.loo(idata)`` work natively without
@@ -452,7 +485,7 @@ def build_inference_data_with_loglik(
 
 
 def compute_shrinkage_report(
-    idata: "az.InferenceData",
+    idata: az.InferenceData,
     param_names: list[str],
 ) -> dict[str, float]:
     """Compute shrinkage for each individual-level parameter.
@@ -627,10 +660,10 @@ def filter_padding_from_loglik(
 
 
 def run_posterior_predictive_check(
-    mcmc: "MCMC",
+    mcmc: MCMC,
     participant_data_stacked: dict,
     model_name: str,
-    data_df: "pd.DataFrame",
+    data_df: pd.DataFrame,
     *,
     group_col: str = "hypothesis_group",
     participant_col: str = "sona_id",
@@ -724,7 +757,9 @@ def run_posterior_predictive_check(
     n_draws = samples[param_names[0]].shape[1]
     total_draws = n_chains * n_draws
     rng = np.random.default_rng(seed=0)
-    draw_indices = rng.choice(total_draws, size=min(n_ppc_samples, total_draws), replace=False)
+    draw_indices = rng.choice(
+        total_draws, size=min(n_ppc_samples, total_draws), replace=False
+    )
 
     # Flatten samples to (total_draws, n_participants)
     flat_params: dict[str, np.ndarray] = {}
@@ -803,13 +838,14 @@ def run_posterior_predictive_check(
 
     for group in all_groups:
         group_pids = [pid for pid, g in group_map.items() if g == group]
-        group_pid_indices = [participant_ids.index(pid) for pid in group_pids if pid in participant_ids]
+        group_pid_indices = [
+            participant_ids.index(pid) for pid in group_pids if pid in participant_ids
+        ]
 
         for block in main_blocks:
             # Observed accuracy for this group, block
-            mask_obs = (
-                (data_df[participant_col].isin(group_pids))
-                & (data_df[block_col] == block)
+            mask_obs = (data_df[participant_col].isin(group_pids)) & (
+                data_df[block_col] == block
             )
             block_rows = data_df[mask_obs]
             if len(block_rows) == 0:
@@ -851,7 +887,9 @@ def run_posterior_predictive_check(
 
             # Gather predicted accuracy for this group and block across draws
             # Shape: (n_ppc_samples, len(group_pid_indices))
-            group_ppc = predicted_acc[:, group_pid_indices, b_stacked_idx]  # (draws, n_group)
+            group_ppc = predicted_acc[
+                :, group_pid_indices, b_stacked_idx
+            ]  # (draws, n_group)
             # Flatten draws × group-participants
             group_ppc_flat = group_ppc.flatten()
             group_ppc_flat = group_ppc_flat[~np.isnan(group_ppc_flat)]
@@ -864,15 +902,17 @@ def run_posterior_predictive_check(
             ppc_97_5 = float(np.percentile(group_ppc_flat, 97.5))
             covered = bool(ppc_2_5 <= observed_accuracy <= ppc_97_5)
 
-            rows_ppc.append({
-                "group": group,
-                "block": block,
-                "observed_accuracy": observed_accuracy,
-                "ppc_median": ppc_50,
-                "ppc_2.5": ppc_2_5,
-                "ppc_97.5": ppc_97_5,
-                "covered": covered,
-            })
+            rows_ppc.append(
+                {
+                    "group": group,
+                    "block": block,
+                    "observed_accuracy": observed_accuracy,
+                    "ppc_median": ppc_50,
+                    "ppc_2.5": ppc_2_5,
+                    "ppc_97.5": ppc_97_5,
+                    "covered": covered,
+                }
+            )
 
             covered_count += int(covered)
             total_blocks_evaluated += 1

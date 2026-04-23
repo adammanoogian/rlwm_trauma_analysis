@@ -50,34 +50,36 @@ Next Steps:
     - Run 04_analyze_mle_by_trauma.py (in 06_fit_analyses/) after model fitting
 """
 
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-from pathlib import Path
-from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import silhouette_score
-from scipy.cluster.hierarchy import dendrogram, linkage, fcluster
-from scipy.stats import chi2_contingency, stats
 import argparse
 import warnings
-warnings.filterwarnings('ignore')
+from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from scipy.cluster.hierarchy import dendrogram, fcluster, linkage
+from sklearn.metrics import silhouette_score
+from sklearn.preprocessing import StandardScaler
+
+warnings.filterwarnings("ignore")
 
 import sys
+
 project_root = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(project_root))
 
 # Paths
-OUTPUT_DIR = Path('output/trauma_groups')
-FIGURES_DIR = Path('figures/trauma_groups')
+OUTPUT_DIR = Path("output/trauma_groups")
+FIGURES_DIR = Path("figures/trauma_groups")
 
 # ============================================================================
 # PART 1: TRAUMA GROUPING ANALYSIS
 # ============================================================================
 
+
 def load_participant_data():
     """Load participant summary data with trauma scores."""
-    data_path = Path('output/summary_participant_metrics.csv')
+    data_path = Path("output/summary_participant_metrics.csv")
 
     if not data_path.exists():
         raise FileNotFoundError(
@@ -89,21 +91,26 @@ def load_participant_data():
 
     # Normalize column names (LESS → LEC naming convention used downstream)
     rename_map = {
-        'less_total_events': 'lec_total_events',
-        'less_personal_events': 'lec_personal_events',
+        "less_total_events": "lec_total_events",
+        "less_personal_events": "lec_personal_events",
     }
     df = df.rename(columns={k: v for k, v in rename_map.items() if k in df.columns})
 
     # Check required columns
-    required_cols = ['sona_id', 'lec_total_events', 'ies_total',
-                     'accuracy_overall', 'mean_rt_overall']
+    required_cols = [
+        "sona_id",
+        "lec_total_events",
+        "ies_total",
+        "accuracy_overall",
+        "mean_rt_overall",
+    ]
     missing_cols = [col for col in required_cols if col not in df.columns]
 
     if missing_cols:
         raise ValueError(f"Missing required columns: {missing_cols}")
 
     # Remove any rows with missing trauma scores
-    df_clean = df.dropna(subset=['lec_total_events', 'ies_total'])
+    df_clean = df.dropna(subset=["lec_total_events", "ies_total"])
 
     print(f"Loaded {len(df_clean)} participants with complete trauma data")
     print(f"(excluded {len(df) - len(df_clean)} participants with missing data)")
@@ -125,36 +132,36 @@ def create_hypothesis_groups(df):
     print("\n" + "=" * 80)
     print("HYPOTHESIS-DRIVEN GROUPING (LESS ENDORSEMENT + IES-R CUTOFF)")
     print("=" * 80)
-    print(f"\nCriteria:")
-    print(f"  - No Trauma Exposure: LESS = 0")
+    print("\nCriteria:")
+    print("  - No Trauma Exposure: LESS = 0")
     print(f"  - Trauma - No Ongoing Impact: LESS ≥ 1 AND IES-R < {IES_CUTOFF}")
     print(f"  - Trauma - Ongoing Impact: LESS ≥ 1 AND IES-R ≥ {IES_CUTOFF}")
 
     def assign_group(row):
-        if row['lec_total_events'] == 0:
-            return 'No Trauma'
-        elif row['lec_total_events'] >= 1 and row['ies_total'] < IES_CUTOFF:
-            return 'Trauma - No Ongoing Impact'
+        if row["lec_total_events"] == 0:
+            return "No Trauma"
+        elif row["lec_total_events"] >= 1 and row["ies_total"] < IES_CUTOFF:
+            return "Trauma - No Ongoing Impact"
         else:
-            return 'Trauma - Ongoing Impact'
+            return "Trauma - Ongoing Impact"
 
-    df['hypothesis_group'] = df.apply(assign_group, axis=1)
+    df["hypothesis_group"] = df.apply(assign_group, axis=1)
 
     # Print group sizes
     print("\nGroup Sizes:")
-    group_counts = df['hypothesis_group'].value_counts().sort_index()
+    group_counts = df["hypothesis_group"].value_counts().sort_index()
     for group, count in group_counts.items():
         print(f"  {group}: n={count}")
 
     # Print group characteristics
     print("\nGroup Characteristics (Mean ± SD):")
-    for group in ['No Trauma', 'Trauma - No Ongoing Impact', 'Trauma - Ongoing Impact']:
-        if group in df['hypothesis_group'].values:
-            group_data = df[df['hypothesis_group'] == group]
-            lec_mean = group_data['lec_total_events'].mean()
-            lec_std = group_data['lec_total_events'].std()
-            ies_mean = group_data['ies_total'].mean()
-            ies_std = group_data['ies_total'].std()
+    for group in ["No Trauma", "Trauma - No Ongoing Impact", "Trauma - Ongoing Impact"]:
+        if group in df["hypothesis_group"].values:
+            group_data = df[df["hypothesis_group"] == group]
+            lec_mean = group_data["lec_total_events"].mean()
+            lec_std = group_data["lec_total_events"].std()
+            ies_mean = group_data["ies_total"].mean()
+            ies_std = group_data["ies_total"].std()
 
             print(f"\n  {group}:")
             print(f"    LEC: {lec_mean:.2f} ± {lec_std:.2f}")
@@ -163,15 +170,17 @@ def create_hypothesis_groups(df):
     return df
 
 
-def perform_hierarchical_clustering(df, k_range=[2, 3, 4]):
+def perform_hierarchical_clustering(df, k_range=None):
     """Perform hierarchical clustering with Ward linkage."""
+    if k_range is None:
+        k_range = [2, 3, 4]
     print("\n" + "=" * 80)
     print("HIERARCHICAL CLUSTERING ANALYSIS")
     print("=" * 80)
 
-    features = df[['lec_total_events', 'ies_total']].values
+    features = df[["lec_total_events", "ies_total"]].values
 
-    print(f"\nFeatures: LEC Total Events, IES-R Total Score")
+    print("\nFeatures: LEC Total Events, IES-R Total Score")
     print(f"N participants: {len(features)}")
 
     scaler = StandardScaler()
@@ -182,7 +191,7 @@ def perform_hierarchical_clustering(df, k_range=[2, 3, 4]):
     print(f"  IES-R mean={scaler.mean_[1]:.2f}, std={scaler.scale_[1]:.2f}")
 
     print("\nComputing hierarchical clustering with Ward linkage...")
-    linkage_matrix = linkage(features_scaled, method='ward')
+    linkage_matrix = linkage(features_scaled, method="ward")
 
     print("\n" + "-" * 80)
     print("Testing cluster solutions:")
@@ -192,7 +201,7 @@ def perform_hierarchical_clustering(df, k_range=[2, 3, 4]):
     cluster_assignments = {}
 
     for k in k_range:
-        clusters = fcluster(linkage_matrix, t=k, criterion='maxclust')
+        clusters = fcluster(linkage_matrix, t=k, criterion="maxclust")
         cluster_assignments[k] = clusters
 
         if k > 1 and k < len(features):
@@ -200,7 +209,7 @@ def perform_hierarchical_clustering(df, k_range=[2, 3, 4]):
             silhouette_scores[k] = sil_score
 
             unique, counts = np.unique(clusters, return_counts=True)
-            cluster_sizes = dict(zip(unique, counts))
+            cluster_sizes = dict(zip(unique, counts, strict=False))
 
             print(f"\nk={k} clusters:")
             print(f"  Silhouette score: {sil_score:.3f}")
@@ -208,12 +217,14 @@ def perform_hierarchical_clustering(df, k_range=[2, 3, 4]):
 
     if silhouette_scores:
         optimal_k = max(silhouette_scores, key=silhouette_scores.get)
-        print(f"\n>>> Optimal k={optimal_k} (highest silhouette: {silhouette_scores[optimal_k]:.3f})")
+        print(
+            f"\n>>> Optimal k={optimal_k} (highest silhouette: {silhouette_scores[optimal_k]:.3f})"
+        )
     else:
         optimal_k = 3
 
     for k in k_range:
-        df[f'cluster_k{k}'] = cluster_assignments[k]
+        df[f"cluster_k{k}"] = cluster_assignments[k]
 
     return df, linkage_matrix, features_scaled, silhouette_scores, optimal_k
 
@@ -223,40 +234,50 @@ def plot_hypothesis_groups(df, ies_median=24):
     fig, ax = plt.subplots(figsize=(10, 8))
 
     group_colors = {
-        'No Trauma': '#2ecc71',
-        'Trauma - No Ongoing Impact': '#f39c12',
-        'Trauma - Ongoing Impact': '#e74c3c',
-        'Excluded_Low_High': '#95a5a6'
+        "No Trauma": "#2ecc71",
+        "Trauma - No Ongoing Impact": "#f39c12",
+        "Trauma - Ongoing Impact": "#e74c3c",
+        "Excluded_Low_High": "#95a5a6",
     }
 
-    for group in df['hypothesis_group'].unique():
-        group_data = df[df['hypothesis_group'] == group]
+    for group in df["hypothesis_group"].unique():
+        group_data = df[df["hypothesis_group"] == group]
         ax.scatter(
-            group_data['lec_total_events'],
-            group_data['ies_total'],
-            c=group_colors.get(group, 'gray'),
+            group_data["lec_total_events"],
+            group_data["ies_total"],
+            c=group_colors.get(group, "gray"),
             label=group,
             s=100,
             alpha=0.7,
-            edgecolors='black',
-            linewidth=1
+            edgecolors="black",
+            linewidth=1,
         )
 
     if ies_median is not None:
-        ax.axhline(ies_median, color='red', linestyle='--', alpha=0.7, linewidth=2,
-                   label=f'IES-R Cutoff = {ies_median}')
+        ax.axhline(
+            ies_median,
+            color="red",
+            linestyle="--",
+            alpha=0.7,
+            linewidth=2,
+            label=f"IES-R Cutoff = {ies_median}",
+        )
 
-    ax.set_xlabel('LEC-5 Total Events (LESS)', fontsize=12, fontweight='bold')
-    ax.set_ylabel('IES-R Total Score', fontsize=12, fontweight='bold')
-    ax.set_title('Hypothesis-Driven Trauma Grouping\n(LESS Endorsement + IES-R ≥ 24)',
-                 fontsize=14, fontweight='bold', pad=20)
-    ax.legend(loc='upper left', fontsize=10, framealpha=0.9)
+    ax.set_xlabel("LEC-5 Total Events (LESS)", fontsize=12, fontweight="bold")
+    ax.set_ylabel("IES-R Total Score", fontsize=12, fontweight="bold")
+    ax.set_title(
+        "Hypothesis-Driven Trauma Grouping\n(LESS Endorsement + IES-R ≥ 24)",
+        fontsize=14,
+        fontweight="bold",
+        pad=20,
+    )
+    ax.legend(loc="upper left", fontsize=10, framealpha=0.9)
     ax.grid(True, alpha=0.3)
 
     plt.tight_layout()
 
-    output_path = FIGURES_DIR / 'hypothesis_groups_scatter.png'
-    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    output_path = FIGURES_DIR / "hypothesis_groups_scatter.png"
+    plt.savefig(output_path, dpi=300, bbox_inches="tight")
     print(f"\n[SAVED] {output_path}")
     plt.close()
 
@@ -268,28 +289,44 @@ def plot_dendrogram(linkage_matrix, df):
     dendrogram(
         linkage_matrix,
         ax=ax,
-        labels=df['sona_id'].astype(str).values,
+        labels=df["sona_id"].astype(str).values,
         leaf_font_size=10,
         color_threshold=0,
-        above_threshold_color='black'
+        above_threshold_color="black",
     )
 
-    ax.set_xlabel('Participant ID', fontsize=12, fontweight='bold')
-    ax.set_ylabel('Ward Linkage Distance', fontsize=12, fontweight='bold')
-    ax.set_title('Hierarchical Clustering Dendrogram\n(Ward Linkage on Standardized LEC + IES-R)',
-                 fontsize=14, fontweight='bold', pad=20)
+    ax.set_xlabel("Participant ID", fontsize=12, fontweight="bold")
+    ax.set_ylabel("Ward Linkage Distance", fontsize=12, fontweight="bold")
+    ax.set_title(
+        "Hierarchical Clustering Dendrogram\n(Ward Linkage on Standardized LEC + IES-R)",
+        fontsize=14,
+        fontweight="bold",
+        pad=20,
+    )
 
-    ax.axhline(y=ax.get_ylim()[1]*0.6, color='red', linestyle='--',
-               alpha=0.5, linewidth=1, label='Potential cut for k=2')
-    ax.axhline(y=ax.get_ylim()[1]*0.4, color='orange', linestyle='--',
-               alpha=0.5, linewidth=1, label='Potential cut for k=3')
+    ax.axhline(
+        y=ax.get_ylim()[1] * 0.6,
+        color="red",
+        linestyle="--",
+        alpha=0.5,
+        linewidth=1,
+        label="Potential cut for k=2",
+    )
+    ax.axhline(
+        y=ax.get_ylim()[1] * 0.4,
+        color="orange",
+        linestyle="--",
+        alpha=0.5,
+        linewidth=1,
+        label="Potential cut for k=3",
+    )
 
-    ax.legend(loc='upper right', fontsize=10)
+    ax.legend(loc="upper right", fontsize=10)
 
     plt.tight_layout()
 
-    output_path = FIGURES_DIR / 'hierarchical_dendrogram.png'
-    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    output_path = FIGURES_DIR / "hierarchical_dendrogram.png"
+    plt.savefig(output_path, dpi=300, bbox_inches="tight")
     print(f"[SAVED] {output_path}")
     plt.close()
 
@@ -301,23 +338,30 @@ def save_grouping_results(df, silhouette_scores, optimal_k):
     print("=" * 80)
 
     # Save group assignments
-    output_cols = ['sona_id', 'lec_total_events', 'ies_total',
-                   'hypothesis_group', 'cluster_k2', 'cluster_k3', 'cluster_k4']
+    output_cols = [
+        "sona_id",
+        "lec_total_events",
+        "ies_total",
+        "hypothesis_group",
+        "cluster_k2",
+        "cluster_k3",
+        "cluster_k4",
+    ]
     output_cols = [col for col in output_cols if col in df.columns]
 
-    assignments_path = OUTPUT_DIR / 'group_assignments.csv'
+    assignments_path = OUTPUT_DIR / "group_assignments.csv"
     df[output_cols].to_csv(assignments_path, index=False)
     print(f"\n[SAVED] {assignments_path}")
 
     # Save clustering metrics
     metrics_data = {
-        'k': list(silhouette_scores.keys()),
-        'silhouette_score': list(silhouette_scores.values())
+        "k": list(silhouette_scores.keys()),
+        "silhouette_score": list(silhouette_scores.values()),
     }
     metrics_df = pd.DataFrame(metrics_data)
-    metrics_df['optimal'] = metrics_df['k'] == optimal_k
+    metrics_df["optimal"] = metrics_df["k"] == optimal_k
 
-    metrics_path = OUTPUT_DIR / 'clustering_metrics.csv'
+    metrics_path = OUTPUT_DIR / "clustering_metrics.csv"
     metrics_df.to_csv(metrics_path, index=False)
     print(f"[SAVED] {metrics_path}")
 
@@ -326,22 +370,23 @@ def save_grouping_results(df, silhouette_scores, optimal_k):
 # PART 2: VALIDATION
 # ============================================================================
 
+
 def test_hypothesis_groups(df):
     """Test behavioral differences across hypothesis-driven groups."""
     print("\n" + "=" * 80)
     print("HYPOTHESIS-DRIVEN GROUPS: BEHAVIORAL VALIDATION")
     print("=" * 80)
 
-    main_groups = ['No Trauma', 'Trauma - No Ongoing Impact', 'Trauma - Ongoing Impact']
-    df_test = df[df['hypothesis_group'].isin(main_groups)].copy()
+    main_groups = ["No Trauma", "Trauma - No Ongoing Impact", "Trauma - Ongoing Impact"]
+    df_test = df[df["hypothesis_group"].isin(main_groups)].copy()
 
     if len(df_test) < 3:
         print("\nINSUFFICIENT DATA: Need at least 3 participants for analysis")
         return None
 
     outcomes = {
-        'accuracy_overall': 'Overall Accuracy',
-        'mean_rt_overall': 'Mean RT (ms)'
+        "accuracy_overall": "Overall Accuracy",
+        "mean_rt_overall": "Mean RT (ms)",
     }
 
     results = []
@@ -361,8 +406,10 @@ def test_hypothesis_groups(df):
 
         print("\nDescriptive Statistics:")
         for group in main_groups:
-            if group in df_outcome['hypothesis_group'].values:
-                group_data = df_outcome[df_outcome['hypothesis_group'] == group][outcome]
+            if group in df_outcome["hypothesis_group"].values:
+                group_data = df_outcome[df_outcome["hypothesis_group"] == group][
+                    outcome
+                ]
                 mean_val = group_data.mean()
                 std_val = group_data.std()
                 n_val = len(group_data)
@@ -370,39 +417,43 @@ def test_hypothesis_groups(df):
 
         # Kruskal-Wallis test
         groups_data = [
-            df_outcome[df_outcome['hypothesis_group'] == g][outcome].values
+            df_outcome[df_outcome["hypothesis_group"] == g][outcome].values
             for g in main_groups
-            if g in df_outcome['hypothesis_group'].values and len(df_outcome[df_outcome['hypothesis_group'] == g]) > 0
+            if g in df_outcome["hypothesis_group"].values
+            and len(df_outcome[df_outcome["hypothesis_group"] == g]) > 0
         ]
 
         if len(groups_data) >= 2:
             from scipy.stats import kruskal
+
             h_stat, p_value = kruskal(*groups_data)
 
-            print(f"\nKruskal-Wallis H Test:")
+            print("\nKruskal-Wallis H Test:")
             print(f"  H={h_stat:.3f}, p={p_value:.4f}")
 
             if p_value < 0.05:
-                print(f"  >>> SIGNIFICANT group difference (p < 0.05)")
+                print("  >>> SIGNIFICANT group difference (p < 0.05)")
             else:
-                print(f"  >>> No significant group difference (p ≥ 0.05)")
+                print("  >>> No significant group difference (p ≥ 0.05)")
 
-            results.append({
-                'outcome': label,
-                'test': 'Kruskal-Wallis H',
-                'statistic': h_stat,
-                'p_value': p_value,
-                'significant': p_value < 0.05
-            })
+            results.append(
+                {
+                    "outcome": label,
+                    "test": "Kruskal-Wallis H",
+                    "statistic": h_stat,
+                    "p_value": p_value,
+                    "significant": p_value < 0.05,
+                }
+            )
 
     return pd.DataFrame(results)
 
 
 def save_validation_report(hyp_results):
     """Save validation results to text report."""
-    report_path = OUTPUT_DIR / 'validation_report.txt'
+    report_path = OUTPUT_DIR / "validation_report.txt"
 
-    with open(report_path, 'w') as f:
+    with open(report_path, "w") as f:
         f.write("=" * 80 + "\n")
         f.write("TRAUMA GROUP VALIDATION REPORT\n")
         f.write("=" * 80 + "\n\n")
@@ -422,7 +473,9 @@ def save_validation_report(hyp_results):
         f.write("\n" + "=" * 80 + "\n")
         f.write("INTERPRETATION NOTES\n")
         f.write("-" * 80 + "\n")
-        f.write("\nWith small N, statistical power is limited. Non-significant results\n")
+        f.write(
+            "\nWith small N, statistical power is limited. Non-significant results\n"
+        )
         f.write("do not rule out true group differences.\n")
 
     print(f"\n[SAVED] {report_path}")
@@ -432,14 +485,21 @@ def save_validation_report(hyp_results):
 # MAIN
 # ============================================================================
 
+
 def main():
     parser = argparse.ArgumentParser(
-        description='Analyze trauma groups (grouping + validation)'
+        description="Analyze trauma groups (grouping + validation)"
     )
-    parser.add_argument('--grouping-only', action='store_true',
-                        help='Run only grouping analysis (skip validation)')
-    parser.add_argument('--validation-only', action='store_true',
-                        help='Run only validation (requires existing group assignments)')
+    parser.add_argument(
+        "--grouping-only",
+        action="store_true",
+        help="Run only grouping analysis (skip validation)",
+    )
+    parser.add_argument(
+        "--validation-only",
+        action="store_true",
+        help="Run only validation (requires existing group assignments)",
+    )
 
     args = parser.parse_args()
 
@@ -457,21 +517,24 @@ def main():
 
     if args.validation_only:
         # Load existing assignments
-        assignments_path = OUTPUT_DIR / 'group_assignments.csv'
+        assignments_path = OUTPUT_DIR / "group_assignments.csv"
         if not assignments_path.exists():
-            print(f"\nERROR: No group assignments found. Run without --validation-only first.")
+            print(
+                "\nERROR: No group assignments found. Run without --validation-only first."
+            )
             return
 
         df = pd.read_csv(assignments_path)
         # Load full data for behavioral outcomes
-        full_df = pd.read_csv(Path('output/summary_participant_metrics.csv'))
-        df = df.merge(full_df, on='sona_id', suffixes=('', '_full'))
+        full_df = pd.read_csv(Path("output/summary_participant_metrics.csv"))
+        df = df.merge(full_df, on="sona_id", suffixes=("", "_full"))
     else:
         # Run grouping
         df = load_participant_data()
         df = create_hypothesis_groups(df)
-        df, linkage_matrix, features_scaled, silhouette_scores, optimal_k = \
+        df, linkage_matrix, features_scaled, silhouette_scores, optimal_k = (
             perform_hierarchical_clustering(df)
+        )
 
         # Generate visualizations
         print("\n" + "=" * 80)
@@ -500,5 +563,5 @@ def main():
     print("  - Use group_assignments.csv for downstream analysis")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

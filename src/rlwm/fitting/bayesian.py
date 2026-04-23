@@ -28,12 +28,10 @@ from __future__ import annotations
 
 import argparse
 import json
-import sys
 import time
 from pathlib import Path
-from datetime import datetime
-import pandas as pd
-import numpy as np
+
+import arviz as az
 
 # Project root is expected to be on sys.path by the caller (thin CLI
 # wrappers at scripts/04_model_fitting/b_bayesian/{fit_bayesian,fit_baseline}.py
@@ -41,21 +39,16 @@ import numpy as np
 # mutation here — libraries should not.
 import jax
 import jax.numpy as jnp
+import numpy as np
 import numpyro
-import arviz as az
+import pandas as pd
 
+from config import ALL_MODELS, EXCLUDED_PARTICIPANTS, MODEL_REGISTRY, OUTPUT_VERSION_DIR
 from rlwm.fitting.core import (
     prepare_stacked_participant_data,
     stack_across_participants,
 )
-from rlwm.fitting.sampling import (
-    prepare_data_for_numpyro,
-    run_inference,
-    run_inference_with_bump,
-    samples_to_arviz,
-)
 from rlwm.fitting.models.qlearning import (
-    qlearning_hierarchical_model,
     qlearning_hierarchical_model_stacked,
 )
 from rlwm.fitting.models.wmrl import wmrl_hierarchical_model_stacked
@@ -66,13 +59,14 @@ from rlwm.fitting.models.wmrl_m6b import (
     wmrl_m6b_hierarchical_model,
     wmrl_m6b_hierarchical_model_subscale,
 )
+from rlwm.fitting.sampling import (
+    run_inference_with_bump,
+)
 from scripts.fitting.bayesian_diagnostics import (
-    compute_pointwise_log_lik,
     build_inference_data_with_loglik,
+    compute_pointwise_log_lik,
 )
 from scripts.fitting.bayesian_summary_writer import write_bayesian_summary
-
-from config import OUTPUT_VERSION_DIR, EXCLUDED_PARTICIPANTS, ALL_MODELS, MODEL_REGISTRY
 
 # ---------------------------------------------------------------------------
 # Canonical stacked hierarchical models (hBayesDM non-centered convention)
@@ -146,8 +140,8 @@ def load_and_prepare_data(
         df = df[df["sona_id"].astype(int).isin(cohort_ids)].copy()
         n_excluded = initial_n - df["sona_id"].nunique()
         print(
-            f"  Analysis cohort (v4.0): "
-            f"task-complete + performance-check + scale-complete"
+            "  Analysis cohort (v4.0): "
+            "task-complete + performance-check + scale-complete"
         )
         print(f"  Loaded {len(df)} trials from {initial_n} participants")
         print(f"  Excluded {n_excluded} participants outside cohort")
@@ -159,7 +153,9 @@ def load_and_prepare_data(
         n_excluded = initial_n - df["sona_id"].nunique()
         print(f"  Loaded {len(df)} trials from {initial_n} participants")
         if n_excluded > 0:
-            print(f"  Excluded {n_excluded} participants (legacy gate: insufficient data/duplicates)")
+            print(
+                f"  Excluded {n_excluded} participants (legacy gate: insufficient data/duplicates)"
+            )
             print(f"  Final sample: {df['sona_id'].nunique()} participants")
 
     # Filter blocks
@@ -182,7 +178,7 @@ def load_and_prepare_data(
         df["set_size"] = 6
 
     # Print summary
-    print(f"\n>> Data summary:")
+    print("\n>> Data summary:")
     print(f"  Participants: {df['sona_id'].nunique()}")
     print(f"  Blocks: {df['block'].nunique()}")
     print(f"  Total trials: {len(df)}")
@@ -278,7 +274,6 @@ def _load_subscale_design_matrix(
         ``(None, [])`` if the metrics file is missing or loading fails.
     """
     from scripts.fitting.level2_design import (
-        COVARIATE_NAMES,
         build_level2_design_matrix,
     )
 
@@ -469,11 +464,11 @@ def _fit_stacked_model(
             f"95% HDI=[{hdi_low:.4f}, {hdi_high:.4f}]"
         )
         if hdi_low > 0:
-            print(f"    HDI excludes zero (positive direction)")
+            print("    HDI excludes zero (positive direction)")
         elif hdi_high < 0:
-            print(f"    HDI excludes zero (negative direction)")
+            print("    HDI excludes zero (negative direction)")
         else:
-            print(f"    HDI includes zero")
+            print("    HDI includes zero")
 
     return mcmc, participant_data_stacked
 
@@ -563,7 +558,13 @@ def fit_model(
     print(f"{'=' * 80}")
 
     return _fit_stacked_model(
-        data, model, model_fn, num_warmup, num_samples, num_chains, seed,
+        data,
+        model,
+        model_fn,
+        num_warmup,
+        num_samples,
+        num_chains,
+        seed,
         subscale=subscale,
         max_tree_depth=max_tree_depth,
         use_pscan=use_pscan,
@@ -636,10 +637,10 @@ def save_results(
         If ``participant_data_stacked`` is ``None`` for a stacked model.
     """
     from scripts.fitting.bayesian_diagnostics import (
-        filter_padding_from_loglik,
         compute_shrinkage_report,
-        write_shrinkage_report,
+        filter_padding_from_loglik,
         run_posterior_predictive_check,
+        write_shrinkage_report,
     )
 
     output_dir = Path(output_dir)
@@ -1080,7 +1081,7 @@ def main() -> None:
     print("=" * 80)
     print(f"BAYESIAN {model_display} FIT WITH JAX/NUMPYRO")
     print("=" * 80)
-    print(f"\nSettings:")
+    print("\nSettings:")
     print(f"  Model: {args.model}")
     print(f"  Data: {args.data}")
     print(
@@ -1094,9 +1095,9 @@ def main() -> None:
     print(f"  Output: {args.output}")
     print(f"  Seed: {args.seed}")
     if args.use_pscan:
-        print(f"  Parallel scan: True (O(log T) associative scan likelihoods)")
+        print("  Parallel scan: True (O(log T) associative scan likelihoods)")
     if args.subscale:
-        print(f"  Subscale: True (wmrl_m6b_hierarchical_model_subscale, 32 beta sites)")
+        print("  Subscale: True (wmrl_m6b_hierarchical_model_subscale, 32 beta sites)")
     if args.permutation_shuffle is not None:
         print(f"  Permutation shuffle: {args.permutation_shuffle}")
     if args.output_subdir:
@@ -1165,7 +1166,9 @@ def main() -> None:
         args.model,
         Path(args.output),
         args.save_plots,
-        participant_data_stacked=extra if args.model in STACKED_MODEL_DISPATCH else None,
+        participant_data_stacked=extra
+        if args.model in STACKED_MODEL_DISPATCH
+        else None,
         use_pscan=args.use_pscan,
         output_subdir=args.output_subdir,
     )

@@ -14,7 +14,6 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import pytest
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -56,8 +55,7 @@ def _load_reference_csv() -> pd.DataFrame:
     """Load the canonical reference CSV for qlearning Bayesian fits."""
     ref_path = _FIXTURES_DIR / "qlearning_bayesian_reference.csv"
     assert ref_path.exists(), (
-        f"Reference CSV not found at {ref_path}. "
-        "Run the fixture generation step first."
+        f"Reference CSV not found at {ref_path}. Run the fixture generation step first."
     )
     return pd.read_csv(ref_path)
 

@@ -294,9 +294,9 @@ def compute_loo_stacking_bms(
             )
         per_ppt_ll = np.nansum(ll, axis=-1)  # (chain, draw, participant)
         n_chain, n_draw, n_ppt = per_ppt_ll.shape
-        log_evidence_per_ppt = logsumexp(
-            per_ppt_ll, axis=(0, 1)
-        ) - np.log(n_chain * n_draw)
+        log_evidence_per_ppt = logsumexp(per_ppt_ll, axis=(0, 1)) - np.log(
+            n_chain * n_draw
+        )
         log_evidence_cols.append(log_evidence_per_ppt)
 
         # Participant coordinate for consistency check.
@@ -464,8 +464,12 @@ def _write_winner_report(
     # --- Primary: LOO + stacking ---
     lines.append("## Primary — LOO + stacking weights")
     lines.append("")
-    lines.append("| Model | Rank | elpd_loo | p_loo | elpd_diff | weight | se | dse | pct_high_pareto_k |")
-    lines.append("|-------|------|----------|-------|-----------|--------|----|----|--------------------|")
+    lines.append(
+        "| Model | Rank | elpd_loo | p_loo | elpd_diff | weight | se | dse | pct_high_pareto_k |"
+    )
+    lines.append(
+        "|-------|------|----------|-------|-----------|--------|----|----|--------------------|"
+    )
     for model_name, row in comparison.sort_values("rank").iterrows():
         lines.append(
             f"| {model_name} | {int(row['rank'])} | "
@@ -593,18 +597,10 @@ def _write_winner_report(
     )
     lines.append("")
     lines.append("```bash")
-    lines.append(
-        "python scripts/06_fit_analyses/02_compute_loo_stacking.py \\"
-    )
-    lines.append(
-        "    --baseline-dir output/bayesian/21_baseline/ \\"
-    )
-    lines.append(
-        "    --output-dir output/bayesian/21_baseline/ \\"
-    )
-    lines.append(
-        f"    --force-winners {','.join(winners)}"
-    )
+    lines.append("python scripts/06_fit_analyses/02_compute_loo_stacking.py \\")
+    lines.append("    --baseline-dir output/bayesian/21_baseline/ \\")
+    lines.append("    --output-dir output/bayesian/21_baseline/ \\")
+    lines.append(f"    --force-winners {','.join(winners)}")
     lines.append("```")
     lines.append("")
     lines.append(
@@ -881,9 +877,7 @@ def main(argv: list[str] | None = None) -> int:
         args.pareto_k_pct_threshold,
         out_dir / "winner_report.md",
     )
-    (out_dir / "winners.txt").write_text(
-        ",".join(winners) + "\n", encoding="utf-8"
-    )
+    (out_dir / "winners.txt").write_text(",".join(winners) + "\n", encoding="utf-8")
 
     print(f"\nWrote {out_dir / 'loo_stacking_results.csv'}")
     print(f"Wrote {out_dir / 'rfx_bms_pxp.csv'}")

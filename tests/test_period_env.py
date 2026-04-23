@@ -174,7 +174,9 @@ class TestFeedbackSignal:
             period_env.step(gt_action if i == 0 else 0)
         # First feedback step — should have feedback signal = 1.0
         obs, _, _, _, _ = period_env.step(0)
-        assert obs[7] == 1.0, f"Feedback signal should be 1.0 after correct, got {obs[7]}"
+        assert obs[7] == 1.0, (
+            f"Feedback signal should be 1.0 after correct, got {obs[7]}"
+        )
 
     def test_feedback_channel_on_incorrect(self, period_env):
         """Feedback signal (obs[7]) should be 0.0 during feedback after incorrect response."""
@@ -190,7 +192,9 @@ class TestFeedbackSignal:
         for i in range(stim_steps):
             period_env.step(wrong_action if i == 0 else 0)
         obs, _, _, _, _ = period_env.step(0)
-        assert obs[7] == 0.0, f"Feedback signal should be 0.0 after incorrect, got {obs[7]}"
+        assert obs[7] == 0.0, (
+            f"Feedback signal should be 0.0 after incorrect, got {obs[7]}"
+        )
 
     def test_no_feedback_during_stimulus(self, period_env):
         """Feedback signal should be 0.0 during fixation and stimulus."""
@@ -202,7 +206,7 @@ class TestFeedbackSignal:
         assert obs[7] == 0.0  # first fixation step
         for i in range(fix_steps + stim_steps - 1):
             obs, _, _, _, _ = period_env.step(0)
-            assert obs[7] == 0.0, f"Feedback should be 0 at step {i+1}"
+            assert obs[7] == 0.0, f"Feedback should be 0 at step {i + 1}"
 
 
 class TestRewardAndTrialBoundaries:
@@ -268,7 +272,7 @@ class TestRewardAndTrialBoundaries:
 
         # Step through an entire trial
         new_trial_seen = False
-        for step in range(period_env.steps_per_trial):
+        for _step in range(period_env.steps_per_trial):
             obs, _, _, _, info = period_env.step(0)
             if info["new_trial"]:
                 new_trial_seen = True

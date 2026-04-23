@@ -1,4 +1,5 @@
 """Tests for M4 hierarchical model components."""
+
 from __future__ import annotations
 
 import jax
@@ -100,8 +101,7 @@ def test_prepare_stacked_data_m4_rts():
 
         # dtype must be float64
         assert rts.dtype == jnp.float64, (
-            f"Participant {pid}: rts_stacked.dtype={rts.dtype}, "
-            f"expected float64"
+            f"Participant {pid}: rts_stacked.dtype={rts.dtype}, expected float64"
         )
 
         # shape must be (n_blocks, MAX_TRIALS_PER_BLOCK)
@@ -126,7 +126,7 @@ def test_prepare_stacked_data_m4_rts():
         )
 
         # Padding positions (beyond n_trials) must be 0.0
-        if MAX_TRIALS_PER_BLOCK > n_trials:
+        if n_trials < MAX_TRIALS_PER_BLOCK:
             pad_vals = masks[:, n_trials:]
             assert float(pad_vals.max()) == 0.0, (
                 f"Participant {pid}: padding mask positions have non-zero values. "
@@ -145,7 +145,7 @@ def test_prepare_stacked_data_m4_sorted_participants():
     rows = []
     for pid in [5, 3, 1, 4, 2]:
         for blk in range(2):
-            for trial in range(8):
+            for _trial in range(8):
                 rows.append(
                     {
                         "sona_id": pid,
@@ -163,8 +163,7 @@ def test_prepare_stacked_data_m4_sorted_participants():
 
     keys = list(result.keys())
     assert keys == sorted(keys), (
-        f"Participant keys are not sorted. Got: {keys}, "
-        f"expected: {sorted(keys)}"
+        f"Participant keys are not sorted. Got: {keys}, expected: {sorted(keys)}"
     )
 
 

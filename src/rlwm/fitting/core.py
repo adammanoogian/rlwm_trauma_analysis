@@ -9,13 +9,16 @@ Follows Senta et al. (2025) PLoS Comp. Biol. 21(9):e1012872 math conventions:
 ``beta = 50`` fixed during learning, epsilon-noise action probabilities, and
 asymmetric Q-learning with ``alpha_pos`` / ``alpha_neg``.
 """
+
 from __future__ import annotations
 
-from typing import Any  # noqa: F401 — kept for downstream signatures
+from typing import TYPE_CHECKING, Any  # noqa: F401 — kept for downstream signatures
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 import jax
 import jax.numpy as jnp
-import numpy as np
 from jax import lax
 
 __all__ = [
@@ -55,20 +58,23 @@ def log_gpu_memory(label: str) -> dict | None:
     try:
         # Force pending computations to complete
         devices = jax.devices()
-        if devices and hasattr(devices[0], 'synchronize'):
+        if devices and hasattr(devices[0], "synchronize"):
             devices[0].synchronize()
 
         # Get memory stats (JAX 0.4.1+)
-        if hasattr(devices[0], 'memory_stats'):
+        if hasattr(devices[0], "memory_stats"):
             stats = devices[0].memory_stats()
-            print(f"[GPU-MEM] {label}: "
-                  f"used={stats.get('bytes_in_use', 0)/1e9:.2f}GB, "
-                  f"peak={stats.get('peak_bytes_in_use', 0)/1e9:.2f}GB")
+            print(
+                f"[GPU-MEM] {label}: "
+                f"used={stats.get('bytes_in_use', 0) / 1e9:.2f}GB, "
+                f"peak={stats.get('peak_bytes_in_use', 0) / 1e9:.2f}GB"
+            )
             return stats
     except Exception:
         # Silently skip if not available
         pass
     return None
+
 
 FIXED_BETA = 50.0
 
@@ -80,12 +86,13 @@ MAX_TRIALS_PER_BLOCK = 100
 
 MAX_BLOCKS = 17
 
+
 def pad_block_to_max(
     stimuli: jnp.ndarray,
     actions: jnp.ndarray,
     rewards: jnp.ndarray,
     max_trials: int = MAX_TRIALS_PER_BLOCK,
-    set_sizes: jnp.ndarray = None
+    set_sizes: jnp.ndarray = None,
 ) -> tuple:
     """
     Pad block arrays to fixed length with mask for JAX compilation efficiency.
@@ -140,10 +147,13 @@ def pad_block_to_max(
     rewards_padded = jnp.concatenate([rewards, jnp.zeros(n_pad, dtype=rewards.dtype)])
 
     if set_sizes is not None:
-        set_sizes_padded = jnp.concatenate([set_sizes, jnp.ones(n_pad, dtype=set_sizes.dtype)])
+        set_sizes_padded = jnp.concatenate(
+            [set_sizes, jnp.ones(n_pad, dtype=set_sizes.dtype)]
+        )
         return stimuli_padded, actions_padded, rewards_padded, set_sizes_padded, mask
 
     return stimuli_padded, actions_padded, rewards_padded, mask
+
 
 def pad_blocks_to_max(
     stimuli_blocks: list,
@@ -151,7 +161,7 @@ def pad_blocks_to_max(
     rewards_blocks: list,
     masks_blocks: list,
     max_blocks: int = MAX_BLOCKS,
-    set_sizes_blocks: list = None
+    set_sizes_blocks: list = None,
 ) -> tuple:
     """
     Pad block lists to fixed length for consistent JAX compilation.
@@ -199,8 +209,13 @@ def pad_blocks_to_max(
 
     if n_pad <= 0:
         # Already at or over max, return as-is
-        return (stimuli_blocks, actions_blocks, rewards_blocks,
-                masks_blocks, set_sizes_blocks)
+        return (
+            stimuli_blocks,
+            actions_blocks,
+            rewards_blocks,
+            masks_blocks,
+            set_sizes_blocks,
+        )
 
     # Get the shape of existing blocks (should be MAX_TRIALS_PER_BLOCK=100)
     trials_per_block = stimuli_blocks[0].shape[0]
@@ -224,8 +239,14 @@ def pad_blocks_to_max(
     else:
         set_sizes_padded = None
 
-    return (stimuli_padded, actions_padded, rewards_padded,
-            masks_padded, set_sizes_padded)
+    return (
+        stimuli_padded,
+        actions_padded,
+        rewards_padded,
+        masks_padded,
+        set_sizes_padded,
+    )
+
 
 def softmax_policy(q_values: jnp.ndarray, beta: float) -> jnp.ndarray:
     """
@@ -248,7 +269,10 @@ def softmax_policy(q_values: jnp.ndarray, beta: float) -> jnp.ndarray:
     exp_q = jnp.exp(q_scaled)
     return exp_q / jnp.sum(exp_q)
 
-def apply_epsilon_noise(probs: jnp.ndarray, epsilon: float, num_actions: int = NUM_ACTIONS) -> jnp.ndarray:
+
+def apply_epsilon_noise(
+    probs: jnp.ndarray, epsilon: float, num_actions: int = NUM_ACTIONS
+) -> jnp.ndarray:
     """
     Apply epsilon-greedy noise to action probabilities.
 
@@ -276,6 +300,7 @@ def apply_epsilon_noise(probs: jnp.ndarray, epsilon: float, num_actions: int = N
     uniform_prob = 1.0 / num_actions
     noisy_probs = epsilon * uniform_prob + (1 - epsilon) * probs
     return noisy_probs
+
 
 def affine_scan(
     a_seq: jnp.ndarray,
@@ -315,7 +340,7 @@ def affine_scan(
     """
     # Prepend (1.0, x0) as the identity/init element.
     # This makes the prefix scan include x0 without treating it as a step.
-    T = a_seq.shape[0]
+    a_seq.shape[0]
     trailing = a_seq.shape[1:]
 
     # Broadcast x0 to trailing shape
@@ -343,6 +368,7 @@ def affine_scan(
 
     # Drop the prepended init element; result[t] corresponds to trial t
     return b_accumulated[1:]
+
 
 def associative_scan_q_update(
     stimuli: jnp.ndarray,
@@ -395,12 +421,12 @@ def associative_scan_q_update(
         ``Q_for_policy[t]`` is the Q-table BEFORE the update at trial t.
         Use this array for computing the policy at trial t.
     """
-    T = stimuli.shape[0]
+    stimuli.shape[0]
     S, A = num_stimuli, num_actions
 
     # One-hot encode stimuli and actions: shapes (T, S) and (T, A)
-    stim_oh = jax.nn.one_hot(stimuli, S)    # (T, S)
-    act_oh = jax.nn.one_hot(actions, A)     # (T, A)
+    stim_oh = jax.nn.one_hot(stimuli, S)  # (T, S)
+    act_oh = jax.nn.one_hot(actions, A)  # (T, A)
 
     # Outer product -> (T, S, A): 1 only at the active (s, a) pair
     sa_mask = stim_oh[:, :, None] * act_oh[:, None, :]  # (T, S, A)
@@ -435,6 +461,7 @@ def associative_scan_q_update(
     )  # (T, S, A)
 
     return Q_for_policy
+
 
 def associative_scan_wm_update(
     stimuli: jnp.ndarray,
@@ -535,7 +562,7 @@ def associative_scan_wm_update(
     #   WM_decayed = (1-phi)*WM + phi*baseline   (always, comment: "Decay
     #   happens for all trials (valid or not) to maintain consistent WM state")
     # -------------------------------------------------------------------------
-    a_seq = jnp.full((T, S, A), 1.0 - phi)   # base: decay everywhere
+    a_seq = jnp.full((T, S, A), 1.0 - phi)  # base: decay everywhere
     b_seq = jnp.full((T, S, A), phi * wm_init)
 
     # Override ONLY active+valid positions: reset encodes (decay then overwrite)
@@ -564,6 +591,7 @@ def associative_scan_wm_update(
     wm_for_policy = (1.0 - phi) * wm_carry_in + phi * wm_init  # (T, S, A)
 
     return wm_for_policy, wm_after_update
+
 
 def precompute_last_action_global(
     actions: jnp.ndarray,
@@ -617,6 +645,7 @@ def precompute_last_action_global(
         (actions, mask),
     )
     return last_action_arr
+
 
 def precompute_last_actions_per_stimulus(
     stimuli: jnp.ndarray,
@@ -681,6 +710,7 @@ def precompute_last_actions_per_stimulus(
         (stimuli, actions, mask),
     )
     return last_action_per_trial
+
 
 def prepare_stacked_participant_data(
     data_df: pd.DataFrame,
@@ -782,6 +812,7 @@ def prepare_stacked_participant_data(
 
     return participant_data
 
+
 def stack_across_participants(
     participant_data_stacked: dict[Any, dict[str, jnp.ndarray]],
 ) -> dict[str, Any]:
@@ -819,8 +850,7 @@ def stack_across_participants(
     """
     ppt_ids = sorted(participant_data_stacked.keys())
     max_n_blocks = max(
-        participant_data_stacked[pid]["stimuli_stacked"].shape[0]
-        for pid in ppt_ids
+        participant_data_stacked[pid]["stimuli_stacked"].shape[0] for pid in ppt_ids
     )
     max_trials = MAX_TRIALS_PER_BLOCK  # 100
 
@@ -834,31 +864,40 @@ def stack_across_participants(
         return jnp.concatenate([arr, pad_arr], axis=0)
 
     stacked: dict[str, Any] = {
-        "stimuli": jnp.stack([
-            _pad_blocks(participant_data_stacked[pid]["stimuli_stacked"], 0)
-            for pid in ppt_ids
-        ]),
-        "actions": jnp.stack([
-            _pad_blocks(participant_data_stacked[pid]["actions_stacked"], 0)
-            for pid in ppt_ids
-        ]),
-        "rewards": jnp.stack([
-            _pad_blocks(participant_data_stacked[pid]["rewards_stacked"], 0.0)
-            for pid in ppt_ids
-        ]),
-        "set_sizes": jnp.stack([
-            _pad_blocks(participant_data_stacked[pid]["set_sizes_stacked"], 6.0)
-            for pid in ppt_ids
-        ]),
-        "masks": jnp.stack([
-            _pad_blocks(participant_data_stacked[pid]["masks_stacked"], 0.0)
-            for pid in ppt_ids
-        ]),
+        "stimuli": jnp.stack(
+            [
+                _pad_blocks(participant_data_stacked[pid]["stimuli_stacked"], 0)
+                for pid in ppt_ids
+            ]
+        ),
+        "actions": jnp.stack(
+            [
+                _pad_blocks(participant_data_stacked[pid]["actions_stacked"], 0)
+                for pid in ppt_ids
+            ]
+        ),
+        "rewards": jnp.stack(
+            [
+                _pad_blocks(participant_data_stacked[pid]["rewards_stacked"], 0.0)
+                for pid in ppt_ids
+            ]
+        ),
+        "set_sizes": jnp.stack(
+            [
+                _pad_blocks(participant_data_stacked[pid]["set_sizes_stacked"], 6.0)
+                for pid in ppt_ids
+            ]
+        ),
+        "masks": jnp.stack(
+            [
+                _pad_blocks(participant_data_stacked[pid]["masks_stacked"], 0.0)
+                for pid in ppt_ids
+            ]
+        ),
     }
     stacked["participant_ids"] = ppt_ids
     stacked["n_blocks_per_ppt"] = jnp.array(
-        [participant_data_stacked[pid]["stimuli_stacked"].shape[0]
-         for pid in ppt_ids],
+        [participant_data_stacked[pid]["stimuli_stacked"].shape[0] for pid in ppt_ids],
         dtype=jnp.int32,
     )
     return stacked

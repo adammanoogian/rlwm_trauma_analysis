@@ -63,9 +63,7 @@ def _load_orchestrator_module() -> ModuleType:
         / "06_fit_analyses"
         / "02_compute_loo_stacking.py"
     )
-    spec = importlib.util.spec_from_file_location(
-        "_loo_stacking_test_mod", mod_path
-    )
+    spec = importlib.util.spec_from_file_location("_loo_stacking_test_mod", mod_path)
     assert spec is not None and spec.loader is not None
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
@@ -152,9 +150,7 @@ def test_loo_stacking_dominant_winner_synthetic() -> None:
     assert set(result["pct_high_per_model"].keys()) == {"A", "B", "C"}
 
     # Participant IDs should match the stub coord exactly.
-    np.testing.assert_array_equal(
-        result["participant_ids"], np.arange(8, dtype=int)
-    )
+    np.testing.assert_array_equal(result["participant_ids"], np.arange(8, dtype=int))
 
 
 def test_loo_stacking_requires_two_models() -> None:
@@ -175,9 +171,7 @@ def test_loo_stacking_force_winners_override() -> None:
 
     compare_dict = {"A": idata_A, "B": idata_B}
     # A is the auto-winner, but force B.
-    result = mod.compute_loo_stacking_bms(
-        compare_dict, force_winners=["B"]
-    )
+    result = mod.compute_loo_stacking_bms(compare_dict, force_winners=["B"])
 
     assert result["winner_type"] == "FORCED"
     assert result["winners"] == ["B"]

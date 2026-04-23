@@ -8,25 +8,20 @@ re-export shims were deleted in the v5.0 shim cleanup.
 Senta et al. (2025) M2: WM mixes with RL via weight
 ``omega = rho * min(1, K/nS)``; WM decays toward 1/nA baseline with rate ``phi``.
 """
+
 from __future__ import annotations
 
 from typing import Any
 
 import jax
 import jax.numpy as jnp
-import numpy as np
 import numpyro
 import numpyro.distributions as dist
 from jax import lax
-from numpyro.infer import MCMC, NUTS
 
 from ..core import (
     DEFAULT_EPSILON,
     FIXED_BETA,
-    MAX_BLOCKS,
-    MAX_TRIALS_PER_BLOCK,
-    NUM_ACTIONS,
-    affine_scan,
     apply_epsilon_noise,
     associative_scan_q_update,
     associative_scan_wm_update,
@@ -34,6 +29,7 @@ from ..core import (
     softmax_policy,
     stack_across_participants,
 )
+from .qlearning import q_learning_multiblock_likelihood
 
 __all__ = [
     "wmrl_block_likelihood",
@@ -224,11 +220,14 @@ def wmrl_block_likelihood(
         return (Q_updated, WM_updated, WM_baseline, log_lik_new), log_prob_masked
 
     # Run scan over trials
-    (Q_final, WM_final, _, log_lik_total), log_probs = lax.scan(step_fn, init_carry, scan_inputs)
+    (Q_final, WM_final, _, log_lik_total), log_probs = lax.scan(
+        step_fn, init_carry, scan_inputs
+    )
 
     if return_pointwise:
         return log_lik_total, log_probs
     return log_lik_total
+
 
 def wmrl_multiblock_likelihood(
     stimuli_blocks: list,
@@ -247,7 +246,7 @@ def wmrl_multiblock_likelihood(
     wm_init: float = 1.0 / 3.0,  # WM baseline = 1/nA (uniform)
     masks_blocks: list = None,
     verbose: bool = False,
-    participant_id: str = None
+    participant_id: str = None,
 ) -> float:
     """
     Compute log-likelihood for WM-RL across MULTIPLE BLOCKS.
@@ -308,7 +307,9 @@ def wmrl_multiblock_likelihood(
     num_blocks = len(stimuli_blocks)
 
     if verbose:
-        print(f"\n  >> Processing {num_blocks} blocks for participant {participant_id}...")
+        print(
+            f"\n  >> Processing {num_blocks} blocks for participant {participant_id}..."
+        )
 
     # Check if blocks are uniformly sized (for JAX-native fori_loop)
     block_sizes = [len(b) for b in stimuli_blocks]
@@ -338,7 +339,7 @@ def wmrl_multiblock_likelihood(
                 num_actions=num_actions,
                 q_init=q_init,
                 wm_init=wm_init,
-                mask=masks_stacked[block_idx]
+                mask=masks_stacked[block_idx],
             )
             return total_ll + block_ll
 
@@ -351,8 +352,21 @@ def wmrl_multiblock_likelihood(
         if masks_blocks is None:
             masks_blocks = [None] * num_blocks
 
-        for block_idx, (stim_block, act_block, rew_block, set_block, mask_block) in enumerate(
-            zip(stimuli_blocks, actions_blocks, rewards_blocks, set_sizes_blocks, masks_blocks)
+        for _block_idx, (
+            stim_block,
+            act_block,
+            rew_block,
+            set_block,
+            mask_block,
+        ) in enumerate(
+            zip(
+                stimuli_blocks,
+                actions_blocks,
+                rewards_blocks,
+                set_sizes_blocks,
+                masks_blocks,
+                strict=False,
+            )
         ):
             block_log_lik = wmrl_block_likelihood(
                 stimuli=stim_block,
@@ -369,14 +383,18 @@ def wmrl_multiblock_likelihood(
                 num_actions=num_actions,
                 q_init=q_init,
                 wm_init=wm_init,
-                mask=mask_block
+                mask=mask_block,
             )
             total_log_lik += block_log_lik
 
     if verbose:
-        print(f"  >> Total log-likelihood: {float(total_log_lik):.2f} ({num_blocks} blocks)\n", flush=True)
+        print(
+            f"  >> Total log-likelihood: {float(total_log_lik):.2f} ({num_blocks} blocks)\n",
+            flush=True,
+        )
 
     return total_log_lik
+
 
 def wmrl_multiblock_likelihood_stacked(
     stimuli_stacked: jnp.ndarray,
@@ -413,6 +431,7 @@ def wmrl_multiblock_likelihood_stacked(
     num_blocks = stimuli_stacked.shape[0]
 
     if return_pointwise:
+
         def scan_body(total_ll, block_idx):
             block_ll, block_probs = wmrl_block_likelihood(
                 stimuli=stimuli_stacked[block_idx],
@@ -434,11 +453,10 @@ def wmrl_multiblock_likelihood_stacked(
             )
             return total_ll + block_ll, block_probs
 
-        total_ll, all_block_probs = lax.scan(
-            scan_body, 0.0, jnp.arange(num_blocks)
-        )
+        total_ll, all_block_probs = lax.scan(scan_body, 0.0, jnp.arange(num_blocks))
         return total_ll, all_block_probs.reshape(-1)
     else:
+
         def body_fn(block_idx, total_ll):
             block_ll = wmrl_block_likelihood(
                 stimuli=stimuli_stacked[block_idx],
@@ -455,11 +473,12 @@ def wmrl_multiblock_likelihood_stacked(
                 num_actions=num_actions,
                 q_init=q_init,
                 wm_init=wm_init,
-                mask=masks_stacked[block_idx]
+                mask=masks_stacked[block_idx],
             )
             return total_ll + block_ll
 
         return lax.fori_loop(0, num_blocks, body_fn, 0.0)
+
 
 def wmrl_fully_batched_likelihood(
     stimuli: jnp.ndarray,
@@ -541,15 +560,31 @@ def wmrl_fully_batched_likelihood(
         out_axes=0,
     )
     return _over_participants(
-        stimuli, actions, rewards, set_sizes, masks,
-        alpha_pos, alpha_neg, phi, rho, capacity, epsilon,
+        stimuli,
+        actions,
+        rewards,
+        set_sizes,
+        masks,
+        alpha_pos,
+        alpha_neg,
+        phi,
+        rho,
+        capacity,
+        epsilon,
     )
+
 
 wmrl_block_likelihood_jit = jax.jit(
     wmrl_block_likelihood,
-    static_argnums=(10, 11, 12, 13),  # num_stimuli, num_actions, q_init, wm_init are static
+    static_argnums=(
+        10,
+        11,
+        12,
+        13,
+    ),  # num_stimuli, num_actions, q_init, wm_init are static
     static_argnames=("return_pointwise",),
 )
+
 
 def wmrl_block_likelihood_pscan(
     stimuli: jnp.ndarray,
@@ -601,22 +636,34 @@ def wmrl_block_likelihood_pscan(
     # Phase 1: parallel Q and WM trajectories
     T = stimuli.shape[0]
     Q_for_policy = associative_scan_q_update(
-        stimuli, actions, rewards, mask,
-        alpha_pos, alpha_neg, q_init,
-        num_stimuli, num_actions,
+        stimuli,
+        actions,
+        rewards,
+        mask,
+        alpha_pos,
+        alpha_neg,
+        q_init,
+        num_stimuli,
+        num_actions,
     )  # (T, S, A)
 
     wm_for_policy, _ = associative_scan_wm_update(
-        stimuli, actions, rewards, mask,
-        phi, wm_init, num_stimuli, num_actions,
+        stimuli,
+        actions,
+        rewards,
+        mask,
+        phi,
+        wm_init,
+        num_stimuli,
+        num_actions,
     )  # (T, S, A)
 
     # ------------------------------------------------------------------
     # Phase 2 (vectorized): hybrid WM-Q policy for all trials at once
     # ------------------------------------------------------------------
     t_idx = jnp.arange(T)
-    q_vals = Q_for_policy[t_idx, stimuli]      # (T, A)
-    wm_vals = wm_for_policy[t_idx, stimuli]    # (T, A)
+    q_vals = Q_for_policy[t_idx, stimuli]  # (T, A)
+    wm_vals = wm_for_policy[t_idx, stimuli]  # (T, A)
 
     omega = rho * jnp.minimum(1.0, capacity / set_sizes)  # (T,)
     rl_probs = jax.vmap(softmax_policy, in_axes=(0, None))(q_vals, FIXED_BETA)
@@ -631,6 +678,7 @@ def wmrl_block_likelihood_pscan(
     if return_pointwise:
         return jnp.sum(log_probs), log_probs
     return jnp.sum(log_probs)
+
 
 def wmrl_multiblock_likelihood_stacked_pscan(
     stimuli_stacked: jnp.ndarray,
@@ -673,6 +721,7 @@ def wmrl_multiblock_likelihood_stacked_pscan(
     num_blocks = stimuli_stacked.shape[0]
 
     if return_pointwise:
+
         def scan_body(total_ll, block_idx):
             block_ll, block_probs = wmrl_block_likelihood_pscan(
                 stimuli=stimuli_stacked[block_idx],
@@ -694,11 +743,10 @@ def wmrl_multiblock_likelihood_stacked_pscan(
             )
             return total_ll + block_ll, block_probs
 
-        total_ll, all_block_probs = lax.scan(
-            scan_body, 0.0, jnp.arange(num_blocks)
-        )
+        total_ll, all_block_probs = lax.scan(scan_body, 0.0, jnp.arange(num_blocks))
         return total_ll, all_block_probs.reshape(-1)
     else:
+
         def body_fn(block_idx, total_ll):
             block_ll = wmrl_block_likelihood_pscan(
                 stimuli=stimuli_stacked[block_idx],
@@ -721,6 +769,7 @@ def wmrl_multiblock_likelihood_stacked_pscan(
 
         return lax.fori_loop(0, num_blocks, body_fn, 0.0)
 
+
 def test_wmrl_single_block():
     """Test WM-RL likelihood on a single block."""
     print("\nTesting WM-RL single block likelihood...")
@@ -739,18 +788,16 @@ def test_wmrl_single_block():
 
     # Test parameters (no beta/beta_wm - they're fixed at 50)
     params = {
-        'alpha_pos': 0.3,
-        'alpha_neg': 0.1,
-        'phi': 0.1,
-        'rho': 0.7,
-        'capacity': 4.0,
-        'epsilon': 0.05
+        "alpha_pos": 0.3,
+        "alpha_neg": 0.1,
+        "phi": 0.1,
+        "rho": 0.7,
+        "capacity": 4.0,
+        "epsilon": 0.05,
     }
 
     # Compute likelihood
-    log_lik = wmrl_block_likelihood(
-        stimuli, actions, rewards, set_sizes, **params
-    )
+    log_lik = wmrl_block_likelihood(stimuli, actions, rewards, set_sizes, **params)
 
     print(f"[OK] WM-RL single block log-likelihood: {log_lik:.2f}")
     print(f"  Average log-prob per trial: {log_lik / n_trials:.3f}")
@@ -763,6 +810,7 @@ def test_wmrl_single_block():
     print(f"[OK] JIT-compiled result matches: {jnp.allclose(log_lik, log_lik_jit)}")
 
     return log_lik
+
 
 def test_wmrl_multiblock():
     """Test WM-RL likelihood on multiple blocks."""
@@ -778,7 +826,7 @@ def test_wmrl_multiblock():
     rewards_blocks = []
     set_sizes_blocks = []
 
-    for i, size in enumerate(block_sizes):
+    for _i, size in enumerate(block_sizes):
         key, subkey = jax.random.split(key)
         stimuli_blocks.append(jax.random.randint(subkey, (size,), 0, 6))
 
@@ -786,24 +834,25 @@ def test_wmrl_multiblock():
         actions_blocks.append(jax.random.randint(subkey, (size,), 0, 3))
 
         key, subkey = jax.random.split(key)
-        rewards_blocks.append(jax.random.bernoulli(subkey, 0.7, (size,)).astype(jnp.float32))
+        rewards_blocks.append(
+            jax.random.bernoulli(subkey, 0.7, (size,)).astype(jnp.float32)
+        )
 
         set_sizes_blocks.append(jnp.ones((size,)) * 5)
 
     # Test parameters (no beta/beta_wm - they're fixed at 50)
     params = {
-        'alpha_pos': 0.3,
-        'alpha_neg': 0.1,
-        'phi': 0.1,
-        'rho': 0.7,
-        'capacity': 4.0,
-        'epsilon': 0.05
+        "alpha_pos": 0.3,
+        "alpha_neg": 0.1,
+        "phi": 0.1,
+        "rho": 0.7,
+        "capacity": 4.0,
+        "epsilon": 0.05,
     }
 
     # Compute likelihood
     log_lik = wmrl_multiblock_likelihood(
-        stimuli_blocks, actions_blocks, rewards_blocks, set_sizes_blocks,
-        **params
+        stimuli_blocks, actions_blocks, rewards_blocks, set_sizes_blocks, **params
     )
 
     total_trials = sum(block_sizes)
@@ -812,13 +861,22 @@ def test_wmrl_multiblock():
     print(f"  Average log-prob per trial: {log_lik / total_trials:.3f}")
 
     # Verify it equals sum of individual blocks
-    manual_sum = sum([
-        wmrl_block_likelihood(stim, act, rew, sets, **params)
-        for stim, act, rew, sets in zip(stimuli_blocks, actions_blocks, rewards_blocks, set_sizes_blocks)
-    ])
+    manual_sum = sum(
+        [
+            wmrl_block_likelihood(stim, act, rew, sets, **params)
+            for stim, act, rew, sets in zip(
+                stimuli_blocks,
+                actions_blocks,
+                rewards_blocks,
+                set_sizes_blocks,
+                strict=False,
+            )
+        ]
+    )
     print(f"[OK] Matches manual block summation: {jnp.allclose(log_lik, manual_sum)}")
 
     return log_lik
+
 
 def test_padding_equivalence_wmrl():
     """
@@ -838,8 +896,12 @@ def test_padding_equivalence_wmrl():
     set_sizes = jnp.full((n_real_trials,), 5, dtype=jnp.int32)
 
     params = {
-        'alpha_pos': 0.3, 'alpha_neg': 0.1, 'phi': 0.1,
-        'rho': 0.7, 'capacity': 4.0, 'epsilon': 0.05
+        "alpha_pos": 0.3,
+        "alpha_neg": 0.1,
+        "phi": 0.1,
+        "rho": 0.7,
+        "capacity": 4.0,
+        "epsilon": 0.05,
     }
 
     # Unpadded likelihood (original)
@@ -865,6 +927,7 @@ def test_padding_equivalence_wmrl():
     assert match, "WM-RL padded/unpadded must be IDENTICAL!"
     return match
 
+
 def test_multiblock_padding_equivalence():
     """
     Verify padding equivalence works across multiple blocks (full participant).
@@ -883,9 +946,11 @@ def test_multiblock_padding_equivalence():
         key, k1, k2, k3 = jax.random.split(key, 4)
         stimuli_blocks.append(jax.random.randint(k1, (size,), 0, 6))
         actions_blocks.append(jax.random.randint(k2, (size,), 0, 3))
-        rewards_blocks.append(jax.random.bernoulli(k3, 0.7, (size,)).astype(jnp.float32))
+        rewards_blocks.append(
+            jax.random.bernoulli(k3, 0.7, (size,)).astype(jnp.float32)
+        )
 
-    params = {'alpha_pos': 0.3, 'alpha_neg': 0.1, 'epsilon': 0.05}
+    params = {"alpha_pos": 0.3, "alpha_neg": 0.1, "epsilon": 0.05}
 
     # Unpadded multiblock likelihood
     log_lik_original = q_learning_multiblock_likelihood(
@@ -898,7 +963,9 @@ def test_multiblock_padding_equivalence():
     rewards_padded = []
     masks = []
 
-    for stim, act, rew in zip(stimuli_blocks, actions_blocks, rewards_blocks):
+    for stim, act, rew in zip(
+        stimuli_blocks, actions_blocks, rewards_blocks, strict=False
+    ):
         s_pad, a_pad, r_pad, mask = pad_block_to_max(stim, act, rew, max_trials=100)
         stimuli_padded.append(s_pad)
         actions_padded.append(a_pad)
@@ -906,8 +973,7 @@ def test_multiblock_padding_equivalence():
         masks.append(mask)
 
     log_lik_padded = q_learning_multiblock_likelihood(
-        stimuli_padded, actions_padded, rewards_padded,
-        masks_blocks=masks, **params
+        stimuli_padded, actions_padded, rewards_padded, masks_blocks=masks, **params
     )
 
     match = jnp.allclose(log_lik_original, log_lik_padded, rtol=1e-6)
@@ -918,6 +984,7 @@ def test_multiblock_padding_equivalence():
 
     assert match, "Multiblock padded/unpadded must be IDENTICAL!"
     return match
+
 
 def wmrl_hierarchical_model(
     participant_data: dict[Any, dict[str, list]],
@@ -1108,6 +1175,7 @@ def wmrl_hierarchical_model(
 
         # Add to model via factor (log probability)
         numpyro.factor(f"obs_p{participant_id}", log_lik)
+
 
 def wmrl_hierarchical_model_stacked(
     participant_data_stacked: dict,

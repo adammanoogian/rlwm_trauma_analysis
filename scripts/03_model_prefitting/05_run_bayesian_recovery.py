@@ -83,10 +83,12 @@ import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 
 from config import MODEL_REGISTRY  # noqa: E402
-from rlwm.fitting.bayesian import STACKED_MODEL_DISPATCH, _fit_stacked_model  # noqa: E402
-from scripts.fitting.model_recovery import generate_synthetic_participant  # noqa: E402
+from rlwm.fitting.bayesian import (  # noqa: E402
+    STACKED_MODEL_DISPATCH,
+    _fit_stacked_model,
+)
 from rlwm.fitting.numpyro_helpers import PARAM_PRIOR_DEFAULTS, phi_approx  # noqa: E402
-
+from scripts.fitting.model_recovery import generate_synthetic_participant  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -246,7 +248,8 @@ def _extract_hdi_per_param(
             # Parameter not sampled (e.g. LBA params for choice-only fit)
             warnings.warn(
                 f"Parameter {pname!r} not found in MCMC samples. "
-                f"Available: {sorted(samples.keys())}"
+                f"Available: {sorted(samples.keys())}",
+                stacklevel=2,
             )
             continue
 
@@ -256,8 +259,7 @@ def _extract_hdi_per_param(
             arr = arr[:, 0]
         elif arr.ndim != 1:
             raise ValueError(
-                f"Expected 1-D or 2-D posterior for {pname!r}, "
-                f"got shape {arr.shape}"
+                f"Expected 1-D or 2-D posterior for {pname!r}, got shape {arr.shape}"
             )
 
         posterior_mean = float(arr.mean())
@@ -299,7 +301,7 @@ def _extract_convergence_diagnostics(
         max_rhat = float(summary["r_hat"].max())
         min_ess = float(summary["ess_bulk"].min())
     except Exception as exc:  # noqa: BLE001
-        warnings.warn(f"Could not compute R-hat/ESS summary: {exc!r}")
+        warnings.warn(f"Could not compute R-hat/ESS summary: {exc!r}", stacklevel=2)
         max_rhat = float("nan")
         min_ess = float("nan")
 
@@ -307,7 +309,7 @@ def _extract_convergence_diagnostics(
         extra = mcmc.get_extra_fields()
         n_div = int(np.asarray(extra.get("diverging", np.array([]))).sum())
     except Exception as exc:  # noqa: BLE001
-        warnings.warn(f"Could not compute divergence count: {exc!r}")
+        warnings.warn(f"Could not compute divergence count: {exc!r}", stacklevel=2)
         n_div = 0
 
     return {
@@ -376,10 +378,14 @@ def run_single_subject(
     print(f"STEP 21.2 SINGLE-SUBJECT RECOVERY: model={model}, subject={subject_idx}")
     print("=" * 80)
     print(f"  Seed: {seed}")
-    print(f"  MCMC budget: warmup={num_warmup}, samples={num_samples}, "
-          f"chains={num_chains}, max_tree_depth={max_tree_depth}")
-    print(f"  Synthetic task: n_blocks={n_blocks}, "
-          f"n_trials_per_block={n_trials_per_block}")
+    print(
+        f"  MCMC budget: warmup={num_warmup}, samples={num_samples}, "
+        f"chains={num_chains}, max_tree_depth={max_tree_depth}"
+    )
+    print(
+        f"  Synthetic task: n_blocks={n_blocks}, "
+        f"n_trials_per_block={n_trials_per_block}"
+    )
 
     # ------------------------------------------------------------------
     # 1. Sample true parameters from the prior
@@ -423,8 +429,10 @@ def run_single_subject(
     synth_df["key_press"] = synth_df["key_press"].astype(int)
     synth_df["reward"] = synth_df["reward"].astype(float)
 
-    print(f"  Generated {len(synth_df)} trials across "
-          f"{synth_df['block'].nunique()} blocks")
+    print(
+        f"  Generated {len(synth_df)} trials across "
+        f"{synth_df['block'].nunique()} blocks"
+    )
     print(f"  Mean reward (proxy accuracy): {synth_df['reward'].mean():.3f}")
 
     # ------------------------------------------------------------------
@@ -534,11 +542,10 @@ def _safe_pearson_r(true_vals: np.ndarray, post_means: np.ndarray) -> float:
     """
     if len(true_vals) != len(post_means):
         raise ValueError(
-            f"Length mismatch: true={len(true_vals)}, "
-            f"post={len(post_means)}"
+            f"Length mismatch: true={len(true_vals)}, post={len(post_means)}"
         )
     if len(true_vals) < 2:
-        warnings.warn("Need >= 2 samples for Pearson r; returning NaN.")
+        warnings.warn("Need >= 2 samples for Pearson r; returning NaN.", stacklevel=2)
         return float("nan")
     # Use peak-to-peak range instead of np.std to avoid floating-point
     # drift on constant inputs (np.std on 3x the same float can return
@@ -546,7 +553,8 @@ def _safe_pearson_r(true_vals: np.ndarray, post_means: np.ndarray) -> float:
     if np.ptp(true_vals) == 0 or np.ptp(post_means) == 0:
         warnings.warn(
             "Zero variance in true or posterior-mean vector; "
-            "Pearson r undefined — returning NaN."
+            "Pearson r undefined — returning NaN.",
+            stacklevel=2,
         )
         return float("nan")
 
@@ -590,7 +598,8 @@ def aggregate_recovery_results(
     json_paths = sorted(output_dir.glob(f"{model}_subject_*.json"))
     if not json_paths:
         warnings.warn(
-            f"No per-subject JSONs found in {output_dir} for model={model!r}"
+            f"No per-subject JSONs found in {output_dir} for model={model!r}",
+            stacklevel=2,
         )
 
     # Load and collate
@@ -699,8 +708,7 @@ def aggregate_recovery_results(
         "n_subjects_loaded": n_loaded,
         "n_subjects_expected": int(n_subjects),
         "subjects_missing": [
-            idx for idx in range(1, int(n_subjects) + 1)
-            if idx not in subjects_loaded
+            idx for idx in range(1, int(n_subjects) + 1) if idx not in subjects_loaded
         ],
         "rows": rows,
         "verdict": verdict,
@@ -849,7 +857,7 @@ def _build_parser() -> argparse.ArgumentParser:
         type=int,
         default=None,
         help="1-indexed subject number (SLURM_ARRAY_TASK_ID). "
-             "Required for --mode single-subject.",
+        "Required for --mode single-subject.",
     )
     parser.add_argument(
         "--seed",
@@ -891,8 +899,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--n-trials-per-block",
         type=int,
         default=DEFAULT_TRIALS_PER_BLOCK,
-        help=f"Max synthetic trials per block. Default "
-             f"{DEFAULT_TRIALS_PER_BLOCK}.",
+        help=f"Max synthetic trials per block. Default {DEFAULT_TRIALS_PER_BLOCK}.",
     )
 
     # aggregate args
@@ -900,8 +907,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--n-subjects",
         type=int,
         default=50,
-        help="Expected number of per-subject JSONs (aggregate mode). "
-             "Default 50.",
+        help="Expected number of per-subject JSONs (aggregate mode). Default 50.",
     )
 
     return parser

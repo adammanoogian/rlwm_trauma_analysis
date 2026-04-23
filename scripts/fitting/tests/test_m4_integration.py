@@ -1,4 +1,5 @@
 """Integration tests for M4 hierarchical LBA (M4H-01, M4H-02, M4H-04)."""
+
 from __future__ import annotations
 
 # Float64 MUST be set before any other JAX import
@@ -174,8 +175,7 @@ def test_log_delta_recovery() -> None:
     ]
     for p in expected_params:
         assert p in samples, (
-            f"Missing parameter '{p}'. "
-            f"Got keys: {sorted(samples.keys())}"
+            f"Missing parameter '{p}'. Got keys: {sorted(samples.keys())}"
         )
         assert jnp.all(jnp.isfinite(samples[p])), (
             f"Parameter '{p}' has non-finite values. "

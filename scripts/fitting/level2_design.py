@@ -70,8 +70,15 @@ Usage
 >>> import pandas as pd
 >>> from scripts.fitting.level2_design import build_level2_design_matrix
 >>> metrics = pd.read_csv("output/summary_participant_metrics.csv")
->>> complete = metrics.dropna(subset=["ies_total","ies_intrusion","ies_avoidance",
-...                                   "ies_hyperarousal","less_total_events"])
+>>> complete = metrics.dropna(
+...     subset=[
+...         "ies_total",
+...         "ies_intrusion",
+...         "ies_avoidance",
+...         "ies_hyperarousal",
+...         "less_total_events",
+...     ]
+... )
 >>> participant_ids = sorted(complete["sona_id"].unique().tolist())
 >>> X, names = build_level2_design_matrix(metrics, participant_ids)
 >>> X.shape  # (n_participants, 4)
@@ -81,7 +88,6 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -261,12 +267,14 @@ def build_level2_design_matrix(
     # ------------------------------------------------------------------
     # Z-score all columns and stack
     # ------------------------------------------------------------------
-    X = np.column_stack([
-        _zscore(lec_total),
-        _zscore(iesr_total),
-        _zscore(intr_resid),
-        _zscore(avd_resid),
-    ])  # shape (n_participants, 4)
+    X = np.column_stack(
+        [
+            _zscore(lec_total),
+            _zscore(iesr_total),
+            _zscore(intr_resid),
+            _zscore(avd_resid),
+        ]
+    )  # shape (n_participants, 4)
 
     return X, COVARIATE_NAMES
 
@@ -329,9 +337,7 @@ def build_level2_design_matrix_2cov(
 
     aligned = metrics.set_index("sona_id").reindex(participant_ids)
 
-    missing_mask = (
-        aligned["less_total_events"].isna() | aligned["ies_total"].isna()
-    )
+    missing_mask = aligned["less_total_events"].isna() | aligned["ies_total"].isna()
     missing_pids = aligned.index[missing_mask].tolist()
     if missing_pids:
         raise ValueError(
@@ -344,10 +350,12 @@ def build_level2_design_matrix_2cov(
     lec_total_raw = aligned["less_total_events"].to_numpy(dtype=float)
     iesr_total_raw = aligned["ies_total"].to_numpy(dtype=float)
 
-    design = np.column_stack([
-        _zscore(lec_total_raw),
-        _zscore(iesr_total_raw),
-    ])  # shape (n_participants, 2)
+    design = np.column_stack(
+        [
+            _zscore(lec_total_raw),
+            _zscore(iesr_total_raw),
+        ]
+    )  # shape (n_participants, 2)
 
     return design, list(COVARIATE_NAMES_2COV)
 
@@ -394,7 +402,10 @@ def run_collinearity_audit(metrics_df: pd.DataFrame) -> dict:
             equals ies_total exactly (explains rank deficiency).
     """
     required = [
-        "ies_total", "ies_intrusion", "ies_avoidance", "ies_hyperarousal",
+        "ies_total",
+        "ies_intrusion",
+        "ies_avoidance",
+        "ies_hyperarousal",
         "less_total_events",
     ]
     missing = [c for c in required if c not in metrics_df.columns]
@@ -428,12 +439,14 @@ def run_collinearity_audit(metrics_df: pd.DataFrame) -> dict:
     avd_resid = _residualize(iesr_avd - iesr_avd.mean(), total_c)
 
     # Full 4-column design matrix condition number
-    X_full = np.column_stack([
-        lec_total - lec_total.mean(),
-        total_c,
-        intr_resid,
-        avd_resid,
-    ])
+    X_full = np.column_stack(
+        [
+            lec_total - lec_total.mean(),
+            total_c,
+            intr_resid,
+            avd_resid,
+        ]
+    )
     cond_full = float(np.linalg.cond(X_full))
 
     # LEC–IES-R total correlation
@@ -500,9 +513,9 @@ def write_collinearity_report(
         "",
         "| | Intrusion | Avoidance | Hyperarousal |",
         "|---|---|---|---|",
-        f"| **Intrusion** | {corr[0,0]:.3f} | {corr[0,1]:.3f} | {corr[0,2]:.3f} |",
-        f"| **Avoidance** | {corr[1,0]:.3f} | {corr[1,1]:.3f} | {corr[1,2]:.3f} |",
-        f"| **Hyperarousal** | {corr[2,0]:.3f} | {corr[2,1]:.3f} | {corr[2,2]:.3f} |",
+        f"| **Intrusion** | {corr[0, 0]:.3f} | {corr[0, 1]:.3f} | {corr[0, 2]:.3f} |",
+        f"| **Avoidance** | {corr[1, 0]:.3f} | {corr[1, 1]:.3f} | {corr[1, 2]:.3f} |",
+        f"| **Hyperarousal** | {corr[2, 0]:.3f} | {corr[2, 1]:.3f} | {corr[2, 2]:.3f} |",
         "",
         "---",
         "",
@@ -526,7 +539,7 @@ def write_collinearity_report(
         "",
         f"- **Raw subscale matrix** [intrusion, avoidance, hyperarousal]: **{cond_raw:.2f}**",
         "- **3-residual matrix** [intr_resid, avd_resid, hyp_resid]: "
-        f"**~2.4e15** (rank-deficient; hyperarousal residual = -(intr_resid + avd_resid))",
+        "**~2.4e15** (rank-deficient; hyperarousal residual = -(intr_resid + avd_resid))",
         f"- **Full 4-column design** [lec_total, iesr_total, intr_resid, avd_resid]: **{cond_full:.2f}**",
         f"- **Target:** < {target:.0f}",
         "",
@@ -600,8 +613,6 @@ def write_collinearity_report(
 
 
 if __name__ == "__main__":
-    import pathlib
-
     DATA_PATH = "output/summary_participant_metrics.csv"
     REPORT_PATH = "output/bayesian/level2/ies_r_collinearity_audit.md"
 
@@ -618,7 +629,9 @@ if __name__ == "__main__":
     print(f"  N participants (complete data): {audit['n_participants']}")
     print(f"  Subscales sum to total:          {audit['subscales_sum_to_total']}")
     print(f"  Raw condition number:             {audit['raw_condition_number']:.2f}")
-    print(f"  Full design condition number:     {audit['full_design_condition_number']:.2f}")
+    print(
+        f"  Full design condition number:     {audit['full_design_condition_number']:.2f}"
+    )
     print(f"  LEC-5 vs. IES-R total r:          {audit['lec_iesr_correlation']:.3f}")
     verdict_str = "PASS" if audit["pass_verdict"] else "FAIL"
     print(f"  Verdict:                          {verdict_str}")
@@ -630,10 +643,19 @@ if __name__ == "__main__":
     # ------------------------------------------------------------------
     # Verify design matrix on real data
     # ------------------------------------------------------------------
-    complete_mask = metrics[
-        ["ies_total", "ies_intrusion", "ies_avoidance", "ies_hyperarousal",
-         "less_total_events"]
-    ].notna().all(axis=1)
+    complete_mask = (
+        metrics[
+            [
+                "ies_total",
+                "ies_intrusion",
+                "ies_avoidance",
+                "ies_hyperarousal",
+                "less_total_events",
+            ]
+        ]
+        .notna()
+        .all(axis=1)
+    )
     complete_ids = sorted(
         metrics.loc[complete_mask, "sona_id"].dropna().unique().tolist()
     )

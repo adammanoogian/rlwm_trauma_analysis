@@ -38,15 +38,11 @@ def test_rfx_bms_uniform() -> None:
 
     result = rfx_bms(log_evidence, seed=0)
 
-    np.testing.assert_allclose(
-        result["xp"], np.full(n_models, 0.25), atol=0.02
-    )
+    np.testing.assert_allclose(result["xp"], np.full(n_models, 0.25), atol=0.02)
     assert result["bor"] > 0.7, (
         f"Expected BOR > 0.7 for uniform log-evidence; got {result['bor']:.4f}"
     )
-    np.testing.assert_allclose(
-        result["pxp"], np.full(n_models, 0.25), atol=0.02
-    )
+    np.testing.assert_allclose(result["pxp"], np.full(n_models, 0.25), atol=0.02)
     np.testing.assert_allclose(result["xp"].sum(), 1.0, atol=1e-10)
     np.testing.assert_allclose(result["pxp"].sum(), 1.0, atol=1e-10)
 
@@ -58,7 +54,7 @@ def test_rfx_bms_dominant() -> None:
     (heterogeneous) free energy vastly exceeds the null and BOR collapses to
     near zero. XP and PXP should both concentrate mass on model 0.
     """
-    n_subjects, n_models = 40, 4
+    n_subjects, _n_models = 40, 4
     log_evidence = np.tile(np.array([10.0, 0.0, 0.0, 0.0]), (n_subjects, 1))
 
     result = rfx_bms(log_evidence, seed=0)
@@ -96,9 +92,7 @@ def test_rfx_bms_mixed_heterogeneous() -> None:
     assert result["xp"][0] + result["xp"][1] > 0.98, (
         f"XP for models 0+1 should dominate; got {result['xp']}"
     )
-    np.testing.assert_allclose(
-        result["xp"][0], result["xp"][1], atol=0.1
-    )
+    np.testing.assert_allclose(result["xp"][0], result["xp"][1], atol=0.1)
     assert result["xp"][2] < 0.02 and result["xp"][3] < 0.02, (
         f"XP for non-winning models should be ~0; got {result['xp']}"
     )

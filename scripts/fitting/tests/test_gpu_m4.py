@@ -31,23 +31,15 @@ def test_fit_all_gpu_m4_smoke(m4_synthetic_data_small):
     )
 
     # All 5 participants should be in the output
-    assert len(df) == 5, (
-        f"Expected 5 participants in output, got {len(df)}"
-    )
+    assert len(df) == 5, f"Expected 5 participants in output, got {len(df)}"
 
     # NLL should be finite for all participants
-    assert df["nll"].notna().all(), (
-        f"NLL contains NaN: {df['nll'].tolist()}"
-    )
+    assert df["nll"].notna().all(), f"NLL contains NaN: {df['nll'].tolist()}"
     assert np.isfinite(df["nll"].values.astype(float)).all(), (
         f"NLL contains non-finite values: {df['nll'].tolist()}"
     )
 
     # Capacity should respect Collins K bounds [2.0, 6.0]
     caps = df["capacity"].values.astype(float)
-    assert (caps >= 2.0).all(), (
-        f"Capacity below lower bound 2.0: min={caps.min()}"
-    )
-    assert (caps <= 6.0).all(), (
-        f"Capacity above upper bound 6.0: max={caps.max()}"
-    )
+    assert (caps >= 2.0).all(), f"Capacity below lower bound 2.0: min={caps.min()}"
+    assert (caps <= 6.0).all(), f"Capacity above upper bound 6.0: max={caps.max()}"

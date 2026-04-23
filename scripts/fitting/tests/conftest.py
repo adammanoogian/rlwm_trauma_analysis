@@ -4,9 +4,9 @@ Shared fixtures for fitting module tests.
 Provides synthetic data generators for Q-learning and WM-RL model testing.
 """
 
-import numpy as np
-import jax.numpy as jnp
 import jax
+import jax.numpy as jnp
+import numpy as np
 import pytest
 
 
@@ -18,7 +18,7 @@ def simulate_qlearning_block(
     n_trials: int,
     n_stim: int,
     n_act: int,
-    seed: int = 42
+    seed: int = 42,
 ):
     """
     Simulate a single block of Q-learning behavior.
@@ -42,7 +42,7 @@ def simulate_qlearning_block(
 
     stimuli, actions, rewards = [], [], []
 
-    for t in range(n_trials):
+    for _t in range(n_trials):
         s = np.random.randint(0, n_stim)
         q_s = Q[s, :]
         exp_q = np.exp(beta * (q_s - q_s.max()))
@@ -63,7 +63,7 @@ def simulate_qlearning_block(
     return (
         np.array(stimuli, dtype=np.int32),
         np.array(actions, dtype=np.int32),
-        np.array(rewards, dtype=np.float32)
+        np.array(rewards, dtype=np.float32),
     )
 
 
@@ -79,7 +79,7 @@ def simulate_wmrl_block(
     n_stim: int,
     n_act: int,
     set_size: int = 6,
-    seed: int = 42
+    seed: int = 42,
 ):
     """
     Simulate a single block of WM-RL behavior.
@@ -113,7 +113,7 @@ def simulate_wmrl_block(
 
     stimuli, actions, rewards = [], [], []
 
-    for t in range(n_trials):
+    for _t in range(n_trials):
         s = np.random.randint(0, n_stim)
 
         # Compute WM weight
@@ -155,7 +155,7 @@ def simulate_wmrl_block(
         np.array(stimuli, dtype=np.int32),
         np.array(actions, dtype=np.int32),
         np.array(rewards, dtype=np.float32),
-        np.full(n_trials, set_size, dtype=np.int32)
+        np.full(n_trials, set_size, dtype=np.int32),
     )
 
 
@@ -166,35 +166,30 @@ def qlearning_synthetic_data():
 
     Returns 3 blocks of data with known parameters.
     """
-    true_params = {
-        'alpha_pos': 0.4,
-        'alpha_neg': 0.15,
-        'epsilon': 0.05,
-        'beta': 50.0
-    }
+    true_params = {"alpha_pos": 0.4, "alpha_neg": 0.15, "epsilon": 0.05, "beta": 50.0}
 
     stimuli_blocks, actions_blocks, rewards_blocks = [], [], []
 
     for i in range(3):
         s, a, r = simulate_qlearning_block(
-            alpha_pos=true_params['alpha_pos'],
-            alpha_neg=true_params['alpha_neg'],
-            epsilon=true_params['epsilon'],
-            beta=true_params['beta'],
+            alpha_pos=true_params["alpha_pos"],
+            alpha_neg=true_params["alpha_neg"],
+            epsilon=true_params["epsilon"],
+            beta=true_params["beta"],
             n_trials=30,
             n_stim=3,
             n_act=3,
-            seed=42 + i
+            seed=42 + i,
         )
         stimuli_blocks.append(s)
         actions_blocks.append(a)
         rewards_blocks.append(r)
 
     return {
-        'stimuli_blocks': stimuli_blocks,
-        'actions_blocks': actions_blocks,
-        'rewards_blocks': rewards_blocks,
-        'true_params': true_params
+        "stimuli_blocks": stimuli_blocks,
+        "actions_blocks": actions_blocks,
+        "rewards_blocks": rewards_blocks,
+        "true_params": true_params,
     }
 
 
@@ -206,31 +201,31 @@ def wmrl_synthetic_data():
     Returns 2 blocks of data with known parameters.
     """
     true_params = {
-        'alpha_pos': 0.3,
-        'alpha_neg': 0.1,
-        'phi': 0.1,
-        'rho': 0.7,
-        'capacity': 4.0,
-        'epsilon': 0.05,
-        'beta': 50.0
+        "alpha_pos": 0.3,
+        "alpha_neg": 0.1,
+        "phi": 0.1,
+        "rho": 0.7,
+        "capacity": 4.0,
+        "epsilon": 0.05,
+        "beta": 50.0,
     }
 
     stimuli_blocks, actions_blocks, rewards_blocks, set_sizes_blocks = [], [], [], []
 
     for i in range(2):
         s, a, r, ss = simulate_wmrl_block(
-            alpha_pos=true_params['alpha_pos'],
-            alpha_neg=true_params['alpha_neg'],
-            phi=true_params['phi'],
-            rho=true_params['rho'],
-            capacity=true_params['capacity'],
-            epsilon=true_params['epsilon'],
-            beta=true_params['beta'],
+            alpha_pos=true_params["alpha_pos"],
+            alpha_neg=true_params["alpha_neg"],
+            phi=true_params["phi"],
+            rho=true_params["rho"],
+            capacity=true_params["capacity"],
+            epsilon=true_params["epsilon"],
+            beta=true_params["beta"],
             n_trials=30,
             n_stim=6,
             n_act=3,
             set_size=6,
-            seed=42 + i
+            seed=42 + i,
         )
         stimuli_blocks.append(s)
         actions_blocks.append(a)
@@ -238,11 +233,11 @@ def wmrl_synthetic_data():
         set_sizes_blocks.append(ss)
 
     return {
-        'stimuli_blocks': stimuli_blocks,
-        'actions_blocks': actions_blocks,
-        'rewards_blocks': rewards_blocks,
-        'set_sizes_blocks': set_sizes_blocks,
-        'true_params': true_params
+        "stimuli_blocks": stimuli_blocks,
+        "actions_blocks": actions_blocks,
+        "rewards_blocks": rewards_blocks,
+        "set_sizes_blocks": set_sizes_blocks,
+        "true_params": true_params,
     }
 
 
@@ -263,7 +258,7 @@ def wmrl_participant_data():
         set_sizes_blocks = []
 
         # 2 blocks of 30 trials each
-        for block in range(2):
+        for _block in range(2):
             key, subkey = jax.random.split(key)
             stimuli = jax.random.randint(subkey, (30,), 0, 6)
 
@@ -281,10 +276,10 @@ def wmrl_participant_data():
             set_sizes_blocks.append(set_sizes)
 
         participant_data[i] = {
-            'stimuli_blocks': stimuli_blocks,
-            'actions_blocks': actions_blocks,
-            'rewards_blocks': rewards_blocks,
-            'set_sizes_blocks': set_sizes_blocks
+            "stimuli_blocks": stimuli_blocks,
+            "actions_blocks": actions_blocks,
+            "rewards_blocks": rewards_blocks,
+            "set_sizes_blocks": set_sizes_blocks,
         }
 
     return participant_data
@@ -317,17 +312,19 @@ def m4_synthetic_data_small():
                 set_size=3,
                 seed=42 + pid_idx * 100 + block_idx,
             )
-            rts = np.random.default_rng(
-                seed=42 + pid_idx * 100 + block_idx
-            ).uniform(0.3, 0.8, size=len(stim))
+            rts = np.random.default_rng(seed=42 + pid_idx * 100 + block_idx).uniform(
+                0.3, 0.8, size=len(stim)
+            )
             for t in range(len(stim)):
-                rows.append({
-                    "sona_id": pid,
-                    "block": block_idx + 1,
-                    "stimulus": int(stim[t]),
-                    "key_press": int(act[t]),
-                    "reward": float(rew[t]),
-                    "set_size": int(ss[t]),
-                    "rt": float(rts[t]),
-                })
+                rows.append(
+                    {
+                        "sona_id": pid,
+                        "block": block_idx + 1,
+                        "stimulus": int(stim[t]),
+                        "key_press": int(act[t]),
+                        "reward": float(rew[t]),
+                        "set_size": int(ss[t]),
+                        "rt": float(rts[t]),
+                    }
+                )
     return pd.DataFrame(rows)

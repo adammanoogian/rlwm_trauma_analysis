@@ -265,7 +265,9 @@ def _audit_one_model(
     # ------------------------------------------------------------------
     try:
         bfmi_per_chain = np.asarray(az.bfmi(idata))
-        min_bfmi = float(np.min(bfmi_per_chain)) if bfmi_per_chain.size else float("nan")
+        min_bfmi = (
+            float(np.min(bfmi_per_chain)) if bfmi_per_chain.size else float("nan")
+        )
     except Exception as exc:  # noqa: BLE001 — ArviZ can raise misc errors
         min_bfmi = float("nan")
         print(
@@ -545,7 +547,7 @@ def main() -> None:
     print(f"  R-hat threshold: <= {args.rhat_threshold}")
     print(f"  ESS_bulk threshold: >= {args.ess_threshold}")
     print(f"  BFMI threshold: >= {args.bfmi_threshold}")
-    print(f"  Divergence threshold: == 0")
+    print("  Divergence threshold: == 0")
     print("=" * 80)
 
     audits: list[ModelAudit] = []

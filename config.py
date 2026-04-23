@@ -14,17 +14,18 @@ import numpy as np
 
 if TYPE_CHECKING:
     import arviz as az
+    import pandas as pd
 
 # ============================================================================
 # PROJECT STRUCTURE
 # ============================================================================
 
 PROJECT_ROOT = Path(__file__).parent
-DATA_DIR = PROJECT_ROOT / 'data'
-OUTPUT_DIR = PROJECT_ROOT / 'output'
-FIGURES_DIR = PROJECT_ROOT / 'figures'
-SCRIPTS_DIR = PROJECT_ROOT / 'scripts'
-DOCS_DIR = PROJECT_ROOT / 'docs'
+DATA_DIR = PROJECT_ROOT / "data"
+OUTPUT_DIR = PROJECT_ROOT / "output"
+FIGURES_DIR = PROJECT_ROOT / "figures"
+SCRIPTS_DIR = PROJECT_ROOT / "scripts"
+DOCS_DIR = PROJECT_ROOT / "docs"
 
 # ============================================================================
 # PARTICIPANT EXCLUSIONS
@@ -40,7 +41,7 @@ MANUAL_EXCLUSIONS: list[int] = []
 MIN_TRIALS_THRESHOLD = 400
 
 # Version management
-VERSION = 'v1'
+VERSION = "v1"
 OUTPUT_VERSION_DIR = OUTPUT_DIR / VERSION if VERSION else OUTPUT_DIR
 FIGURES_VERSION_DIR = FIGURES_DIR / VERSION if VERSION else FIGURES_DIR
 
@@ -51,6 +52,7 @@ for directory in [OUTPUT_VERSION_DIR, FIGURES_VERSION_DIR, DOCS_DIR]:
 # ============================================================================
 # TASK PARAMETERS (from jsPsych implementation)
 # ============================================================================
+
 
 class TaskParams:
     """Parameters for the RLWM task environment."""
@@ -89,14 +91,14 @@ class TaskParams:
 
     # Block structure (verified from raw jsPsych data)
     # Practice blocks
-    PRACTICE_STATIC_BLOCK = 1     # Block 1: static practice (no reversals)
-    PRACTICE_DYNAMIC_BLOCK = 2    # Block 2: dynamic practice (with reversals)
-    NUM_PRACTICE_BLOCKS = 2       # Blocks 1-2: practice
+    PRACTICE_STATIC_BLOCK = 1  # Block 1: static practice (no reversals)
+    PRACTICE_DYNAMIC_BLOCK = 2  # Block 2: dynamic practice (with reversals)
+    NUM_PRACTICE_BLOCKS = 2  # Blocks 1-2: practice
 
     # Main task blocks
-    MAIN_TASK_START_BLOCK = 3     # First main task block
-    MAIN_TASK_END_BLOCK = 23      # Last main task block (maximum)
-    NUM_MAIN_BLOCKS = 21          # Blocks 3-23: main task
+    MAIN_TASK_START_BLOCK = 3  # First main task block
+    MAIN_TASK_END_BLOCK = 23  # Last main task block (maximum)
+    NUM_MAIN_BLOCKS = 21  # Blocks 3-23: main task
 
     # Total
     TOTAL_BLOCKS = NUM_PRACTICE_BLOCKS + NUM_MAIN_BLOCKS  # 23 total
@@ -109,13 +111,15 @@ class TaskParams:
     TRIALS_PER_BLOCK_DEFAULT = 100  # Default for simulations (max envelope)
 
     # Phase types
-    PHASE_PRACTICE_STATIC = 'practice_static'  # Block 1
-    PHASE_PRACTICE_DYNAMIC = 'practice_dynamic'  # Block 2
-    PHASE_MAIN_TASK = 'main_task'  # Blocks 3-23
+    PHASE_PRACTICE_STATIC = "practice_static"  # Block 1
+    PHASE_PRACTICE_DYNAMIC = "practice_dynamic"  # Block 2
+    PHASE_MAIN_TASK = "main_task"  # Blocks 3-23
+
 
 # ============================================================================
 # MODEL HYPERPARAMETERS
 # ============================================================================
+
 
 class ModelParams:
     """
@@ -164,6 +168,7 @@ class ModelParams:
     WM_INIT_VALUE = 1.0 / 3.0  # Initial WM values (1/nA for uniform baseline)
     NUM_ACTIONS = 3  # Number of possible actions
 
+
 # ============================================================================
 # MODEL REGISTRY (single source of truth for all pipeline scripts)
 # ============================================================================
@@ -172,83 +177,125 @@ class ModelParams:
 # used inside the tight JAX optimization inner loop.
 
 MODEL_REGISTRY: dict[str, dict] = {
-    'qlearning': {
-        'display_name': 'M1: Q-Learning',
-        'short_name': 'M1',
-        'params': ['alpha_pos', 'alpha_neg', 'epsilon'],
-        'n_params': 3,
-        'is_choice_only': True,
-        'has_wm': False,
-        'csv_filename': 'qlearning_individual_fits.csv',
+    "qlearning": {
+        "display_name": "M1: Q-Learning",
+        "short_name": "M1",
+        "params": ["alpha_pos", "alpha_neg", "epsilon"],
+        "n_params": 3,
+        "is_choice_only": True,
+        "has_wm": False,
+        "csv_filename": "qlearning_individual_fits.csv",
     },
-    'wmrl': {
-        'display_name': 'M2: WM-RL',
-        'short_name': 'M2',
-        'params': ['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'epsilon'],
-        'n_params': 6,
-        'is_choice_only': True,
-        'has_wm': True,
-        'csv_filename': 'wmrl_individual_fits.csv',
+    "wmrl": {
+        "display_name": "M2: WM-RL",
+        "short_name": "M2",
+        "params": ["alpha_pos", "alpha_neg", "phi", "rho", "capacity", "epsilon"],
+        "n_params": 6,
+        "is_choice_only": True,
+        "has_wm": True,
+        "csv_filename": "wmrl_individual_fits.csv",
     },
-    'wmrl_m3': {
-        'display_name': 'M3: WM-RL+kappa',
-        'short_name': 'M3',
-        'params': ['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'kappa', 'epsilon'],
-        'n_params': 7,
-        'is_choice_only': True,
-        'has_wm': True,
-        'csv_filename': 'wmrl_m3_individual_fits.csv',
-    },
-    'wmrl_m5': {
-        'display_name': 'M5: WM-RL+phi_rl',
-        'short_name': 'M5',
-        'params': ['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'kappa', 'phi_rl', 'epsilon'],
-        'n_params': 8,
-        'is_choice_only': True,
-        'has_wm': True,
-        'csv_filename': 'wmrl_m5_individual_fits.csv',
-    },
-    'wmrl_m6a': {
-        'display_name': 'M6a: WM-RL+kappa_s',
-        'short_name': 'M6a',
-        'params': ['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'kappa_s', 'epsilon'],
-        'n_params': 7,
-        'is_choice_only': True,
-        'has_wm': True,
-        'csv_filename': 'wmrl_m6a_individual_fits.csv',
-    },
-    'wmrl_m6b': {
-        'display_name': 'M6b: WM-RL+dual',
-        'short_name': 'M6b',
-        'params': [
-            'alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity',
-            'kappa_total', 'kappa_share', 'epsilon',
+    "wmrl_m3": {
+        "display_name": "M3: WM-RL+kappa",
+        "short_name": "M3",
+        "params": [
+            "alpha_pos",
+            "alpha_neg",
+            "phi",
+            "rho",
+            "capacity",
+            "kappa",
+            "epsilon",
         ],
-        'n_params': 8,
-        'is_choice_only': True,
-        'has_wm': True,
-        'csv_filename': 'wmrl_m6b_individual_fits.csv',
+        "n_params": 7,
+        "is_choice_only": True,
+        "has_wm": True,
+        "csv_filename": "wmrl_m3_individual_fits.csv",
     },
-    'wmrl_m4': {
-        'display_name': 'M4: RLWM-LBA',
-        'short_name': 'M4',
-        'params': [
-            'alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'kappa',
-            'v_scale', 'A', 'delta', 't0',
+    "wmrl_m5": {
+        "display_name": "M5: WM-RL+phi_rl",
+        "short_name": "M5",
+        "params": [
+            "alpha_pos",
+            "alpha_neg",
+            "phi",
+            "rho",
+            "capacity",
+            "kappa",
+            "phi_rl",
+            "epsilon",
         ],
-        'n_params': 10,
-        'is_choice_only': False,  # Joint choice + RT; AIC not comparable to choice-only
-        'has_wm': True,
-        'csv_filename': 'wmrl_m4_individual_fits.csv',
+        "n_params": 8,
+        "is_choice_only": True,
+        "has_wm": True,
+        "csv_filename": "wmrl_m5_individual_fits.csv",
+    },
+    "wmrl_m6a": {
+        "display_name": "M6a: WM-RL+kappa_s",
+        "short_name": "M6a",
+        "params": [
+            "alpha_pos",
+            "alpha_neg",
+            "phi",
+            "rho",
+            "capacity",
+            "kappa_s",
+            "epsilon",
+        ],
+        "n_params": 7,
+        "is_choice_only": True,
+        "has_wm": True,
+        "csv_filename": "wmrl_m6a_individual_fits.csv",
+    },
+    "wmrl_m6b": {
+        "display_name": "M6b: WM-RL+dual",
+        "short_name": "M6b",
+        "params": [
+            "alpha_pos",
+            "alpha_neg",
+            "phi",
+            "rho",
+            "capacity",
+            "kappa_total",
+            "kappa_share",
+            "epsilon",
+        ],
+        "n_params": 8,
+        "is_choice_only": True,
+        "has_wm": True,
+        "csv_filename": "wmrl_m6b_individual_fits.csv",
+    },
+    "wmrl_m4": {
+        "display_name": "M4: RLWM-LBA",
+        "short_name": "M4",
+        "params": [
+            "alpha_pos",
+            "alpha_neg",
+            "phi",
+            "rho",
+            "capacity",
+            "kappa",
+            "v_scale",
+            "A",
+            "delta",
+            "t0",
+        ],
+        "n_params": 10,
+        "is_choice_only": False,  # Joint choice + RT; AIC not comparable to choice-only
+        "has_wm": True,
+        "csv_filename": "wmrl_m4_individual_fits.csv",
     },
 }
 
 ALL_MODELS: list[str] = list(MODEL_REGISTRY.keys())
-CHOICE_ONLY_MODELS: list[str] = [k for k, v in MODEL_REGISTRY.items() if v['is_choice_only']]
+CHOICE_ONLY_MODELS: list[str] = [
+    k for k, v in MODEL_REGISTRY.items() if v["is_choice_only"]
+]
 
 # ============================================================================
 # PYMC SAMPLING PARAMETERS
 # ============================================================================
+
 
 class PyMCParams:
     """Parameters for Bayesian model fitting with PyMC."""
@@ -279,36 +326,48 @@ class PyMCParams:
     # Posterior predictive checks
     NUM_POSTERIOR_SAMPLES = 100  # Samples for posterior predictive
 
+
 # ============================================================================
 # DATA PROCESSING
 # ============================================================================
+
 
 class DataParams:
     """Parameters for data processing and analysis."""
 
     # File paths
     RAW_DATA_DIR = DATA_DIR
-    PARSED_DEMOGRAPHICS = OUTPUT_DIR / 'parsed_demographics.csv'
-    PARSED_SURVEY1 = OUTPUT_DIR / 'parsed_survey1.csv'
-    PARSED_SURVEY2 = OUTPUT_DIR / 'parsed_survey2.csv'
-    PARSED_TASK_TRIALS = OUTPUT_DIR / 'parsed_task_trials.csv'
-    COLLATED_DATA = OUTPUT_DIR / 'collated_participant_data.csv'
+    PARSED_DEMOGRAPHICS = OUTPUT_DIR / "parsed_demographics.csv"
+    PARSED_SURVEY1 = OUTPUT_DIR / "parsed_survey1.csv"
+    PARSED_SURVEY2 = OUTPUT_DIR / "parsed_survey2.csv"
+    PARSED_TASK_TRIALS = OUTPUT_DIR / "parsed_task_trials.csv"
+    COLLATED_DATA = OUTPUT_DIR / "collated_participant_data.csv"
 
     # Task trial data files
-    TASK_TRIALS_LONG = OUTPUT_DIR / 'task_trials_long.csv'       # Main task only (default for fitting)
-    TASK_TRIALS_ALL = OUTPUT_DIR / 'task_trials_long_all.csv'    # All blocks including practice
-    TASK_TRIALS_LEGACY = OUTPUT_DIR / 'task_trials_long_all_participants.csv'  # Legacy filename
+    TASK_TRIALS_LONG = (
+        OUTPUT_DIR / "task_trials_long.csv"
+    )  # Main task only (default for fitting)
+    TASK_TRIALS_ALL = (
+        OUTPUT_DIR / "task_trials_long_all.csv"
+    )  # All blocks including practice
+    TASK_TRIALS_LEGACY = (
+        OUTPUT_DIR / "task_trials_long_all_participants.csv"
+    )  # Legacy filename
 
-    SUMMARY_METRICS = OUTPUT_DIR / 'summary_participant_metrics.csv'
+    SUMMARY_METRICS = OUTPUT_DIR / "summary_participant_metrics.csv"
 
     # Simulated data paths
-    SIMULATED_DATA = OUTPUT_VERSION_DIR / 'simulated_data.csv'
-    FITTED_POSTERIORS = OUTPUT_VERSION_DIR / 'fitted_posteriors.nc'  # NetCDF format
-    MODEL_COMPARISON = OUTPUT_VERSION_DIR / 'model_comparison.csv'
+    SIMULATED_DATA = OUTPUT_VERSION_DIR / "simulated_data.csv"
+    FITTED_POSTERIORS = OUTPUT_VERSION_DIR / "fitted_posteriors.nc"  # NetCDF format
+    MODEL_COMPARISON = OUTPUT_VERSION_DIR / "model_comparison.csv"
 
     # Exclusion criteria (references module-level constant)
-    MIN_TRIALS = MIN_TRIALS_THRESHOLD  # Minimum trials for inclusion (~50% of expected 807-1077)
-    MIN_ACCURACY = 0.3  # Minimum accuracy for inclusion (below chance suggests invalid data)
+    MIN_TRIALS = (
+        MIN_TRIALS_THRESHOLD  # Minimum trials for inclusion (~50% of expected 807-1077)
+    )
+    MIN_ACCURACY = (
+        0.3  # Minimum accuracy for inclusion (below chance suggests invalid data)
+    )
 
     # Block filtering (for model fitting)
     MIN_BLOCKS = 8  # Minimum main task blocks for reliable parameter estimation
@@ -318,9 +377,11 @@ class DataParams:
     MIN_RT = 200  # Minimum RT (ms) - faster suggests anticipatory
     MAX_RT = 2000  # Maximum RT (ms) - task timeout
 
+
 # ============================================================================
 # ANALYSIS PARAMETERS
 # ============================================================================
+
 
 class AnalysisParams:
     """Parameters for statistical analyses."""
@@ -334,26 +395,26 @@ class AnalysisParams:
 
     # Figure settings
     FIG_DPI = 300
-    FIG_FORMAT = 'png'
+    FIG_FORMAT = "png"
     FIGURE_SIZE_DEFAULT = (10, 6)
 
     # Color schemes
     COLORS_LOAD = {
-        'low': '#3498db',  # Blue
-        'high': '#e74c3c',  # Red
+        "low": "#3498db",  # Blue
+        "high": "#e74c3c",  # Red
     }
 
     COLORS_PHASE = {
-        'practice_static': '#95a5a6',  # Gray
-        'practice_dynamic': '#9b59b6',  # Purple
-        'main_task': '#2ecc71',  # Green
+        "practice_static": "#95a5a6",  # Gray
+        "practice_dynamic": "#9b59b6",  # Purple
+        "main_task": "#2ecc71",  # Green
     }
 
     COLORS_SET_SIZE = {
-        2: '#27ae60',  # Green
-        3: '#3498db',  # Blue
-        5: '#f39c12',  # Orange
-        6: '#e74c3c',  # Red
+        2: "#27ae60",  # Green
+        3: "#3498db",  # Blue
+        5: "#f39c12",  # Orange
+        6: "#e74c3c",  # Red
     }
 
     # Random seed for reproducibility
@@ -362,9 +423,11 @@ class AnalysisParams:
     # Set numpy random seed
     np.random.seed(RANDOM_SEED)
 
+
 # ============================================================================
 # DYNAMIC EXCLUSION COMPUTATION
 # ============================================================================
+
 
 def get_excluded_participants(data_path: Path | None = None) -> list[int]:
     """
@@ -385,15 +448,15 @@ def get_excluded_participants(data_path: Path | None = None) -> list[int]:
         Sorted list of participant IDs to exclude.
     """
     if data_path is None:
-        data_path = OUTPUT_DIR / 'task_trials_long.csv'
+        data_path = OUTPUT_DIR / "task_trials_long.csv"
 
     if not data_path.exists():
         return sorted(MANUAL_EXCLUSIONS)
 
     import pandas as pd
 
-    df = pd.read_csv(data_path, usecols=['sona_id'])
-    trial_counts = df.groupby('sona_id').size()
+    df = pd.read_csv(data_path, usecols=["sona_id"])
+    trial_counts = df.groupby("sona_id").size()
     auto_excluded = trial_counts[trial_counts < MIN_TRIALS_THRESHOLD].index.tolist()
 
     return sorted(set(auto_excluded) | set(MANUAL_EXCLUSIONS))
@@ -411,14 +474,14 @@ EXCLUDED_PARTICIPANTS = get_excluded_participants()
 # Overall accuracy >= MIN_OVERALL_ACCURACY AND late-block accuracy
 # >= MIN_LATE_BLOCK_ACCURACY.  The late-block criterion confirms learning
 # happened, not just chance performance across the whole session.
-MIN_OVERALL_ACCURACY: float = 0.40      # ~20% above chance
-MIN_LATE_BLOCK_ACCURACY: float = 0.50   # ~50% above chance in terminal blocks
-LATE_BLOCK_N: int = 5                   # evaluate accuracy on last 5 blocks
+MIN_OVERALL_ACCURACY: float = 0.40  # ~20% above chance
+MIN_LATE_BLOCK_ACCURACY: float = 0.50  # ~50% above chance in terminal blocks
+LATE_BLOCK_N: int = 5  # evaluate accuracy on last 5 blocks
 
 # Columns treated as required for the trauma-scale regression.
 REQUIRED_SURVEY_COLUMNS: tuple[str, ...] = (
-    "less_total_events",   # LEC-5 exposure count
-    "ies_total",           # IES-R symptom total
+    "less_total_events",  # LEC-5 exposure count
+    "ies_total",  # IES-R symptom total
     "ies_intrusion",
     "ies_avoidance",
     "ies_hyperarousal",
@@ -524,14 +587,18 @@ def get_analysis_cohort(
 
     # Late-block accuracy: per-participant max block, then select the last
     # `late_block_n` blocks for each participant.
-    def _late_block_mean(group: "pd.DataFrame") -> float:
+    def _late_block_mean(group: pd.DataFrame) -> float:
         max_b = int(group["block"].max())
         min_b = max_b - late_block_n + 1
         return float(group.loc[group["block"] >= min_b, "correct"].mean())
 
-    late_acc = df.groupby("sona_id").apply(_late_block_mean, include_groups=False) \
-        if "include_groups" in getattr(df.groupby("sona_id").apply, "__kwdefaults__", {}) or True \
+    late_acc = (
+        df.groupby("sona_id").apply(_late_block_mean, include_groups=False)
+        if "include_groups"
+        in getattr(df.groupby("sona_id").apply, "__kwdefaults__", {})
+        or True
         else df.groupby("sona_id").apply(_late_block_mean)
+    )
     # Robustness: pandas warns about include_groups; fall back cleanly.
     try:
         late_acc = df.groupby("sona_id").apply(_late_block_mean, include_groups=False)
@@ -548,9 +615,7 @@ def get_analysis_cohort(
         surveys_df = pd.read_csv(surveys_path)
         surveys_df = surveys_df.dropna(subset=["sona_id"]).copy()
         surveys_df["sona_id"] = surveys_df["sona_id"].astype(int)
-        complete_mask = surveys_df[list(REQUIRED_SURVEY_COLUMNS)].notna().all(
-            axis=1
-        )
+        complete_mask = surveys_df[list(REQUIRED_SURVEY_COLUMNS)].notna().all(axis=1)
         scales_pass = set(surveys_df.loc[complete_mask, "sona_id"].tolist())
     elif require_scales:
         if verbose:
@@ -568,12 +633,18 @@ def get_analysis_cohort(
     if verbose:
         all_ids = set(df["sona_id"].unique().tolist())
         print(f"Analysis cohort breakdown (total observed N={len(all_ids)}):")
-        print(f"  Task-complete (>= {min_trials} trials, >= {min_blocks} blocks): {len(task_pass)}")
+        print(
+            f"  Task-complete (>= {min_trials} trials, >= {min_blocks} blocks): {len(task_pass)}"
+        )
         print(f"  Overall accuracy >= {min_overall_accuracy}: {len(overall_pass)}")
-        print(f"  Late-block accuracy >= {min_late_block_accuracy} (last {late_block_n}): {len(late_pass)}")
+        print(
+            f"  Late-block accuracy >= {min_late_block_accuracy} (last {late_block_n}): {len(late_pass)}"
+        )
         print(f"  Both performance gates: {len(perf_pass)}")
         if require_scales:
-            print(f"  Scale-complete ({len(REQUIRED_SURVEY_COLUMNS)} cols): {len(scales_pass)}")
+            print(
+                f"  Scale-complete ({len(REQUIRED_SURVEY_COLUMNS)} cols): {len(scales_pass)}"
+            )
         print(f"  Final cohort (intersection − manual exclusions): {len(cohort)}")
 
     return sorted(cohort)
@@ -582,6 +653,7 @@ def get_analysis_cohort(
 # ============================================================================
 # UTILITY FUNCTIONS
 # ============================================================================
+
 
 def get_set_size_load_condition(set_size):
     """
@@ -597,7 +669,8 @@ def get_set_size_load_condition(set_size):
     str
         'low' if set_size <= 3, 'high' otherwise
     """
-    return 'low' if set_size <= TaskParams.LOW_LOAD_THRESHOLD else 'high'
+    return "low" if set_size <= TaskParams.LOW_LOAD_THRESHOLD else "high"
+
 
 def get_phase_type(block):
     """
@@ -620,6 +693,7 @@ def get_phase_type(block):
     else:
         return TaskParams.PHASE_MAIN_TASK
 
+
 def sample_reversal_point(rng=None):
     """
     Sample a reversal point uniformly from [REVERSAL_MIN, REVERSAL_MAX].
@@ -638,9 +712,11 @@ def sample_reversal_point(rng=None):
         rng = np.random
     return rng.randint(TaskParams.REVERSAL_MIN, TaskParams.REVERSAL_MAX + 1)
 
+
 # ============================================================================
 # CONFIGURATION SUMMARY
 # ============================================================================
+
 
 def print_config_summary():
     """Print a summary of the current configuration."""
@@ -654,7 +730,9 @@ def print_config_summary():
     print(f"  - Actions: {TaskParams.NUM_ACTIONS}")
     print(f"  - Set Sizes: {TaskParams.SET_SIZES}")
     print(f"  - Reversal Range: [{TaskParams.REVERSAL_MIN}, {TaskParams.REVERSAL_MAX}]")
-    print(f"  - Reward: Correct={TaskParams.REWARD_CORRECT}, Incorrect={TaskParams.REWARD_INCORRECT}")
+    print(
+        f"  - Reward: Correct={TaskParams.REWARD_CORRECT}, Incorrect={TaskParams.REWARD_INCORRECT}"
+    )
     print("\nModel Defaults (Senta et al., 2025):")
     print(f"  - Learning Rate (α_pos): {ModelParams.ALPHA_POS_DEFAULT}")
     print(f"  - Learning Rate (α_neg): {ModelParams.ALPHA_NEG_DEFAULT}")
@@ -669,6 +747,7 @@ def print_config_summary():
     print(f"  - Samples: {PyMCParams.NUM_SAMPLES}")
     print(f"  - Tune: {PyMCParams.NUM_TUNE}")
     print("=" * 80)
+
 
 # ============================================================================
 # PARAMETERIZATION VERSION REGISTRY & VALIDATION
@@ -700,9 +779,9 @@ entry — only Collins K ∈ [2, 6] CSVs validate.
 
 
 def load_fits_with_validation(
-    path: "Path",
+    path: Path,
     model: str,
-) -> "pd.DataFrame":
+) -> pd.DataFrame:
     """Load a fit CSV and validate its parameterization_version.
 
     Raises loudly if the CSV lacks a ``parameterization_version`` column
@@ -753,9 +832,9 @@ def load_fits_with_validation(
 
 
 def load_netcdf_with_validation(
-    path: "Path",
+    path: Path,
     model: str,
-) -> "az.InferenceData":
+) -> az.InferenceData:
     """Load a Bayesian posterior NetCDF and validate basic invariants.
 
     Companion to :func:`load_fits_with_validation` (which validates CSV
@@ -801,8 +880,7 @@ def load_netcdf_with_validation(
 
     if not path.exists():
         raise FileNotFoundError(
-            f"NetCDF posterior not found: {path} "
-            f"(expected for model '{model}')"
+            f"NetCDF posterior not found: {path} (expected for model '{model}')"
         )
     if path.stat().st_size == 0:
         raise ValueError(
@@ -825,8 +903,7 @@ def load_netcdf_with_validation(
         expected = EXPECTED_PARAMETERIZATION.get(model)
         if expected is None:
             raise ValueError(
-                f"Unknown model '{model}' — not in "
-                f"EXPECTED_PARAMETERIZATION registry"
+                f"Unknown model '{model}' — not in EXPECTED_PARAMETERIZATION registry"
             )
         if actual_version != expected:
             raise ValueError(

@@ -45,6 +45,7 @@ EXPECTED_COLD_START_ENTRIES: frozenset[str] = frozenset(
     }
 )
 
+
 # Phase 22 SC#8: banned evidence phrases in VERIFICATION.md files.
 # Plain-English inspection anecdotes are not acceptable evidence.
 # Constructed programmatically so the checker source does not itself
@@ -215,13 +216,14 @@ def check_state_md_clean() -> CheckResult:
         )
 
     if "Phase: 22 of 22" not in text and "22 of 22" not in text:
-        details.append(
-            "STATE.md does not contain '22 of 22' in current position block"
-        )
+        details.append("STATE.md does not contain '22 of 22' in current position block")
 
     passed = len(details) == 0
-    message = "PASS — STATE.md is clean and references Phase 22 of 22" if passed \
+    message = (
+        "PASS — STATE.md is clean and references Phase 22 of 22"
+        if passed
         else f"FAIL — {details[0]}"
+    )
     return CheckResult(name=name, passed=passed, message=message, details=details)
 
 
@@ -272,8 +274,7 @@ def check_roadmap_progress_table() -> CheckResult:
     for phase in sorted(required_complete):
         if phase not in phase_statuses:
             details.append(
-                f"Phase {phase} not found in ROADMAP.md Progress Table "
-                f"(v4.0 section)"
+                f"Phase {phase} not found in ROADMAP.md Progress Table (v4.0 section)"
             )
             continue
         status = phase_statuses[phase]
@@ -291,9 +292,7 @@ def check_roadmap_progress_table() -> CheckResult:
             # Extract phase number for clarity
             m = re.match(r"^\|\s*(\d+)\.", line)
             phase_str = m.group(1) if m else "unknown"
-            details.append(
-                f"Phase {phase_str} ROADMAP row still reads 'Not started'"
-            )
+            details.append(f"Phase {phase_str} ROADMAP row still reads 'Not started'")
 
     passed = len(details) == 0
     message = (
@@ -338,16 +337,14 @@ def check_project_md_active_migration() -> CheckResult:
     else:
         validated_start = text.index("### Validated")
         # Find end of Validated section (next same-level heading or EOF)
-        next_h3 = re.search(r"\n### ", text[validated_start + len("### Validated"):])
+        next_h3 = re.search(r"\n### ", text[validated_start + len("### Validated") :])
         if next_h3:
             validated_end = validated_start + len("### Validated") + next_h3.start()
         else:
             validated_end = len(text)
         validated_section = text[validated_start:validated_end]
         if "v4.0" not in validated_section:
-            details.append(
-                "PROJECT.md '### Validated' section does not reference v4.0"
-            )
+            details.append("PROJECT.md '### Validated' section does not reference v4.0")
 
     # Extract Active (v4.0) section
     active_marker = "### Active (v4.0)"
@@ -366,7 +363,7 @@ def check_project_md_active_migration() -> CheckResult:
 
     active_start = text.index(active_marker)
     # Find end: next ### heading or end of text
-    next_section = re.search(r"\n### ", text[active_start + len(active_marker):])
+    next_section = re.search(r"\n### ", text[active_start + len(active_marker) :])
     if next_section:
         active_end = active_start + len(active_marker) + next_section.start()
     else:
@@ -450,8 +447,7 @@ def check_verification_files_exist() -> CheckResult:
         fm = _parse_yaml_frontmatter(text)
         if not fm:
             details.append(
-                f"Phase {phase_num} VERIFICATION.md: YAML frontmatter "
-                f"not parseable"
+                f"Phase {phase_num} VERIFICATION.md: YAML frontmatter not parseable"
             )
         else:
             # Check required keys present
@@ -513,8 +509,7 @@ def check_requirements_md_row_count() -> CheckResult:
 
     if deer_bms_count < 14:
         details.append(
-            f"REQUIREMENTS.md has {deer_bms_count} DEER/BMS rows; "
-            f"expected >= 14"
+            f"REQUIREMENTS.md has {deer_bms_count} DEER/BMS rows; expected >= 14"
         )
 
     # Assert Total row reads **71**
@@ -530,8 +525,7 @@ def check_requirements_md_row_count() -> CheckResult:
 
     passed = len(details) == 0
     message = (
-        f"PASS — REQUIREMENTS.md has {deer_bms_count} DEER/BMS rows; "
-        f"Total=71"
+        f"PASS — REQUIREMENTS.md has {deer_bms_count} DEER/BMS rows; Total=71"
         if passed
         else f"FAIL — {details[0]}"
     )
@@ -600,10 +594,7 @@ def check_cluster_freshness_framing() -> CheckResult:
 
     # Files to inspect for cluster_execution_pending YAML blocks
     files_to_check: list[Path] = sorted(
-        [
-            PHASES_DIR / rel
-            for rel in EXPECTED_VERIFICATION_FILES.values()
-        ]
+        [PHASES_DIR / rel for rel in EXPECTED_VERIFICATION_FILES.values()]
         + [REPO_ROOT / ".planning" / "v4.0-MILESTONE-AUDIT.md"]
     )
 
@@ -631,9 +622,7 @@ def check_cluster_freshness_framing() -> CheckResult:
 
             # At least one canonical entry must appear in this value
             matches = [
-                entry
-                for entry in EXPECTED_COLD_START_ENTRIES
-                if entry in deferred_val
+                entry for entry in EXPECTED_COLD_START_ENTRIES if entry in deferred_val
             ]
             if not matches:
                 truth_snippet = str(item.get("truth", ""))[:80]
@@ -666,9 +655,7 @@ def check_determinism_sentinel() -> CheckResult:
         Always passes on a correct implementation; fails if sentinel drifts.
     """
     name = "check_determinism_sentinel"
-    sentinel = (
-        "phase=22 milestone=v4.0 checks=8 sentinel=DETERMINISTIC_CONSTANT"
-    )
+    sentinel = "phase=22 milestone=v4.0 checks=8 sentinel=DETERMINISTIC_CONSTANT"
     # The sentinel is a hardcoded constant — no datetime, random, or mtime.
     # Two successive calls must return the same CheckResult with this exact
     # message so that pytest byte-identical comparison holds.

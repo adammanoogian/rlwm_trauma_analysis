@@ -52,7 +52,7 @@ class TestQLearningParameterRecovery:
             beta=true_beta,
             num_stimuli=6,
             num_actions=3,
-            seed=42
+            seed=42,
         )
 
         data = self._generate_synthetic_data(env, agent, n_trials=100)
@@ -65,17 +65,15 @@ class TestQLearningParameterRecovery:
                 alpha_neg=alpha,
                 beta=beta,
                 num_stimuli=6,
-                num_actions=3
+                num_actions=3,
             )
 
             loglik = 0
             for _, trial in data.iterrows():
-                probs = test_agent.get_action_probs(trial['stimulus'])
-                loglik += np.log(probs[trial['key_press']] + 1e-10)
+                probs = test_agent.get_action_probs(trial["stimulus"])
+                loglik += np.log(probs[trial["key_press"]] + 1e-10)
                 test_agent.update(
-                    trial['stimulus'],
-                    trial['key_press'],
-                    trial['correct']
+                    trial["stimulus"], trial["key_press"], trial["correct"]
                 )
 
             return -loglik
@@ -84,7 +82,7 @@ class TestQLearningParameterRecovery:
             neg_loglik,
             x0=[0.1, 2.0],
             bounds=[(0.01, 0.99), (0.1, 20)],
-            method='L-BFGS-B'
+            method="L-BFGS-B",
         )
 
         recovered_alpha, recovered_beta = result.x
@@ -122,7 +120,7 @@ class TestQLearningParameterRecovery:
                 beta=true_beta,
                 num_stimuli=6,
                 num_actions=3,
-                seed=seed
+                seed=seed,
             )
 
             data = self._generate_synthetic_data(env, agent, n_trials=150)
@@ -131,15 +129,20 @@ class TestQLearningParameterRecovery:
             def neg_loglik(params):
                 alpha, beta = params
                 test_agent = QLearningAgent(
-                    alpha_pos=alpha, alpha_neg=alpha, beta=beta,
-                    num_stimuli=6, num_actions=3
+                    alpha_pos=alpha,
+                    alpha_neg=alpha,
+                    beta=beta,
+                    num_stimuli=6,
+                    num_actions=3,
                 )
 
                 loglik = 0
                 for _, trial in data.iterrows():
-                    probs = test_agent.get_action_probs(trial['stimulus'])
-                    loglik += np.log(probs[trial['key_press']] + 1e-10)
-                    test_agent.update(trial['stimulus'], trial['key_press'], trial['correct'])
+                    probs = test_agent.get_action_probs(trial["stimulus"])
+                    loglik += np.log(probs[trial["key_press"]] + 1e-10)
+                    test_agent.update(
+                        trial["stimulus"], trial["key_press"], trial["correct"]
+                    )
 
                 return -loglik
 
@@ -147,7 +150,7 @@ class TestQLearningParameterRecovery:
                 neg_loglik,
                 x0=[0.15, 2.5],
                 bounds=[(0.01, 0.99), (0.1, 20)],
-                method='L-BFGS-B'
+                method="L-BFGS-B",
             )
 
             recoveries.append(result.x)
@@ -167,16 +170,18 @@ class TestQLearningParameterRecovery:
         obs, _ = env.reset()
         data = []
 
-        for trial in range(n_trials):
-            stimulus = obs['stimulus']
+        for _trial in range(n_trials):
+            stimulus = obs["stimulus"]
             action = agent.choose_action(stimulus)
             obs, reward, terminated, truncated, info = env.step(action)
 
-            data.append({
-                'stimulus': stimulus,
-                'key_press': action,
-                'correct': info['is_correct']
-            })
+            data.append(
+                {
+                    "stimulus": stimulus,
+                    "key_press": action,
+                    "correct": info["is_correct"],
+                }
+            )
 
             agent.update(stimulus, action, reward)
 
@@ -215,7 +220,7 @@ class TestWMRLParameterRecovery:
             rho=true_rho,
             num_stimuli=6,
             num_actions=3,
-            seed=42
+            seed=42,
         )
 
         data = self._generate_synthetic_data(env, agent, set_size=4, n_trials=150)
@@ -231,17 +236,19 @@ class TestWMRLParameterRecovery:
                 phi=0.1,  # Fixed
                 rho=rho,
                 num_stimuli=6,
-                num_actions=3
+                num_actions=3,
             )
 
             loglik = 0
             for _, trial in data.iterrows():
                 hybrid_info = test_agent.get_hybrid_probs(
-                    trial['stimulus'], trial['set_size']
+                    trial["stimulus"], trial["set_size"]
                 )
-                probs = hybrid_info['probs']
-                loglik += np.log(probs[trial['key_press']] + 1e-10)
-                test_agent.update(trial['stimulus'], trial['key_press'], trial['correct'])
+                probs = hybrid_info["probs"]
+                loglik += np.log(probs[trial["key_press"]] + 1e-10)
+                test_agent.update(
+                    trial["stimulus"], trial["key_press"], trial["correct"]
+                )
 
             return -loglik
 
@@ -249,7 +256,7 @@ class TestWMRLParameterRecovery:
             neg_loglik,
             x0=[0.15, 2.5, 0.5],
             bounds=[(0.01, 0.99), (0.1, 20), (0.0, 1.0)],
-            method='L-BFGS-B'
+            method="L-BFGS-B",
         )
 
         recovered_alpha, recovered_beta, recovered_rho = result.x
@@ -270,17 +277,19 @@ class TestWMRLParameterRecovery:
         obs, _ = env.reset()
         data = []
 
-        for trial in range(n_trials):
-            stimulus = obs['stimulus']
+        for _trial in range(n_trials):
+            stimulus = obs["stimulus"]
             action, _ = agent.choose_action(stimulus, set_size)
             obs, reward, terminated, truncated, info = env.step(action)
 
-            data.append({
-                'stimulus': stimulus,
-                'key_press': action,
-                'correct': info['is_correct'],
-                'set_size': set_size,
-            })
+            data.append(
+                {
+                    "stimulus": stimulus,
+                    "key_press": action,
+                    "correct": info["is_correct"],
+                    "set_size": set_size,
+                }
+            )
 
             agent.update(stimulus, action, reward)
 
@@ -312,22 +321,24 @@ class TestRecoveryDiagnostics:
             beta=5.0,
             num_stimuli=6,
             num_actions=3,
-            seed=42
+            seed=42,
         )
 
         obs, _ = env.reset()
         data = []
 
         for _ in range(50):
-            stimulus = obs['stimulus']
+            stimulus = obs["stimulus"]
             action = agent.choose_action(stimulus)
             obs, reward, terminated, truncated, info = env.step(action)
 
-            data.append({
-                'stimulus': stimulus,
-                'key_press': action,
-                'correct': info['is_correct']
-            })
+            data.append(
+                {
+                    "stimulus": stimulus,
+                    "key_press": action,
+                    "correct": info["is_correct"],
+                }
+            )
 
             agent.update(stimulus, action, reward)
 
@@ -339,26 +350,35 @@ class TestRecoveryDiagnostics:
         def neg_loglik(params):
             alpha, beta = params
             test_agent = QLearningAgent(
-                alpha_pos=alpha, alpha_neg=alpha, beta=beta,
-                num_stimuli=6, num_actions=3
+                alpha_pos=alpha,
+                alpha_neg=alpha,
+                beta=beta,
+                num_stimuli=6,
+                num_actions=3,
             )
 
             loglik = 0
             for _, trial in data.iterrows():
-                probs = test_agent.get_action_probs(trial['stimulus'])
-                loglik += np.log(probs[trial['key_press']] + 1e-10)
-                test_agent.update(trial['stimulus'], trial['key_press'], trial['correct'])
+                probs = test_agent.get_action_probs(trial["stimulus"])
+                loglik += np.log(probs[trial["key_press"]] + 1e-10)
+                test_agent.update(
+                    trial["stimulus"], trial["key_press"], trial["correct"]
+                )
 
             return -loglik
 
         # Fit from two very different starting points
         result1 = minimize(
-            neg_loglik, x0=[0.01, 1.0],
-            bounds=[(0.001, 0.99), (0.1, 20)], method='L-BFGS-B'
+            neg_loglik,
+            x0=[0.01, 1.0],
+            bounds=[(0.001, 0.99), (0.1, 20)],
+            method="L-BFGS-B",
         )
         result2 = minimize(
-            neg_loglik, x0=[0.5, 10.0],
-            bounds=[(0.001, 0.99), (0.1, 20)], method='L-BFGS-B'
+            neg_loglik,
+            x0=[0.5, 10.0],
+            bounds=[(0.001, 0.99), (0.1, 20)],
+            method="L-BFGS-B",
         )
 
         # Both should achieve similar log-likelihood (flat surface = non-identifiable)
@@ -369,6 +389,10 @@ class TestRecoveryDiagnostics:
         )
 
         print("\nIdentifiability test:")
-        print(f"  Fit 1: α={result1.x[0]:.4f}, β={result1.x[1]:.2f}, NLL={result1.fun:.2f}")
-        print(f"  Fit 2: α={result2.x[0]:.4f}, β={result2.x[1]:.2f}, NLL={result2.fun:.2f}")
+        print(
+            f"  Fit 1: α={result1.x[0]:.4f}, β={result1.x[1]:.2f}, NLL={result1.fun:.2f}"
+        )
+        print(
+            f"  Fit 2: α={result2.x[0]:.4f}, β={result2.x[1]:.2f}, NLL={result2.fun:.2f}"
+        )
         print(f"  NLL difference: {nll_diff:.4f} (confirms non-identifiability)")

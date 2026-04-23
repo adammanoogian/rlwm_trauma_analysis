@@ -47,5 +47,5 @@ sys.path.insert(0, str(project_root))
 # Import the main function from the library module
 from scripts.legacy.simulations.generate_data import main
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

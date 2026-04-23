@@ -65,52 +65,58 @@ def main():
 
     # Step 0 (optional): Sync data from experiment folder
     if not args.no_sync:
-        steps.append((
-            "Syncing data from experiment folder",
-            "python scripts/utils/sync_experiment_data.py",
-        ))
+        steps.append(
+            (
+                "Syncing data from experiment folder",
+                "python scripts/utils/sync_experiment_data.py",
+            )
+        )
     else:
         print("\nSkipping data sync (--no-sync flag set)")
 
     # Steps 01-04: Data Processing
-    steps.extend([
-        (
-            "01 — Parsing raw jsPsych data",
-            "python scripts/01_data_preprocessing/01_parse_raw_data.py",
-        ),
-        (
-            "02 — Creating collated participant data",
-            "python scripts/01_data_preprocessing/02_create_collated_csv.py",
-        ),
-        (
-            "03 — Creating task trials CSV",
-            "python scripts/01_data_preprocessing/03_create_task_trials_csv.py",
-        ),
-        (
-            "04 — Creating summary CSV",
-            "python scripts/01_data_preprocessing/04_create_summary_csv.py",
-        ),
-    ])
+    steps.extend(
+        [
+            (
+                "01 — Parsing raw jsPsych data",
+                "python scripts/01_data_preprocessing/01_parse_raw_data.py",
+            ),
+            (
+                "02 — Creating collated participant data",
+                "python scripts/01_data_preprocessing/02_create_collated_csv.py",
+            ),
+            (
+                "03 — Creating task trials CSV",
+                "python scripts/01_data_preprocessing/03_create_task_trials_csv.py",
+            ),
+            (
+                "04 — Creating summary CSV",
+                "python scripts/01_data_preprocessing/04_create_summary_csv.py",
+            ),
+        ]
+    )
 
     # Steps 01-04 (Stage 02): Behavioral Analysis
-    steps.extend([
-        (
-            "01 — Summarizing behavioral data",
-            "python scripts/02_behav_analyses/01_summarize_behavioral_data.py",
-        ),
-        (
-            "02 — Visualizing task performance",
-            "python scripts/02_behav_analyses/02_visualize_task_performance.py",
-        ),
-        (
-            "03 — Analyzing trauma groups",
-            "python scripts/02_behav_analyses/03_analyze_trauma_groups.py",
-        ),
-        (
-            "04 — Running statistical analyses",
-            "python scripts/02_behav_analyses/04_run_statistical_analyses.py",
-        ),
-    ])
+    steps.extend(
+        [
+            (
+                "01 — Summarizing behavioral data",
+                "python scripts/02_behav_analyses/01_summarize_behavioral_data.py",
+            ),
+            (
+                "02 — Visualizing task performance",
+                "python scripts/02_behav_analyses/02_visualize_task_performance.py",
+            ),
+            (
+                "03 — Analyzing trauma groups",
+                "python scripts/02_behav_analyses/03_analyze_trauma_groups.py",
+            ),
+            (
+                "04 — Running statistical analyses",
+                "python scripts/02_behav_analyses/04_run_statistical_analyses.py",
+            ),
+        ]
+    )
 
     total_steps = len(steps)
 
@@ -125,7 +131,9 @@ def main():
         success = run_command(i, total_steps, description, command)
         if not success:
             print(f"\nPipeline FAILED at step {i}.")
-            print(f"Fix the issue and resume with: python run_data_pipeline.py --from {i}")
+            print(
+                f"Fix the issue and resume with: python run_data_pipeline.py --from {i}"
+            )
             sys.exit(1)
 
     # ----------------------------------------------------------------

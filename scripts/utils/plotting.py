@@ -10,28 +10,24 @@ Functions:
     TRAUMA_GROUP_COLORS: Predefined colors for hypothesis_group
 """
 
+import matplotlib.colors
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import matplotlib.colors
 import seaborn as sns
-from typing import Dict, Optional, List, Union
-
 
 # Predefined trauma group colors (matching actual group_assignments.csv values)
 # Note: All participants in this sample have trauma exposure (no "No Trauma" group)
 TRAUMA_GROUP_COLORS = {
-    'Trauma Exposure - No Ongoing Impact': '#F18F01',  # Orange
-    'Trauma Exposure - Ongoing Impact': '#D62246',  # Red
-    'Low Exposure-High Symptoms': '#6C757D',  # Gray (paradoxical, if present)
+    "Trauma Exposure - No Ongoing Impact": "#F18F01",  # Orange
+    "Trauma Exposure - Ongoing Impact": "#D62246",  # Red
+    "Low Exposure-High Symptoms": "#6C757D",  # Gray (paradoxical, if present)
 }
 
 
 def get_color_palette(
-    data_df: pd.DataFrame,
-    color_by: str,
-    custom_colors: Optional[Dict[str, str]] = None
-) -> Dict[str, str]:
+    data_df: pd.DataFrame, color_by: str, custom_colors: dict[str, str] | None = None
+) -> dict[str, str]:
     """
     Generate color palette for categorical grouping.
 
@@ -78,7 +74,7 @@ def get_color_palette(
                 palette[cat] = custom_colors[cat]
             else:
                 # Fallback to gray for unmapped categories
-                palette[cat] = '#808080'
+                palette[cat] = "#808080"
         return palette
 
     # Otherwise generate palette automatically
@@ -86,16 +82,15 @@ def get_color_palette(
 
     if n_colors <= 10:
         # Use seaborn's tab10 for up to 10 categories
-        colors = sns.color_palette('tab10', n_colors=n_colors)
+        colors = sns.color_palette("tab10", n_colors=n_colors)
     else:
         # Use matplotlib colormap for many categories
-        cmap = plt.cm.get_cmap('Set3', n_colors)
+        cmap = plt.cm.get_cmap("Set3", n_colors)
         colors = [cmap(i) for i in range(n_colors)]
 
     # Convert to hex
     palette = {
-        cat: matplotlib.colors.rgb2hex(colors[i])
-        for i, cat in enumerate(categories)
+        cat: matplotlib.colors.rgb2hex(colors[i]) for i, cat in enumerate(categories)
     }
 
     return palette
@@ -103,16 +98,16 @@ def get_color_palette(
 
 def add_colored_scatter(
     ax: plt.Axes,
-    x: Union[str, np.ndarray],
-    y: Union[str, np.ndarray],
+    x: str | np.ndarray,
+    y: str | np.ndarray,
     data_df: pd.DataFrame,
     color_by: str,
-    palette: Dict[str, str],
+    palette: dict[str, str],
     alpha: float = 0.7,
     s: float = 50,
     show_legend: bool = True,
-    **kwargs
-) -> List:
+    **kwargs,
+) -> list:
     """
     Add scatter plot with categorical coloring and legend.
 
@@ -162,11 +157,11 @@ def add_colored_scatter(
         h = ax.scatter(
             x_data[mask],
             y_data[mask],
-            c=palette.get(category, '#808080'),
+            c=palette.get(category, "#808080"),
             label=category,
             alpha=alpha,
             s=s,
-            **kwargs
+            **kwargs,
         )
         handles.append(h)
 
@@ -185,7 +180,7 @@ def add_colored_scatter(
             # Too many categories - skip legend
             return handles
 
-        ax.legend(ncol=ncol, loc='best', fontsize=10)
+        ax.legend(ncol=ncol, loc="best", fontsize=10)
 
     return handles
 
@@ -194,17 +189,17 @@ def plot_scatter_with_annotations(
     ax: plt.Axes,
     x: np.ndarray,
     y: np.ndarray,
-    annotations: Dict[str, float],
+    annotations: dict[str, float],
     show_identity: bool = True,
     show_regression: bool = True,
-    identity_color: str = 'black',
-    regression_color: str = 'red',
-    point_color: str = '#1f77b4',
+    identity_color: str = "black",
+    regression_color: str = "red",
+    point_color: str = "#1f77b4",
     alpha: float = 0.6,
     s: float = 50,
-    pass_threshold: Optional[float] = None,
-    pass_key: str = 'r',
-    **kwargs
+    pass_threshold: float | None = None,
+    pass_key: str = "r",
+    **kwargs,
 ) -> None:
     """
     Add scatter plot with identity line, regression line, and annotations.
@@ -244,15 +239,32 @@ def plot_scatter_with_annotations(
         )
     """
     # Scatter plot
-    ax.scatter(x, y, c=point_color, alpha=alpha, s=s, edgecolors='white', linewidths=0.5, **kwargs)
+    ax.scatter(
+        x,
+        y,
+        c=point_color,
+        alpha=alpha,
+        s=s,
+        edgecolors="white",
+        linewidths=0.5,
+        **kwargs,
+    )
 
     # Identity line (y=x)
     if show_identity:
         lims = [
             np.min([ax.get_xlim()[0], ax.get_ylim()[0]]),
-            np.max([ax.get_xlim()[1], ax.get_ylim()[1]])
+            np.max([ax.get_xlim()[1], ax.get_ylim()[1]]),
         ]
-        ax.plot(lims, lims, '--', color=identity_color, alpha=0.7, linewidth=1.5, label='Identity')
+        ax.plot(
+            lims,
+            lims,
+            "--",
+            color=identity_color,
+            alpha=0.7,
+            linewidth=1.5,
+            label="Identity",
+        )
 
     # Regression line
     if show_regression:
@@ -260,7 +272,15 @@ def plot_scatter_with_annotations(
         coeffs = np.polyfit(x, y, 1)
         poly_fn = np.poly1d(coeffs)
         x_sorted = np.sort(x)
-        ax.plot(x_sorted, poly_fn(x_sorted), '-', color=regression_color, linewidth=2, alpha=0.8, label='Regression')
+        ax.plot(
+            x_sorted,
+            poly_fn(x_sorted),
+            "-",
+            color=regression_color,
+            linewidth=2,
+            alpha=0.8,
+            label="Regression",
+        )
 
     # Annotations box (top-left)
     annotation_text = []
@@ -275,31 +295,39 @@ def plot_scatter_with_annotations(
 
     if annotation_text:
         ax.text(
-            0.05, 0.95,
-            '\n'.join(annotation_text),
+            0.05,
+            0.95,
+            "\n".join(annotation_text),
             transform=ax.transAxes,
             fontsize=10,
-            verticalalignment='top',
-            bbox=dict(boxstyle='round', facecolor='white', alpha=0.8, edgecolor='gray')
+            verticalalignment="top",
+            bbox=dict(boxstyle="round", facecolor="white", alpha=0.8, edgecolor="gray"),
         )
 
     # PASS/FAIL badge (top-right)
     if pass_threshold is not None and pass_key in annotations:
         value = annotations[pass_key]
         passed = value >= pass_threshold
-        badge_text = 'PASS' if passed else 'FAIL'
-        badge_color = '#28a745' if passed else '#dc3545'  # Green/Red
+        badge_text = "PASS" if passed else "FAIL"
+        badge_color = "#28a745" if passed else "#dc3545"  # Green/Red
 
         ax.text(
-            0.95, 0.95,
+            0.95,
+            0.95,
             badge_text,
             transform=ax.transAxes,
             fontsize=12,
-            fontweight='bold',
-            verticalalignment='top',
-            horizontalalignment='right',
-            color='white',
-            bbox=dict(boxstyle='round', facecolor=badge_color, alpha=0.9, edgecolor='none', pad=0.5)
+            fontweight="bold",
+            verticalalignment="top",
+            horizontalalignment="right",
+            color="white",
+            bbox=dict(
+                boxstyle="round",
+                facecolor=badge_color,
+                alpha=0.9,
+                edgecolor="none",
+                pad=0.5,
+            ),
         )
 
     ax.grid(True, alpha=0.3)
@@ -307,12 +335,12 @@ def plot_scatter_with_annotations(
 
 def plot_kde_comparison(
     ax: plt.Axes,
-    distributions: Dict[str, np.ndarray],
-    colors: Optional[Dict[str, str]] = None,
+    distributions: dict[str, np.ndarray],
+    colors: dict[str, str] | None = None,
     fill: bool = True,
     alpha: float = 0.3,
     linewidth: float = 2,
-    **kwargs
+    **kwargs,
 ) -> None:
     """
     Plot overlapping KDE distributions for comparison.
@@ -348,12 +376,15 @@ def plot_kde_comparison(
     # Auto-generate colors if not provided
     if colors is None:
         n_dists = len(distributions)
-        palette = sns.color_palette('tab10', n_colors=n_dists)
-        colors = {label: matplotlib.colors.rgb2hex(palette[i]) for i, label in enumerate(distributions.keys())}
+        palette = sns.color_palette("tab10", n_colors=n_dists)
+        colors = {
+            label: matplotlib.colors.rgb2hex(palette[i])
+            for i, label in enumerate(distributions.keys())
+        }
 
     # Plot each distribution
     for label, values in distributions.items():
-        color = colors.get(label, '#808080')  # Fallback to gray
+        color = colors.get(label, "#808080")  # Fallback to gray
 
         sns.kdeplot(
             data=values,
@@ -363,7 +394,7 @@ def plot_kde_comparison(
             alpha=alpha,
             linewidth=linewidth,
             label=label,
-            **kwargs
+            **kwargs,
         )
 
     ax.grid(True, alpha=0.3)
@@ -373,7 +404,7 @@ def plot_behavioral_comparison(
     real_data: pd.DataFrame,
     synthetic_data: pd.DataFrame,
     output_dir,
-    model_name: str = 'Model'
+    model_name: str = "Model",
 ) -> None:
     """
     Generate overlay plots comparing real vs synthetic behavioral patterns.
@@ -406,62 +437,85 @@ def plot_behavioral_comparison(
     x = np.arange(len(set_sizes))
     width = 0.35
 
-    real_acc = [real_data[real_data['set_size'] == ss]['reward'].mean() for ss in set_sizes]
-    syn_acc = [synthetic_data[synthetic_data['set_size'] == ss]['reward'].mean() for ss in set_sizes]
+    real_acc = [
+        real_data[real_data["set_size"] == ss]["reward"].mean() for ss in set_sizes
+    ]
+    syn_acc = [
+        synthetic_data[synthetic_data["set_size"] == ss]["reward"].mean()
+        for ss in set_sizes
+    ]
 
-    ax.bar(x - width/2, real_acc, width, label='Real', color='steelblue', alpha=0.8)
-    ax.bar(x + width/2, syn_acc, width, label='Synthetic', color='coral', alpha=0.8)
+    ax.bar(x - width / 2, real_acc, width, label="Real", color="steelblue", alpha=0.8)
+    ax.bar(x + width / 2, syn_acc, width, label="Synthetic", color="coral", alpha=0.8)
 
-    ax.set_xlabel('Set Size')
-    ax.set_ylabel('Accuracy')
-    ax.set_title(f'Accuracy by Set Size: Real vs Synthetic ({model_name})')
+    ax.set_xlabel("Set Size")
+    ax.set_ylabel("Accuracy")
+    ax.set_title(f"Accuracy by Set Size: Real vs Synthetic ({model_name})")
     ax.set_xticks(x)
     ax.set_xticklabels(set_sizes)
     ax.legend()
     ax.set_ylim(0, 1)
 
     plt.tight_layout()
-    plt.savefig(output_dir / 'setsize_comparison.png', dpi=150)
+    plt.savefig(output_dir / "setsize_comparison.png", dpi=150)
     plt.close()
 
     # 2. Learning curve comparison
     fig, ax = plt.subplots(figsize=(10, 6))
 
     # Compute mean accuracy per block
-    real_by_block = real_data.groupby('block')['reward'].mean().reset_index()
-    syn_by_block = synthetic_data.groupby('block')['reward'].mean().reset_index()
+    real_by_block = real_data.groupby("block")["reward"].mean().reset_index()
+    syn_by_block = synthetic_data.groupby("block")["reward"].mean().reset_index()
 
-    ax.plot(real_by_block['block'], real_by_block['reward'],
-            'o-', label='Real', color='steelblue', linewidth=2, markersize=5)
-    ax.plot(syn_by_block['block'], syn_by_block['reward'],
-            's--', label='Synthetic', color='coral', linewidth=2, markersize=5)
+    ax.plot(
+        real_by_block["block"],
+        real_by_block["reward"],
+        "o-",
+        label="Real",
+        color="steelblue",
+        linewidth=2,
+        markersize=5,
+    )
+    ax.plot(
+        syn_by_block["block"],
+        syn_by_block["reward"],
+        "s--",
+        label="Synthetic",
+        color="coral",
+        linewidth=2,
+        markersize=5,
+    )
 
-    ax.set_xlabel('Block')
-    ax.set_ylabel('Accuracy')
-    ax.set_title(f'Learning Curve: Real vs Synthetic ({model_name})')
+    ax.set_xlabel("Block")
+    ax.set_ylabel("Accuracy")
+    ax.set_title(f"Learning Curve: Real vs Synthetic ({model_name})")
     ax.legend()
     ax.set_ylim(0, 1)
 
     plt.tight_layout()
-    plt.savefig(output_dir / 'learning_curve_comparison.png', dpi=150)
+    plt.savefig(output_dir / "learning_curve_comparison.png", dpi=150)
     plt.close()
 
     # 3. Per-participant accuracy distribution
     fig, ax = plt.subplots(figsize=(8, 6))
 
-    real_subj_acc = real_data.groupby('sona_id')['reward'].mean()
-    syn_subj_acc = synthetic_data.groupby('sona_id')['reward'].mean()
+    real_subj_acc = real_data.groupby("sona_id")["reward"].mean()
+    syn_subj_acc = synthetic_data.groupby("sona_id")["reward"].mean()
 
-    sns.kdeplot(real_subj_acc, ax=ax, label='Real', color='steelblue', fill=True, alpha=0.3)
-    sns.kdeplot(syn_subj_acc, ax=ax, label='Synthetic', color='coral', fill=True, alpha=0.3)
+    sns.kdeplot(
+        real_subj_acc, ax=ax, label="Real", color="steelblue", fill=True, alpha=0.3
+    )
+    sns.kdeplot(
+        syn_subj_acc, ax=ax, label="Synthetic", color="coral", fill=True, alpha=0.3
+    )
 
-    ax.set_xlabel('Per-Participant Accuracy')
-    ax.set_ylabel('Density')
-    ax.set_title(f'Accuracy Distribution: Real vs Synthetic ({model_name})')
+    ax.set_xlabel("Per-Participant Accuracy")
+    ax.set_ylabel("Density")
+    ax.set_title(f"Accuracy Distribution: Real vs Synthetic ({model_name})")
     ax.legend()
 
     plt.tight_layout()
-    plt.savefig(output_dir / 'accuracy_distribution_comparison.png', dpi=150)
+    plt.savefig(output_dir / "accuracy_distribution_comparison.png", dpi=150)
     plt.close()
 
     print(f"Saved comparison plots to: {output_dir}")

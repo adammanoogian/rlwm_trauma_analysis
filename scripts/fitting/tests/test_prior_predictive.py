@@ -109,9 +109,10 @@ def test_prior_predictive_wmrl_m3_smoke():
 
 def test_prior_predictive_gate_helper():
     """Pure unit test of the three-part gate evaluator."""
-    from scripts import __init__  # noqa: F401 ensure pkg init
     import importlib.util
     from pathlib import Path
+
+    from scripts import __init__  # noqa: F401 ensure pkg init
 
     # Load the 21_run_prior_predictive module by filepath (leading digit makes
     # normal imports illegal).

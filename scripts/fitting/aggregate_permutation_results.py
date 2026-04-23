@@ -127,7 +127,7 @@ def write_summary(summary: dict, results: list[dict], output_path: Path) -> None
         f"- Shuffles completed: {n_total}",
         f"- Surviving effects (HDI excludes zero): {n_surviving}",
         f"- False positive rate: {fpr * 100:.1f}%",
-        f"- Nominal alpha: 5%",
+        "- Nominal alpha: 5%",
         f"- Mean beta_lec_kappa (across shuffles): {mean_beta:.4f}",
         f"- Mean beta_lec_kappa SD (across shuffles): {std_beta:.4f}",
         "",
@@ -201,7 +201,7 @@ def main() -> None:
     fpr_pct = summary["false_positive_rate"] * 100
     verdict = "PASS" if summary["pass_verdict"] else "FAIL"
 
-    print(f"\nResults:")
+    print("\nResults:")
     print(f"  {n_surv}/{n} shuffles had HDI excluding zero ({fpr_pct:.1f}%)")
     print(f"  Verdict: {verdict} (nominal alpha 5%)")
 
