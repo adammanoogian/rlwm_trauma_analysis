@@ -94,7 +94,7 @@ from utils.plotting import (
 )
 
 from config import load_fits_with_validation
-from plotting_config import PlotConfig
+from utils.plotting_config import PlotConfig
 
 # Paths
 OUTPUT_DIR = PROJECT_ROOT / "output" / "mle"
