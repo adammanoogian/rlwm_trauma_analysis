@@ -29,6 +29,7 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --gres=gpu:1
 #SBATCH --partition=gpu
+#SBATCH --constraint=${GPU_TYPE:-l40s}
 
 set -euo pipefail
 
@@ -83,7 +84,7 @@ print(f'GPU count: {len(gpu_devices)}')
 }
 
 _PROJECT="${PROJECT:-fc37}"
-export JAX_COMPILATION_CACHE_DIR="/scratch/${_PROJECT}/${USER}/.jax_cache_03_prefit_gpu"
+export JAX_COMPILATION_CACHE_DIR="/scratch/${_PROJECT}/${USER}/.jax_cache_03_prefit_gpu_${STEP}_${MODEL}"
 export JAX_PERSISTENT_CACHE_MIN_ENTRY_SIZE_BYTES=0
 mkdir -p "$JAX_COMPILATION_CACHE_DIR" || unset JAX_COMPILATION_CACHE_DIR
 echo "JAX cache: ${JAX_COMPILATION_CACHE_DIR:-disabled}"
