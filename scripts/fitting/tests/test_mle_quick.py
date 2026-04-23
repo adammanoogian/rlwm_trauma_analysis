@@ -11,7 +11,7 @@ import numpy as np
 import jax.numpy as jnp
 import pytest
 
-from rlwm.fitting.jax_likelihoods import q_learning_multiblock_likelihood
+from rlwm.fitting.models.qlearning import q_learning_multiblock_likelihood
 from rlwm.fitting.mle import fit_participant_mle
 from scripts.fitting.tests.conftest import simulate_qlearning_block
 

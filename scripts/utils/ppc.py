@@ -659,7 +659,7 @@ def run_prior_ppc(
         load_and_prepare_data,
     )
     from rlwm.fitting.numpyro_helpers import PARAM_PRIOR_DEFAULTS
-    from rlwm.fitting.numpyro_models import (
+    from rlwm.fitting.core import (
         prepare_stacked_participant_data,
         stack_across_participants,
     )

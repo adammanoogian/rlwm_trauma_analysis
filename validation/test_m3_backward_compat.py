@@ -23,11 +23,13 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from rlwm.fitting.jax_likelihoods import (
+from rlwm.fitting.models.wmrl import (
     wmrl_block_likelihood,
-    wmrl_m3_block_likelihood,
     wmrl_multiblock_likelihood,
-    wmrl_m3_multiblock_likelihood
+)
+from rlwm.fitting.models.wmrl_m3 import (
+    wmrl_m3_block_likelihood,
+    wmrl_m3_multiblock_likelihood,
 )
 
 

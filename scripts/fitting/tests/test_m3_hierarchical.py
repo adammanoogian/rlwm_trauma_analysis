@@ -42,7 +42,7 @@ def _make_m3_synthetic_stacked(
         Keys: ``participant_data_stacked`` (stacked format compatible
         with ``wmrl_m3_hierarchical_model``).
     """
-    from rlwm.fitting.jax_likelihoods import pad_block_to_max
+    from rlwm.fitting.core import pad_block_to_max
 
     rng = np.random.default_rng(seed)
     participant_data_stacked = {}
@@ -91,7 +91,7 @@ def test_smoke_dispatch():
     """
     from numpyro.infer import MCMC, NUTS
 
-    from rlwm.fitting.numpyro_models import wmrl_m3_hierarchical_model
+    from rlwm.fitting.models.wmrl_m3 import wmrl_m3_hierarchical_model
 
     model_args = _make_m3_synthetic_stacked(n_ppts=5, n_blocks=3, n_trials=20)
 
@@ -150,7 +150,7 @@ def test_smoke_dispatch_with_l2():
     """M3 hierarchical smoke with Level-2 LEC covariate (L2-01 model check)."""
     from numpyro.infer import MCMC, NUTS
 
-    from rlwm.fitting.numpyro_models import wmrl_m3_hierarchical_model
+    from rlwm.fitting.models.wmrl_m3 import wmrl_m3_hierarchical_model
 
     model_args = _make_m3_synthetic_stacked(n_ppts=5, n_blocks=3, n_trials=20)
     # Add a z-scored LEC covariate
@@ -188,11 +188,11 @@ def test_wmrl_m3_fully_batched_matches_sequential():
     This is the correctness gate for the vmap refactor (Task 4/5).
     """
     import pandas as pd
-    from rlwm.fitting.numpyro_models import (
+    from rlwm.fitting.core import (
         prepare_stacked_participant_data,
         stack_across_participants,
     )
-    from rlwm.fitting.jax_likelihoods import (
+    from rlwm.fitting.models.wmrl_m3 import (
         wmrl_m3_fully_batched_likelihood,
         wmrl_m3_multiblock_likelihood_stacked,
     )
@@ -296,11 +296,11 @@ def test_qlearning_fully_batched_matches_sequential():
     rollout.
     """
     import pandas as pd
-    from rlwm.fitting.numpyro_models import (
+    from rlwm.fitting.core import (
         prepare_stacked_participant_data,
         stack_across_participants,
     )
-    from rlwm.fitting.jax_likelihoods import (
+    from rlwm.fitting.models.qlearning import (
         q_learning_fully_batched_likelihood,
         q_learning_multiblock_likelihood_stacked,
     )
@@ -385,7 +385,7 @@ def _make_wmrl_family_synthetic():
     B in {12, 17}, and variable block lengths.  Matches the M3 test design.
     """
     import pandas as pd
-    from rlwm.fitting.numpyro_models import (
+    from rlwm.fitting.core import (
         prepare_stacked_participant_data,
         stack_across_participants,
     )
@@ -417,7 +417,7 @@ def test_wmrl_fully_batched_matches_sequential():
     6 per-participant params: alpha_pos, alpha_neg, phi, rho, capacity, epsilon.
     No kappa (M2 has no perseveration).
     """
-    from rlwm.fitting.jax_likelihoods import (
+    from rlwm.fitting.models.wmrl import (
         wmrl_fully_batched_likelihood,
         wmrl_multiblock_likelihood_stacked,
     )
@@ -481,7 +481,7 @@ def test_wmrl_m5_fully_batched_matches_sequential():
     8 per-participant params: alpha_pos, alpha_neg, phi, rho, capacity,
     kappa, phi_rl, epsilon.
     """
-    from rlwm.fitting.jax_likelihoods import (
+    from rlwm.fitting.models.wmrl_m5 import (
         wmrl_m5_fully_batched_likelihood,
         wmrl_m5_multiblock_likelihood_stacked,
     )
@@ -550,7 +550,7 @@ def test_wmrl_m6a_fully_batched_matches_sequential():
     7 per-participant params: alpha_pos, alpha_neg, phi, rho, capacity,
     kappa_s, epsilon.
     """
-    from rlwm.fitting.jax_likelihoods import (
+    from rlwm.fitting.models.wmrl_m6a import (
         wmrl_m6a_fully_batched_likelihood,
         wmrl_m6a_multiblock_likelihood_stacked,
     )
@@ -618,7 +618,7 @@ def test_wmrl_m6b_fully_batched_matches_sequential():
     stick-breaking parameters (kappa_total, kappa_share); this test
     draws them so that kappa + kappa_s <= 1 by construction.
     """
-    from rlwm.fitting.jax_likelihoods import (
+    from rlwm.fitting.models.wmrl_m6b import (
         wmrl_m6b_fully_batched_likelihood,
         wmrl_m6b_multiblock_likelihood_stacked,
     )

@@ -24,14 +24,12 @@ if TYPE_CHECKING:
     import pandas as pd
     from numpyro.infer import MCMC
 
-from rlwm.fitting.jax_likelihoods import (
-    q_learning_multiblock_likelihood_stacked,
-    wmrl_multiblock_likelihood_stacked,
-    wmrl_m3_multiblock_likelihood_stacked,
-    wmrl_m5_multiblock_likelihood_stacked,
-    wmrl_m6a_multiblock_likelihood_stacked,
-    wmrl_m6b_multiblock_likelihood_stacked,
-)
+from rlwm.fitting.models.qlearning import q_learning_multiblock_likelihood_stacked
+from rlwm.fitting.models.wmrl import wmrl_multiblock_likelihood_stacked
+from rlwm.fitting.models.wmrl_m3 import wmrl_m3_multiblock_likelihood_stacked
+from rlwm.fitting.models.wmrl_m5 import wmrl_m5_multiblock_likelihood_stacked
+from rlwm.fitting.models.wmrl_m6a import wmrl_m6a_multiblock_likelihood_stacked
+from rlwm.fitting.models.wmrl_m6b import wmrl_m6b_multiblock_likelihood_stacked
 
 
 # ---------------------------------------------------------------------------

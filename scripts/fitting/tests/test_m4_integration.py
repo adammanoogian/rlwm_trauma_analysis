@@ -19,7 +19,7 @@ import pandas as pd
 import pytest
 from numpyro.infer import MCMC, NUTS
 
-from rlwm.fitting.numpyro_models import (
+from rlwm.fitting.models.wmrl_m4 import (
     prepare_stacked_participant_data_m4,
     wmrl_m4_hierarchical_model,
 )

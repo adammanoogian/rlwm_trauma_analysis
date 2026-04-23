@@ -272,7 +272,7 @@ def _fit_two_covariate_l2(
     from scripts.fitting.level2_design import (  # noqa: PLC0415
         build_level2_design_matrix_2cov,
     )
-    from rlwm.fitting.numpyro_models import (  # noqa: PLC0415
+    from rlwm.fitting.core import (
         prepare_stacked_participant_data,
         stack_across_participants,
     )

@@ -10,6 +10,7 @@ Each submodule here is self-contained for one Senta et al. (2025) model:
 - :mod:`.wmrl_m6b` — M6b = M2 + dual perseveration (kappa_total, kappa_share)
 - :mod:`.wmrl_m4`  — M4 RLWM-LBA joint choice+RT (numpyro-only, no JAX likelihood)
 
-Legacy import paths (``rlwm.fitting.jax_likelihoods`` and
-``rlwm.fitting.numpyro_models``) still work via wildcard re-export shims.
+Import each symbol directly from its per-model submodule. The legacy
+``rlwm.fitting.jax_likelihoods`` and ``rlwm.fitting.numpyro_models``
+re-export shims were deleted in the v5.0 shim cleanup.
 """

@@ -1,8 +1,9 @@
 """M3 WM-RL + kappa perseveration: JAX likelihoods + NumPyro hierarchical wrapper.
 
-Relocated here in Phase 29-08 from :mod:`rlwm.fitting.jax_likelihoods` and
-:mod:`rlwm.fitting.numpyro_models`. Old import paths remain available via
-wildcard re-export shims.
+Canonical home for M3's JAX likelihoods and NumPyro wrappers. Callers
+should import directly from this module; the legacy
+``rlwm.fitting.jax_likelihoods`` / ``rlwm.fitting.numpyro_models``
+re-export shims were deleted in the v5.0 shim cleanup.
 
 Senta et al. (2025) M3 extends M2 with a global perseveration bonus ``kappa``
 added to the last chosen action's log-probability (pre-softmax).
@@ -1123,7 +1124,7 @@ def wmrl_m3_hierarchical_model(
     if stacked_arrays is None:
         stacked_arrays = stack_across_participants(participant_data_stacked)
 
-    from rlwm.fitting.jax_likelihoods import wmrl_m3_fully_batched_likelihood
+    from rlwm.fitting.models.wmrl_m3 import wmrl_m3_fully_batched_likelihood
 
     per_participant_ll = wmrl_m3_fully_batched_likelihood(
         stimuli=stacked_arrays["stimuli"],

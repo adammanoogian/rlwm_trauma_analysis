@@ -1,11 +1,9 @@
 """Shared JAX primitives for RLWM fitting: padding, softmax, scans, perseveration precompute, stacking.
 
-Relocated here in Phase 29-08 from :mod:`rlwm.fitting.jax_likelihoods` and
-:mod:`rlwm.fitting.numpyro_models` (the stacking helpers).  The canonical
-home for functions listed in ``__all__`` below is now this module.  The
-``rlwm.fitting.jax_likelihoods`` and ``rlwm.fitting.numpyro_models``
-modules are retained as thin wildcard re-export shims for backward
-compatibility with v4.0 closure invariants and external callers.
+Canonical home for the functions listed in ``__all__`` below. Callers should
+import directly from this module; the legacy ``rlwm.fitting.jax_likelihoods``
+and ``rlwm.fitting.numpyro_models`` re-export shims were deleted in the v5.0
+shim cleanup.
 
 Follows Senta et al. (2025) PLoS Comp. Biol. 21(9):e1012872 math conventions:
 ``beta = 50`` fixed during learning, epsilon-noise action probabilities, and

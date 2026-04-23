@@ -1,7 +1,9 @@
 """M4 RLWM-LBA: joint choice+RT model using the Linear Ballistic Accumulator.
 
-Relocated here in Phase 29-08 from :mod:`rlwm.fitting.numpyro_models`. Old
-import paths remain available via wildcard re-export shims.
+Canonical home for M4's NumPyro hierarchical wrapper. Callers should
+import directly from this module; the legacy
+``rlwm.fitting.numpyro_models`` re-export shim was deleted in the v5.0
+shim cleanup.
 
 M4 is the only joint choice+RT model in the project; its AIC is NOT comparable
 to choice-only models (M1, M2, M3, M5, M6a, M6b).  There is no JAX likelihood

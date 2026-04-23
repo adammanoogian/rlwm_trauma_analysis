@@ -75,7 +75,7 @@ def _make_stacked_dict(
     """
     import jax.numpy as jnp
 
-    from rlwm.fitting.jax_likelihoods import pad_block_to_max
+    from rlwm.fitting.core import pad_block_to_max
 
     rng = np.random.default_rng(seed)
     participant_data_stacked: dict = {}
@@ -142,9 +142,13 @@ def test_model_accepts_covariate_iesr(model_name: str, target: str) -> None:
     import jax.numpy as jnp
     import numpyro.handlers as handlers
 
-    import rlwm.fitting.numpyro_models as models
+    import importlib
 
-    model_fn = getattr(models, model_name)
+    # Resolve hierarchical model symbol from per-model canonical module.
+    # model_name like "wmrl_m3_hierarchical_model" -> rlwm.fitting.models.wmrl_m3
+    _model_id = model_name.removesuffix("_hierarchical_model")
+    _mod = importlib.import_module(f"rlwm.fitting.models.{_model_id}")
+    model_fn = getattr(_mod, model_name)
 
     rng = np.random.default_rng(42)
     n_ppts = 4
@@ -205,9 +209,13 @@ def test_m3_single_cov_unchanged(model_name: str, target: str) -> None:
     import jax.numpy as jnp
     import numpyro.handlers as handlers
 
-    import rlwm.fitting.numpyro_models as models
+    import importlib
 
-    model_fn = getattr(models, model_name)
+    # Resolve hierarchical model symbol from per-model canonical module.
+    # model_name like "wmrl_m3_hierarchical_model" -> rlwm.fitting.models.wmrl_m3
+    _model_id = model_name.removesuffix("_hierarchical_model")
+    _mod = importlib.import_module(f"rlwm.fitting.models.{_model_id}")
+    model_fn = getattr(_mod, model_name)
 
     rng = np.random.default_rng(7)
     n_ppts = 4
@@ -260,9 +268,13 @@ def test_guard_raises_iesr_without_lec(model_name: str) -> None:
     import jax.numpy as jnp
     import numpyro.handlers as handlers
 
-    import rlwm.fitting.numpyro_models as models
+    import importlib
 
-    model_fn = getattr(models, model_name)
+    # Resolve hierarchical model symbol from per-model canonical module.
+    # model_name like "wmrl_m3_hierarchical_model" -> rlwm.fitting.models.wmrl_m3
+    _model_id = model_name.removesuffix("_hierarchical_model")
+    _mod = importlib.import_module(f"rlwm.fitting.models.{_model_id}")
+    model_fn = getattr(_mod, model_name)
 
     rng = np.random.default_rng(9)
     n_ppts = 3
@@ -452,7 +464,7 @@ def _build_recovery_dataset(
     import jax.numpy as jnp
     from jax.scipy.stats import norm as jax_norm
 
-    from rlwm.fitting.jax_likelihoods import pad_block_to_max
+    from rlwm.fitting.core import pad_block_to_max
 
     rng = np.random.default_rng(seed)
 
@@ -554,10 +566,8 @@ def test_recovery_2cov_m3() -> None:
     import numpyro
     from numpyro.infer import MCMC, NUTS
 
-    from rlwm.fitting.numpyro_models import (
-        stack_across_participants,
-        wmrl_m3_hierarchical_model,
-    )
+    from rlwm.fitting.core import stack_across_participants
+    from rlwm.fitting.models.wmrl_m3 import wmrl_m3_hierarchical_model
 
     numpyro.set_host_device_count(2)
 

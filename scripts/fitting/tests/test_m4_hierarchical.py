@@ -13,8 +13,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from rlwm.fitting.jax_likelihoods import MAX_TRIALS_PER_BLOCK
-from rlwm.fitting.numpyro_models import (
+from rlwm.fitting.core import MAX_TRIALS_PER_BLOCK
+from rlwm.fitting.models.wmrl_m4 import (
     prepare_stacked_participant_data_m4,
     wmrl_m4_hierarchical_model,
 )

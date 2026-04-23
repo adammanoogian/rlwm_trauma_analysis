@@ -5,21 +5,33 @@ import jax.numpy as jnp
 import numpy as np
 import pytest
 
-from rlwm.fitting.jax_likelihoods import (
+from rlwm.fitting.core import (
     MAX_TRIALS_PER_BLOCK,
     pad_block_to_max,
+)
+from rlwm.fitting.models.qlearning import (
     q_learning_block_likelihood,
     q_learning_multiblock_likelihood_stacked,
+)
+from rlwm.fitting.models.wmrl import (
     wmrl_block_likelihood,
-    wmrl_m3_block_likelihood,
-    wmrl_m5_block_likelihood,
-    wmrl_m6a_block_likelihood,
-    wmrl_m6b_block_likelihood,
-    wmrl_m3_multiblock_likelihood_stacked,
-    wmrl_m5_multiblock_likelihood_stacked,
-    wmrl_m6a_multiblock_likelihood_stacked,
-    wmrl_m6b_multiblock_likelihood_stacked,
     wmrl_multiblock_likelihood_stacked,
+)
+from rlwm.fitting.models.wmrl_m3 import (
+    wmrl_m3_block_likelihood,
+    wmrl_m3_multiblock_likelihood_stacked,
+)
+from rlwm.fitting.models.wmrl_m5 import (
+    wmrl_m5_block_likelihood,
+    wmrl_m5_multiblock_likelihood_stacked,
+)
+from rlwm.fitting.models.wmrl_m6a import (
+    wmrl_m6a_block_likelihood,
+    wmrl_m6a_multiblock_likelihood_stacked,
+)
+from rlwm.fitting.models.wmrl_m6b import (
+    wmrl_m6b_block_likelihood,
+    wmrl_m6b_multiblock_likelihood_stacked,
 )
 
 # ---------------------------------------------------------------------------

@@ -1,17 +1,16 @@
 """MCMC orchestration: chain-method selector, data preparation, run_inference, ArviZ conversion.
 
-Relocated here in Phase 29-08 from :mod:`rlwm.fitting.numpyro_models`. Old
-import paths remain available via wildcard re-export shims.
-
-Provides the thin NumPyro orchestration layer used by every Bayesian fit in
-``scripts/04_model_fitting/`` and ``scripts/03_model_prefitting/``.
+Canonical home for the MCMC orchestration layer used by every Bayesian fit
+in ``scripts/04_model_fitting/`` and ``scripts/03_model_prefitting/``.
+Callers should import directly from this module; the legacy
+``rlwm.fitting.numpyro_models`` re-export shim was deleted in the v5.0
+shim cleanup.
 
 Note: stacking helpers ``stack_across_participants`` and
 ``prepare_stacked_participant_data`` live in :mod:`rlwm.fitting.core` (not
 here), to avoid a circular import between the per-model files (which call
 stacking helpers inside their hierarchical-model functions) and this
-orchestration layer.  They remain re-exported via the
-``rlwm.fitting.numpyro_models`` shim for backward compatibility.
+orchestration layer.
 """
 from __future__ import annotations
 

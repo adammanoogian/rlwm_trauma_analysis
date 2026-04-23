@@ -26,32 +26,41 @@ import jax
 import jax.numpy as jnp
 import pytest
 
-from rlwm.fitting.jax_likelihoods import (
+from rlwm.fitting.core import (
     MAX_TRIALS_PER_BLOCK,
     affine_scan,
     associative_scan_q_update,
     associative_scan_wm_update,
-    # Sequential multiblock stacked variants
-    q_learning_multiblock_likelihood_stacked,
-    wmrl_multiblock_likelihood_stacked,
-    wmrl_m3_multiblock_likelihood_stacked,
-    wmrl_m5_multiblock_likelihood_stacked,
-    wmrl_m6a_multiblock_likelihood_stacked,
-    wmrl_m6b_multiblock_likelihood_stacked,
-    # Pscan multiblock stacked variants
-    q_learning_multiblock_likelihood_stacked_pscan,
-    wmrl_multiblock_likelihood_stacked_pscan,
-    wmrl_m3_multiblock_likelihood_stacked_pscan,
-    wmrl_m5_multiblock_likelihood_stacked_pscan,
-    wmrl_m6a_multiblock_likelihood_stacked_pscan,
-    wmrl_m6b_multiblock_likelihood_stacked_pscan,
-    # Fully-batched (nested vmap) variants
+)
+from rlwm.fitting.models.qlearning import (
     q_learning_fully_batched_likelihood,
+    q_learning_multiblock_likelihood_stacked,
+    q_learning_multiblock_likelihood_stacked_pscan,
+)
+from rlwm.fitting.models.wmrl import (
     wmrl_fully_batched_likelihood,
+    wmrl_multiblock_likelihood_stacked,
+    wmrl_multiblock_likelihood_stacked_pscan,
+)
+from rlwm.fitting.models.wmrl_m3 import (
     wmrl_m3_fully_batched_likelihood,
+    wmrl_m3_multiblock_likelihood_stacked,
+    wmrl_m3_multiblock_likelihood_stacked_pscan,
+)
+from rlwm.fitting.models.wmrl_m5 import (
     wmrl_m5_fully_batched_likelihood,
+    wmrl_m5_multiblock_likelihood_stacked,
+    wmrl_m5_multiblock_likelihood_stacked_pscan,
+)
+from rlwm.fitting.models.wmrl_m6a import (
     wmrl_m6a_fully_batched_likelihood,
+    wmrl_m6a_multiblock_likelihood_stacked,
+    wmrl_m6a_multiblock_likelihood_stacked_pscan,
+)
+from rlwm.fitting.models.wmrl_m6b import (
     wmrl_m6b_fully_batched_likelihood,
+    wmrl_m6b_multiblock_likelihood_stacked,
+    wmrl_m6b_multiblock_likelihood_stacked_pscan,
 )
 
 # Path to project root (3 levels up from scripts/fitting/tests/)
@@ -906,7 +915,7 @@ def test_pscan_agreement_real_data(model):
         pytest.skip(f"Trial data not found: {_DATA_PATH}")
 
     import pandas as pd
-    from rlwm.fitting.numpyro_models import prepare_stacked_participant_data
+    from rlwm.fitting.core import prepare_stacked_participant_data
 
     # Load trial data
     data_df = pd.read_csv(_DATA_PATH)
@@ -963,7 +972,7 @@ def test_pscan_full_n154_agreement(model):
         pytest.skip(f"Trial data not found: {_DATA_PATH}")
 
     import pandas as pd
-    from rlwm.fitting.numpyro_models import prepare_stacked_participant_data
+    from rlwm.fitting.core import prepare_stacked_participant_data
 
     data_df = pd.read_csv(_DATA_PATH)
     participant_data = prepare_stacked_participant_data(data_df)
@@ -1013,7 +1022,7 @@ def test_pscan_full_n154_agreement(model):
 # PRECOMPUTATION FUNCTIONS (Phase 20)
 # =============================================================================
 
-from rlwm.fitting.jax_likelihoods import (
+from rlwm.fitting.core import (
     precompute_last_action_global,
     precompute_last_actions_per_stimulus,
 )
@@ -1492,7 +1501,7 @@ def test_fully_batched_full_n154_agreement(model):
         pytest.skip(f"Trial data not found: {_DATA_PATH}")
 
     import pandas as pd
-    from rlwm.fitting.numpyro_models import (
+    from rlwm.fitting.core import (
         prepare_stacked_participant_data,
         stack_across_participants,
     )

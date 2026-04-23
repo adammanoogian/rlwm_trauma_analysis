@@ -56,17 +56,17 @@ def warmup_jit_compilation(model: str = 'all', verbose: bool = True):
     import jax.numpy as jnp
 
     # Import likelihood functions and constants
-    from rlwm.fitting.jax_likelihoods import (
+    from rlwm.fitting.core import (
         MAX_BLOCKS,
         MAX_TRIALS_PER_BLOCK,
         NUM_ACTIONS,
-        q_learning_multiblock_likelihood,
-        wmrl_multiblock_likelihood,
-        wmrl_m3_multiblock_likelihood,
-        wmrl_m5_multiblock_likelihood,
-        wmrl_m6a_multiblock_likelihood,
-        wmrl_m6b_multiblock_likelihood,
     )
+    from rlwm.fitting.models.qlearning import q_learning_multiblock_likelihood
+    from rlwm.fitting.models.wmrl import wmrl_multiblock_likelihood
+    from rlwm.fitting.models.wmrl_m3 import wmrl_m3_multiblock_likelihood
+    from rlwm.fitting.models.wmrl_m5 import wmrl_m5_multiblock_likelihood
+    from rlwm.fitting.models.wmrl_m6a import wmrl_m6a_multiblock_likelihood
+    from rlwm.fitting.models.wmrl_m6b import wmrl_m6b_multiblock_likelihood
 
     if verbose:
         print("=" * 60)

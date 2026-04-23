@@ -14,7 +14,7 @@ import jax.numpy as jnp
 import numpy as np
 import pytest
 
-from rlwm.fitting.jax_likelihoods import pad_block_to_max
+from rlwm.fitting.core import pad_block_to_max
 
 
 def _make_synthetic_stacked(
@@ -33,7 +33,7 @@ def _make_synthetic_stacked(
         ``stacked_arrays`` supplies the (N, B, T) tensors consumed by
         the fully-batched likelihoods.
     """
-    from rlwm.fitting.numpyro_models import stack_across_participants
+    from rlwm.fitting.core import stack_across_participants
 
     rng = np.random.default_rng(seed)
     participant_data_stacked: dict = {}
@@ -76,7 +76,7 @@ def test_prior_predictive_wmrl_m3_smoke():
     """
     from numpyro.infer import Predictive
 
-    from rlwm.fitting.numpyro_models import wmrl_m3_hierarchical_model
+    from rlwm.fitting.models.wmrl_m3 import wmrl_m3_hierarchical_model
 
     ppt_data, stacked = _make_synthetic_stacked(n_ppts=3, n_blocks=2, n_trials=20)
 

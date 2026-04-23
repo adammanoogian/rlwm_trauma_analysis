@@ -1,8 +1,9 @@
 """M5 WM-RL + kappa + phi_rl (RL forgetting): JAX likelihoods + NumPyro hierarchical wrapper.
 
-Relocated here in Phase 29-08 from :mod:`rlwm.fitting.jax_likelihoods` and
-:mod:`rlwm.fitting.numpyro_models`. Old import paths remain available via
-wildcard re-export shims.
+Canonical home for M5's JAX likelihoods and NumPyro wrappers. Callers
+should import directly from this module; the legacy
+``rlwm.fitting.jax_likelihoods`` / ``rlwm.fitting.numpyro_models``
+re-export shims were deleted in the v5.0 shim cleanup.
 
 M5 extends M3 with an additional ``phi_rl`` RL-forgetting parameter (Q-values
 decay toward the chance baseline between updates). Current winning choice-only
@@ -1117,7 +1118,7 @@ def wmrl_m5_hierarchical_model(
     if stacked_arrays is None:
         stacked_arrays = stack_across_participants(participant_data_stacked)
 
-    from rlwm.fitting.jax_likelihoods import wmrl_m5_fully_batched_likelihood
+    from rlwm.fitting.models.wmrl_m5 import wmrl_m5_fully_batched_likelihood
 
     per_participant_ll = wmrl_m5_fully_batched_likelihood(
         stimuli=stacked_arrays["stimuli"],

@@ -1,8 +1,9 @@
 """M2 WM-RL hybrid: JAX likelihoods (sequential + pscan variants) + NumPyro hierarchical wrappers.
 
-Relocated here in Phase 29-08 from :mod:`rlwm.fitting.jax_likelihoods` and
-:mod:`rlwm.fitting.numpyro_models`. Old import paths remain available via
-wildcard re-export shims.
+Canonical home for M2's JAX likelihoods and NumPyro wrappers. Callers
+should import directly from this module; the legacy
+``rlwm.fitting.jax_likelihoods`` / ``rlwm.fitting.numpyro_models``
+re-export shims were deleted in the v5.0 shim cleanup.
 
 Senta et al. (2025) M2: WM mixes with RL via weight
 ``omega = rho * min(1, K/nS)``; WM decays toward 1/nA baseline with rate ``phi``.
@@ -1191,7 +1192,7 @@ def wmrl_hierarchical_model_stacked(
     if stacked_arrays is None:
         stacked_arrays = stack_across_participants(participant_data_stacked)
 
-    from rlwm.fitting.jax_likelihoods import wmrl_fully_batched_likelihood
+    from rlwm.fitting.models.wmrl import wmrl_fully_batched_likelihood
 
     per_participant_ll = wmrl_fully_batched_likelihood(
         stimuli=stacked_arrays["stimuli"],

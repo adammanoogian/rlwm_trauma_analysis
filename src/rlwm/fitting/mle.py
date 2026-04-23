@@ -90,23 +90,35 @@ from jaxopt import ScipyBoundedMinimize
 from config import EXCLUDED_PARTICIPANTS, EXPECTED_PARAMETERIZATION
 
 # Import JAX likelihood functions
-from rlwm.fitting.jax_likelihoods import (
+from rlwm.fitting.core import (
     MAX_BLOCKS,
     MAX_TRIALS_PER_BLOCK,
     pad_block_to_max,
     pad_blocks_to_max,
+)
+from rlwm.fitting.models.qlearning import (
     q_learning_multiblock_likelihood,
-    q_learning_multiblock_likelihood_stacked,  # Fast stacked version
-    wmrl_m3_multiblock_likelihood,
-    wmrl_m3_multiblock_likelihood_stacked,  # Fast stacked version
-    wmrl_m5_multiblock_likelihood,
-    wmrl_m5_multiblock_likelihood_stacked,  # Fast stacked version (M5)
-    wmrl_m6a_multiblock_likelihood,
-    wmrl_m6a_multiblock_likelihood_stacked,  # Fast stacked version (M6a)
-    wmrl_m6b_multiblock_likelihood,
-    wmrl_m6b_multiblock_likelihood_stacked,  # Fast stacked version (M6b)
+    q_learning_multiblock_likelihood_stacked,
+)
+from rlwm.fitting.models.wmrl import (
     wmrl_multiblock_likelihood,
-    wmrl_multiblock_likelihood_stacked,  # Fast stacked version
+    wmrl_multiblock_likelihood_stacked,
+)
+from rlwm.fitting.models.wmrl_m3 import (
+    wmrl_m3_multiblock_likelihood,
+    wmrl_m3_multiblock_likelihood_stacked,
+)
+from rlwm.fitting.models.wmrl_m5 import (
+    wmrl_m5_multiblock_likelihood,
+    wmrl_m5_multiblock_likelihood_stacked,
+)
+from rlwm.fitting.models.wmrl_m6a import (
+    wmrl_m6a_multiblock_likelihood,
+    wmrl_m6a_multiblock_likelihood_stacked,
+)
+from rlwm.fitting.models.wmrl_m6b import (
+    wmrl_m6b_multiblock_likelihood,
+    wmrl_m6b_multiblock_likelihood_stacked,
 )
 
 # Import MLE utilities

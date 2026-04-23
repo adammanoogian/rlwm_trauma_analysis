@@ -44,21 +44,27 @@ import jax.numpy as jnp
 import numpyro
 import arviz as az
 
-from rlwm.fitting.numpyro_models import (
-    qlearning_hierarchical_model,
-    wmrl_m3_hierarchical_model,
-    qlearning_hierarchical_model_stacked,
-    wmrl_hierarchical_model_stacked,
-    wmrl_m5_hierarchical_model,
-    wmrl_m6a_hierarchical_model,
-    wmrl_m6b_hierarchical_model,
-    wmrl_m6b_hierarchical_model_subscale,
-    prepare_data_for_numpyro,
+from rlwm.fitting.core import (
     prepare_stacked_participant_data,
     stack_across_participants,
+)
+from rlwm.fitting.sampling import (
+    prepare_data_for_numpyro,
     run_inference,
     run_inference_with_bump,
     samples_to_arviz,
+)
+from rlwm.fitting.models.qlearning import (
+    qlearning_hierarchical_model,
+    qlearning_hierarchical_model_stacked,
+)
+from rlwm.fitting.models.wmrl import wmrl_hierarchical_model_stacked
+from rlwm.fitting.models.wmrl_m3 import wmrl_m3_hierarchical_model
+from rlwm.fitting.models.wmrl_m5 import wmrl_m5_hierarchical_model
+from rlwm.fitting.models.wmrl_m6a import wmrl_m6a_hierarchical_model
+from rlwm.fitting.models.wmrl_m6b import (
+    wmrl_m6b_hierarchical_model,
+    wmrl_m6b_hierarchical_model_subscale,
 )
 from scripts.fitting.bayesian_diagnostics import (
     compute_pointwise_log_lik,

@@ -28,11 +28,11 @@ import pandas as pd
 project_root = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(project_root))
 
-from rlwm.fitting.jax_likelihoods import (
-    q_learning_multiblock_likelihood,
-    wmrl_multiblock_likelihood,
+from rlwm.fitting.models.qlearning import (
     prepare_block_data,
+    q_learning_multiblock_likelihood,
 )
+from rlwm.fitting.models.wmrl import wmrl_multiblock_likelihood
 from config import EXCLUDED_PARTICIPANTS
 
 OUTPUT_DIR = project_root / 'output'
