@@ -630,7 +630,15 @@ Origin 2026-04-23 user discussion during v5.0 shim cleanup. Question arose from 
 5. **Log consolidation (L-01):** Merge `logs/` (dev) + `cluster/logs/` (SLURM) into a single `logs/` or pick one canonical location. Ensure .gitignore covers it.
 6. **Documentation + closure-guard updates (C-01..02):** Refresh `cluster/README.md`, `CLAUDE.md`, `docs/` methods references. Extend Phase 29 structure guard (`tests/test_v5_phase29_structure.py`) to assert the new CCDS layout.
 
-**Plans:** 0 plans (run `/gsd:discuss-phase 31` to gather context, then `/gsd:plan-phase 31` to break down)
+**Plans:** 6 plans in 3 waves
+
+Plans:
+- [ ] 31-01-PLAN.md — Wave A: config.py CCDS constants + scaffolding dirs + pytest.ini testpaths
+- [ ] 31-02-PLAN.md — Wave B: data/ tier moves (raw/interim/processed) + stage-01 scripts
+- [ ] 31-03-PLAN.md — Wave C: models/ + reports/ moves + stage 02-06 scripts + 13 SLURMs + paper.qmd
+- [ ] 31-04-PLAN.md — Wave D: tests consolidation (validation/ + scripts/fitting/tests/ → tests/{unit,integration,scientific}/)
+- [ ] 31-05-PLAN.md — Wave E: logs/ unification + legacy alias removal + .gitignore cleanup
+- [ ] 31-06-PLAN.md — Wave E: structure guard extension + docs/PROJECT_STRUCTURE.md + CITATION.cff + fresh-clone smoke test
 
 **Success Criteria** (to be refined during planning):
 1. Top-level layout matches CCDS conventions (documented in `docs/PROJECT_STRUCTURE.md`).
@@ -684,4 +692,4 @@ Phases execute in numeric order: 13 → 14 → 15 → 16 → 17 → 18 → 19 �
 | 28. Bayesian-First Manuscript Restructure & Repo Consolidation | v5.0 | 12/12 | Complete (execution reversed sequencing: Phase 28 ran before Phase 24) | 2026-04-22 |
 | 29. Pipeline Canonical Reorganization & Utilities Consolidation | v5.0 | 9/9 | Complete | 2026-04-22 |
 | 30. JAX Simulator Consolidation | v5.0/v5.1 | 0/5 | Proposed (added 2026-04-23; may defer to v5.1 per CONTEXT.md sequencing recommendation B) | — |
-| 31. Final-Package Restructure (CCDS layout + test/log consolidation) | v5.0/v5.1 | 0/TBD | Proposed (added 2026-04-23; research-gated — run /gsd:discuss-phase 31 to scope) | — |
+| 31. Final-Package Restructure (CCDS layout + test/log consolidation) | v5.0/v5.1 | 0/6 | Planned (2026-04-24; 6 plans in 3 waves — execute after Phase 24 cold-start) | — |
