@@ -633,12 +633,14 @@ Origin 2026-04-23 user discussion during v5.0 shim cleanup. Question arose from 
 **Plans:** 6 plans in 3 waves
 
 Plans:
-- [ ] 31-01-PLAN.md — Wave A: config.py CCDS constants + scaffolding dirs + pytest.ini testpaths
-- [ ] 31-02-PLAN.md — Wave B: data/ tier moves (raw/interim/processed) + stage-01 scripts
-- [ ] 31-03-PLAN.md — Wave C: models/ + reports/ moves + stage 02-06 scripts + 13 SLURMs + paper.qmd
-- [ ] 31-04-PLAN.md — Wave D: tests consolidation (validation/ + scripts/fitting/tests/ → tests/{unit,integration,scientific}/)
-- [ ] 31-05-PLAN.md — Wave E: logs/ unification + legacy alias removal + .gitignore cleanup
-- [ ] 31-06-PLAN.md — Wave E: structure guard extension + docs/PROJECT_STRUCTURE.md + CITATION.cff + fresh-clone smoke test
+- [x] 31-01-PLAN.md — Wave 1: config.py CCDS constants + scaffolding dirs + pytest.ini testpaths
+- [x] 31-02-PLAN.md — Wave 2: data/ tier moves (raw/interim/processed) + stage-01 scripts
+- [x] 31-03-PLAN.md — Wave 2: models/ + reports/ moves + stage 02-06 scripts + 16 SLURMs + paper.qmd
+- [x] 31-04-PLAN.md — Wave 3: tests consolidation (validation/ + scripts/fitting/tests/ → tests/{unit,integration,scientific}/)
+- [x] 31-05-PLAN.md — Wave 4: logs/ unification + legacy alias removal + .gitignore cleanup
+- [x] 31-06-PLAN.md — Wave 5: structure guard extension + docs/PROJECT_STRUCTURE.md + CITATION.cff + fresh-clone smoke test
+
+**Status:** ✅ Complete 2026-04-24 — verified 7/7 ROADMAP success criteria PASS (see [31-VERIFICATION.md](phases/31-final-package-restructure/31-VERIFICATION.md)). Executed out of recommended sequence (before Phase 24 cold-start) per user direction; no data-invalidation issue in practice since Phase 24 hasn't run yet and future models/ artifacts will land directly in CCDS layout.
 
 **Success Criteria** (to be refined during planning):
 1. Top-level layout matches CCDS conventions (documented in `docs/PROJECT_STRUCTURE.md`).
@@ -692,4 +694,4 @@ Phases execute in numeric order: 13 → 14 → 15 → 16 → 17 → 18 → 19 �
 | 28. Bayesian-First Manuscript Restructure & Repo Consolidation | v5.0 | 12/12 | Complete (execution reversed sequencing: Phase 28 ran before Phase 24) | 2026-04-22 |
 | 29. Pipeline Canonical Reorganization & Utilities Consolidation | v5.0 | 9/9 | Complete | 2026-04-22 |
 | 30. JAX Simulator Consolidation | v5.0/v5.1 | 0/5 | Proposed (added 2026-04-23; may defer to v5.1 per CONTEXT.md sequencing recommendation B) | — |
-| 31. Final-Package Restructure (CCDS layout + test/log consolidation) | v5.0/v5.1 | 0/6 | Planned (2026-04-24; 6 plans in 3 waves — execute after Phase 24 cold-start) | — |
+| 31. Final-Package Restructure (CCDS layout + test/log consolidation) | v5.0/v5.1 | 6/6 | Complete (verified 7/7 SC; executed ahead of Phase 24 cold-start — future artifacts will land in CCDS layout directly) | 2026-04-24 |
