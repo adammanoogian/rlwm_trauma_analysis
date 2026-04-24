@@ -20,11 +20,66 @@ if TYPE_CHECKING:
 # ============================================================================
 
 PROJECT_ROOT = Path(__file__).parent
+
+# ============================================================================
+# CCDS-ALIGNED PATH CONSTANTS (Phase 31 — final-package layout)
+# ============================================================================
+# Canonical tree (see docs/PROJECT_STRUCTURE.md):
+#   data/{raw,interim,processed,external}/ — data tiers (CCDS)
+#   models/{bayesian,mle,ppc,recovery,parameter_exploration}/ — fitted artifacts
+#   reports/{figures,tables}/ — analysis products for manuscript
+#   logs/ — single gitignored location (merges former cluster/logs/)
+
 DATA_DIR = PROJECT_ROOT / 'data'
-OUTPUT_DIR = PROJECT_ROOT / 'output'
-FIGURES_DIR = PROJECT_ROOT / 'figures'
+DATA_RAW_DIR = DATA_DIR / 'raw'
+INTERIM_DIR = DATA_DIR / 'interim'
+PROCESSED_DIR = DATA_DIR / 'processed'
+DATA_EXTERNAL_DIR = DATA_DIR / 'external'
+
+MODELS_DIR = PROJECT_ROOT / 'models'
+MODELS_BAYESIAN_DIR = MODELS_DIR / 'bayesian'
+MODELS_MLE_DIR = MODELS_DIR / 'mle'
+MODELS_PPC_DIR = MODELS_DIR / 'ppc'
+MODELS_RECOVERY_DIR = MODELS_DIR / 'recovery'
+MODELS_PARAMETER_EXPLORATION_DIR = MODELS_DIR / 'parameter_exploration'
+
+REPORTS_DIR = PROJECT_ROOT / 'reports'
+REPORTS_FIGURES_DIR = REPORTS_DIR / 'figures'
+REPORTS_TABLES_DIR = REPORTS_DIR / 'tables'
+
+LOGS_DIR = PROJECT_ROOT / 'logs'
+
 SCRIPTS_DIR = PROJECT_ROOT / 'scripts'
 DOCS_DIR = PROJECT_ROOT / 'docs'
+
+# ----------------------------------------------------------------------------
+# Phase 31 convenience constants — reduce string-literal noise in scripts.
+# Consumed by plan 31-03 when it rewrites stage 02-06 scripts. Landed HERE
+# (not in 31-03) because 31-02 and 31-03 run parallel in Wave 2 and cannot
+# both write config.py — data/ subtree will be populated in plan 31-02;
+# models/ + reports/ subtrees will be populated in plan 31-03.
+# ----------------------------------------------------------------------------
+REPORTS_TABLES_DESCRIPTIVES = REPORTS_TABLES_DIR / 'descriptives'
+REPORTS_TABLES_MODEL_COMPARISON = REPORTS_TABLES_DIR / 'model_comparison'
+REPORTS_TABLES_BEHAVIORAL = REPORTS_TABLES_DIR / 'behavioral_summary'
+REPORTS_TABLES_REGRESSIONS = REPORTS_TABLES_DIR / 'regressions'
+REPORTS_TABLES_TRAUMA_GROUPS = REPORTS_TABLES_DIR / 'trauma_groups'
+REPORTS_FIGURES_BAYESIAN = REPORTS_FIGURES_DIR / 'bayesian'
+REPORTS_FIGURES_MODEL_COMPARISON = REPORTS_FIGURES_DIR / 'model_comparison'
+
+# Bayesian-subdir constants (match the physical layout under models/bayesian/)
+MODELS_BAYESIAN_BASELINE = MODELS_BAYESIAN_DIR / '21_baseline'
+MODELS_BAYESIAN_L2 = MODELS_BAYESIAN_DIR / '21_l2'
+MODELS_BAYESIAN_LEVEL2 = MODELS_BAYESIAN_DIR / 'level2'  # for plan 16 subscale L2
+MODELS_BAYESIAN_MANUSCRIPT = MODELS_BAYESIAN_DIR / 'manuscript'
+MODELS_BAYESIAN_PRIOR_PREDICTIVE = MODELS_BAYESIAN_DIR / '21_prior_predictive'
+MODELS_BAYESIAN_RECOVERY = MODELS_BAYESIAN_DIR / '21_recovery'
+
+# Legacy aliases — will be removed after Waves B/C update all downstream consumers.
+# Intentionally point at OLD locations so pre-Phase-31 writers still function
+# during the transition. After Wave E these constants will be deleted entirely.
+OUTPUT_DIR = PROJECT_ROOT / 'output'
+FIGURES_DIR = PROJECT_ROOT / 'figures'
 
 # ============================================================================
 # PARTICIPANT EXCLUSIONS
@@ -44,8 +99,14 @@ VERSION = 'v1'
 OUTPUT_VERSION_DIR = OUTPUT_DIR / VERSION if VERSION else OUTPUT_DIR
 FIGURES_VERSION_DIR = FIGURES_DIR / VERSION if VERSION else FIGURES_DIR
 
-# Create directories if they don't exist
-for directory in [OUTPUT_VERSION_DIR, FIGURES_VERSION_DIR, DOCS_DIR]:
+# Create directories if they don't exist (scaffold — will be populated in Waves B/C)
+for directory in [
+    DATA_RAW_DIR, INTERIM_DIR, PROCESSED_DIR, DATA_EXTERNAL_DIR,
+    MODELS_BAYESIAN_DIR, MODELS_MLE_DIR, MODELS_PPC_DIR, MODELS_RECOVERY_DIR,
+    MODELS_PARAMETER_EXPLORATION_DIR,
+    REPORTS_FIGURES_DIR, REPORTS_TABLES_DIR, LOGS_DIR,
+    OUTPUT_VERSION_DIR, FIGURES_VERSION_DIR, DOCS_DIR,  # legacy — removed in Wave E
+]:
     directory.mkdir(parents=True, exist_ok=True)
 
 # ============================================================================
@@ -286,22 +347,24 @@ class PyMCParams:
 class DataParams:
     """Parameters for data processing and analysis."""
 
-    # File paths
-    RAW_DATA_DIR = DATA_DIR
-    PARSED_DEMOGRAPHICS = OUTPUT_DIR / 'parsed_demographics.csv'
-    PARSED_SURVEY1 = OUTPUT_DIR / 'parsed_survey1.csv'
-    PARSED_SURVEY2 = OUTPUT_DIR / 'parsed_survey2.csv'
-    PARSED_TASK_TRIALS = OUTPUT_DIR / 'parsed_task_trials.csv'
-    COLLATED_DATA = OUTPUT_DIR / 'collated_participant_data.csv'
+    # ---- PRIMARY paths (Phase 31 CCDS tiers — populated by plan 31-02 physical moves) ----
+    # NOTE: these constants resolve BEFORE 31-02 runs; data/interim/ + data/processed/
+    # will be empty (only .gitkeep) until 31-02 relocates files from output/.
+    RAW_DATA_DIR = DATA_RAW_DIR  # was DATA_DIR
+    PARSED_DEMOGRAPHICS = INTERIM_DIR / 'parsed_demographics.csv'
+    PARSED_SURVEY1 = INTERIM_DIR / 'parsed_survey1.csv'
+    PARSED_SURVEY2 = INTERIM_DIR / 'parsed_survey2.csv'
+    PARSED_TASK_TRIALS = INTERIM_DIR / 'parsed_task_trials.csv'
+    COLLATED_DATA = INTERIM_DIR / 'collated_participant_data.csv'
 
-    # Task trial data files
-    TASK_TRIALS_LONG = OUTPUT_DIR / 'task_trials_long.csv'       # Main task only (default for fitting)
-    TASK_TRIALS_ALL = OUTPUT_DIR / 'task_trials_long_all.csv'    # All blocks including practice
-    TASK_TRIALS_LEGACY = OUTPUT_DIR / 'task_trials_long_all_participants.csv'  # Legacy filename
+    # Task trial data files (processed tier)
+    TASK_TRIALS_LONG = PROCESSED_DIR / 'task_trials_long.csv'       # Main task only (default for fitting)
+    TASK_TRIALS_ALL = PROCESSED_DIR / 'task_trials_long_all.csv'    # All blocks including practice
+    TASK_TRIALS_LEGACY = PROCESSED_DIR / 'task_trials_long_all_participants.csv'  # Legacy filename
+    SUMMARY_METRICS = PROCESSED_DIR / 'summary_participant_metrics.csv'
 
-    SUMMARY_METRICS = OUTPUT_DIR / 'summary_participant_metrics.csv'
-
-    # Simulated data paths
+    # Simulated / fitted / comparison artifact paths — still on legacy OUTPUT_VERSION_DIR;
+    # these are consumed rarely and plan 31-05 (Wave E) decides their final home.
     SIMULATED_DATA = OUTPUT_VERSION_DIR / 'simulated_data.csv'
     FITTED_POSTERIORS = OUTPUT_VERSION_DIR / 'fitted_posteriors.nc'  # NetCDF format
     MODEL_COMPARISON = OUTPUT_VERSION_DIR / 'model_comparison.csv'
@@ -377,7 +440,7 @@ def get_excluded_participants(data_path: Path | None = None) -> list[int]:
     Parameters
     ----------
     data_path : Path, optional
-        Path to task_trials_long.csv. Defaults to OUTPUT_DIR / 'task_trials_long.csv'.
+        Path to task_trials_long.csv. Defaults to PROCESSED_DIR / 'task_trials_long.csv'.
 
     Returns
     -------
@@ -385,7 +448,7 @@ def get_excluded_participants(data_path: Path | None = None) -> list[int]:
         Sorted list of participant IDs to exclude.
     """
     if data_path is None:
-        data_path = OUTPUT_DIR / 'task_trials_long.csv'
+        data_path = PROCESSED_DIR / 'task_trials_long.csv'  # was OUTPUT_DIR
 
     if not data_path.exists():
         return sorted(MANUAL_EXCLUSIONS)
@@ -487,7 +550,7 @@ def get_analysis_cohort(
     this function rather than maintaining their own filter logic.
     """
     if data_path is None:
-        data_path = OUTPUT_DIR / "task_trials_long.csv"
+        data_path = PROCESSED_DIR / "task_trials_long.csv"  # was OUTPUT_DIR
     if surveys_path is None:
         surveys_path = DataParams.SUMMARY_METRICS
     if min_trials is None:
