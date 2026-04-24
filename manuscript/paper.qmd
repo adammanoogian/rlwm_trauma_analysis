@@ -433,10 +433,8 @@ The LOO + stacking ranking is in @tbl-loo-stacking; the random-effects BMS PXP i
 
 from pathlib import Path
 import pandas as pd
-_loo_primary = Path("../models/bayesian/manuscript/loo_stacking.csv")
-_loo_fallback = Path("../models/bayesian/21_baseline/loo_stacking_results.csv")
-_loo_path = _loo_primary if _loo_primary.exists() else (_loo_fallback if _loo_fallback.exists() else None)
-if _loo_path is not None:
+_loo_path = Path("../reports/tables/model_comparison/table1_loo_stacking.csv")
+if _loo_path.exists():
     df_loo = pd.read_csv(_loo_path)
     display(df_loo.style.hide(axis="index").format(precision=3))
 else:
@@ -454,7 +452,7 @@ else:
 
 from pathlib import Path
 import pandas as pd
-_rfx_path = Path("../models/bayesian/manuscript/rfx_bms.csv")
+_rfx_path = Path("../reports/tables/model_comparison/table2_rfx_bms.csv")
 if _rfx_path.exists():
     df_rfx = pd.read_csv(_rfx_path)
     display(df_rfx.style.hide(axis="index").format(precision=3))
@@ -543,7 +541,7 @@ except Exception as e:
 
 from pathlib import Path
 import pandas as pd
-_betas_path = Path("../models/bayesian/manuscript/winner_betas.csv")
+_betas_path = Path("../reports/tables/model_comparison/table3_winner_betas.csv")
 if _betas_path.exists():
     df_betas = pd.read_csv(_betas_path)
     display(df_betas.style.hide(axis="index").format(precision=3))

@@ -46,7 +46,7 @@ WINNERS_FILE="${WINNERS_FILE:-models/bayesian/21_baseline/winners.txt}"
 STACKING_RESULTS="${STACKING_RESULTS:-models/bayesian/21_baseline/loo_stacking_results.csv}"
 AUDIT_REPORT="${AUDIT_REPORT:-models/bayesian/21_l2/scale_audit_report.md}"
 FIGURES_DIR="${FIGURES_DIR:-reports/figures/bayesian/21_bayesian/}"
-TABLES_DIR="${TABLES_DIR:-models/bayesian/21_tables/}"
+TABLES_DIR="${TABLES_DIR:-reports/tables/model_comparison/}"
 SUBSCALE_NC="${SUBSCALE_NC:-models/bayesian/wmrl_m6b_subscale_posterior.nc}"
 FORCE_WINNERS="${FORCE_WINNERS:-}"
 
@@ -89,7 +89,7 @@ else
 fi
 
 mkdir -p logs reports/tables/model_comparison reports/tables/mle_by_trauma reports/tables/regressions \
-         models/bayesian/21_tables reports/figures/bayesian/21_bayesian
+         reports/figures/bayesian/21_bayesian
 
 export PYTHONUNBUFFERED=1
 

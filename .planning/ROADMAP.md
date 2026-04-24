@@ -409,7 +409,7 @@ Plans:
 
 **Success Criteria (what must be TRUE):**
   1. `bash cluster/21_submit_pipeline.sh` invoked from project root with a clean working tree completes the 9-step afterok chain with zero SLURM job failures; pre-flight pytest gate (`test_numpyro_models_2cov.py`) passes before any `sbatch` call.
-  2. Every expected artifact exists: `output/bayesian/21_prior_predictive/{model}_prior_sim.nc` × 6, `21_recovery/{model}_recovery.csv` × 6, `21_baseline/{model}_posterior.nc` × 6 + `convergence_table.csv` + `convergence_report.md`, `21_l2/{winner}_posterior.nc` + `{winner}_beta_hdi_table.csv` for each winner, `21_l2/scale_audit_report.md` + `averaged_scale_effects.csv`, `output/bayesian/manuscript/{loo_stacking,rfx_bms,winner_betas}.{csv,md,tex}`, winner-specific forest plot PNGs.
+  2. Every expected artifact exists: `models/bayesian/21_prior_predictive/{model}_prior_sim.nc` × 6, `21_recovery/{model}_recovery.csv` × 6, `21_baseline/{model}_posterior.nc` × 6 + `convergence_table.csv` + `convergence_report.md`, `21_l2/{winner}_posterior.nc` + `{winner}_beta_hdi_table.csv` for each winner, `21_l2/scale_audit_report.md` + `averaged_scale_effects.csv`, `reports/tables/model_comparison/table{1,2,3}_{loo_stacking,rfx_bms,winner_betas}.{csv,md,tex}`, winner-specific forest plot PNGs.
   3. `output/bayesian/21_execution_log.md` logs SLURM JobID, wall-clock, CPU-hours, GPU-hours, max memory per step; total GPU-hours documented.
   4. `convergence_table.csv` shows ≥ 2 models meeting Baribault & Collins (2023) gate (R-hat ≤ 1.05 AND ESS_bulk ≥ 400 AND divergences = 0 AND BFMI ≥ 0.2); step 21.5 winner determination is `DOMINANT_SINGLE` or `TOP_TWO` (not `FORCED`, not `INCONCLUSIVE_MULTIPLE`).
 
@@ -450,7 +450,7 @@ Plans:
 **Success Criteria (what must be TRUE):**
   1. `paper.qmd` Methods `### Bayesian Model Selection Pipeline {#sec-bayesian-selection}` cites real stacking weights via `{python} winner_display` inline ref; `grep -n "M6b received the highest" paper.qmd` returns zero matches (placeholder replaced).
   2. Forest plots generated via `scripts/18_bayesian_level2_effects.py` for every model in the cold-start winner set; PNGs in `output/bayesian/figures/`; referenced in `paper.qmd` Results via `@fig-forest-{winner}` cross-refs that all resolve in Quarto render.
-  3. Manuscript table artefacts `loo_stacking.{csv,md,tex}`, `rfx_bms.{csv,md,tex}`, `winner_betas.{csv,md,tex}` exist under `output/bayesian/manuscript/`; Quarto cross-refs `@tbl-loo-stacking`, `@tbl-rfx-bms`, `@tbl-winner-betas` resolve in render.
+  3. Manuscript table artefacts `table1_loo_stacking.{csv,md,tex}`, `table2_rfx_bms.{csv,md,tex}`, `table3_winner_betas.{csv,md,tex}` exist under `reports/tables/model_comparison/`; Quarto cross-refs `@tbl-loo-stacking`, `@tbl-rfx-bms`, `@tbl-winner-betas` resolve in render.
   4. Limitations section references real `pct_high_pareto_k` values from `loo_stacking_results.csv`; projected-from-PITFALLS.md placeholder text removed.
   5. `quarto render paper.qmd` exits 0 from project root with no errors; `_output/paper.pdf` and `_output/paper.html` exist and have non-zero size; `validation/check_v5_closure.py` verifies this via subprocess wrapper.
 

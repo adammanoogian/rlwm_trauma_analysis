@@ -35,9 +35,9 @@
 
 ### MANU — Manuscript Finalization
 
-- [ ] **MANU-01**: `paper.qmd` Methods `### Bayesian Model Selection Pipeline {#sec-bayesian-selection}` subsection cites real stacking weights from `output/bayesian/manuscript/loo_stacking_results.csv` via Quarto `{python}` inline refs; placeholder "M6b received the highest stacking weight" text replaced with `{python} winner_display`
-- [ ] **MANU-02**: Winner-specific forest plots generated via `scripts/18_bayesian_level2_effects.py` for every model in the Phase 21.5 winner set; PNGs saved to `output/bayesian/figures/` and referenced in `paper.qmd` Results via `@fig-forest-{winner}` cross-refs
-- [ ] **MANU-03**: Manuscript table artefacts exist in `output/bayesian/manuscript/`: `loo_stacking.{csv,md,tex}` (stacking weights), `rfx_bms.{csv,md,tex}` (PXP table), `winner_betas.{csv,md,tex}` (winner L2 HDIs with model_averaged_* columns); `paper.qmd` `@tbl-loo-stacking`, `@tbl-rfx-bms`, `@tbl-winner-betas` Quarto cross-refs all resolve
+- [ ] **MANU-01**: `paper.qmd` Methods `### Bayesian Model Selection Pipeline {#sec-bayesian-selection}` subsection cites real stacking weights from `reports/tables/model_comparison/table1_loo_stacking.csv` via Quarto `{python}` inline refs; placeholder "M6b received the highest stacking weight" text replaced with `{python} winner_display`
+- [ ] **MANU-02**: Winner-specific forest plots generated via `scripts/06_fit_analyses/07_bayesian_level2_effects.py` for every model in the Phase 21.5 winner set; PNGs saved to `reports/figures/bayesian/21_bayesian/` and referenced in `paper.qmd` Results via `@fig-forest-{winner}` cross-refs
+- [ ] **MANU-03**: Manuscript table artefacts exist in `reports/tables/model_comparison/`: `table1_loo_stacking.{csv,md,tex}` (stacking weights), `table2_rfx_bms.{csv,md,tex}` (PXP table), `table3_winner_betas.{csv,md,tex}` (winner L2 HDIs with model_averaged_* columns); `paper.qmd` `@tbl-loo-stacking`, `@tbl-rfx-bms`, `@tbl-winner-betas` Quarto cross-refs all resolve
 - [ ] **MANU-04**: Limitations section of `paper.qmd` rewritten with real Pareto-k percentages from step 21.5 `loo_stacking_results.csv` `pct_high_pareto_k` column; removes projected-from-research/PITFALLS.md placeholder text; M4 Pareto-k fallback outcome (if M4 ever appears) reported factually
 - [ ] **MANU-05**: `quarto render paper.qmd` succeeds from project root — exit 0, no Quarto errors, `_output/paper.pdf` and `_output/paper.html` exist; verified in `validation/check_v5_closure.py` via subprocess wrapper with a file-existence post-check
 

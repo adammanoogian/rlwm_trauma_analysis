@@ -48,13 +48,17 @@ Inputs
 
 Outputs
 -------
-``--tables-dir`` (default ``models/bayesian/21_tables/``):
+``--tables-dir`` (default ``reports/tables/model_comparison/``):
     - ``table1_loo_stacking.{csv,md,tex}`` — LOO + stacking weights.
     - ``table2_rfx_bms.{csv,md,tex}`` — RFX-BMS PXP/BOR.
     - ``table3_winner_betas.{csv,md,tex}`` — winner beta HDIs (with
       model-averaged columns when multi-winner).
     - ``null_result_summary.md`` (only when audit pipeline_action ==
       ``NULL_RESULT``) — clean null-result narrative.
+
+    Formatted manuscript tables land in ``reports/tables/`` because
+    ``paper.qmd`` reads them directly from there. Raw step-5 comparison
+    artifacts stay in ``models/bayesian/21_baseline/`` (pipeline-internal).
 
 ``--figures-dir`` (default ``figures/21_bayesian/``):
     - ``forest_{winner}.png`` per winner (only when audit pipeline_action !=
@@ -99,6 +103,7 @@ from config import (  # noqa: E402
     MODELS_BAYESIAN_DIR,
     MODELS_BAYESIAN_L2,
     REPORTS_FIGURES_BAYESIAN,
+    REPORTS_TABLES_MODEL_COMPARISON,
 )
 
 # Module-level logger; reconfigured in ``main`` so library-style imports do
@@ -1000,8 +1005,12 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument(
         "--tables-dir",
         type=Path,
-        default=MODELS_BAYESIAN_DIR / "21_tables",
-        help="Output directory for table1/2/3 .csv/.md/.tex artefacts.",
+        default=REPORTS_TABLES_MODEL_COMPARISON,
+        help=(
+            "Output directory for table1/2/3 .csv/.md/.tex artefacts. "
+            "Defaults to reports/tables/model_comparison/ because paper.qmd "
+            "reads the rendered manuscript tables from there."
+        ),
     )
     p.add_argument(
         "--paper",
