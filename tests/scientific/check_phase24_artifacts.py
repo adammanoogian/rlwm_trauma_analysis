@@ -3,7 +3,7 @@
 This module is the verification surface for Phase 24's EXEC-02 + EXEC-04
 requirements. Wave 0 (plan 24-00) pins the CCDS-canonical path expectations
 as module-level constants so the Wave 2 implementation (plan 24-02)
-cannot drift back to the legacy `output/bayesian/...` layout.
+cannot drift back to the pre-Phase-31 layout.
 
 CCDS layout source: docs/PROJECT_STRUCTURE.md (Phase 31 closure, 2026-04-24).
 Any artifact appearing outside these canonical paths is a FAIL in the
@@ -59,7 +59,7 @@ WINNER_TYPES_REPORTABLE: frozenset[str] = frozenset(
 
 @dataclass(frozen=True)
 class CheckResult:
-    """Single audit-check outcome (mirrors tests/scientific/check_v4_closure.py)."""
+    """Single audit-check outcome (mirrors check_v4_closure.py pattern)."""
 
     name: str
     ok: bool
