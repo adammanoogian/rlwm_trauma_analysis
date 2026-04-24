@@ -23,7 +23,7 @@ cd "$(dirname "$0")/.."
 # Pre-flight gate (preserved from v4.0): the 2-covariate L2 hook for M3/M5/M6a
 # is load-bearing for stage 04c. Fail fast LOCALLY before burning cluster cycles.
 echo "[$(date)] Pre-flight: verifying 2-covariate L2 hook (plan 21-11)..."
-if ! pytest scripts/fitting/tests/test_numpyro_models_2cov.py -v -k "not slow" --tb=short; then
+if ! pytest tests/integration/test_numpyro_models_2cov.py -v -k "not slow" --tb=short; then
   echo "[ABORT] plan 21-11 tests failed — 2-covariate L2 hook for M3/M5/M6a is not wired correctly." >&2
   echo "[ABORT] No cluster jobs submitted. Fix src/rlwm/fitting/numpyro_models.py and retry." >&2
   exit 1
