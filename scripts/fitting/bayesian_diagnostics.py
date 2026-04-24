@@ -688,8 +688,8 @@ def run_posterior_predictive_check(
         verbatim (no ``"bayesian"`` prefix appended). Takes precedence over
         ``output_dir``. Used by Phase 21 (``save_results`` with
         ``output_subdir``) so the PPC CSV lands in the same subdirectory as the
-        posterior NetCDF (e.g. ``output/bayesian/21_baseline/``) and does NOT
-        leak into the legacy ``output/bayesian/`` root.
+        posterior NetCDF (e.g. ``models/bayesian/21_baseline/``) and does NOT
+        leak into the legacy ``models/bayesian/`` root.
 
     Returns
     -------

@@ -28,7 +28,13 @@ from pathlib import Path
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_PROJECT_ROOT))
 
-from config import ALL_MODELS  # noqa: E402
+from config import (  # noqa: E402
+    ALL_MODELS,
+    MODELS_MLE_DIR,
+    MODELS_PPC_DIR,
+    PROCESSED_DIR,
+    REPORTS_FIGURES_DIR,
+)
 from scripts.utils.ppc import run_posterior_ppc  # noqa: E402
 
 
@@ -56,25 +62,25 @@ def main() -> int:
     parser.add_argument(
         "--fitted-params-dir",
         type=str,
-        default="output/mle",
+        default=str(MODELS_MLE_DIR),
         help="Directory containing fitted params CSVs.",
     )
     parser.add_argument(
         "--real-data",
         type=str,
-        default="output/task_trials_long.csv",
+        default=str(PROCESSED_DIR / "task_trials_long.csv"),
         help="Path to real trial data.",
     )
     parser.add_argument(
         "--output-dir",
         type=str,
-        default="output/ppc",
+        default=str(MODELS_PPC_DIR),
         help="Output directory for PPC results.",
     )
     parser.add_argument(
         "--figures-dir",
         type=str,
-        default="figures/ppc",
+        default=str(REPORTS_FIGURES_DIR / "ppc"),
         help="Output directory for figures.",
     )
     parser.add_argument(

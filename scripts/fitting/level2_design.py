@@ -12,10 +12,10 @@ auditing the raw data pipeline, these subcategories are NOT available:
   - ``scripts/utils/scoring.py::score_less()`` only computes
     ``less_total_events`` and ``less_personal_events`` (total event counts).
   - The raw item-level columns (``s1_item01`` through ``s1_item15``) in
-    ``output/parsed_survey1_all.csv`` are not mapped to a
+    ``data/interim/parsed_survey1_all.csv`` are not mapped to a
     physical/sexual/accident taxonomy. No such mapping exists in the
     codebase.
-  - The summary CSV ``output/summary_participant_metrics.csv`` contains only
+  - The summary CSV ``data/processed/summary_participant_metrics.csv`` contains only
     ``less_total_events`` and ``less_personal_events`` as LEC columns.
 
 ROADMAP DEVIATION 2 — IES-R Subscale Linear Dependence (4 predictors, not 5)
@@ -69,7 +69,7 @@ Usage
 -----
 >>> import pandas as pd
 >>> from scripts.fitting.level2_design import build_level2_design_matrix
->>> metrics = pd.read_csv("output/summary_participant_metrics.csv")
+>>> metrics = pd.read_csv("data/processed/summary_participant_metrics.csv")
 >>> complete = metrics.dropna(subset=["ies_total","ies_intrusion","ies_avoidance",
 ...                                   "ies_hyperarousal","less_total_events"])
 >>> participant_ids = sorted(complete["sona_id"].unique().tolist())
@@ -216,7 +216,7 @@ def build_level2_design_matrix(
             "include_lec_subcategories=True requested, but LEC-5 physical/"
             "sexual/accident subcategory columns are not available in the "
             "current data pipeline. Only 'less_total_events' and "
-            "'less_personal_events' exist in output/summary_participant_metrics.csv. "
+            "'less_personal_events' exist in data/processed/summary_participant_metrics.csv. "
             "See level2_design.py module docstring for details."
         )
 
@@ -295,7 +295,7 @@ def build_level2_design_matrix_2cov(
     Parameters
     ----------
     metrics : pd.DataFrame
-        Per-participant metric CSV (``output/summary_participant_metrics.csv``).
+        Per-participant metric CSV (``data/processed/summary_participant_metrics.csv``).
         Must contain columns ``sona_id``, ``less_total_events``, ``ies_total``.
     participant_ids : list of int or str
         Ordered participant ids; determines row order of the returned matrix.
@@ -562,7 +562,7 @@ def write_collinearity_report(
         "physical/sexual/accident subcategories. These columns are **not available** "
         "in the current data pipeline:",
         "",
-        "- `output/summary_participant_metrics.csv`: only `less_total_events` and "
+        "- `data/processed/summary_participant_metrics.csv`: only `less_total_events` and "
         "`less_personal_events`.",
         "- `scripts/utils/scoring.py::score_less()`: computes only totals, "
         "no subcategory taxonomy.",
@@ -602,8 +602,8 @@ def write_collinearity_report(
 if __name__ == "__main__":
     import pathlib
 
-    DATA_PATH = "output/summary_participant_metrics.csv"
-    REPORT_PATH = "output/bayesian/level2/ies_r_collinearity_audit.md"
+    DATA_PATH = "data/processed/summary_participant_metrics.csv"
+    REPORT_PATH = "models/bayesian/level2/ies_r_collinearity_audit.md"
 
     print(f"Loading metrics from: {DATA_PATH}")
     metrics = pd.read_csv(DATA_PATH)

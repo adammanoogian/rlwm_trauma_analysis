@@ -1,11 +1,11 @@
 """Aggregate permutation null test results for M3 LEC covariate (L2-06).
 
-Globs ``output/bayesian/permutation/shuffle_*_results.json``, loads each
+Globs ``models/bayesian/permutation/shuffle_*_results.json``, loads each
 JSON, counts how many shuffles produced a ``beta_lec_kappa`` 95% HDI that
 excludes zero, and reports the empirical false positive rate.
 
 Writes a human-readable Markdown summary to
-``output/bayesian/permutation/permutation_summary.md``.
+``models/bayesian/permutation/permutation_summary.md``.
 
 Usage
 -----
@@ -13,8 +13,8 @@ Usage
 
     python scripts/fitting/aggregate_permutation_results.py
     python scripts/fitting/aggregate_permutation_results.py \\
-        --input-dir output/bayesian/permutation \\
-        --output-dir output/bayesian/permutation
+        --input-dir models/bayesian/permutation \\
+        --output-dir models/bayesian/permutation
 
 Examples
 --------
@@ -29,7 +29,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
+
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
+
+from config import MODELS_BAYESIAN_DIR  # noqa: E402
 
 
 def load_shuffle_results(input_dir: Path) -> list[dict]:
@@ -170,19 +177,19 @@ def main() -> None:
     parser.add_argument(
         "--input-dir",
         type=str,
-        default="output/bayesian/permutation",
+        default=str(MODELS_BAYESIAN_DIR / "permutation"),
         help=(
             "Directory containing shuffle_*_results.json files "
-            "(default: output/bayesian/permutation)"
+            "(default: models/bayesian/permutation)"
         ),
     )
     parser.add_argument(
         "--output-dir",
         type=str,
-        default="output/bayesian/permutation",
+        default=str(MODELS_BAYESIAN_DIR / "permutation"),
         help=(
             "Directory for permutation_summary.md output "
-            "(default: output/bayesian/permutation)"
+            "(default: models/bayesian/permutation)"
         ),
     )
     args = parser.parse_args()

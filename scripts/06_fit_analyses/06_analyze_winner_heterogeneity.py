@@ -19,8 +19,8 @@ Workflow
 
 Outputs
 -------
-- output/model_comparison/winner_heterogeneity.csv
-- output/model_comparison/winner_heterogeneity_summary.csv
+- reports/tables/model_comparison/winner_heterogeneity.csv
+- reports/tables/model_comparison/winner_heterogeneity_summary.csv
 - figures/model_comparison/winner_heterogeneity_figure.png
 
 Usage
@@ -58,7 +58,14 @@ from scipy import stats as scipy_stats
 project_root = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(project_root))
 
-from config import FIGURES_DIR, MODEL_REGISTRY, load_fits_with_validation
+from config import (
+    MODELS_BAYESIAN_DIR,
+    MODELS_MLE_DIR,
+    MODEL_REGISTRY,
+    REPORTS_FIGURES_DIR,
+    REPORTS_TABLES_MODEL_COMPARISON,
+    load_fits_with_validation,
+)
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -291,13 +298,13 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.source == 'bayesian':
-        fits_dir = project_root / "output" / "bayesian"
-        output_dir = project_root / "output" / "bayesian" / "model_comparison"
-        figures_dir = FIGURES_DIR / "bayesian" / "model_comparison"
+        fits_dir = MODELS_BAYESIAN_DIR
+        output_dir = MODELS_BAYESIAN_DIR / "model_comparison"
+        figures_dir = REPORTS_FIGURES_DIR / "bayesian" / "model_comparison"
     else:
-        fits_dir = project_root / "output" / "mle"
-        output_dir = project_root / "output" / "model_comparison"
-        figures_dir = FIGURES_DIR / "model_comparison"
+        fits_dir = MODELS_MLE_DIR
+        output_dir = REPORTS_TABLES_MODEL_COMPARISON
+        figures_dir = REPORTS_FIGURES_DIR / "model_comparison"
 
     output_dir.mkdir(parents=True, exist_ok=True)
     figures_dir.mkdir(parents=True, exist_ok=True)
@@ -350,7 +357,7 @@ def main() -> None:
     plot_winner_heterogeneity(combined, figure_path)
     print(f"    [SAVED] {figure_path}")
 
-    # Also copy to output/model_comparison/ for consistency with other outputs
+    # Also copy to reports/tables/model_comparison/ for consistency with other outputs
     secondary_figure_path = output_dir / "winner_heterogeneity_figure.png"
     plot_winner_heterogeneity(combined, secondary_figure_path)
     print(f"    [SAVED] {secondary_figure_path}")

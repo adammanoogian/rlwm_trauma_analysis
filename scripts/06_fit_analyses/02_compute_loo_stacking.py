@@ -80,12 +80,12 @@ Exit codes
 Usage
 -----
 >>> python scripts/06_fit_analyses/02_compute_loo_stacking.py \
-...     --baseline-dir output/bayesian/21_baseline/ \
-...     --output-dir output/bayesian/21_baseline/
+...     --baseline-dir models/bayesian/21_baseline/ \
+...     --output-dir models/bayesian/21_baseline/
 
 >>> # Manual-resume after INCONCLUSIVE_MULTIPLE checkpoint:
 >>> python scripts/06_fit_analyses/02_compute_loo_stacking.py \
-...     --baseline-dir output/bayesian/21_baseline/ \
+...     --baseline-dir models/bayesian/21_baseline/ \
 ...     --force-winners M3,M6b
 
 See also
@@ -131,7 +131,7 @@ _PROJECT_ROOT = _THIS_FILE.parent.parent.parent
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
-from config import load_netcdf_with_validation  # noqa: E402
+from config import MODELS_BAYESIAN_BASELINE, load_netcdf_with_validation  # noqa: E402
 from scripts.fitting.bms import rfx_bms  # noqa: E402
 
 # ---------------------------------------------------------------------------
@@ -597,10 +597,10 @@ def _write_winner_report(
         "python scripts/06_fit_analyses/02_compute_loo_stacking.py \\"
     )
     lines.append(
-        "    --baseline-dir output/bayesian/21_baseline/ \\"
+        "    --baseline-dir models/bayesian/21_baseline/ \\"
     )
     lines.append(
-        "    --output-dir output/bayesian/21_baseline/ \\"
+        "    --output-dir models/bayesian/21_baseline/ \\"
     )
     lines.append(
         f"    --force-winners {','.join(winners)}"
@@ -632,7 +632,7 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--baseline-dir",
         type=Path,
-        default=Path("output/bayesian/21_baseline/"),
+        default=MODELS_BAYESIAN_BASELINE,
         help=(
             "Directory containing convergence_table.csv (from 21-05) and "
             "{model}_posterior.nc files."
@@ -641,7 +641,7 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("output/bayesian/21_baseline/"),
+        default=MODELS_BAYESIAN_BASELINE,
         help=(
             "Directory to write loo_stacking_results.csv, rfx_bms_pxp.csv, "
             "winner_report.md, and winners.txt."

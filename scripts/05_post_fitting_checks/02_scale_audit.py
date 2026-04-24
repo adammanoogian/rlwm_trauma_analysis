@@ -94,11 +94,11 @@ Outputs
 Usage
 -----
 >>> python scripts/05_post_fitting_checks/02_scale_audit.py \
-...     --l2-dir output/bayesian/21_l2/ \
-...     --baseline-dir output/bayesian/21_baseline/ \
-...     --winners-file output/bayesian/21_baseline/winners.txt \
+...     --l2-dir models/bayesian/21_l2/ \
+...     --baseline-dir models/bayesian/21_baseline/ \
+...     --winners-file models/bayesian/21_baseline/winners.txt \
 ...     --hdi-prob 0.95 --fdr-alpha 0.05 --ess-drop-threshold 0.5 \
-...     --output-dir output/bayesian/21_l2/
+...     --output-dir models/bayesian/21_l2/
 
 See also
 --------
@@ -149,7 +149,11 @@ except ImportError as exc:  # pragma: no cover — env-level failure
     )
     sys.exit(1)
 
-from config import load_netcdf_with_validation  # noqa: E402
+from config import (  # noqa: E402
+    MODELS_BAYESIAN_BASELINE,
+    MODELS_BAYESIAN_L2,
+    load_netcdf_with_validation,
+)
 
 # Display-name <-> internal-id mappings (must match
 # scripts/21_fit_with_l2.py::DISPLAY_TO_INTERNAL and
@@ -758,17 +762,17 @@ def main() -> int:
     )
     parser.add_argument(
         "--l2-dir",
-        default="output/bayesian/21_l2/",
+        default=str(MODELS_BAYESIAN_L2),
         help="Directory with {winner}_posterior.nc from step 21.6.",
     )
     parser.add_argument(
         "--baseline-dir",
-        default="output/bayesian/21_baseline/",
+        default=str(MODELS_BAYESIAN_BASELINE),
         help="Directory with {winner}_posterior.nc from step 21.3.",
     )
     parser.add_argument(
         "--winners-file",
-        default="output/bayesian/21_baseline/winners.txt",
+        default=str(MODELS_BAYESIAN_BASELINE / "winners.txt"),
         help="Winners file from step 21.5 (comma-separated display names).",
     )
     parser.add_argument(
@@ -794,7 +798,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--output-dir",
-        default="output/bayesian/21_l2/",
+        default=str(MODELS_BAYESIAN_L2),
         help="Directory for scale_audit_report.md and per-winner CSVs.",
     )
     args = parser.parse_args()

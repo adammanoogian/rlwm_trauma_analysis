@@ -30,13 +30,13 @@ Trauma Measures:
     - IES-R Subscales: Intrusion, Avoidance, Hyperarousal
 
 Inputs:
-    - output/mle/<model>_individual_fits.csv
-    - output/summary_participant_metrics.csv (trauma scores)
-    - output/trauma_groups/group_assignments.csv (group labels)
+    - models/mle/<model>_individual_fits.csv
+    - data/processed/summary_participant_metrics.csv (trauma scores)
+    - reports/tables/trauma_groups/group_assignments.csv (group labels)
 
 Outputs:
-    - output/mle_by_trauma/<model>_group_comparison.csv
-    - output/mle_by_trauma/<model>_correlations.csv
+    - reports/tables/mle_by_trauma/<model>_group_comparison.csv
+    - reports/tables/mle_by_trauma/<model>_correlations.csv
     - figures/mle_by_trauma/<model>_parameters_by_group.png
     - figures/mle_by_trauma/<model>_parameter_correlations.png
 
@@ -52,8 +52,8 @@ Usage:
 
     # Specify custom paths
     python scripts/06_fit_analyses/04_analyze_mle_by_trauma.py --model wmrl \
-        --mle-file output/mle/wmrl_individual_fits.csv \
-        --trauma-file output/summary_participant_metrics.csv
+        --mle-file models/mle/wmrl_individual_fits.csv \
+        --trauma-file data/processed/summary_participant_metrics.csv
 
 Next Steps:
     - Interpret parameter-trauma relationships
@@ -93,12 +93,19 @@ from utils.plotting import (
     get_color_palette,
 )
 
-from config import load_fits_with_validation
+from config import (
+    MODELS_BAYESIAN_DIR,
+    MODELS_MLE_DIR,
+    PROCESSED_DIR,
+    REPORTS_FIGURES_DIR,
+    REPORTS_TABLES_TRAUMA_GROUPS,
+    load_fits_with_validation,
+)
 from utils.plotting_config import PlotConfig
 
 # Paths
-OUTPUT_DIR = PROJECT_ROOT / "output" / "mle"
-FIGURES_DIR = PROJECT_ROOT / "figures" / "mle_trauma_analysis"
+OUTPUT_DIR = MODELS_MLE_DIR
+FIGURES_DIR = REPORTS_FIGURES_DIR / "mle_trauma_analysis"
 
 # Group colors (matching plotting_config.py)
 GROUP_COLORS = TRAUMA_GROUP_COLORS
@@ -145,8 +152,8 @@ def load_data(fits_dir: Path = OUTPUT_DIR) -> tuple:
     ----------
     fits_dir
         Directory containing individual-fit CSVs.  Defaults to the MLE
-        output directory (``OUTPUT_DIR``).  Pass ``PROJECT_ROOT / "output" /
-        "bayesian"`` to load hierarchical Bayesian posterior-mean CSVs.
+        output directory (``OUTPUT_DIR``).  Pass ``MODELS_BAYESIAN_DIR``
+        to load hierarchical Bayesian posterior-mean CSVs.
 
     Returns
     -------
@@ -155,21 +162,21 @@ def load_data(fits_dir: Path = OUTPUT_DIR) -> tuple:
         wmrl_m6b, wmrl_m4)`` as DataFrames (optional models may be ``None``).
     """
     # Load survey data
-    surveys = pd.read_csv(PROJECT_ROOT / "output" / "summary_participant_metrics.csv")
+    surveys = pd.read_csv(PROCESSED_DIR / "summary_participant_metrics.csv")
     # Rename columns to match names expected throughout this script
     surveys = surveys.rename(columns={
         'less_total_events': 'lec_total',
         'less_personal_events': 'lec_personal',
     })
     print(f"Loaded survey data: {len(surveys)} participants from summary_participant_metrics.csv")
-    groups = pd.read_csv(PROJECT_ROOT / "output" / "trauma_groups" / "group_assignments.csv")
+    groups = pd.read_csv(REPORTS_TABLES_TRAUMA_GROUPS / "group_assignments.csv")
 
     # Convert sona_id to string for consistent merging (handles both numeric and anon IDs)
     surveys['sona_id'] = surveys['sona_id'].astype(str)
     groups['sona_id'] = groups['sona_id'].astype(str)
 
-    # Load fits from fits_dir.  For MLE source, fall back to the legacy output/
-    # root when a file is absent from output/mle/. For Bayesian source, files
+    # Load fits from fits_dir.  For MLE source, fall back to the project root
+    # when a file is absent from models/mle/. For Bayesian source, files
     # are always expected in fits_dir and no fallback is applied.
     is_mle_source = fits_dir == OUTPUT_DIR
 
@@ -186,7 +193,7 @@ def load_data(fits_dir: Path = OUTPUT_DIR) -> tuple:
     # M5: load defensively (file may not exist)
     wmrl_m5_path = fits_dir / "wmrl_m5_individual_fits.csv"
     if is_mle_source and not wmrl_m5_path.exists():
-        wmrl_m5_path = PROJECT_ROOT / "output" / "wmrl_m5_individual_fits.csv"
+        wmrl_m5_path = MODELS_MLE_DIR / "wmrl_m5_individual_fits.csv"
     wmrl_m5 = (
         load_fits_with_validation(wmrl_m5_path, "wmrl_m5")
         if wmrl_m5_path.exists()
@@ -882,9 +889,9 @@ Examples:
 
     # Resolve fits directory and output paths based on --source
     if args.source == 'bayesian':
-        fits_dir = PROJECT_ROOT / "output" / "bayesian"
-        figures_dir = PROJECT_ROOT / "figures" / "bayesian_trauma_analysis"
-        analysis_output_dir = PROJECT_ROOT / "output" / "bayesian" / "analysis"
+        fits_dir = MODELS_BAYESIAN_DIR
+        figures_dir = REPORTS_FIGURES_DIR / "bayesian_trauma_analysis"
+        analysis_output_dir = MODELS_BAYESIAN_DIR / "analysis"
     else:
         fits_dir = OUTPUT_DIR
         figures_dir = FIGURES_DIR

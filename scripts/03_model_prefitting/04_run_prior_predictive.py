@@ -37,6 +37,7 @@ sys.path.insert(0, str(_PROJECT_ROOT))
 
 import numpyro  # noqa: E402
 
+from config import MODELS_BAYESIAN_PRIOR_PREDICTIVE, PROCESSED_DIR  # noqa: E402
 from rlwm.fitting.bayesian import STACKED_MODEL_DISPATCH  # noqa: E402
 from scripts.utils.ppc import run_prior_ppc  # noqa: E402
 
@@ -65,8 +66,8 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--data",
         type=Path,
-        default=Path("output/task_trials_long.csv"),
-        help="Path to trial-level CSV (default: output/task_trials_long.csv).",
+        default=PROCESSED_DIR / "task_trials_long.csv",
+        help="Path to trial-level CSV (default: data/processed/task_trials_long.csv).",
     )
     parser.add_argument(
         "--num-draws",
@@ -83,9 +84,9 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("output/bayesian/21_prior_predictive"),
+        default=MODELS_BAYESIAN_PRIOR_PREDICTIVE,
         help=(
-            "Output directory (default: output/bayesian/21_prior_predictive)."
+            "Output directory (default: models/bayesian/21_prior_predictive)."
         ),
     )
     return parser.parse_args()

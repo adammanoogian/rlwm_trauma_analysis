@@ -7,19 +7,19 @@ Following Senta et al. (2025) and Burnham & Anderson (2002) methodology.
 Usage:
     # Legacy 2-way comparison (backward compatible)
     python scripts/fitting/compare_mle_models.py \
-        --qlearning output/mle/qlearning_individual_fits.csv \
-        --wmrl output/mle/wmrl_individual_fits.csv
+        --qlearning models/mle/qlearning_individual_fits.csv \
+        --wmrl models/mle/wmrl_individual_fits.csv
 
     # 3-way comparison (M1 vs M2 vs M3)
     python scripts/fitting/compare_mle_models.py \
-        --m1 output/mle/qlearning_individual_fits.csv \
-        --m2 output/mle/wmrl_individual_fits.csv \
-        --m3 output/mle/wmrl_m3_individual_fits.csv
+        --m1 models/mle/qlearning_individual_fits.csv \
+        --m2 models/mle/wmrl_individual_fits.csv \
+        --m3 models/mle/wmrl_m3_individual_fits.csv
 
     # Focused 2-way comparison (M2 vs M3 for kappa analysis)
     python scripts/fitting/compare_mle_models.py \
-        --m2 output/mle/wmrl_individual_fits.csv \
-        --m3 output/mle/wmrl_m3_individual_fits.csv
+        --m2 models/mle/wmrl_individual_fits.csv \
+        --m3 models/mle/wmrl_m3_individual_fits.csv
 """
 
 import argparse

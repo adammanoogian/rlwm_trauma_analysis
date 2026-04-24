@@ -13,15 +13,15 @@ This script:
 4. Generates reports and visualizations
 
 Inputs:
-    - output/collated_participant_data.csv
-    - output/summary_participant_metrics.csv
-    - output/task_trials_long.csv
-    - output/parsed_demographics.csv
-    - output/parsed_survey1.csv (LEC-5)
-    - output/parsed_survey2.csv (IES-R)
+    - data/interim/collated_participant_data.csv
+    - data/processed/summary_participant_metrics.csv
+    - data/processed/task_trials_long.csv
+    - data/interim/parsed_demographics.csv
+    - data/interim/parsed_survey1.csv (LEC-5)
+    - data/interim/parsed_survey2.csv (IES-R)
 
 Outputs:
-    - output/behavioral_summary/data_summary_report.txt
+    - reports/tables/behavioral_summary/data_summary_report.txt
 
 Usage:
     python scripts/02_behav_analyses/01_summarize_behavioral_data.py
@@ -41,11 +41,19 @@ from pathlib import Path
 import sys
 from collections import defaultdict
 
-# Add project root to path
-project_root = Path(__file__).resolve().parents[1]
+# Add project root to path (parents[2] = project root; parents[1] = scripts/)
+project_root = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(project_root))
 
-from config import TaskParams, DataParams, OUTPUT_DIR, FIGURES_DIR, AnalysisParams
+from config import (
+    TaskParams,
+    DataParams,
+    INTERIM_DIR,
+    PROCESSED_DIR,
+    REPORTS_FIGURES_DIR,
+    REPORTS_TABLES_BEHAVIORAL,
+    AnalysisParams,
+)
 
 
 def load_processed_data():
@@ -55,7 +63,7 @@ def load_processed_data():
     data = {}
 
     # Load collated participant data
-    collated_path = OUTPUT_DIR / 'collated_participant_data.csv'
+    collated_path = INTERIM_DIR / 'collated_participant_data.csv'
     if collated_path.exists():
         data['collated'] = pd.read_csv(collated_path)
         print(f"  [OK] Loaded collated data: {len(data['collated'])} participants")
@@ -64,7 +72,7 @@ def load_processed_data():
         data['collated'] = None
 
     # Load summary metrics
-    summary_path = OUTPUT_DIR / 'summary_participant_metrics.csv'
+    summary_path = PROCESSED_DIR / 'summary_participant_metrics.csv'
     if summary_path.exists():
         data['summary'] = pd.read_csv(summary_path)
         print(f"  [OK] Loaded summary metrics: {len(data['summary'])} participants")
@@ -73,7 +81,7 @@ def load_processed_data():
         data['summary'] = None
 
     # Load task trials
-    trials_path = OUTPUT_DIR / 'task_trials_long.csv'
+    trials_path = PROCESSED_DIR / 'task_trials_long.csv'
     if trials_path.exists():
         data['trials'] = pd.read_csv(trials_path)
         print(f"  [OK] Loaded task trials: {len(data['trials'])} trials")
@@ -82,7 +90,7 @@ def load_processed_data():
         data['trials'] = None
 
     # Load demographics
-    demo_path = OUTPUT_DIR / 'parsed_demographics.csv'
+    demo_path = INTERIM_DIR / 'parsed_demographics.csv'
     if demo_path.exists():
         data['demographics'] = pd.read_csv(demo_path)
         print(f"  [OK] Loaded demographics: {len(data['demographics'])} participants")
@@ -91,7 +99,7 @@ def load_processed_data():
         data['demographics'] = None
 
     # Load surveys
-    survey1_path = OUTPUT_DIR / 'parsed_survey1.csv'
+    survey1_path = INTERIM_DIR / 'parsed_survey1.csv'
     if survey1_path.exists():
         data['survey1'] = pd.read_csv(survey1_path)
         print(f"  [OK] Loaded Survey 1 (LEC-5): {len(data['survey1'])} participants")
@@ -99,7 +107,7 @@ def load_processed_data():
         print(f"  [WARN] Survey 1 not found: {survey1_path}")
         data['survey1'] = None
 
-    survey2_path = OUTPUT_DIR / 'parsed_survey2.csv'
+    survey2_path = INTERIM_DIR / 'parsed_survey2.csv'
     if survey2_path.exists():
         data['survey2'] = pd.read_csv(survey2_path)
         print(f"  [OK] Loaded Survey 2 (IES-R): {len(data['survey2'])} participants")
@@ -346,8 +354,8 @@ def generate_summary_report(data, output_dir):
 
 def main():
     # Create output directories
-    output_dir = OUTPUT_DIR / 'behavioral_summary'
-    figure_dir = FIGURES_DIR / 'behavioral_summary'
+    output_dir = REPORTS_TABLES_BEHAVIORAL
+    figure_dir = REPORTS_FIGURES_DIR / 'behavioral_summary'
     output_dir.mkdir(parents=True, exist_ok=True)
     figure_dir.mkdir(parents=True, exist_ok=True)
 

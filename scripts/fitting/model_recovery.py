@@ -33,6 +33,13 @@ import pandas as pd
 from scipy.stats import pearsonr
 from tqdm import tqdm
 
+from config import (
+    MODELS_MLE_DIR,
+    MODELS_PPC_DIR,
+    MODELS_RECOVERY_DIR,
+    PROCESSED_DIR,
+    REPORTS_FIGURES_DIR,
+)
 from rlwm.fitting.mle import fit_participant_mle, prepare_participant_data
 from scripts.fitting.mle_utils import (
     QLEARNING_BOUNDS,
@@ -978,7 +985,7 @@ def plot_distribution_comparison(
 
     # Try to load real fitted parameters
     if real_params_path is None:
-        real_params_path = f'output/mle/{model}_individual_fits.csv'
+        real_params_path = str(MODELS_MLE_DIR / f'{model}_individual_fits.csv')
 
     try:
         df_real = pd.read_csv(real_params_path)
@@ -1081,13 +1088,13 @@ Examples:
                         help='Random seed for reproducibility (default: 42)')
     parser.add_argument('--use-gpu', action='store_true',
                         help='Use GPU acceleration if available')
-    parser.add_argument('--output-dir', type=str, default='output/recovery',
-                        help='Output directory for results (default: output/recovery)')
-    parser.add_argument('--figures-dir', type=str, default='figures/recovery',
-                        help='Output directory for figures (default: figures/recovery)')
+    parser.add_argument('--output-dir', type=str, default=str(MODELS_RECOVERY_DIR),
+                        help='Output directory for results (default: models/recovery)')
+    parser.add_argument('--figures-dir', type=str, default=str(REPORTS_FIGURES_DIR / 'recovery'),
+                        help='Output directory for figures (default: reports/figures/recovery)')
     parser.add_argument('--fitted-params', type=str, default=None,
                         help='Path to fitted params CSV (auto-detected from --model if not specified)')
-    parser.add_argument('--real-data', type=str, default='output/task_trials_long.csv',
+    parser.add_argument('--real-data', type=str, default=str(PROCESSED_DIR / 'task_trials_long.csv'),
                         help='Path to real trial data for behavioral comparison')
     parser.add_argument('--real-params', type=str, default=None,
                         help='Path to real fitted parameters CSV for distribution comparison')
@@ -1097,15 +1104,15 @@ Examples:
 
     # Auto-detect fitted params path if PPC mode and not specified
     if args.mode == 'ppc' and args.fitted_params is None:
-        args.fitted_params = f'output/mle/{args.model}_individual_fits.csv'
+        args.fitted_params = str(MODELS_MLE_DIR / f'{args.model}_individual_fits.csv')
 
     # Create output directories
     if args.mode == 'recovery':
         output_dir = Path(args.output_dir) / args.model
         figures_dir = Path(args.figures_dir) / args.model
     else:  # ppc mode
-        output_dir = Path('output/ppc') / args.model
-        figures_dir = Path('figures/ppc') / args.model
+        output_dir = MODELS_PPC_DIR / args.model
+        figures_dir = REPORTS_FIGURES_DIR / 'ppc' / args.model
 
     output_dir.mkdir(parents=True, exist_ok=True)
     figures_dir.mkdir(parents=True, exist_ok=True)

@@ -15,15 +15,15 @@ Inputs:
     - Task configuration (from config.py)
 
 Outputs:
-    - output/synthetic_data/synthetic_<model>_<timestamp>.csv
-    - figures/synthetic_data/ (optional visualizations)
+    - models/parameter_exploration/synthetic_<model>_<timestamp>.csv
+    - reports/figures/synthetic_data/ (optional visualizations)
 
 Usage:
     # Generate data from Q-learning with default parameters
     python scripts/03_model_prefitting/01_generate_synthetic_data.py --model qlearning
 
     # Generate data from WM-RL with fitted parameters
-    python scripts/03_model_prefitting/01_generate_synthetic_data.py --model wmrl --params-file output/mle/wmrl_params.csv
+    python scripts/03_model_prefitting/01_generate_synthetic_data.py --model wmrl --params-file models/mle/wmrl_params.csv
 
     # Generate for specific set sizes
     python scripts/03_model_prefitting/01_generate_synthetic_data.py --model qlearning --set-sizes 3 5
@@ -40,8 +40,8 @@ Next Steps:
 import sys
 from pathlib import Path
 
-# Add project root to path
-project_root = Path(__file__).resolve().parents[1]
+# Add project root to path (parents[2] = project root; parents[1] = scripts/)
+project_root = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(project_root))
 
 # Import the main function from the library module

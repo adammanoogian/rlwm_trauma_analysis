@@ -7,12 +7,12 @@ anti-circular baseline for the Wave-5 PSIS-LOO + stacking + RFX-BMS/PXP
 ranking in step 21.5. Every candidate model — not a pre-selected winner —
 starts with equal footing.
 
-All outputs are routed under ``output/bayesian/21_baseline/`` via the
+All outputs are routed under ``models/bayesian/21_baseline/`` via the
 ``--output-subdir`` flag on the co-located Bayesian engine
 (``scripts/04_model_fitting/b_bayesian/_engine.py``, plumbed through
 ``save_results``, ``write_bayesian_summary``, and
 ``run_posterior_predictive_check`` in plan 21-04 Task 1). This ensures the
-Phase 16 posteriors at ``output/bayesian/{model}_posterior.nc`` are **never
+Phase 16 posteriors at ``models/bayesian/{model}_posterior.nc`` are **never
 overwritten**.
 
 Convergence behaviour
@@ -54,6 +54,7 @@ if str(_PROJECT_ROOT) not in sys.path:
 
 # v5.0 shim cleanup: engine moved from scripts/04_model_fitting/b_bayesian/_engine.py
 # to canonical home rlwm.fitting.bayesian (importable via standard dotted form).
+from config import MODELS_DIR, PROCESSED_DIR
 from rlwm.fitting.bayesian import main as fit_main
 
 # The 6 choice-only models that go through `STACKED_MODEL_DISPATCH` in
@@ -69,7 +70,7 @@ BASELINE_MODELS: tuple[str, ...] = (
     "wmrl_m6b",
 )
 
-# Subdirectory under `output/bayesian/` where all step 21.3 artefacts land.
+# Subdirectory under `models/bayesian/` where all step 21.3 artefacts land.
 # DO NOT CHANGE without also updating the master pipeline orchestrator
 # (plan 21-10) and downstream convergence audit (plan 21-05).
 BASELINE_SUBDIR: str = "21_baseline"
@@ -99,7 +100,7 @@ def main() -> None:
             "Step 21.3 baseline hierarchical fit (NO L2 scales). Fits one "
             "of the 6 choice-only models with covariate_lec=None on the "
             "canonical v4.0 N=138 cohort and writes artefacts to "
-            "output/bayesian/21_baseline/."
+            "models/bayesian/21_baseline/."
         )
     )
     parser.add_argument(
@@ -114,8 +115,8 @@ def main() -> None:
     )
     parser.add_argument(
         "--data",
-        default="output/task_trials_long.csv",
-        help="Path to trial-level CSV (default: output/task_trials_long.csv).",
+        default=str(PROCESSED_DIR / "task_trials_long.csv"),
+        help="Path to trial-level CSV (default: data/processed/task_trials_long.csv).",
     )
     parser.add_argument(
         "--chains",
@@ -152,8 +153,8 @@ def main() -> None:
     )
     parser.add_argument(
         "--output",
-        default="output",
-        help="Root output directory (default: output).",
+        default=str(MODELS_DIR),
+        help="Root output directory (default: models).",
     )
     args = parser.parse_args()
 

@@ -31,15 +31,15 @@ Interpretation (Burnham & Anderson, 2002):
     - Δ > 10: Very strong evidence
 
 Inputs:
-    - output/mle/*_individual_fits.csv (MLE results)
-    - output/bayesian_fits/*.nc (Bayesian posteriors, optional)
+    - models/mle/*_individual_fits.csv (MLE results)
+    - models/bayesian/*.nc (Bayesian posteriors, optional)
 
 Outputs:
-    - output/model_comparison/comparison_results.csv
-    - output/model_comparison/participant_wins.csv
-    - figures/model_comparison/information_criteria.png
-    - figures/model_comparison/model_weights.png
-    - figures/model_comparison/winning_model_predictions.png
+    - reports/tables/model_comparison/comparison_results.csv
+    - reports/tables/model_comparison/participant_wins.csv
+    - reports/figures/model_comparison/information_criteria.png
+    - reports/figures/model_comparison/model_weights.png
+    - reports/figures/model_comparison/winning_model_predictions.png
 
 Usage:
     # Compare MLE fits (default)
@@ -47,17 +47,17 @@ Usage:
 
     # Specify model files explicitly
     python scripts/06_fit_analyses/01_compare_models.py \
-        --m1 output/mle/qlearning_individual_fits.csv \
-        --m2 output/mle/wmrl_individual_fits.csv
+        --m1 models/mle/qlearning_individual_fits.csv \
+        --m2 models/mle/wmrl_individual_fits.csv
 
     # 3-way comparison (M1 vs M2 vs M3)
     python scripts/06_fit_analyses/01_compare_models.py \
-        --m1 output/mle/qlearning_individual_fits.csv \
-        --m2 output/mle/wmrl_individual_fits.csv \
-        --m3 output/mle/wmrl_m3_individual_fits.csv
+        --m1 models/mle/qlearning_individual_fits.csv \
+        --m2 models/mle/wmrl_individual_fits.csv \
+        --m3 models/mle/wmrl_m3_individual_fits.csv
 
     # Include Bayesian criteria (WAIC/LOO)
-    python scripts/06_fit_analyses/01_compare_models.py --use-waic --bayesian-dir output/bayesian_fits
+    python scripts/06_fit_analyses/01_compare_models.py --use-waic --bayesian-dir models/bayesian
 
     # Generate winning model predictions
     python scripts/06_fit_analyses/01_compare_models.py --generate-predictions
@@ -89,8 +89,12 @@ sys.path.insert(0, str(project_root))
 
 from config import (
     EXCLUDED_PARTICIPANTS,
-    FIGURES_DIR,
     MODEL_REGISTRY,
+    MODELS_BAYESIAN_DIR,
+    MODELS_MLE_DIR,
+    REPORTS_FIGURES_MODEL_COMPARISON,
+    REPORTS_TABLES_MODEL_COMPARISON,
+    REPORTS_TABLES_TRAUMA_GROUPS,
     load_netcdf_with_validation,
 )
 
@@ -104,12 +108,12 @@ except ImportError:
 
 # NetCDF paths for all 6 choice-only hierarchical Bayesian models
 BAYESIAN_NETCDF_MAP: dict[str, str] = {
-    "M1": "output/bayesian/qlearning_posterior.nc",
-    "M2": "output/bayesian/wmrl_posterior.nc",
-    "M3": "output/bayesian/wmrl_m3_posterior.nc",
-    "M5": "output/bayesian/wmrl_m5_posterior.nc",
-    "M6a": "output/bayesian/wmrl_m6a_posterior.nc",
-    "M6b": "output/bayesian/wmrl_m6b_posterior.nc",
+    "M1": str(MODELS_BAYESIAN_DIR / "qlearning_posterior.nc"),
+    "M2": str(MODELS_BAYESIAN_DIR / "wmrl_posterior.nc"),
+    "M3": str(MODELS_BAYESIAN_DIR / "wmrl_m3_posterior.nc"),
+    "M5": str(MODELS_BAYESIAN_DIR / "wmrl_m5_posterior.nc"),
+    "M6a": str(MODELS_BAYESIAN_DIR / "wmrl_m6a_posterior.nc"),
+    "M6b": str(MODELS_BAYESIAN_DIR / "wmrl_m6b_posterior.nc"),
 }
 
 # M4 parameter names derived from central registry (for per-param summary in separate track)
@@ -383,7 +387,7 @@ def stratified_comparison(
     Loads trauma group assignments, merges with per-participant model wins,
     and reports: crosstab, Fisher's exact test, per-group Akaike weights.
     """
-    groups_path = Path('output/trauma_groups/group_assignments.csv')
+    groups_path = REPORTS_TABLES_TRAUMA_GROUPS / 'group_assignments.csv'
     if not groups_path.exists():
         print("\n[SKIP] Stratified comparison: group_assignments.csv not found")
         return
@@ -801,8 +805,7 @@ def run_bayesian_comparison(output_dir: Path) -> None:
             )
 
     # ---- M4 Separate Track (CMP-02) ----
-    M4_NETCDF_PATH = "output/bayesian/wmrl_m4_posterior.nc"
-    m4_path = project_root / M4_NETCDF_PATH
+    m4_path = MODELS_BAYESIAN_DIR / "wmrl_m4_posterior.nc"
     m4_section_lines: list[str] = []
     if m4_path.exists():
         print("\n--- M4 Separate Track (Joint Choice+RT) ---")
@@ -899,8 +902,8 @@ def run_bayesian_comparison(output_dir: Path) -> None:
 def find_mle_files(mle_dir: Path) -> dict[str, Path]:
     """Auto-detect MLE result files using MODEL_REGISTRY.
 
-    Searches mle_dir first, then falls back to output/ root
-    (some models may have been fit with --output output instead of --output output/mle/).
+    Searches mle_dir first, then falls back to project root
+    (some models may have been fit without --output specifying models/mle/).
     Returns a dict keyed by short_name (e.g. 'M1', 'M5', 'M6b').
     """
     files = {}
@@ -951,13 +954,13 @@ def main():
                         help='Path to WM-RL fits (legacy, same as --m2)')
 
     # Options
-    parser.add_argument('--mle-dir', type=str, default='output/mle',
+    parser.add_argument('--mle-dir', type=str, default=str(MODELS_MLE_DIR),
                         help='Directory containing MLE results (for auto-detection)')
-    parser.add_argument('--output-dir', type=str, default='output/model_comparison',
+    parser.add_argument('--output-dir', type=str, default=str(REPORTS_TABLES_MODEL_COMPARISON),
                         help='Output directory for results')
     parser.add_argument('--use-waic', action='store_true',
                         help='Include WAIC/LOO from Bayesian fits')
-    parser.add_argument('--bayesian-dir', type=str, default='output/bayesian_fits',
+    parser.add_argument('--bayesian-dir', type=str, default=str(MODELS_BAYESIAN_DIR),
                         help='Directory containing Bayesian fits')
     parser.add_argument('--generate-predictions', action='store_true',
                         help='Generate predictions from winning model')
@@ -965,7 +968,7 @@ def main():
                         help=(
                             'Run Bayesian model comparison with LOO + stacking '
                             'weights using hierarchical posterior NetCDF files. '
-                            'Writes output/bayesian/level2/stacking_weights.md. '
+                            'Writes models/bayesian/level2/stacking_weights.md. '
                             'Can be combined with MLE comparison.'
                         ))
 
@@ -974,7 +977,7 @@ def main():
     # Create output directories
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-    figures_dir = FIGURES_DIR / 'model_comparison'
+    figures_dir = REPORTS_FIGURES_MODEL_COMPARISON
     figures_dir.mkdir(parents=True, exist_ok=True)
 
     print("=" * 80)
@@ -1026,7 +1029,7 @@ def main():
 
     if len(choice_only_dict) < 2 and m4_fits is None:
         print("\nERROR: At least 2 models required for comparison.")
-        print("Provide paths via --m1/--m2/--m3 or ensure MLE results exist in output/mle/")
+        print("Provide paths via --m1/--m2/--m3 or ensure MLE results exist in models/mle/")
         return
 
     if len(choice_only_dict) < 2 and m4_fits is not None:

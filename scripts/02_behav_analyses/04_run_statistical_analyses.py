@@ -25,17 +25,17 @@ Analyses Performed:
        - Linear regressions with continuous trauma predictors
 
 Inputs:
-    - output/summary_participant_metrics.csv
-    - output/task_trials_long.csv
+    - data/processed/summary_participant_metrics.csv
+    - data/processed/task_trials_long.csv
 
 Outputs:
-    - output/descriptives/table1_demographics.csv
-    - output/descriptives/table2_trauma_scores.csv
-    - output/descriptives/table3_task_performance.csv
-    - output/descriptives/table4_additional_metrics.csv
-    - output/statistical_analyses/data_long_format.csv
-    - output/statistical_analyses/anova_*.csv
-    - output/statistical_analyses/regression_*.txt
+    - reports/tables/descriptives/table1_demographics.csv
+    - reports/tables/descriptives/table2_trauma_scores.csv
+    - reports/tables/descriptives/table3_task_performance.csv
+    - reports/tables/descriptives/table4_additional_metrics.csv
+    - reports/tables/statistical_analyses/data_long_format.csv
+    - reports/tables/statistical_analyses/anova_*.csv
+    - reports/tables/statistical_analyses/regression_*.txt
 
 Usage:
     # Run all analyses (tables + statistics)
@@ -59,12 +59,17 @@ from pathlib import Path
 import argparse
 import sys
 
-# Add project root to path
-project_root = Path(__file__).resolve().parents[1]
+# Add project root to path (parents[2] = project root; parents[1] = scripts/)
+project_root = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(project_root))
 
 # Import from library modules
-from config import EXCLUDED_PARTICIPANTS
+from config import (
+    EXCLUDED_PARTICIPANTS,
+    PROCESSED_DIR,
+    REPORTS_TABLES_DESCRIPTIVES,
+    REPORTS_TABLES_DIR,
+)
 from scripts.utils.stats import (
     check_normality,
     check_homogeneity_of_variance,
@@ -261,12 +266,12 @@ def generate_descriptive_tables(output_dir):
     print("=" * 80)
 
     # Load data
-    summary_path = Path('output/summary_participant_metrics.csv')
-    trials_path = Path('output/task_trials_long.csv')
+    summary_path = PROCESSED_DIR / 'summary_participant_metrics.csv'
+    trials_path = PROCESSED_DIR / 'task_trials_long.csv'
 
     # Try alternative trials path if primary doesn't exist
     if not trials_path.exists():
-        trials_path = Path('output/task_trials_long_all_participants.csv')
+        trials_path = PROCESSED_DIR / 'task_trials_long_all_participants.csv'
 
     if not summary_path.exists():
         print(f"\nERROR: Summary data not found at {summary_path}")
@@ -454,11 +459,11 @@ def run_statistical_analyses(output_dir):
     print("=" * 80)
 
     # Load data
-    summary_path = Path('output/summary_participant_metrics.csv')
-    trials_path = Path('output/task_trials_long.csv')
+    summary_path = PROCESSED_DIR / 'summary_participant_metrics.csv'
+    trials_path = PROCESSED_DIR / 'task_trials_long.csv'
 
     if not trials_path.exists():
-        trials_path = Path('output/task_trials_long_all_participants.csv')
+        trials_path = PROCESSED_DIR / 'task_trials_long_all_participants.csv'
 
     if not summary_path.exists():
         print(f"\nERROR: Summary data not found at {summary_path}")
@@ -505,10 +510,10 @@ def main():
     parser.add_argument('--stats-only', action='store_true',
                         help='Run only inferential statistics')
     parser.add_argument('--output-descriptives', type=str,
-                        default='output/descriptives',
+                        default=str(REPORTS_TABLES_DESCRIPTIVES),
                         help='Output directory for descriptive tables')
     parser.add_argument('--output-stats', type=str,
-                        default='output/statistical_analyses',
+                        default=str(REPORTS_TABLES_DIR / 'statistical_analyses'),
                         help='Output directory for statistical analyses')
 
     args = parser.parse_args()

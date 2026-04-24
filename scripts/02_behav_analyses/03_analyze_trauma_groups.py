@@ -20,14 +20,14 @@ Grouping Approaches:
        - Identifies optimal k via silhouette analysis
 
 Inputs:
-    - output/summary_participant_metrics.csv
+    - data/processed/summary_participant_metrics.csv
 
 Outputs:
-    - output/trauma_groups/group_assignments.csv
-    - output/trauma_groups/group_summary_stats.csv
-    - output/trauma_groups/clustering_metrics.csv
-    - output/trauma_groups/cutoff_values.csv
-    - output/trauma_groups/validation_report.txt
+    - reports/tables/trauma_groups/group_assignments.csv
+    - reports/tables/trauma_groups/group_summary_stats.csv
+    - reports/tables/trauma_groups/clustering_metrics.csv
+    - reports/tables/trauma_groups/cutoff_values.csv
+    - reports/tables/trauma_groups/validation_report.txt
     - figures/trauma_groups/hypothesis_groups_scatter.png
     - figures/trauma_groups/hierarchical_dendrogram.png
     - figures/trauma_groups/cluster_comparison.png
@@ -64,12 +64,19 @@ import warnings
 warnings.filterwarnings('ignore')
 
 import sys
-project_root = Path(__file__).resolve().parents[1]
+# parents[2] = project root; parents[1] = scripts/
+project_root = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(project_root))
 
+from config import (
+    PROCESSED_DIR,
+    REPORTS_FIGURES_DIR,
+    REPORTS_TABLES_TRAUMA_GROUPS,
+)
+
 # Paths
-OUTPUT_DIR = Path('output/trauma_groups')
-FIGURES_DIR = Path('figures/trauma_groups')
+OUTPUT_DIR = REPORTS_TABLES_TRAUMA_GROUPS
+FIGURES_DIR = REPORTS_FIGURES_DIR / 'trauma_groups'
 
 # ============================================================================
 # PART 1: TRAUMA GROUPING ANALYSIS
@@ -77,7 +84,7 @@ FIGURES_DIR = Path('figures/trauma_groups')
 
 def load_participant_data():
     """Load participant summary data with trauma scores."""
-    data_path = Path('output/summary_participant_metrics.csv')
+    data_path = PROCESSED_DIR / 'summary_participant_metrics.csv'
 
     if not data_path.exists():
         raise FileNotFoundError(
@@ -464,7 +471,7 @@ def main():
 
         df = pd.read_csv(assignments_path)
         # Load full data for behavioral outcomes
-        full_df = pd.read_csv(Path('output/summary_participant_metrics.csv'))
+        full_df = pd.read_csv(PROCESSED_DIR / 'summary_participant_metrics.csv')
         df = df.merge(full_df, on='sona_id', suffixes=('', '_full'))
     else:
         # Run grouping

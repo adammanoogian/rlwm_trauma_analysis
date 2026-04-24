@@ -39,12 +39,12 @@ Statistical Approach:
     - Diagnostic plots for regression assumptions
 
 Inputs:
-    - output/mle/<model>_individual_fits.csv
-    - output/summary_participant_metrics.csv
+    - models/mle/<model>_individual_fits.csv
+    - data/processed/summary_participant_metrics.csv
 
 Outputs:
-    - output/regressions/<model>_univariate_results.csv
-    - output/regressions/<model>_multivariate_results.csv
+    - reports/tables/regressions/<model>_univariate_results.csv
+    - reports/tables/regressions/<model>_multivariate_results.csv
     - figures/regressions/<model>_regression_coefficients.png
     - figures/regressions/<model>_scatter_matrix.png
 
@@ -90,7 +90,17 @@ from scipy import stats
 #   utils/ lives under scripts/utils/ after the plan 29-03 consolidation).
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from config import EXCLUDED_PARTICIPANTS, load_fits_with_validation
+from config import (
+    EXCLUDED_PARTICIPANTS,
+    INTERIM_DIR,
+    MODELS_BAYESIAN_DIR,
+    MODELS_MLE_DIR,
+    PROCESSED_DIR,
+    REPORTS_FIGURES_DIR,
+    REPORTS_TABLES_REGRESSIONS,
+    REPORTS_TABLES_TRAUMA_GROUPS,
+    load_fits_with_validation,
+)
 
 from utils.plotting import (
     TRAUMA_GROUP_COLORS,
@@ -189,7 +199,7 @@ def load_integrated_data(params_path: Path, model_type: str = 'qlearning',
     print(f"  Loaded {len(params_df)} participant fits")
 
     # Load trauma scales from summary_participant_metrics.csv (169 rows, complete dataset)
-    participant_data = pd.read_csv(Path('output/summary_participant_metrics.csv'))
+    participant_data = pd.read_csv(PROCESSED_DIR / 'summary_participant_metrics.csv')
     # Rename columns to match expected names used throughout this script
     rename_map = {
         'less_total_events': 'lec_total_events',
@@ -200,7 +210,7 @@ def load_integrated_data(params_path: Path, model_type: str = 'qlearning',
     participant_data['sona_id'] = participant_data['sona_id'].astype(str)
 
     # Load trauma group assignments for --color-by hypothesis_group support
-    groups_path = Path('output/trauma_groups/group_assignments.csv')
+    groups_path = REPORTS_TABLES_TRAUMA_GROUPS / 'group_assignments.csv'
     if groups_path.exists():
         groups_df = pd.read_csv(groups_path)
         groups_df['sona_id'] = groups_df['sona_id'].astype(str)
@@ -211,7 +221,7 @@ def load_integrated_data(params_path: Path, model_type: str = 'qlearning',
         )
 
     # Load demographics for --color-by gender/age support
-    demographics_path = Path('output/parsed_demographics.csv')
+    demographics_path = INTERIM_DIR / 'parsed_demographics.csv'
     if demographics_path.exists():
         demographics_df = pd.read_csv(demographics_path)
         demographics_df['sona_id'] = demographics_df['sona_id'].astype(str)
@@ -223,7 +233,7 @@ def load_integrated_data(params_path: Path, model_type: str = 'qlearning',
 
     # Load accuracy data separately (from task_trials to compute per-participant accuracy)
     accuracy_data = None
-    trials_path = Path('output/task_trials_long_all_participants.csv')
+    trials_path = PROCESSED_DIR / 'task_trials_long_all_participants.csv'
     if trials_path.exists():
         trials_df = pd.read_csv(trials_path)
         trials_df['sona_id'] = trials_df['sona_id'].astype(str)
@@ -692,13 +702,13 @@ def main():
     parser.add_argument(
         '--output-dir',
         type=str,
-        default='output/regressions',
+        default=str(REPORTS_TABLES_REGRESSIONS),
         help='Base output directory for CSV results (model subdirectories created automatically)'
     )
     parser.add_argument(
         '--figures-dir',
         type=str,
-        default='figures/regressions',
+        default=str(REPORTS_FIGURES_DIR / 'regressions'),
         help='Base output directory for figures (model subdirectories created automatically)'
     )
     parser.add_argument(
@@ -732,13 +742,13 @@ def main():
     # Route output/figures directories based on --source.
     # Only change defaults; if the user explicitly passed --output-dir or
     # --figures-dir those values are honoured as-is.
-    _output_dir_default = 'output/regressions'
-    _figures_dir_default = 'figures/regressions'
+    _output_dir_default = str(REPORTS_TABLES_REGRESSIONS)
+    _figures_dir_default = str(REPORTS_FIGURES_DIR / 'regressions')
     if args.source == 'bayesian':
         if args.output_dir == _output_dir_default:
-            args.output_dir = 'output/regressions/bayesian'
+            args.output_dir = str(REPORTS_TABLES_REGRESSIONS / 'bayesian')
         if args.figures_dir == _figures_dir_default:
-            args.figures_dir = 'figures/regressions/bayesian'
+            args.figures_dir = str(REPORTS_FIGURES_DIR / 'regressions' / 'bayesian')
 
     # Setup
     base_output_dir = Path(args.output_dir)
@@ -776,19 +786,19 @@ def main():
 
         # Auto-detect params path from model name and --source
         if args.source == 'bayesian':
-            base_fits_dir = Path('output/bayesian')
+            base_fits_dir = MODELS_BAYESIAN_DIR
             params_path = base_fits_dir / f'{model}_individual_fits.csv'
             if not params_path.exists():
                 print(f"Warning: {model}_individual_fits.csv not found in {base_fits_dir}, skipping {model}")
                 continue
         else:
-            base_fits_dir = Path('output/mle')
-            # Check output/mle/ first, then output/ (M5 from plan 01 was written to output/)
+            base_fits_dir = MODELS_MLE_DIR
+            # Check models/mle/ first, then models/ root (M5 from plan 01 may be written to models/ root)
             params_path = base_fits_dir / f'{model}_individual_fits.csv'
             if not params_path.exists():
-                params_path = Path(f'output/{model}_individual_fits.csv')
+                params_path = base_fits_dir.parent / f'{model}_individual_fits.csv'
             if not params_path.exists():
-                print(f"Warning: {model}_individual_fits.csv not found in output/mle/ or output/, skipping {model}")
+                print(f"Warning: {model}_individual_fits.csv not found in models/mle/ or models/, skipping {model}")
                 continue
 
         # Load data

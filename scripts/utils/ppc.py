@@ -633,7 +633,7 @@ def run_prior_ppc(
         One of the choice-only model identifiers in
         ``STACKED_MODEL_DISPATCH``.
     data_path : Path
-        Trial-level CSV (default: ``output/task_trials_long.csv``).
+        Trial-level CSV (default: ``data/processed/task_trials_long.csv``).
     num_draws : int
         Number of prior draws to simulate.
     seed : int
@@ -833,7 +833,7 @@ def run_posterior_ppc(
     model : str
         Model identifier.
     fitted_params_path : str
-        Path to ``output/mle/{model}_individual_fits.csv``.
+        Path to ``models/mle/{model}_individual_fits.csv``.
     real_data_path : str
         Path to real trial-level CSV.
     output_dir : Path

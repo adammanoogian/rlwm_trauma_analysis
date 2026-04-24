@@ -1481,7 +1481,7 @@ def test_fully_batched_full_n154_agreement(model):
     """Fully-batched vmap likelihood must agree with sequential on ALL 154 real participants.
 
     For each participant, loads their MLE-fit parameters from
-    ``output/mle/{model}_individual_fits.csv``, builds (N,) parameter vectors,
+    ``models/mle/{model}_individual_fits.csv``, builds (N,) parameter vectors,
     then computes:
 
       - Fully-batched: one call returning (N,) per-participant log-likelihoods.

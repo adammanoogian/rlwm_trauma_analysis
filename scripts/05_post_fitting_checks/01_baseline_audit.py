@@ -2,7 +2,7 @@
 
 Phase 21 Wave 4 gatekeeper. Loads every NetCDF produced by step 21.3
 (``scripts/04_model_fitting/b_bayesian/fit_baseline.py``) from
-``output/bayesian/21_baseline/`` and
+``models/bayesian/21_baseline/`` and
 applies the Baribault & Collins (2023, DOI 10.1037/met0000554) convergence
 gate before any model is allowed to participate in PSIS-LOO + stacking +
 RFX-BMS/PXP in step 21.5.
@@ -58,8 +58,8 @@ Usage
 -----
 >>> python scripts/05_post_fitting_checks/01_baseline_audit.py
 >>> python scripts/05_post_fitting_checks/01_baseline_audit.py \
-...     --baseline-dir output/bayesian/21_baseline/ \
-...     --output-dir output/bayesian/21_baseline/ \
+...     --baseline-dir models/bayesian/21_baseline/ \
+...     --output-dir models/bayesian/21_baseline/ \
 ...     --rhat-threshold 1.05 --ess-threshold 400 --bfmi-threshold 0.2
 
 See also
@@ -93,7 +93,7 @@ _PROJECT_ROOT = _THIS_FILE.parents[2]
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
-from config import MODEL_REGISTRY, load_netcdf_with_validation  # noqa: E402
+from config import MODELS_BAYESIAN_BASELINE, MODEL_REGISTRY, load_netcdf_with_validation  # noqa: E402
 
 # The 6 choice-only models produced by step 21.3. Must match
 # ``scripts/04_model_fitting/b_bayesian/fit_baseline.py::BASELINE_MODELS``
@@ -498,20 +498,20 @@ def main() -> None:
     )
     parser.add_argument(
         "--baseline-dir",
-        default="output/bayesian/21_baseline/",
+        default=str(MODELS_BAYESIAN_BASELINE),
         help=(
             "Directory containing {model}_posterior.nc and "
             "{model}_ppc_results.csv from step 21.3 "
-            "(default: output/bayesian/21_baseline/)."
+            "(default: models/bayesian/21_baseline/)."
         ),
     )
     parser.add_argument(
         "--output-dir",
-        default="output/bayesian/21_baseline/",
+        default=str(MODELS_BAYESIAN_BASELINE),
         help=(
             "Directory to write convergence_table.csv and "
             "convergence_report.md "
-            "(default: output/bayesian/21_baseline/)."
+            "(default: models/bayesian/21_baseline/)."
         ),
     )
     parser.add_argument(

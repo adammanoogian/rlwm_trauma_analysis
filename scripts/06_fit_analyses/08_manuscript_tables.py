@@ -1,7 +1,7 @@
 """Step 21.9 — manuscript tables and figures for the Phase 21 Bayesian pipeline.
 
-Consolidates the outputs of ``output/bayesian/21_baseline/`` and
-``output/bayesian/21_l2/`` into publication-ready Tables 1/2/3 (CSV + Markdown
+Consolidates the outputs of ``models/bayesian/21_baseline/`` and
+``models/bayesian/21_l2/`` into publication-ready Tables 1/2/3 (CSV + Markdown
 + LaTeX) and Figure 1 (forest plot of winners' Level-2 beta coefficients).
 
 Citations woven into the methods paragraph and the table captions:
@@ -26,12 +26,12 @@ be re-invoked safely for incremental edits.
 
 Inputs
 ------
-``--baseline-dir`` (default ``output/bayesian/21_baseline/``):
+``--baseline-dir`` (default ``models/bayesian/21_baseline/``):
     - ``loo_stacking_results.csv`` (step 21.5) — primary LOO + stacking table.
     - ``rfx_bms_pxp.csv`` (step 21.5) — secondary RFX-BMS / PXP table.
     - ``winners.txt`` (step 21.5) — comma-separated winner display names.
 
-``--l2-dir`` (default ``output/bayesian/21_l2/``):
+``--l2-dir`` (default ``models/bayesian/21_l2/``):
     - ``scale_audit_report.md`` (step 21.7) — YAML front-matter pipeline_action
       header for null-result branch detection + body for narrative.
     - ``{winner}_beta_hdi_table.csv`` per winner (step 21.7).
@@ -40,7 +40,7 @@ Inputs
     - ``{winner}_posterior.nc`` per winner (step 21.6) — for Figure 1 forest
       plot via ``scripts/06_fit_analyses/07_bayesian_level2_effects.py``.
 
-``output/bayesian/wmrl_m6b_subscale_posterior.nc`` — Phase-16 canonical path
+``models/bayesian/wmrl_m6b_subscale_posterior.nc`` — Phase-16 canonical path
     for the M6b subscale exploratory arm. **Guarded with ``Path.exists()``
     check** (plan-checker Issue #9): the subscale arm is fire-and-forget and
     may still be running when 21.9 fires; if missing, the subscale section is
@@ -48,7 +48,7 @@ Inputs
 
 Outputs
 -------
-``--tables-dir`` (default ``output/bayesian/21_tables/``):
+``--tables-dir`` (default ``models/bayesian/21_tables/``):
     - ``table1_loo_stacking.{csv,md,tex}`` — LOO + stacking weights.
     - ``table2_rfx_bms.{csv,md,tex}`` — RFX-BMS PXP/BOR.
     - ``table3_winner_betas.{csv,md,tex}`` — winner beta HDIs (with
@@ -88,6 +88,19 @@ from pathlib import Path
 
 import pandas as pd
 
+# Add project root to sys.path so config is importable.
+_THIS_FILE = Path(__file__).resolve()
+_PROJECT_ROOT = _THIS_FILE.parents[2]
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
+
+from config import (  # noqa: E402
+    MODELS_BAYESIAN_BASELINE,
+    MODELS_BAYESIAN_DIR,
+    MODELS_BAYESIAN_L2,
+    REPORTS_FIGURES_BAYESIAN,
+)
+
 # Module-level logger; reconfigured in ``main`` so library-style imports do
 # not double-log when called from another script.
 logger = logging.getLogger("scripts.06_fit_analyses.08_manuscript_tables")
@@ -117,7 +130,7 @@ SUBSCALE_EXCLUSIVE_FAMILIES: tuple[str, ...] = ("iesr_intr_resid", "iesr_avd_res
 # Path to the Phase-16 canonical M6b subscale posterior. Locked in plan 21-09
 # as the read source for plan 21-10 (Option (a) — keep Phase-16 contract
 # stable across downstream consumers).
-SUBSCALE_NC_DEFAULT = Path("output/bayesian/wmrl_m6b_subscale_posterior.nc")
+SUBSCALE_NC_DEFAULT = MODELS_BAYESIAN_DIR / "wmrl_m6b_subscale_posterior.nc"
 
 
 @dataclass
@@ -711,7 +724,7 @@ def generate_figure1_forest(
     Per plan 21-10, we reuse ``scripts/06_fit_analyses/07_bayesian_level2_effects.py`` rather
     than re-implementing the forest plot. The script is invoked once per
     winner via subprocess with adjusted paths (``--posterior-path`` →
-    ``output/bayesian/21_l2/{winner}_posterior.nc``).
+    ``models/bayesian/21_l2/{winner}_posterior.nc``).
 
     Parameters
     ----------
@@ -761,9 +774,9 @@ def generate_figure1_forest(
         # produced a recognisable output, else log a soft warning so the
         # pipeline doesn't fail on a cosmetic step.
         legacy_candidates = [
-            Path(f"output/bayesian/figures/{internal}_forest.png"),
-            Path(f"output/bayesian/figures/m6b_forest_lec5.png"),
-            Path(f"output/bayesian/level2/{internal}_forest.png"),
+            REPORTS_FIGURES_BAYESIAN / f"{internal}_forest.png",
+            REPORTS_FIGURES_BAYESIAN / "m6b_forest_lec5.png",
+            MODELS_BAYESIAN_DIR / "level2" / f"{internal}_forest.png",
         ]
         copied = False
         for cand in legacy_candidates:
@@ -969,25 +982,25 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument(
         "--baseline-dir",
         type=Path,
-        default=Path("output/bayesian/21_baseline/"),
+        default=MODELS_BAYESIAN_BASELINE,
         help="Directory holding loo_stacking_results.csv, rfx_bms_pxp.csv, winners.txt.",
     )
     p.add_argument(
         "--l2-dir",
         type=Path,
-        default=Path("output/bayesian/21_l2/"),
+        default=MODELS_BAYESIAN_L2,
         help="Directory holding scale_audit_report.md, {winner}_beta_hdi_table.csv, etc.",
     )
     p.add_argument(
         "--figures-dir",
         type=Path,
-        default=Path("figures/21_bayesian/"),
+        default=REPORTS_FIGURES_BAYESIAN / "21_bayesian",
         help="Output directory for forest_{winner}.png figures.",
     )
     p.add_argument(
         "--tables-dir",
         type=Path,
-        default=Path("output/bayesian/21_tables/"),
+        default=MODELS_BAYESIAN_DIR / "21_tables",
         help="Output directory for table1/2/3 .csv/.md/.tex artefacts.",
     )
     p.add_argument(

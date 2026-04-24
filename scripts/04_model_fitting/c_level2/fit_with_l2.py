@@ -1,7 +1,7 @@
 """Step 21.6 — winner refit WITH L2 scales (21_l2 subdir).
 
 Phase 21 Wave 6 orchestrator: given the winner set produced by step 21.5
-(``output/bayesian/21_baseline/winners.txt``), refit ONE winner at a time
+(``models/bayesian/21_baseline/winners.txt``), refit ONE winner at a time
 hierarchically with the appropriate Level-2 design matrix. Dispatched in
 three branches matching the user-approved Option C: "code all variants in
 principle, pipeline uses one."
@@ -9,8 +9,8 @@ principle, pipeline uses one."
 L2 dispatch
 -----------
 - **M1 (qlearning), M2 (wmrl)** — no L2-compatible parameter target.
-  ``shutil.copy2`` the baseline posterior from ``output/bayesian/21_baseline/``
-  to ``output/bayesian/21_l2/``; log a ``[SKIP L2]`` warning. Preferred over
+  ``shutil.copy2`` the baseline posterior from ``models/bayesian/21_baseline/``
+  to ``models/bayesian/21_l2/``; log a ``[SKIP L2]`` warning. Preferred over
   a cheap re-fit (wastes cluster cycles producing an identical posterior).
 
 - **M3 (wmrl_m3), M5 (wmrl_m5), M6a (wmrl_m6a)** — 2-covariate L2 refit via
@@ -81,7 +81,12 @@ _PROJECT_ROOT = _THIS_FILE.parents[3]
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
-from config import load_netcdf_with_validation  # noqa: E402
+from config import (  # noqa: E402
+    MODELS_BAYESIAN_BASELINE,
+    MODELS_DIR,
+    PROCESSED_DIR,
+    load_netcdf_with_validation,
+)
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -119,7 +124,7 @@ _BETA_TARGET: dict[str, str] = {
     "wmrl_m6a": "kappa_s",
 }
 
-# Subdirectory under ``output/bayesian/`` where all step 21.6 artefacts land.
+# Subdirectory under ``models/bayesian/`` where all step 21.6 artefacts land.
 # DO NOT CHANGE without also updating the master pipeline orchestrator
 # (plan 21-10) and step 21.7.
 L2_SUBDIR: str = "21_l2"
@@ -184,12 +189,12 @@ def _copy_baseline_posterior(
     model : str
         Internal model id (``"qlearning"`` or ``"wmrl"``).
     output_root : Path
-        Output root directory (typically ``output/``).
+        Output root directory (typically ``models/``).
 
     Returns
     -------
     Path
-        Destination NetCDF path (``output/bayesian/21_l2/{model}_posterior.nc``).
+        Destination NetCDF path (``models/bayesian/21_l2/{model}_posterior.nc``).
 
     Raises
     ------
@@ -206,7 +211,7 @@ def _copy_baseline_posterior(
         raise FileNotFoundError(
             f"Baseline posterior missing for {model}: expected {src}. "
             f"Step 21.3 (21_fit_baseline.py) must converge before 21.6 can "
-            f"copy it forward. Check output/bayesian/21_baseline/ contents."
+            f"copy it forward. Check models/bayesian/21_baseline/ contents."
         )
 
     print(
@@ -242,7 +247,7 @@ def _fit_two_covariate_l2(
     Returns
     -------
     Path
-        Expected NetCDF path (``output/bayesian/21_l2/{model}_posterior.nc``).
+        Expected NetCDF path (``models/bayesian/21_l2/{model}_posterior.nc``).
         Existence is NOT verified here — caller runs the load-bearing
         ``expected.exists()`` check.
 
@@ -251,7 +256,7 @@ def _fit_two_covariate_l2(
     ValueError
         If ``model`` is not in :data:`_TWO_COV_MODELS`.
     FileNotFoundError
-        If ``output/summary_participant_metrics.csv`` is missing (required
+        If ``data/processed/summary_participant_metrics.csv`` is missing (required
         for the 2-covariate L2 design matrix).
     """
     if model not in _TWO_COV_MODELS:
@@ -297,7 +302,7 @@ def _fit_two_covariate_l2(
     # ------------------------------------------------------------------
     # Step 2: Load 2-covariate design matrix (LEC + IES-R totals, z-scored).
     # ------------------------------------------------------------------
-    metrics_path = Path("output/summary_participant_metrics.csv")
+    metrics_path = PROCESSED_DIR / "summary_participant_metrics.csv"
     if not metrics_path.exists():
         raise FileNotFoundError(
             f"summary_participant_metrics.csv not found at {metrics_path}. "
@@ -475,8 +480,8 @@ def main() -> None:
     )
     parser.add_argument(
         "--data",
-        default="output/task_trials_long.csv",
-        help="Path to trial-level CSV (default: output/task_trials_long.csv).",
+        default=str(PROCESSED_DIR / "task_trials_long.csv"),
+        help="Path to trial-level CSV (default: data/processed/task_trials_long.csv).",
     )
     parser.add_argument(
         "--chains",
@@ -510,15 +515,15 @@ def main() -> None:
     )
     parser.add_argument(
         "--output",
-        default="output",
-        help="Root output directory (default: output).",
+        default=str(MODELS_DIR),
+        help="Root output directory (default: models).",
     )
     parser.add_argument(
         "--winners-file",
-        default="output/bayesian/21_baseline/winners.txt",
+        default="models/bayesian/21_baseline/winners.txt",
         help=(
             "Path to winners.txt from step 21.5 (default: "
-            "output/bayesian/21_baseline/winners.txt). "
+            "models/bayesian/21_baseline/winners.txt). "
             "File must contain comma-separated display names "
             "(e.g. 'M3,M6b')."
         ),

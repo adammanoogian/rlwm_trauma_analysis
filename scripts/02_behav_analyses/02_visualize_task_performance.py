@@ -10,24 +10,24 @@ This script generates the same visualizations as the model predictions,
 but using actual human behavioral data.
 
 Inputs:
-    - output/task_trials_long.csv (or custom via --data)
-    - output/trauma_groups/group_assignments.csv (optional via --trauma-groups)
+    - data/processed/task_trials_long.csv (or custom via --data)
+    - reports/tables/trauma_groups/group_assignments.csv (optional via --trauma-groups)
 
 Outputs:
-    - figures/behavioral_summary/human_stimulus_learning_curve.png
-    - figures/behavioral_summary/human_stimulus_encounter_performance.png
-    - figures/behavioral_summary/human_stimulus_performance_analysis.png
-    - output/behavioral_summary/human_stimulus_based_data.csv
+    - reports/figures/behavioral_summary/human_stimulus_learning_curve.png
+    - reports/figures/behavioral_summary/human_stimulus_encounter_performance.png
+    - reports/figures/behavioral_summary/human_stimulus_performance_analysis.png
+    - reports/tables/behavioral_summary/human_stimulus_based_data.csv
 
 Usage:
     # Basic visualization
     python scripts/02_behav_analyses/02_visualize_task_performance.py
 
     # With custom data file
-    python scripts/02_behav_analyses/02_visualize_task_performance.py --data output/task_trials_long_all.csv
+    python scripts/02_behav_analyses/02_visualize_task_performance.py --data data/processed/task_trials_long_all.csv
 
     # With trauma group comparisons
-    python scripts/02_behav_analyses/02_visualize_task_performance.py --trauma-groups output/trauma_groups/group_assignments.csv
+    python scripts/02_behav_analyses/02_visualize_task_performance.py --trauma-groups reports/tables/trauma_groups/group_assignments.csv
 
     # Custom encounter threshold
     python scripts/02_behav_analyses/02_visualize_task_performance.py --threshold 5
@@ -47,11 +47,18 @@ import sys
 from collections import defaultdict
 import argparse
 
-# Add project root to path
-project_root = Path(__file__).resolve().parents[1]
+# Add project root to path (parents[2] = project root; parents[1] = scripts/)
+project_root = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(project_root))
 
-from config import TaskParams, DataParams, OUTPUT_DIR, FIGURES_DIR, AnalysisParams
+from config import (
+    TaskParams,
+    DataParams,
+    PROCESSED_DIR,
+    REPORTS_FIGURES_DIR,
+    REPORTS_TABLES_BEHAVIORAL,
+    AnalysisParams,
+)
 
 
 def process_human_data_stimulus_based(trials_df):
@@ -628,7 +635,7 @@ def main():
     parser.add_argument(
         '--data',
         type=str,
-        default='output/task_trials_long_all_participants.csv',
+        default=str(PROCESSED_DIR / 'task_trials_long_all_participants.csv'),
         help='Path to task trials data'
     )
     parser.add_argument(
@@ -647,13 +654,15 @@ def main():
     args = parser.parse_args()
 
     # Paths
-    data_path = project_root / args.data
-    output_dir = OUTPUT_DIR / 'behavioral_summary'
-    figure_dir = FIGURES_DIR / 'behavioral_summary'
+    data_path = Path(args.data)
+    if not data_path.is_absolute():
+        data_path = project_root / data_path
+    output_dir = REPORTS_TABLES_BEHAVIORAL
+    figure_dir = REPORTS_FIGURES_DIR / 'behavioral_summary'
 
     # Use trauma_groups directory if trauma groups provided
     if args.trauma_groups:
-        figure_dir = FIGURES_DIR / 'trauma_groups'
+        figure_dir = REPORTS_FIGURES_DIR / 'trauma_groups'
 
     output_dir.mkdir(parents=True, exist_ok=True)
     figure_dir.mkdir(parents=True, exist_ok=True)

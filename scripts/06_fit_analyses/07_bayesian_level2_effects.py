@@ -38,7 +38,7 @@ Forest plots:
   - m6b_forest_all_l2.png      : Full plot with all beta coefficients
 
 Coefficient summary:
-  - output/bayesian/level2/{model}_l2_coefficient_summary.csv
+  - models/bayesian/level2/{model}_l2_coefficient_summary.csv
 
 Usage:
     # Default: wmrl_m6b posterior
@@ -46,7 +46,7 @@ Usage:
 
     # Specify posterior path explicitly
     python scripts/06_fit_analyses/07_bayesian_level2_effects.py \\
-        --posterior-path output/bayesian/wmrl_m6b_subscale_posterior.nc
+        --posterior-path models/bayesian/wmrl_m6b_subscale_posterior.nc
 
     # Custom HDI probability
     python scripts/06_fit_analyses/07_bayesian_level2_effects.py --hdi-prob 0.89
@@ -71,7 +71,11 @@ import pandas as pd
 project_root = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(project_root))
 
-from config import load_netcdf_with_validation  # noqa: E402
+from config import (  # noqa: E402
+    MODELS_BAYESIAN_DIR,
+    REPORTS_FIGURES_BAYESIAN,
+    load_netcdf_with_validation,
+)
 
 # Lazy/conditional arviz import — may not be in all environments
 try:
@@ -274,14 +278,14 @@ def main() -> None:
         default=None,
         help=(
             "Path to NetCDF posterior file. "
-            "Defaults to output/bayesian/{model}_posterior.nc"
+            "Defaults to models/bayesian/{model}_posterior.nc"
         ),
     )
     parser.add_argument(
         "--output-dir",
         type=str,
-        default="output/bayesian/figures",
-        help="Directory for output PNG files (default: output/bayesian/figures)",
+        default=str(REPORTS_FIGURES_BAYESIAN),
+        help="Directory for output PNG files (default: reports/figures/bayesian)",
     )
     parser.add_argument(
         "--hdi-prob",

@@ -35,13 +35,13 @@ Usage:
 
 Outputs:
     Parameter mode:
-        - output/recovery/{model}/recovery_results.csv
-        - output/recovery/{model}/recovery_metrics.csv
-        - figures/recovery/{model}/*.png
+        - models/recovery/{model}/recovery_results.csv
+        - models/recovery/{model}/recovery_metrics.csv
+        - reports/figures/recovery/{model}/*.png
         - Console: PASS/FAIL summary per parameter
 
     Cross-model mode:
-        - output/recovery/cross_model_confusion.csv
+        - models/recovery/cross_model_confusion.csv
         - Console: confusion matrix (rows=generator, cols=AIC winner)
 
 Interpretation:
@@ -56,10 +56,11 @@ import argparse
 import sys
 from pathlib import Path
 
-# Add project root to path
-project_root = Path(__file__).resolve().parents[1]
+# Add project root to path (parents[2] = project root; parents[1] = scripts/)
+project_root = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(project_root))
 
+from config import MODELS_RECOVERY_DIR, REPORTS_FIGURES_DIR
 from scripts.fitting.model_recovery import (
     CHOICE_ONLY_MODELS,
     compute_recovery_metrics,
@@ -105,8 +106,8 @@ def run_recovery_for_model(model: str, n_subjects: int, n_datasets: int,
     metrics_df = compute_recovery_metrics(results_df, model)
 
     # Save outputs
-    output_dir = Path('output/recovery') / model
-    figures_dir = Path('figures/recovery') / model
+    output_dir = MODELS_RECOVERY_DIR / model
+    figures_dir = REPORTS_FIGURES_DIR / 'recovery' / model
     output_dir.mkdir(parents=True, exist_ok=True)
     figures_dir.mkdir(parents=True, exist_ok=True)
 
@@ -193,7 +194,7 @@ def main():
         )
 
         # Save confusion matrix
-        output_path = Path('output/recovery/cross_model_confusion.csv')
+        output_path = MODELS_RECOVERY_DIR / 'cross_model_confusion.csv'
         output_path.parent.mkdir(parents=True, exist_ok=True)
         result['confusion_matrix'].to_csv(output_path)
         print(f"\nConfusion matrix saved to: {output_path}")

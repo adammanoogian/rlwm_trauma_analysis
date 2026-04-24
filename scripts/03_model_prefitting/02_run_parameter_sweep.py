@@ -19,9 +19,9 @@ Inputs:
     - Parameter ranges (specified via args or defaults)
 
 Outputs:
-    - output/parameter_sweeps/<model>_sweep_<timestamp>.csv
-    - figures/parameter_sweeps/<model>_heatmaps.png
-    - figures/parameter_sweeps/<model>_marginal_effects.png
+    - models/parameter_exploration/<model>_sweep_<timestamp>.csv
+    - reports/figures/parameter_sweeps/<model>_heatmaps.png
+    - reports/figures/parameter_sweeps/<model>_marginal_effects.png
 
 Usage:
     # Quick sweep of Q-learning parameters
@@ -45,8 +45,8 @@ Next Steps:
 import sys
 from pathlib import Path
 
-# Add project root to path
-project_root = Path(__file__).resolve().parents[1]
+# Add project root to path (parents[2] = project root; parents[1] = scripts/)
+project_root = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(project_root))
 # Ensure `src/` is importable (so `import rlwm` works without installation).
 src_root = project_root / "src"

@@ -77,7 +77,7 @@ truthy (default True), writes ``launch_subscale.flag`` — a marker file
 that the cluster wrapper ``cluster/21_8_model_averaging.slurm`` reads
 to fire-and-forget ``sbatch cluster/13_bayesian_m6b_subscale.slurm``.
 The subscale arm writes its posterior to the Phase-16 canonical path
-``output/bayesian/wmrl_m6b_subscale_posterior.nc`` (not a 21_l2
+``models/bayesian/wmrl_m6b_subscale_posterior.nc`` (not a 21_l2
 subdirectory) — plan 21-10 reads from there. This avoids patching the
 subscale SLURM script for a one-shot exploratory arm.
 
@@ -97,11 +97,11 @@ Outputs
 Usage
 -----
 >>> python scripts/06_fit_analyses/03_model_averaging.py \\
-...     --l2-dir output/bayesian/21_l2/ \\
-...     --stacking-results output/bayesian/21_baseline/loo_stacking_results.csv \\
-...     --winners-file output/bayesian/21_baseline/winners.txt \\
-...     --audit-report output/bayesian/21_l2/scale_audit_report.md \\
-...     --output-dir output/bayesian/21_l2/
+...     --l2-dir models/bayesian/21_l2/ \\
+...     --stacking-results models/bayesian/21_baseline/loo_stacking_results.csv \\
+...     --winners-file models/bayesian/21_baseline/winners.txt \\
+...     --audit-report models/bayesian/21_l2/scale_audit_report.md \\
+...     --output-dir models/bayesian/21_l2/
 
 References
 ----------
@@ -862,11 +862,11 @@ def _write_subscale_flag(out_flag: Path, sole_m6b_weight: float) -> None:
         "# The cluster wrapper cluster/21_8_model_averaging.slurm reads\n"
         "# this file and fires `sbatch cluster/13_bayesian_m6b_subscale.slurm`\n"
         "# fire-and-forget. Plan 21-10 reads the subscale posterior from\n"
-        "# output/bayesian/wmrl_m6b_subscale_posterior.nc (Phase-16\n"
+        "# models/bayesian/wmrl_m6b_subscale_posterior.nc (Phase-16\n"
         "# canonical path) if it appeared by manuscript-build time.\n"
         f"m6b_stacking_weight={sole_m6b_weight:.6f}\n"
         "subscale_slurm=cluster/13_bayesian_m6b_subscale.slurm\n"
-        "expected_output=output/bayesian/wmrl_m6b_subscale_posterior.nc\n",
+        "expected_output=models/bayesian/wmrl_m6b_subscale_posterior.nc\n",
         encoding="utf-8",
     )
 
@@ -898,27 +898,27 @@ def main() -> int:
     )
     parser.add_argument(
         "--l2-dir",
-        default="output/bayesian/21_l2/",
+        default="models/bayesian/21_l2/",
         help="Directory with {winner}_posterior.nc from step 21.6.",
     )
     parser.add_argument(
         "--stacking-results",
-        default="output/bayesian/21_baseline/loo_stacking_results.csv",
+        default="models/bayesian/21_baseline/loo_stacking_results.csv",
         help="Stacking-weights CSV from step 21.5.",
     )
     parser.add_argument(
         "--winners-file",
-        default="output/bayesian/21_baseline/winners.txt",
+        default="models/bayesian/21_baseline/winners.txt",
         help="Winners file from step 21.5 (comma-separated display names).",
     )
     parser.add_argument(
         "--audit-report",
-        default="output/bayesian/21_l2/scale_audit_report.md",
+        default="models/bayesian/21_l2/scale_audit_report.md",
         help="Scale audit report from step 21.7 (YAML front-matter read).",
     )
     parser.add_argument(
         "--output-dir",
-        default="output/bayesian/21_l2/",
+        default="models/bayesian/21_l2/",
         help=(
             "Directory for averaged_scale_effects.csv, averaging_summary.md, "
             "and the optional launch_subscale.flag marker."
