@@ -128,8 +128,9 @@ ignore_missing_imports = true
 testpaths = ["tests"]
 addopts = "-v --tb=short --strict-markers --durations=10"
 markers = [
+    "unit: marks tests as fast isolated unit tests (tests/unit/)",
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-    "integration: marks integration tests",
+    "integration: marks integration tests (tests/integration/)",
     "scientific: marks tests as scientific-validation tests (slow, deselect with '-m \"not scientific\"')",
 ]
 filterwarnings = [
