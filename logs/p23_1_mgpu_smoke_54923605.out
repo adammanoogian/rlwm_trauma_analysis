@@ -1,0 +1,81 @@
+============================================================
+Phase 23.1 Multi-GPU Smoke Validation — 5 unproven models
+============================================================
+Job ID: 54923605
+Node: m3t100
+Project: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis
+Models: qlearning wmrl wmrl_m3 wmrl_m5 wmrl_m6a
+Chains: 4  Warmup: 100  Samples: 200
+Max tree depth: 8
+Participants (smoke limit): 10
+Per-model timeout: 600s
+Smoke output dir: output/bayesian/23.1_smoke
+Start time: Fri Apr 24 03:10:42 PM AEST 2026
+============================================================
+Activated rlwm_gpu by name
+JAX 0.9.2 devices: [CudaDevice(id=0), CudaDevice(id=1), CudaDevice(id=2), CudaDevice(id=3)]
+GPU count: 4
+
+JAX cache: /scratch/fc37/aman0087/.jax_cache_23_1_smoke
+Smoke data: 10 ppts, 9859 rows
+
+
+------------------------------------------------------------
+  qlearning (timeout 600s)
+  Started: Fri Apr 24 03:11:01 PM AEST 2026
+------------------------------------------------------------
+  qlearning: exit=1, wall=0s
+
+------------------------------------------------------------
+  wmrl (timeout 600s)
+  Started: Fri Apr 24 03:11:01 PM AEST 2026
+------------------------------------------------------------
+  wmrl: exit=1, wall=0s
+
+------------------------------------------------------------
+  wmrl_m3 (timeout 600s)
+  Started: Fri Apr 24 03:11:01 PM AEST 2026
+------------------------------------------------------------
+  wmrl_m3: exit=1, wall=1s
+
+------------------------------------------------------------
+  wmrl_m5 (timeout 600s)
+  Started: Fri Apr 24 03:11:02 PM AEST 2026
+------------------------------------------------------------
+  wmrl_m5: exit=1, wall=0s
+
+------------------------------------------------------------
+  wmrl_m6a (timeout 600s)
+  Started: Fri Apr 24 03:11:02 PM AEST 2026
+------------------------------------------------------------
+  wmrl_m6a: exit=1, wall=0s
+
+Renaming smoke posteriors with _smoke_ tag...
+  (skip: output/bayesian/23.1_smoke/qlearning_posterior.nc not produced)
+  (skip: output/bayesian/23.1_smoke/wmrl_posterior.nc not produced)
+  (skip: output/bayesian/23.1_smoke/wmrl_m3_posterior.nc not produced)
+  (skip: output/bayesian/23.1_smoke/wmrl_m5_posterior.nc not produced)
+  (skip: output/bayesian/23.1_smoke/wmrl_m6a_posterior.nc not produced)
+
+============================================================
+PHASE 23.1 MULTI-GPU SMOKE SUMMARY
+============================================================
+Job ID: 54923605
+End time: Fri Apr 24 03:11:02 PM AEST 2026
+
+Model        Result
+-------      ------
+qlearning    EXIT=1 (0s)
+wmrl         EXIT=1 (0s)
+wmrl_m3      EXIT=1 (1s)
+wmrl_m5      EXIT=1 (0s)
+wmrl_m6a     EXIT=1 (0s)
+
+OVERALL: FAIL (one or more models timed out, killed, or crashed fast)
+
+Investigate: per-model log lines above + logs/p23_1_mgpu_smoke_54923605.err
+============================================================
+
+============================================================
+AUTO-PUSH: Committing and pushing results
+============================================================

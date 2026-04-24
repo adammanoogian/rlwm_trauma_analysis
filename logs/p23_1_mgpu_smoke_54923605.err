@@ -1,0 +1,26 @@
+E0424 15:10:56.848079 1994141 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0424 15:10:56.848115 1994142 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0424 15:10:56.848038 1994140 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0424 15:10:56.848463 1994143 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0424 15:10:56.848564 1994145 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0424 15:10:56.848503 1994144 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+Traceback (most recent call last):
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/04_model_fitting/b_bayesian/fit_bayesian.py", line 42, in <module>
+    from rlwm.fitting.bayesian import main
+ModuleNotFoundError: No module named 'rlwm'
+Traceback (most recent call last):
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/04_model_fitting/b_bayesian/fit_bayesian.py", line 42, in <module>
+    from rlwm.fitting.bayesian import main
+ModuleNotFoundError: No module named 'rlwm'
+Traceback (most recent call last):
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/04_model_fitting/b_bayesian/fit_bayesian.py", line 42, in <module>
+    from rlwm.fitting.bayesian import main
+ModuleNotFoundError: No module named 'rlwm'
+Traceback (most recent call last):
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/04_model_fitting/b_bayesian/fit_bayesian.py", line 42, in <module>
+    from rlwm.fitting.bayesian import main
+ModuleNotFoundError: No module named 'rlwm'
+Traceback (most recent call last):
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/04_model_fitting/b_bayesian/fit_bayesian.py", line 42, in <module>
+    from rlwm.fitting.bayesian import main
+ModuleNotFoundError: No module named 'rlwm'
