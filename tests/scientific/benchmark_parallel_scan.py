@@ -10,18 +10,18 @@ Reports speedup ratios, numerical agreement, and JIT compilation overhead.
 
 Usage
 -----
-    python validation/benchmark_parallel_scan.py [--model MODEL] [--n-repeats N]
+    python tests/scientific/benchmark_parallel_scan.py [--model MODEL] [--n-repeats N]
 
     # All 6 models, 20 repeats (default)
-    python validation/benchmark_parallel_scan.py
+    python tests/scientific/benchmark_parallel_scan.py
 
     # Single model, 5 repeats (quick)
-    python validation/benchmark_parallel_scan.py --model wmrl_m3 --n-repeats 5
+    python tests/scientific/benchmark_parallel_scan.py --model wmrl_m3 --n-repeats 5
 
 Outputs
 -------
     - Console: timing table with speedup ratios
-    - JSON: output/bayesian/pscan_benchmark_{cpu|gpu}.json
+    - JSON: models/bayesian/pscan_benchmark_{cpu|gpu}.json
 
 Notes
 -----
@@ -39,8 +39,9 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-# Add project root so ``rlwm.fitting.*`` imports resolve
-_PROJECT_ROOT = Path(__file__).resolve().parents[1]
+# Add project root so ``rlwm.fitting.*`` imports resolve.
+# tests/scientific/<file>.py is 2 levels below repo root.
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_PROJECT_ROOT))
 
 import jax
@@ -525,7 +526,7 @@ def main() -> None:
         print(f"GPU peak memory: {peak_mb:.1f} MB")
 
     # Save JSON — filename includes backend so CPU and GPU results coexist
-    output_dir = _PROJECT_ROOT / "output" / "bayesian"
+    output_dir = _PROJECT_ROOT / "models" / "bayesian"
     output_dir.mkdir(parents=True, exist_ok=True)
     backend = jax.default_backend().lower()  # "cpu" or "gpu"
     output_path = output_dir / f"pscan_benchmark_{backend}.json"

@@ -63,10 +63,12 @@ from rlwm.fitting.models.wmrl_m6b import (
     wmrl_m6b_multiblock_likelihood_stacked_pscan,
 )
 
-# Path to project root (3 levels up from scripts/fitting/tests/)
-_PROJECT_ROOT = Path(__file__).parents[3]
-_MLE_DIR = _PROJECT_ROOT / "output" / "mle"
-_DATA_PATH = _PROJECT_ROOT / "output" / "task_trials_long.csv"
+# Path to project root (2 levels up from tests/integration/ after Phase 31
+# test-tree consolidation).  CCDS-aligned paths: fitted MLE artifacts live
+# under models/mle/ and the canonical fit-input CSV under data/processed/.
+_PROJECT_ROOT = Path(__file__).parents[2]
+_MLE_DIR = _PROJECT_ROOT / "models" / "mle"
+_DATA_PATH = _PROJECT_ROOT / "data" / "processed" / "task_trials_long.csv"
 
 
 # =============================================================================

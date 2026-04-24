@@ -10,8 +10,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-# Add project root to path
-project_root = Path(__file__).resolve().parents[1]
+# Add project root to path.  tests/unit/<file>.py is 2 levels below repo root.
+project_root = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(project_root))
 
 import pytest

@@ -13,7 +13,7 @@ from pathlib import Path
 # Module-level constants
 # ---------------------------------------------------------------------------
 
-_REPO_ROOT = Path(__file__).resolve().parents[3]
+_REPO_ROOT = Path(__file__).resolve().parents[2]  # tests/integration/<file>.py -> repo root
 
 # Directories to walk for text-reference checks
 _TEXT_SEARCH_ROOTS = [

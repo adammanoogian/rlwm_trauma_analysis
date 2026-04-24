@@ -27,10 +27,10 @@ from pathlib import Path
 # Constants
 # ---------------------------------------------------------------------------
 
-# Repo root is 3 levels above this file:
-#   scripts/fitting/tests/test_no_legacy_imports.py
-#   ^3       ^2       ^1
-REPO_ROOT: Path = Path(__file__).resolve().parents[3]
+# Repo root is 2 levels above this file:
+#   tests/integration/test_no_legacy_imports.py  (Phase 31 consolidated layout)
+#   ^2    ^1
+REPO_ROOT: Path = Path(__file__).resolve().parents[2]
 SCRIPTS_DIR: Path = REPO_ROOT / "scripts"
 LEGACY_DIR: Path = SCRIPTS_DIR / "fitting" / "legacy"
 

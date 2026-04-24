@@ -6,9 +6,9 @@ optimum (modulo expected hierarchical shrinkage).
 
 Inputs
 ------
-- ``output/bayesian/{model}_posterior.nc``  (ArviZ NetCDF, produced by
+- ``models/bayesian/{model}_posterior.nc``  (ArviZ NetCDF, produced by
   ``scripts/04_model_fitting/b_bayesian/fit_bayesian.py``)
-- ``output/mle/{model}_individual_fits.csv`` (produced by
+- ``models/mle/{model}_individual_fits.csv`` (produced by
   ``scripts/04_model_fitting/a_mle/fit_mle.py``)
 
 Outputs
@@ -16,7 +16,7 @@ Outputs
 - Prints per-parameter summary: posterior mean, MLE mean, mean absolute
   deviation, fraction of participants whose posterior mean is within
   2 × MLE SE of the MLE point estimate, and top outliers.
-- Writes ``output/bayesian/{model}_posterior_vs_mle.csv`` with per-
+- Writes ``models/bayesian/{model}_posterior_vs_mle.csv`` with per-
   participant comparison rows.
 
 Expected patterns (not failure criteria — the point is to *see* the pattern)
@@ -31,8 +31,8 @@ Expected patterns (not failure criteria — the point is to *see* the pattern)
 
 Usage
 -----
-    python validation/compare_posterior_to_mle.py --model wmrl_m6b
-    python validation/compare_posterior_to_mle.py --model wmrl_m6b --n-worst 20
+    python tests/scientific/compare_posterior_to_mle.py --model wmrl_m6b
+    python tests/scientific/compare_posterior_to_mle.py --model wmrl_m6b --n-worst 20
 """
 
 from __future__ import annotations
@@ -44,7 +44,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-_PROJECT_ROOT = Path(__file__).resolve().parents[1]
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]  # tests/scientific/<file>.py -> repo root
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
@@ -250,15 +250,15 @@ def main() -> None:
     parser.add_argument("--n-worst", type=int, default=10)
     args = parser.parse_args()
 
-    root = Path(__file__).resolve().parents[1]
+    root = Path(__file__).resolve().parents[2]  # tests/scientific/<file>.py -> repo root
     posterior_nc = args.posterior_nc or (
-        root / "output" / "bayesian" / f"{args.model}_posterior.nc"
+        root / "models" / "bayesian" / f"{args.model}_posterior.nc"
     )
     mle_csv = args.mle_csv or (
-        root / "output" / "mle" / f"{args.model}_individual_fits.csv"
+        root / "models" / "mle" / f"{args.model}_individual_fits.csv"
     )
     output_csv = args.output_csv or (
-        root / "output" / "bayesian" / f"{args.model}_posterior_vs_mle.csv"
+        root / "models" / "bayesian" / f"{args.model}_posterior_vs_mle.csv"
     )
 
     if not posterior_nc.exists():

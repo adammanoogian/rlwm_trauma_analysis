@@ -58,7 +58,7 @@ def _load_orchestrator_module() -> ModuleType:
         :func:`compute_loo_stacking_bms` and :func:`main`.
     """
     mod_path = (
-        Path(__file__).resolve().parents[3]
+        Path(__file__).resolve().parents[2]  # tests/integration/<file>.py -> repo root
         / "scripts"
         / "06_fit_analyses"
         / "02_compute_loo_stacking.py"

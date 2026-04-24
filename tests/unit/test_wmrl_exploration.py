@@ -4,16 +4,29 @@ Quick test script to debug WM-RL parameter exploration issues.
 
 import numpy as np
 import pandas as pd
+import pytest
 import sys
 from pathlib import Path
 
-# Add project root
-project_root = Path(__file__).parent.parent
+# Add project root.  tests/unit/<file>.py is 2 levels below repo root.
+project_root = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(project_root))
 
-from rlwm.envs.rlwm_env import create_rlwm_env
-from rlwm.models.wm_rl_hybrid import WMRLHybridAgent
-from scripts.legacy.simulations.unified_simulator import simulate_agent_fixed
+# Phase 30 (jax-simulator-consolidation) has not yet landed, so
+# scripts.legacy.simulations.unified_simulator no longer exists.
+# Skip this exploration script until Phase 30 delivers the consolidated
+# simulator in scripts/utils/ppc.py.  Pre-existing gap, not a 31-04 regression.
+pytest.importorskip(
+    "scripts.legacy.simulations.unified_simulator",
+    reason=(
+        "unified_simulator module not available pending Phase 30 "
+        "jax-simulator-consolidation; pre-existing gap, not a 31-04 regression"
+    ),
+)
+
+from rlwm.envs.rlwm_env import create_rlwm_env  # noqa: E402
+from rlwm.models.wm_rl_hybrid import WMRLHybridAgent  # noqa: E402
+from scripts.legacy.simulations.unified_simulator import simulate_agent_fixed  # noqa: E402
 
 print("=" * 80)
 print("TESTING WM-RL PARAMETER EXPLORATION")

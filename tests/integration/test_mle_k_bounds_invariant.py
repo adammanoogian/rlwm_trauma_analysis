@@ -40,7 +40,11 @@ _LEGACY_SUBSTRINGS: list[str] = [
 ]
 
 _MLEUTILS_PATH = (
-    pathlib.Path(__file__).parent.parent / "mle_utils.py"
+    # tests/integration/<file>.py -> repo root -> scripts/fitting/mle_utils.py
+    pathlib.Path(__file__).resolve().parents[2]
+    / "scripts"
+    / "fitting"
+    / "mle_utils.py"
 )
 
 

@@ -84,7 +84,7 @@ def test_reference_csv_exists():
     ref_path = _FIXTURES_DIR / "qlearning_bayesian_reference.csv"
     assert ref_path.exists(), (
         f"Expected fixture at {ref_path}. "
-        "Create it from scripts/fitting/tests/fixtures/qlearning_bayesian_reference.csv."
+        "Create it at tests/integration/fixtures/qlearning_bayesian_reference.csv."
     )
 
 

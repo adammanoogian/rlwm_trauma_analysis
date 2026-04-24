@@ -22,9 +22,11 @@ from pathlib import Path
 
 import pytest
 
-# Ensure the project root is importable for `import scripts...` and `import config`
+# Ensure the project root is importable for `import scripts...` and `import config`.
+# tests/integration/<file>.py is 2 levels below repo root after Phase 31
+# test-tree consolidation (previously scripts/fitting/tests/<file>.py at depth 3).
 _TEST_FILE = Path(__file__).resolve()
-_PROJECT_ROOT = _TEST_FILE.parent.parent.parent.parent
+_PROJECT_ROOT = _TEST_FILE.parents[2]
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 

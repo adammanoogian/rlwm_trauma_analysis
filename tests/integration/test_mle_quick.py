@@ -3,8 +3,9 @@
 import sys
 from pathlib import Path
 
-# Add project root to path
-project_root = Path(__file__).parent.parent.parent.parent
+# Add project root to path.  tests/integration/<file>.py is 2 levels below
+# repo root after Phase 31 test-tree consolidation.
+project_root = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(project_root))
 
 import numpy as np
@@ -13,7 +14,9 @@ import pytest
 
 from rlwm.fitting.models.qlearning import q_learning_multiblock_likelihood
 from rlwm.fitting.mle import fit_participant_mle
-from scripts.fitting.tests.conftest import simulate_qlearning_block
+# simulate_qlearning_block now lives in tests/conftest.py (merged from
+# scripts/fitting/tests/conftest.py by plan 31-04).
+from tests.conftest import simulate_qlearning_block
 
 
 def test_jax_likelihood_direct():

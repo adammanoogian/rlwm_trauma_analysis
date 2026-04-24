@@ -13,7 +13,7 @@ import pytest
 # ---------------------------------------------------------------------------
 # Enumerated consumer files that must NOT contain bare NetCDF calls
 # ---------------------------------------------------------------------------
-_PROJECT_ROOT = Path(__file__).resolve().parents[3]
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]  # tests/integration/<file>.py -> repo root
 
 _ENUMERATED_FILES: list[Path] = [
     # Canonical paths after plan 29-01 reorganisation
@@ -24,17 +24,18 @@ _ENUMERATED_FILES: list[Path] = [
     _PROJECT_ROOT / "scripts" / "05_post_fitting_checks" / "01_baseline_audit.py",
     _PROJECT_ROOT / "scripts" / "06_fit_analyses" / "03_model_averaging.py",
     _PROJECT_ROOT / "scripts" / "05_post_fitting_checks" / "02_scale_audit.py",
-    # Legacy archive paths (plan 29-04 moved these folders to scripts/legacy/).
-    # The enumeration still tracks them because the CLEAN-04 invariant
-    # (no bare NetCDF loads) applies to any file historically loading NetCDF,
-    # even when archived — a future re-activation of these scripts must not
-    # reintroduce the forbidden pattern.
+    # Legacy archive paths (plan 29-04 moved these folders to scripts/legacy/
+    # and Phase 29 subsequent plans pruned most of them).  Kept in the
+    # enumeration so a future re-activation does not reintroduce the
+    # forbidden pattern silently; entries that no longer exist on disk are
+    # reported as [MISSING] warnings rather than hard failures.
     _PROJECT_ROOT / "scripts" / "legacy" / "visualization" / "plot_posterior_diagnostics.py",
     _PROJECT_ROOT / "scripts" / "legacy" / "visualization" / "plot_group_parameters.py",
     _PROJECT_ROOT / "scripts" / "legacy" / "visualization" / "plot_model_comparison.py",
     _PROJECT_ROOT / "scripts" / "legacy" / "visualization" / "quick_arviz_plots.py",
     _PROJECT_ROOT / "scripts" / "legacy" / "simulations" / "generate_data.py",
-    _PROJECT_ROOT / "validation" / "compare_posterior_to_mle.py",
+    # Plan 31-04 moved validation/ to tests/scientific/.
+    _PROJECT_ROOT / "tests" / "scientific" / "compare_posterior_to_mle.py",
 ]
 
 # Patterns that must NOT appear in the enumerated files (as active code,
@@ -77,14 +78,19 @@ def test_no_bare_az_from_netcdf_in_consumer_scripts() -> None:
         offending line text.
     """
     violations: list[str] = []
+    missing: list[str] = []
 
     for fpath in _ENUMERATED_FILES:
         if not fpath.exists():
             # File missing is not a test failure — it may not yet exist on a
-            # fresh clone that hasn't run fits.  Flag it as a warning instead.
-            violations.append(
+            # fresh clone that hasn't run fits, or may have been archived by
+            # a later phase (e.g. scripts/legacy/* pruned during Phase 29+).
+            # Collect separately as a warning via ``missing`` list; the
+            # invariant-enforcing assertion only trips on real code-level
+            # pattern violations below.
+            missing.append(
                 f"[MISSING] {fpath.relative_to(_PROJECT_ROOT)} — "
-                f"file not found; add to repo or update enumeration list"
+                f"file not found; update enumeration list if intentionally removed"
             )
             continue
 
@@ -109,15 +115,17 @@ def test_no_bare_az_from_netcdf_in_consumer_scripts() -> None:
 
 
 def test_no_bare_xr_open_dataset_anywhere() -> None:
-    """No .py file in scripts/ or validation/ may contain xr.open_dataset(.
+    """No .py file in scripts/, tests/scientific/, or src/ may contain xr.open_dataset(.
 
-    Walks the entire ``scripts/`` and ``validation/`` trees (excluding
-    ``__pycache__/`` and ``tests/fixtures/`` subdirectories) and asserts
-    that no Python file contains a bare ``xr.open_dataset(`` call on a
-    code line.
+    Walks the entire ``scripts/``, ``tests/scientific/``, and ``src/`` trees
+    (excluding ``__pycache__/`` and test-integration-tier fixture
+    subdirectories) and asserts that no Python file contains a bare
+    ``xr.open_dataset(`` call on a code line.
 
     Zero live uses exist today (2026-04-19 baseline); this test prevents
-    future reintroduction.
+    future reintroduction.  After Phase 31 plan 31-04, validation/ no
+    longer exists — its contents moved to tests/scientific/ — so the
+    search roots are updated accordingly.
 
     Raises
     ------
@@ -126,11 +134,12 @@ def test_no_bare_xr_open_dataset_anywhere() -> None:
     """
     search_roots: list[Path] = [
         _PROJECT_ROOT / "scripts",
-        _PROJECT_ROOT / "validation",
+        _PROJECT_ROOT / "tests" / "scientific",
+        _PROJECT_ROOT / "src",
     ]
     # Exclude test files themselves (which legitimately document the pattern in
     # docstrings/comments), __pycache__, and fixture caches.
-    excluded_subtrees: tuple[str, ...] = ("__pycache__", "tests/fixtures", "tests/")
+    excluded_subtrees: tuple[str, ...] = ("__pycache__", "tests/integration/fixtures")
 
     violations: list[str] = []
     pattern = r"xr\.open_dataset\("

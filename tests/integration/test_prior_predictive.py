@@ -1,4 +1,4 @@
-"""Smoke test for ``scripts/21_run_prior_predictive.py``.
+"""Smoke test for ``scripts/03_model_prefitting/04_run_prior_predictive.py``.
 
 Validates that ``numpyro.infer.Predictive`` can be instantiated against the
 stacked hierarchical model dispatch and produces samples of the expected
@@ -108,27 +108,18 @@ def test_prior_predictive_wmrl_m3_smoke():
 
 
 def test_prior_predictive_gate_helper():
-    """Pure unit test of the three-part gate evaluator."""
-    from scripts import __init__  # noqa: F401 ensure pkg init
-    import importlib.util
-    from pathlib import Path
+    """Pure unit test of the three-part gate evaluator.
 
-    # Load the 21_run_prior_predictive module by filepath (leading digit makes
-    # normal imports illegal).
-    mod_path = (
-        Path(__file__).resolve().parents[3]
-        / "scripts"
-        / "bayesian_pipeline"
-        / "21_run_prior_predictive.py"
-    )
-    spec = importlib.util.spec_from_file_location("prior_pred_mod", mod_path)
-    assert spec is not None and spec.loader is not None
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
+    The ``_evaluate_gate`` helper was consolidated into scripts/utils/ppc.py
+    by Phase 29 (utils consolidation), making it directly importable rather
+    than requiring a leading-digit file-path load.
+    """
+    # Canonical post-Phase-29 location: scripts/utils/ppc.py.
+    from scripts.utils.ppc import _evaluate_gate  # noqa: WPS433
 
     # All plausible
     good = np.array([0.55, 0.60, 0.58, 0.62, 0.70])
-    passed, metrics = mod._evaluate_gate(good)
+    passed, metrics = _evaluate_gate(good)
     assert passed
     assert 0.40 <= metrics["median"] <= 0.90
     assert metrics["frac_below_chance"] == pytest.approx(0.0)
@@ -136,6 +127,6 @@ def test_prior_predictive_gate_helper():
 
     # Mostly ceiling
     bad_ceiling = np.array([0.99, 0.98, 0.97, 0.96, 0.50])
-    passed_bad, metrics_bad = mod._evaluate_gate(bad_ceiling)
+    passed_bad, metrics_bad = _evaluate_gate(bad_ceiling)
     assert not passed_bad
     assert metrics_bad["frac_at_ceiling"] >= 0.05
