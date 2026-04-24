@@ -39,7 +39,7 @@ from config import (
     PROCESSED_DIR,
 )
 
-# CCDS-aligned paths (Phase 31: formerly output/, output/mle/)
+# CCDS-aligned paths (Phase 31: MLE artifacts now live under models/mle/)
 MLE_DIR = MODELS_MLE_DIR
 
 # Only 9187 appears in both the MLE files AND the trial data with the same ID

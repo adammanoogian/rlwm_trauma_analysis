@@ -274,3 +274,205 @@ def test_utils_canonical_short_names(short: str, long_: str) -> None:
         f"Verbose name still present: expected absent "
         f"scripts/utils/{long_}.py, got file"
     )
+
+
+# =========================================================================
+# Phase 31 — Final-Package Restructure (CCDS layout + test/log consolidation)
+# =========================================================================
+#
+# Phase 31 asserts a CCDS-aligned top-level layout for final-package readiness.
+# References:
+#   - Phase 31 RESEARCH.md (.planning/phases/31-final-package-restructure/)
+#   - CCDS docs: https://cookiecutter-data-science.drivendata.org/
+#   - Success criteria in ROADMAP.md Phase 31 section
+
+# ------ Phase 31 SC#1: data/ CCDS tier structure ------
+
+PHASE31_DATA_TIERS = ["raw", "interim", "processed", "external"]
+
+
+@pytest.mark.parametrize("tier", PHASE31_DATA_TIERS)
+def test_phase31_data_tier_exists(tier: str) -> None:
+    """Phase 31 SC#1: data/<tier>/ exists (CCDS data tiers)."""
+    path = REPO_ROOT / "data" / tier
+    assert path.is_dir(), (
+        f"Missing Phase 31 data tier: expected {path}, got absent"
+    )
+
+
+# ------ Phase 31 SC#2: models/ subdirectories ------
+
+PHASE31_MODELS_SUBDIRS = [
+    "bayesian",
+    "mle",
+    "ppc",
+    "recovery",
+]
+
+
+@pytest.mark.parametrize("sub", PHASE31_MODELS_SUBDIRS)
+def test_phase31_models_subdir_exists(sub: str) -> None:
+    """Phase 31 SC#2: models/<sub>/ exists (CCDS models tier)."""
+    path = REPO_ROOT / "models" / sub
+    assert path.is_dir(), (
+        f"Missing Phase 31 models subdirectory: expected {path}, got absent"
+    )
+
+
+# ------ Phase 31 SC#3: reports/ structure ------
+
+PHASE31_REPORTS_SUBDIRS = ["figures", "tables"]
+
+
+@pytest.mark.parametrize("sub", PHASE31_REPORTS_SUBDIRS)
+def test_phase31_reports_subdir_exists(sub: str) -> None:
+    """Phase 31 SC#3: reports/<sub>/ exists (CCDS reports tier)."""
+    path = REPO_ROOT / "reports" / sub
+    assert path.is_dir(), (
+        f"Missing Phase 31 reports subdirectory: expected {path}, got absent"
+    )
+
+
+# ------ Phase 31 SC#4: legacy output/, figures/, validation/ removed ------
+
+PHASE31_REMOVED_DIRS = ["output", "figures", "validation"]
+
+
+@pytest.mark.parametrize("removed", PHASE31_REMOVED_DIRS)
+def test_phase31_legacy_dir_removed(removed: str) -> None:
+    """Phase 31 SC#4: legacy output/, figures/, validation/ gone from top level."""
+    path = REPO_ROOT / removed
+    assert not path.exists(), (
+        f"Legacy top-level directory still present: expected absent, got {path}. "
+        f"Phase 31 consolidated these into CCDS tiers — content belongs under "
+        f"data/, models/, reports/, or tests/scientific/."
+    )
+
+
+# ------ Phase 31 SC#5: tests/ tier structure ------
+
+PHASE31_TESTS_TIERS = ["unit", "integration", "scientific"]
+
+
+@pytest.mark.parametrize("tier", PHASE31_TESTS_TIERS)
+def test_phase31_tests_tier_exists(tier: str) -> None:
+    """Phase 31 SC#5: tests/<tier>/ exists (unit/integration/scientific)."""
+    path = REPO_ROOT / "tests" / tier
+    assert path.is_dir(), (
+        f"Missing Phase 31 test tier: expected {path}, got absent"
+    )
+
+
+def test_phase31_scripts_fitting_tests_removed() -> None:
+    """Phase 31 SC#5: scripts/fitting/tests/ no longer exists at that location."""
+    path = REPO_ROOT / "scripts" / "fitting" / "tests"
+    assert not path.exists(), (
+        f"scripts/fitting/tests/ still exists: expected absent, got {path}. "
+        f"Phase 31 consolidated into tests/integration/."
+    )
+
+
+# ------ Phase 31 SC#6: logs/ at root, cluster/logs/ gone ------
+
+def test_phase31_logs_at_root_only() -> None:
+    """Phase 31 SC#6: logs/ exists at root; cluster/logs/ gone (unified)."""
+    logs_root = REPO_ROOT / "logs"
+    cluster_logs = REPO_ROOT / "cluster" / "logs"
+    assert logs_root.is_dir(), (
+        f"Missing top-level logs/: expected {logs_root}, got absent"
+    )
+    assert not cluster_logs.exists(), (
+        f"cluster/logs/ still exists: expected absent, got {cluster_logs}. "
+        f"Phase 31 merged into {logs_root}."
+    )
+
+
+# ------ Phase 31 SC#7: config.py no longer exposes legacy aliases ------
+
+def test_phase31_config_has_ccds_constants() -> None:
+    """Phase 31 SC#7: config.py exposes DATA_RAW_DIR, INTERIM_DIR, etc."""
+    import importlib
+    import sys as _sys
+    if "config" in _sys.modules:
+        importlib.reload(_sys.modules["config"])
+    import config as _config
+    required = [
+        "DATA_RAW_DIR", "INTERIM_DIR", "PROCESSED_DIR", "DATA_EXTERNAL_DIR",
+        "MODELS_DIR", "MODELS_BAYESIAN_DIR", "MODELS_MLE_DIR",
+        "MODELS_PARAMETER_EXPLORATION_DIR",
+        "REPORTS_DIR", "REPORTS_FIGURES_DIR", "REPORTS_TABLES_DIR",
+        "LOGS_DIR",
+    ]
+    missing = [name for name in required if not hasattr(_config, name)]
+    assert not missing, (
+        f"config.py missing Phase 31 CCDS constants: expected all of "
+        f"{required}, got missing {missing}"
+    )
+
+
+def test_phase31_config_no_legacy_aliases() -> None:
+    """Phase 31 SC#7: config.py removed OUTPUT_DIR/FIGURES_DIR legacy aliases."""
+    import importlib
+    import sys as _sys
+    if "config" in _sys.modules:
+        importlib.reload(_sys.modules["config"])
+    import config as _config
+    forbidden = ["OUTPUT_DIR", "FIGURES_DIR", "OUTPUT_VERSION_DIR", "FIGURES_VERSION_DIR"]
+    present = [name for name in forbidden if hasattr(_config, name)]
+    assert not present, (
+        f"config.py still exposes Phase 31 legacy aliases: expected all gone, "
+        f"got {present}. Waves B/C should have migrated consumers; plan 31-05 "
+        f"removes these constants."
+    )
+
+
+# ------ Phase 31 SC#8: no live legacy path strings ------
+
+PHASE31_LEGACY_PATH_PATTERNS = [
+    "output/bayesian",
+    "output/mle",
+    "output/descriptives",
+    "output/model_comparison",
+    "output/regressions",
+]
+
+
+@pytest.mark.parametrize("pattern", PHASE31_LEGACY_PATH_PATTERNS)
+def test_phase31_no_legacy_output_paths(pattern: str) -> None:
+    """Phase 31 SC#8: zero live references to legacy output/* paths.
+
+    Excludes /legacy/ archives and .planning/ (which may reference historic
+    paths as documentation). Only active code tree is checked.
+    """
+    hits: list[str] = []
+    search_dirs = ["scripts", "tests", "src", "cluster", "manuscript"]
+    self_rel = str(Path(__file__).resolve().relative_to(REPO_ROOT)).replace(
+        "\\", "/"
+    )
+    for d in search_dirs:
+        root = REPO_ROOT / d
+        if not root.is_dir():
+            continue
+        for p in root.rglob("*"):
+            if not p.is_file():
+                continue
+            # Only check text files we care about
+            if p.suffix not in {".py", ".qmd", ".slurm", ".sh", ".md", ".toml", ".ini"}:
+                continue
+            rel = str(p.relative_to(REPO_ROOT)).replace("\\", "/")
+            if rel == self_rel:
+                continue
+            if "/legacy/" in rel or rel.startswith(
+                ("scripts/legacy/", "tests/legacy/")
+            ):
+                continue
+            try:
+                txt = p.read_text(encoding="utf-8", errors="ignore")
+            except OSError:
+                continue
+            if pattern in txt:
+                hits.append(rel)
+    assert not hits, (
+        f"Legacy path pattern `{pattern}` found in: expected zero, got {hits}. "
+        f"Phase 31 Waves B/C/E should have migrated these."
+    )

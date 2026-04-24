@@ -622,7 +622,7 @@ def save_results(
         posterior predictive check CSV — to ``output_dir/bayesian/<subdir>/``.
         Threaded through to ``write_bayesian_summary`` and
         ``run_posterior_predictive_check`` so no writes escape to the legacy
-        ``output/bayesian/`` root.  Default None preserves backward
+        ``models/bayesian/`` root.  Default None preserves backward
         compatibility with all Phase 16 SLURM scripts.
 
     Returns
@@ -768,7 +768,7 @@ def save_results(
         # Posterior predictive check (HIER-09)
         # Pass `ppc_output_dir=bayesian_dir` so the PPC CSV lands in the same
         # subdir-aware location as the posterior NetCDF (e.g.
-        # `output/bayesian/21_baseline/` when `output_subdir='21_baseline'`).
+        # `models/bayesian/21_baseline/` when `output_subdir='21_baseline'`).
         # When `output_subdir` is None, `bayesian_dir` is
         # `output_dir/bayesian` — same target as the legacy `output_dir=...`
         # path (backward compatible with all Phase 16 callers).
@@ -1056,12 +1056,12 @@ def main() -> None:
         type=str,
         default=None,
         help=(
-            "Optional subdirectory under output/bayesian/ for all write "
+            "Optional subdirectory under models/bayesian/ for all write "
             "artefacts (posterior NetCDF, individual_fits.csv, "
             "shrinkage_report.md, ppc_results.csv). Used by Phase 21 to "
-            "route baseline fits to output/bayesian/21_baseline/ without "
-            "overwriting Phase 16 posteriors at output/bayesian/. When "
-            "unset (default), writes to output/bayesian/ root (backward "
+            "route baseline fits to models/bayesian/21_baseline/ without "
+            "overwriting Phase 16 posteriors at models/bayesian/. When "
+            "unset (default), writes to models/bayesian/ root (backward "
             "compatible with Phase 16 SLURM scripts)."
         ),
     )
