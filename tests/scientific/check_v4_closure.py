@@ -5,7 +5,7 @@ file-system + git invariants.
 
 CLI::
 
-    python validation/check_v4_closure.py --milestone v4.0
+    python tests/scientific/check_v4_closure.py --milestone v4.0
 
 Exit 0 = all invariants hold.
 Exit 1 = structured diff printed to stdout naming the failed invariant(s).
@@ -32,7 +32,7 @@ import yaml
 # Module-level constants
 # ---------------------------------------------------------------------------
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+REPO_ROOT = Path(__file__).resolve().parents[2]  # tests/scientific/<file>.py -> repo root
 PHASES_DIR = REPO_ROOT / ".planning" / "phases"
 
 # Canonical cold-start entry points for cluster-pending deliverables.

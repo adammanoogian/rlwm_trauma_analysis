@@ -1,12 +1,13 @@
 """Phase 22 closure-state regression test.
 
-Invokes ``validation.check_v4_closure.check_all`` directly (no subprocess)
-and asserts exit code 0. Runs on every ``pytest`` invocation so CI catches
-closure drift the moment a plan-status doc becomes inconsistent with on-disk
-phase artifacts.
+Invokes ``tests.scientific.check_v4_closure.check_all`` directly (no
+subprocess) and asserts exit code 0. Runs on every ``pytest`` invocation
+so CI catches closure drift the moment a plan-status doc becomes
+inconsistent with on-disk phase artifacts.
 
 The test does NOT exercise the CLI entry point — that is verified by
-``validation/check_v4_closure.py --help`` contract tests at release time.
+``tests/scientific/check_v4_closure.py --help`` contract tests at release
+time.
 What this test cares about is: ``check_all()`` returns (0, all-passed-list)
 on the current commit.
 """
@@ -18,14 +19,16 @@ from pathlib import Path
 
 import pytest
 
-# Add repo root to sys.path so ``from validation.check_v4_closure import ...``
-# works regardless of pytest invocation directory.  Mirrors the conftest pattern
-# already in use for scripts/fitting/tests/.
-REPO_ROOT = Path(__file__).resolve().parents[3]
+# Add repo root to sys.path so ``from tests.scientific.check_v4_closure
+# import ...`` works regardless of pytest invocation directory.  After plan
+# 31-04 (Phase 31 test-tree consolidation), the pytest wrapper sits at
+# tests/integration/<file>.py and the scientific module sits at
+# tests/scientific/check_v4_closure.py -- both at depth 2 from repo root.
+REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from validation.check_v4_closure import CheckResult, check_all  # noqa: E402
+from tests.scientific.check_v4_closure import CheckResult, check_all  # noqa: E402
 
 
 def test_v4_closure_passes() -> None:
@@ -33,7 +36,7 @@ def test_v4_closure_passes() -> None:
 
     If this test fails, read the ``details`` list of the failing CheckResult
     for the exact invariant that broke.  Re-running
-    ``python validation/check_v4_closure.py --milestone v4.0 --verbose``
+    ``python tests/scientific/check_v4_closure.py --milestone v4.0 --verbose``
     from the command line produces the same diagnostic.
     """
     exit_code, results = check_all()
@@ -70,7 +73,7 @@ def test_v4_closure_rejects_wrong_milestone() -> None:
     Guards against copy-paste drift when this script is reused for a future
     milestone without being updated for that milestone's invariants.
     """
-    from validation.check_v4_closure import main
+    from tests.scientific.check_v4_closure import main
 
     with pytest.raises((ValueError, SystemExit)):
         main(["--milestone", "v3.0"])

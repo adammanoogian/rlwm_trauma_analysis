@@ -20,8 +20,8 @@ NOT expressible as pytest assertions (documented here for traceability):
 
 - SC#7  — cluster ``sbatch --dry-run`` / ``bash -n`` (covered by 29-05 plan)
 - SC#8  — ``quarto render manuscript/paper.qmd`` (covered by 29-06 plan)
-- SC#9  — v4 closure guard (covered by ``scripts/fitting/tests/test_v4_closure.py``
-          and ``validation/check_v4_closure.py``)
+- SC#9  — v4 closure guard (covered by ``tests/integration/test_v4_closure.py``
+          and ``tests/scientific/check_v4_closure.py``)
 - SC#11 — full pytest suite green (covered by ``pytest`` top-level)
 """
 
@@ -33,7 +33,7 @@ from pathlib import Path
 
 import pytest
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]  # tests/integration/<file>.py -> repo root
 SCRIPTS = REPO_ROOT / "scripts"
 DOCS = REPO_ROOT / "docs"
 
@@ -225,7 +225,7 @@ OLD_IMPORT_PATTERNS = [
 def test_no_old_grouping_imports(pattern: str) -> None:
     """SC#10: zero live ``from scripts.<old_grouping>`` imports outside .planning/."""
     hits: list[str] = []
-    search_dirs = ["scripts", "tests", "validation", "src"]
+    search_dirs = ["scripts", "tests", "src"]
     self_rel = str(Path(__file__).resolve().relative_to(REPO_ROOT)).replace(
         "\\", "/"
     )
@@ -240,7 +240,7 @@ def test_no_old_grouping_imports(pattern: str) -> None:
                 continue
             # Skip legacy archives (historical imports may remain there)
             if "/legacy/" in rel or rel.startswith(
-                ("scripts/legacy/", "tests/legacy/", "validation/legacy/")
+                ("scripts/legacy/", "tests/legacy/")
             ):
                 continue
             try:
