@@ -33,10 +33,14 @@ from rlwm.fitting.models.qlearning import (
     q_learning_multiblock_likelihood,
 )
 from rlwm.fitting.models.wmrl import wmrl_multiblock_likelihood
-from config import EXCLUDED_PARTICIPANTS
+from config import (
+    EXCLUDED_PARTICIPANTS,
+    MODELS_MLE_DIR,
+    PROCESSED_DIR,
+)
 
-OUTPUT_DIR = project_root / 'output'
-MLE_DIR = OUTPUT_DIR / 'mle'
+# CCDS-aligned paths (Phase 31: formerly output/, output/mle/)
+MLE_DIR = MODELS_MLE_DIR
 
 # Only 9187 appears in both the MLE files AND the trial data with the same ID
 DIRECT_MATCH_IDS = {9187}
@@ -47,7 +51,7 @@ NLL_TOLERANCE = 0.01
 
 def load_trial_data():
     """Load trial data (with assigned_ids), applying same cleaning as fit_mle.py."""
-    path = OUTPUT_DIR / 'task_trials_long_all_participants.csv'
+    path = PROCESSED_DIR / 'task_trials_long_all_participants.csv'
     df = pd.read_csv(path)
 
     # Exclude participants

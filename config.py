@@ -75,12 +75,6 @@ MODELS_BAYESIAN_MANUSCRIPT = MODELS_BAYESIAN_DIR / 'manuscript'
 MODELS_BAYESIAN_PRIOR_PREDICTIVE = MODELS_BAYESIAN_DIR / '21_prior_predictive'
 MODELS_BAYESIAN_RECOVERY = MODELS_BAYESIAN_DIR / '21_recovery'
 
-# Legacy aliases — will be removed after Waves B/C update all downstream consumers.
-# Intentionally point at OLD locations so pre-Phase-31 writers still function
-# during the transition. After Wave E these constants will be deleted entirely.
-OUTPUT_DIR = PROJECT_ROOT / 'output'
-FIGURES_DIR = PROJECT_ROOT / 'figures'
-
 # ============================================================================
 # PARTICIPANT EXCLUSIONS
 # ============================================================================
@@ -94,18 +88,13 @@ MANUAL_EXCLUSIONS: list[int] = []
 # reference it before the class is defined.
 MIN_TRIALS_THRESHOLD = 400
 
-# Version management
-VERSION = 'v1'
-OUTPUT_VERSION_DIR = OUTPUT_DIR / VERSION if VERSION else OUTPUT_DIR
-FIGURES_VERSION_DIR = FIGURES_DIR / VERSION if VERSION else FIGURES_DIR
-
-# Create directories if they don't exist (scaffold — will be populated in Waves B/C)
+# Create directories if they don't exist (CCDS-aligned scaffold — Phase 31)
 for directory in [
     DATA_RAW_DIR, INTERIM_DIR, PROCESSED_DIR, DATA_EXTERNAL_DIR,
     MODELS_BAYESIAN_DIR, MODELS_MLE_DIR, MODELS_PPC_DIR, MODELS_RECOVERY_DIR,
     MODELS_PARAMETER_EXPLORATION_DIR,
     REPORTS_FIGURES_DIR, REPORTS_TABLES_DIR, LOGS_DIR,
-    OUTPUT_VERSION_DIR, FIGURES_VERSION_DIR, DOCS_DIR,  # legacy — removed in Wave E
+    DOCS_DIR,
 ]:
     directory.mkdir(parents=True, exist_ok=True)
 
@@ -363,12 +352,6 @@ class DataParams:
     TASK_TRIALS_LEGACY = PROCESSED_DIR / 'task_trials_long_all_participants.csv'  # Legacy filename
     SUMMARY_METRICS = PROCESSED_DIR / 'summary_participant_metrics.csv'
 
-    # Simulated / fitted / comparison artifact paths — still on legacy OUTPUT_VERSION_DIR;
-    # these are consumed rarely and plan 31-05 (Wave E) decides their final home.
-    SIMULATED_DATA = OUTPUT_VERSION_DIR / 'simulated_data.csv'
-    FITTED_POSTERIORS = OUTPUT_VERSION_DIR / 'fitted_posteriors.nc'  # NetCDF format
-    MODEL_COMPARISON = OUTPUT_VERSION_DIR / 'model_comparison.csv'
-
     # Exclusion criteria (references module-level constant)
     MIN_TRIALS = MIN_TRIALS_THRESHOLD  # Minimum trials for inclusion (~50% of expected 807-1077)
     MIN_ACCURACY = 0.3  # Minimum accuracy for inclusion (below chance suggests invalid data)
@@ -448,7 +431,7 @@ def get_excluded_participants(data_path: Path | None = None) -> list[int]:
         Sorted list of participant IDs to exclude.
     """
     if data_path is None:
-        data_path = PROCESSED_DIR / 'task_trials_long.csv'  # was OUTPUT_DIR
+        data_path = PROCESSED_DIR / 'task_trials_long.csv'
 
     if not data_path.exists():
         return sorted(MANUAL_EXCLUSIONS)
@@ -521,7 +504,7 @@ def get_analysis_cohort(
     ----------
     data_path : Path, optional
         Path to ``task_trials_long.csv``.  Defaults to
-        ``OUTPUT_DIR / 'task_trials_long.csv'``.
+        ``PROCESSED_DIR / 'task_trials_long.csv'``.
     surveys_path : Path, optional
         Path to ``summary_participant_metrics.csv``.  Defaults to
         ``DataParams.SUMMARY_METRICS``.
@@ -550,7 +533,7 @@ def get_analysis_cohort(
     this function rather than maintaining their own filter logic.
     """
     if data_path is None:
-        data_path = PROCESSED_DIR / "task_trials_long.csv"  # was OUTPUT_DIR
+        data_path = PROCESSED_DIR / "task_trials_long.csv"
     if surveys_path is None:
         surveys_path = DataParams.SUMMARY_METRICS
     if min_trials is None:
@@ -712,7 +695,6 @@ def print_config_summary():
     print("Following Senta et al. (2025) model specifications")
     print("=" * 80)
     print(f"\nProject Root: {PROJECT_ROOT}")
-    print(f"Version: {VERSION}")
     print("\nTask Parameters:")
     print(f"  - Actions: {TaskParams.NUM_ACTIONS}")
     print(f"  - Set Sizes: {TaskParams.SET_SIZES}")

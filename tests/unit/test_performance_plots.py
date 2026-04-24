@@ -16,7 +16,7 @@ sys.path.insert(0, str(project_root))
 
 import pytest
 
-from config import FIGURES_DIR
+from config import REPORTS_FIGURES_DIR as FIGURES_DIR
 
 # Module was never created — skip entire file
 pytest.skip(

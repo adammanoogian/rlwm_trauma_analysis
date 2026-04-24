@@ -72,7 +72,7 @@ from scripts.fitting.bayesian_diagnostics import (
 )
 from scripts.fitting.bayesian_summary_writer import write_bayesian_summary
 
-from config import OUTPUT_VERSION_DIR, EXCLUDED_PARTICIPANTS, ALL_MODELS, MODEL_REGISTRY
+from config import MODELS_BAYESIAN_DIR, EXCLUDED_PARTICIPANTS, ALL_MODELS, MODEL_REGISTRY
 
 # ---------------------------------------------------------------------------
 # Canonical stacked hierarchical models (hBayesDM non-centered convention)
@@ -982,7 +982,7 @@ def main() -> None:
     parser.add_argument(
         "--output",
         type=str,
-        default=str(OUTPUT_VERSION_DIR),
+        default=str(MODELS_BAYESIAN_DIR),
         help="Output directory for results",
     )
     parser.add_argument(
