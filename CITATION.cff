@@ -1,0 +1,37 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "RLWM Trauma Analysis Pipeline"
+abstract: >-
+  Hierarchical Bayesian reinforcement-learning + working-memory model fitting
+  pipeline for trauma-linked cognitive data. Implements the Senta et al.
+  (2025) M1-M6 + M4-LBA model family with JAX-accelerated likelihoods,
+  NumPyro hierarchical MCMC (hBayesDM non-centered parameterization), LOO
+  stacking for model comparison, and a cold-start SLURM orchestration layer
+  for cluster execution. Pipeline covers 154 participants (LEC-5 + IES-R),
+  produces posterior-vs-MLE validation, and ships with a Quarto manuscript.
+version: v5.0
+date-released: "2026-04-22"
+url: "https://github.com/adammanoogian/rlwm_trauma_analysis"
+repository-code: "https://github.com/adammanoogian/rlwm_trauma_analysis"
+license: MIT
+keywords:
+  - reinforcement-learning
+  - working-memory
+  - hierarchical-bayesian
+  - trauma
+  - computational-psychiatry
+  - jax
+  - numpyro
+  - model-comparison
+authors:
+  - family-names: "Manoogian"
+    given-names: "Adam"
+    email: "adammanoogian@gmail.com"
+references:
+  - type: article
+    authors:
+      - family-names: "Senta"
+        given-names: "R."
+    title: "Task-specific mixtures of working memory and reinforcement learning"
+    year: 2025
