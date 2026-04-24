@@ -369,7 +369,7 @@ Plans:
 
 #### Phase 23.1: GPU Pipeline Integration (INSERTED)
 
-**Goal:** Build GPU multi-GPU pmap variants of all Phase 21 SLURM scripts (`cluster/21_*_gpu.slurm`), validate that all 6 choice-only models {qlearning, wmrl, wmrl_m3, wmrl_m5, wmrl_m6a, wmrl_m6b} fit successfully on multi-GPU at smoke-test scale, and update `cluster/21_submit_pipeline.sh` to dispatch the GPU variants. Endpoint: `bash cluster/21_submit_pipeline.sh` on Monash M3 launches the GPU pipeline (3-4× faster wall-clock per audit/M6b proof) and the cold-start in Phase 24 produces all expected artifacts in `output/bayesian/21_*/` produced by GPU MCMC. Pulled forward from v5.1 (items GPU-01..03 originally deferred) per 2026-04-19 user decision to align v5.0 with end-state pipeline.
+**Goal:** Build GPU multi-GPU pmap variants of all Phase 21 SLURM scripts (`cluster/21_*_gpu.slurm`), validate that all 6 choice-only models {qlearning, wmrl, wmrl_m3, wmrl_m5, wmrl_m6a, wmrl_m6b} fit successfully on multi-GPU at smoke-test scale, and update `cluster/21_submit_pipeline.sh` to dispatch the GPU variants. Endpoint: `bash cluster/21_submit_pipeline.sh` on Monash M3 launches the GPU pipeline (3-4× faster wall-clock per audit/M6b proof) and the cold-start in Phase 24 produces all expected artifacts in `models/bayesian/21_*/` produced by GPU MCMC. Pulled forward from v5.1 (items GPU-01..03 originally deferred) per 2026-04-19 user decision to align v5.0 with end-state pipeline.
 
 **Depends on:** Phase 23 (clean codebase — must not pollute new GPU SLURM scripts with stale imports)
 
@@ -382,7 +382,7 @@ Plans:
   4. **GPU-INT-04 (JIT cache safety):** All new GPU SLURM scripts use per-model + per-backend cache path: `JAX_COMPILATION_CACHE_DIR=/scratch/${PROJECT}/${USER}/.jax_cache_21_baseline_gpu_${MODEL}` (with `_gpu` suffix to coexist with future CPU runs). Pin to single GPU architecture via `#SBATCH --constraint=l40s` (or document the architecture chosen). Encodes lessons from `docs/CLUSTER_GPU_LESSONS.md` §5 (cache keying on dtype/graph) + audit-flagged cross-GPU-arch contamination risk. `JAX_PERSISTENT_CACHE_MIN_ENTRY_SIZE_BYTES=0` and `PYTHONUNBUFFERED=1` set in every new SLURM script.
   5. **GPU-INT-05 (smoke-test resilience):** Per-model `timeout 600` wrapper in smoke tests (per `docs/CLUSTER_GPU_LESSONS.md` §6 lesson: "per-model timeout in smoke tests" — Apr 16 job 54845743 burned 6h wall on qlearning alone before fix). Smoke job exits 0 with per-model PASS/FAIL/TIMEOUT tally; one slow model never burns the full wall.
   6. **Lazy LBA float64 isolation preserved:** Phase 21 GPU scripts MUST NOT trigger any `lba_likelihood` import (would force `jax_enable_x64=True` globally per `docs/CLUSTER_GPU_LESSONS.md` §5). Lazy import discipline in `numpyro_models.py:wmrl_m4_hierarchical_model` is already in place; verify no regression with new SLURM paths. Smoke test confirms `jax.config.values["jax_enable_x64"] == False` after each model fit.
-  7. **Output path contract:** All GPU runs write to `output/bayesian/21_*/` (Phase 21 contract — what Phase 24 audit script depends on), NOT `output/v1/` (where the standalone M6b mgpu run wrote). Verified by smoke-test artifact path assertions.
+  7. **Output path contract:** All GPU runs write to `models/bayesian/21_*/` (Phase 31 CCDS-canonical contract — what Phase 24 audit script depends on), NOT `output/v1/` (where the standalone M6b mgpu run wrote). Verified by smoke-test artifact path assertions.
 
 **Plans:** 4 plans (23.1-02 and 23.1-03 rewritten 2026-04-23 to target Phase-29-canonical layout after Phase 29-05 consolidated cluster/21_*.slurm into stage-numbered entry SLURMs)
 
@@ -410,14 +410,14 @@ Plans:
 **Success Criteria (what must be TRUE):**
   1. `bash cluster/21_submit_pipeline.sh` invoked from project root with a clean working tree completes the 9-step afterok chain with zero SLURM job failures; pre-flight pytest gate (`test_numpyro_models_2cov.py`) passes before any `sbatch` call.
   2. Every expected artifact exists: `models/bayesian/21_prior_predictive/{model}_prior_sim.nc` × 6, `21_recovery/{model}_recovery.csv` × 6, `21_baseline/{model}_posterior.nc` × 6 + `convergence_table.csv` + `convergence_report.md`, `21_l2/{winner}_posterior.nc` + `{winner}_beta_hdi_table.csv` for each winner, `21_l2/scale_audit_report.md` + `averaged_scale_effects.csv`, `reports/tables/model_comparison/table{1,2,3}_{loo_stacking,rfx_bms,winner_betas}.{csv,md,tex}`, winner-specific forest plot PNGs.
-  3. `output/bayesian/21_execution_log.md` logs SLURM JobID, wall-clock, CPU-hours, GPU-hours, max memory per step; total GPU-hours documented.
+  3. `models/bayesian/21_execution_log.md` logs SLURM JobID, wall-clock, CPU-hours, GPU-hours, max memory per step; total GPU-hours documented.
   4. `convergence_table.csv` shows ≥ 2 models meeting Baribault & Collins (2023) gate (R-hat ≤ 1.05 AND ESS_bulk ≥ 400 AND divergences = 0 AND BFMI ≥ 0.2); step 21.5 winner determination is `DOMINANT_SINGLE` or `TOP_TWO` (not `FORCED`, not `INCONCLUSIVE_MULTIPLE`).
 
 **Plans:** 2 plans
 
 Plans:
 - [ ] 24-01-PLAN.md (Wave 1) — Pre-flight checks (pytest gate + clean autopush-paths assertion + Monash M3 submit-host verification) + cold-start submission of `bash cluster/21_submit_pipeline.sh` + JobID inventory capture + operator failure-mode briefing
-- [ ] 24-02-PLAN.md (Wave 2, after pipeline terminus at step 21.9) — `validation/check_phase24_artifacts.py` deterministic audit (file existence + NetCDF integrity + EXEC-04 convergence gate + winner-type assertion + manuscript table cross-check) + `output/bayesian/21_execution_log.md` from sacct + 24-02-SUMMARY VERIFICATION-ready handoff
+- [ ] 24-02-PLAN.md (Wave 2, after pipeline terminus at step 21.9) — `validation/check_phase24_artifacts.py` deterministic audit (file existence + NetCDF integrity + EXEC-04 convergence gate + winner-type assertion + manuscript table cross-check) + `models/bayesian/21_execution_log.md` from sacct + 24-02-SUMMARY VERIFICATION-ready handoff
 
 #### Phase 25: Reproducibility Regression & Closure-Guard Extension
 
@@ -449,7 +449,7 @@ Plans:
 
 **Success Criteria (what must be TRUE):**
   1. `paper.qmd` Methods `### Bayesian Model Selection Pipeline {#sec-bayesian-selection}` cites real stacking weights via `{python} winner_display` inline ref; `grep -n "M6b received the highest" paper.qmd` returns zero matches (placeholder replaced).
-  2. Forest plots generated via `scripts/18_bayesian_level2_effects.py` for every model in the cold-start winner set; PNGs in `output/bayesian/figures/`; referenced in `paper.qmd` Results via `@fig-forest-{winner}` cross-refs that all resolve in Quarto render.
+  2. Forest plots generated via `scripts/06_fit_analyses/07_bayesian_level2_effects.py` for every model in the cold-start winner set; PNGs in `reports/figures/bayesian/21_bayesian/`; referenced in `paper.qmd` Results via `@fig-forest-{winner}` cross-refs that all resolve in Quarto render.
   3. Manuscript table artefacts `table1_loo_stacking.{csv,md,tex}`, `table2_rfx_bms.{csv,md,tex}`, `table3_winner_betas.{csv,md,tex}` exist under `reports/tables/model_comparison/`; Quarto cross-refs `@tbl-loo-stacking`, `@tbl-rfx-bms`, `@tbl-winner-betas` resolve in render.
   4. Limitations section references real `pct_high_pareto_k` values from `loo_stacking_results.csv`; projected-from-PITFALLS.md placeholder text removed.
   5. `quarto render paper.qmd` exits 0 from project root with no errors; `_output/paper.pdf` and `_output/paper.html` exist and have non-zero size; `validation/check_v5_closure.py` verifies this via subprocess wrapper.
