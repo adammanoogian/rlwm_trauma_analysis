@@ -26,7 +26,7 @@ _autopush() {
     cd "${PROJECT_ROOT:-.}" || return 1
 
     # Stage logs for this job
-    git add logs/ output/bayesian/ 2>/dev/null
+    git add logs/ models/bayesian/ reports/ 2>/dev/null
 
     # Check if there's anything to commit
     if git diff --cached --quiet 2>/dev/null; then

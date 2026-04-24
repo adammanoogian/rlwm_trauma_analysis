@@ -22,8 +22,8 @@
 #   - T4:    16GB VRAM, basic GPU (gpu/desktop partition)
 #
 # Outputs saved to:
-#   - output/mle/{model}_individual_fits.csv
-#   - output/mle/{model}_group_summary.csv
+#   - models/mle/{model}_individual_fits.csv
+#   - models/mle/{model}_group_summary.csv
 #   - cluster/logs/mle_gpu_{jobid}.out
 #
 # Reference: https://docs.erc.monash.edu/old-M3/M3/slurm/partitions/
@@ -122,7 +122,7 @@ echo ""
 # Run MLE Fitting (GPU-accelerated)
 # =============================================================================
 
-DATA_FILE="output/task_trials_long.csv"
+DATA_FILE="data/processed/task_trials_long.csv"
 
 # Ensure real-time output for tail -f monitoring
 export PYTHONUNBUFFERED=1
@@ -143,7 +143,7 @@ KEEP_CHECKPOINTS="${KEEP_CHECKPOINTS:-}"
 if [[ -z "$KEEP_CHECKPOINTS" ]]; then
     echo "Cleaning up stale checkpoints..."
     for model in $MODELS; do
-        CKPT="output/mle/${model}_checkpoint.csv"
+        CKPT="models/mle/${model}_checkpoint.csv"
         if [[ -f "$CKPT" ]]; then
             echo "  Deleted: $CKPT"
             rm -f "$CKPT"
@@ -207,7 +207,7 @@ for model in $MODELS; do
     CMD="python scripts/04_model_fitting/a_mle/fit_mle.py \
         --model $model \
         --data $DATA_FILE \
-        --output output/mle/ \
+        --output models/mle/ \
         --n-starts 50 \
         --seed 42 \
         --use-gpu \
@@ -241,8 +241,8 @@ echo "End time: $(date)"
 echo "============================================================"
 echo ""
 echo "Results saved to:"
-echo "  output/mle/*_individual_fits.csv"
-echo "  output/mle/*_group_summary.csv"
+echo "  models/mle/*_individual_fits.csv"
+echo "  models/mle/*_group_summary.csv"
 echo "============================================================"
 
 # =============================================================================

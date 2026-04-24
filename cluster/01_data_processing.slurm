@@ -14,9 +14,9 @@
 #   sbatch cluster/01_data_processing.slurm
 #
 # Outputs:
-#   - output/task_trials_long.csv
-#   - output/task_trials_long_all.csv
-#   - output/summary_participant_metrics.csv
+#   - data/processed/task_trials_long.csv
+#   - data/processed/task_trials_long_all.csv
+#   - data/processed/summary_participant_metrics.csv
 # =============================================================================
 
 #SBATCH --job-name=p29_01_data
@@ -59,7 +59,7 @@ else
     exit 1
 fi
 
-mkdir -p cluster/logs output
+mkdir -p cluster/logs data/processed data/interim
 
 export PYTHONUNBUFFERED=1
 
@@ -89,9 +89,9 @@ echo "============================================================"
 echo "Stage 01 complete — $(date)"
 echo "============================================================"
 echo "Key outputs:"
-echo "  output/task_trials_long.csv"
-echo "  output/task_trials_long_all.csv"
-echo "  output/summary_participant_metrics.csv"
+echo "  data/processed/task_trials_long.csv"
+echo "  data/processed/task_trials_long_all.csv"
+echo "  data/processed/summary_participant_metrics.csv"
 echo "============================================================"
 
 # Auto-push logs and results when job completes

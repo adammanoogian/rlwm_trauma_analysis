@@ -90,7 +90,7 @@ export JAX_PERSISTENT_CACHE_MIN_ENTRY_SIZE_BYTES=0
 mkdir -p "$JAX_COMPILATION_CACHE_DIR" || unset JAX_COMPILATION_CACHE_DIR
 echo "JAX cache: ${JAX_COMPILATION_CACHE_DIR:-disabled}"
 
-mkdir -p cluster/logs output/bayesian/21_prior_predictive output/bayesian/21_recovery output/recovery
+mkdir -p cluster/logs models/bayesian/21_prior_predictive models/bayesian/21_recovery models/recovery
 
 export PYTHONUNBUFFERED=1
 
@@ -113,10 +113,10 @@ case "${STEP}" in
   prior_predictive)
     CMD=(python scripts/03_model_prefitting/04_run_prior_predictive.py \
          --model "$MODEL" \
-         --data output/task_trials_long.csv \
+         --data data/processed/task_trials_long.csv \
          --num-draws "${NUM_DRAWS:-500}" \
          --seed "$SEED" \
-         --output-dir output/bayesian/21_prior_predictive/)
+         --output-dir models/bayesian/21_prior_predictive/)
     ;;
   bayesian_recovery)
     CMD=(python scripts/03_model_prefitting/05_run_bayesian_recovery.py \
@@ -124,7 +124,7 @@ case "${STEP}" in
          --model "$MODEL" \
          --subject-idx "${SUBJECT_IDX:-${SLURM_ARRAY_TASK_ID:-1}}" \
          --seed "$SEED" \
-         --output-dir output/bayesian/21_recovery/)
+         --output-dir models/bayesian/21_recovery/)
     ;;
   *)
     echo "ERROR: unknown STEP='${STEP}'" >&2

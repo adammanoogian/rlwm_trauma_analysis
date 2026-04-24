@@ -15,10 +15,10 @@
 #   - Sequential (NJOBS=1):  ~30 minutes per model (use if OOM issues)
 #
 # Outputs saved to:
-#   - output/mle/{model}_individual_fits.csv
-#   - output/mle/{model}_group_summary.csv
-#   - output/mle/timing_log.csv (per-participant timing)
-#   - output/mle/performance_summary.json (overall performance metrics)
+#   - models/mle/{model}_individual_fits.csv
+#   - models/mle/{model}_group_summary.csv
+#   - models/mle/timing_log.csv (per-participant timing)
+#   - models/mle/performance_summary.json (overall performance metrics)
 #   - cluster/logs/mle_{jobid}.out
 #
 # Reference: https://docs.erc.monash.edu/old-M3/M3/slurm/partitions/
@@ -176,7 +176,7 @@ echo "JAX cache: ${JAX_COMPILATION_CACHE_DIR:-disabled}"
 # low-memory fallback now.
 # =============================================================================
 
-DATA_FILE="output/task_trials_long.csv"
+DATA_FILE="data/processed/task_trials_long.csv"
 
 # Check data file exists
 if [[ ! -f "$DATA_FILE" ]]; then
@@ -199,7 +199,7 @@ for model in $MODELS; do
     python scripts/04_model_fitting/a_mle/fit_mle.py \
         --model "$model" \
         --data "$DATA_FILE" \
-        --output output/mle/ \
+        --output models/mle/ \
         --n-starts 20 \
         --seed 42 \
         --n-jobs "$NJOBS" \
@@ -221,8 +221,8 @@ echo "End time: $(date)"
 echo "============================================================"
 echo ""
 echo "Results saved to:"
-echo "  output/mle/*_individual_fits.csv"
-echo "  output/mle/*_group_summary.csv"
+echo "  models/mle/*_individual_fits.csv"
+echo "  models/mle/*_group_summary.csv"
 echo "============================================================"
 
 # =============================================================================
@@ -239,10 +239,10 @@ echo "Thread settings: OMP=$OMP_NUM_THREADS, MKL=$MKL_NUM_THREADS"
 echo ""
 
 # Create output directory for metrics if needed
-mkdir -p output/mle
+mkdir -p models/mle
 
 # Create metrics file
-METRICS_FILE="output/mle/job_metrics_${SLURM_JOB_ID}.txt"
+METRICS_FILE="models/mle/job_metrics_${SLURM_JOB_ID}.txt"
 
 {
     echo "========================================"

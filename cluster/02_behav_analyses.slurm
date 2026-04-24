@@ -9,7 +9,7 @@
 #   4. 04_run_statistical_analyses.py
 #
 # CPU-only (pandas/matplotlib/seaborn). Runs under 10 minutes on N=154.
-# Requires output/task_trials_long.csv from stage 01.
+# Requires data/processed/task_trials_long.csv from stage 01.
 #
 # Usage:
 #   sbatch cluster/02_behav_analyses.slurm
@@ -55,13 +55,13 @@ else
     exit 1
 fi
 
-mkdir -p cluster/logs figures output
+mkdir -p cluster/logs reports/figures reports/tables data/processed
 
 export PYTHONUNBUFFERED=1
 
 # Verify stage-01 output exists
-if [[ ! -f output/task_trials_long.csv ]]; then
-    echo "ERROR: output/task_trials_long.csv missing — run stage 01 first"
+if [[ ! -f data/processed/task_trials_long.csv ]]; then
+    echo "ERROR: data/processed/task_trials_long.csv missing — run stage 01 first"
     exit 1
 fi
 

@@ -36,10 +36,10 @@
 #   sbatch --export=GPU_TYPE=a100 cluster/04b_bayesian_gpu.slurm
 #
 # Outputs saved to:
-#   - output/bayesian/${MODEL}_individual_fits.csv
-#   - output/bayesian/${MODEL}_posterior.nc
-#   - output/bayesian/${MODEL}_shrinkage_report.md
-#   - output/bayesian/${MODEL}_ppc_results.csv
+#   - models/bayesian/${MODEL}_individual_fits.csv
+#   - models/bayesian/${MODEL}_posterior.nc
+#   - models/bayesian/${MODEL}_shrinkage_report.md
+#   - models/bayesian/${MODEL}_ppc_results.csv
 # =============================================================================
 
 #SBATCH --job-name=rlwm-bayesian-gpu-mgpu
@@ -144,12 +144,12 @@ echo ""
 
 # Create output + log directories
 mkdir -p cluster/logs
-mkdir -p output/bayesian
+mkdir -p models/bayesian
 
 # =============================================================================
 # Verify required input files
 # =============================================================================
-DATA_FILE="output/task_trials_long.csv"
+DATA_FILE="data/processed/task_trials_long.csv"
 if [[ ! -f "$DATA_FILE" ]]; then
     echo "ERROR: Data file not found: $DATA_FILE"
     echo "Run the data parsing script first:"
@@ -159,7 +159,7 @@ fi
 
 if [ "$SUBSCALE" = "1" ]; then
     echo "Checking subscale-required input files..."
-    for f in output/task_trials_long.csv output/summary_participant_metrics.csv; do
+    for f in data/processed/task_trials_long.csv data/processed/summary_participant_metrics.csv; do
         if [ -f "$f" ]; then
             echo "  OK: $f ($(du -h "$f" | cut -f1))"
         else
@@ -229,10 +229,10 @@ echo "[$(date)] ${MODEL} hierarchical fit finished (exit code: $EXIT_CODE)"
 # =============================================================================
 if [ $EXIT_CODE -eq 0 ]; then
     echo "Expected outputs:"
-    for f in "output/bayesian/${MODEL}_individual_fits.csv" \
-             "output/bayesian/${MODEL}_posterior.nc" \
-             "output/bayesian/${MODEL}_shrinkage_report.md" \
-             "output/bayesian/${MODEL}_ppc_results.csv"; do
+    for f in "models/bayesian/${MODEL}_individual_fits.csv" \
+             "models/bayesian/${MODEL}_posterior.nc" \
+             "models/bayesian/${MODEL}_shrinkage_report.md" \
+             "models/bayesian/${MODEL}_ppc_results.csv"; do
         if [ -f "$f" ]; then
             echo "  [OK] $f ($(du -h "$f" | cut -f1))"
         else

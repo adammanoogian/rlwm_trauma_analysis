@@ -40,14 +40,14 @@ set -euo pipefail
 STEP="${STEP:-}"
 
 # Scoped overrides per STEP (harmless when unused)
-BASELINE_DIR="${BASELINE_DIR:-output/bayesian/21_baseline/}"
-L2_DIR="${L2_DIR:-output/bayesian/21_l2/}"
-WINNERS_FILE="${WINNERS_FILE:-output/bayesian/21_baseline/winners.txt}"
-STACKING_RESULTS="${STACKING_RESULTS:-output/bayesian/21_baseline/loo_stacking_results.csv}"
-AUDIT_REPORT="${AUDIT_REPORT:-output/bayesian/21_l2/scale_audit_report.md}"
-FIGURES_DIR="${FIGURES_DIR:-figures/21_bayesian/}"
-TABLES_DIR="${TABLES_DIR:-output/bayesian/21_tables/}"
-SUBSCALE_NC="${SUBSCALE_NC:-output/bayesian/wmrl_m6b_subscale_posterior.nc}"
+BASELINE_DIR="${BASELINE_DIR:-models/bayesian/21_baseline/}"
+L2_DIR="${L2_DIR:-models/bayesian/21_l2/}"
+WINNERS_FILE="${WINNERS_FILE:-models/bayesian/21_baseline/winners.txt}"
+STACKING_RESULTS="${STACKING_RESULTS:-models/bayesian/21_baseline/loo_stacking_results.csv}"
+AUDIT_REPORT="${AUDIT_REPORT:-models/bayesian/21_l2/scale_audit_report.md}"
+FIGURES_DIR="${FIGURES_DIR:-reports/figures/bayesian/21_bayesian/}"
+TABLES_DIR="${TABLES_DIR:-models/bayesian/21_tables/}"
+SUBSCALE_NC="${SUBSCALE_NC:-models/bayesian/wmrl_m6b_subscale_posterior.nc}"
 FORCE_WINNERS="${FORCE_WINNERS:-}"
 
 if [ -z "$STEP" ]; then
@@ -88,8 +88,8 @@ else
     exit 1
 fi
 
-mkdir -p cluster/logs output/model_comparison output/mle_by_trauma output/regressions \
-         output/bayesian/21_tables figures/21_bayesian
+mkdir -p cluster/logs reports/tables/model_comparison reports/tables/mle_by_trauma reports/tables/regressions \
+         models/bayesian/21_tables reports/figures/bayesian/21_bayesian
 
 export PYTHONUNBUFFERED=1
 

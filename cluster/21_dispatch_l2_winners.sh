@@ -2,7 +2,7 @@
 # =============================================================================
 # cluster/21_dispatch_l2_winners.sh
 # =============================================================================
-# Reads output/bayesian/21_baseline/winners.txt (comma-separated display
+# Reads models/bayesian/21_baseline/winners.txt (comma-separated display
 # names from step 21.5), maps display names to internal model ids, and
 # submits one L2 fit SLURM per winner via
 # `sbatch --wait` so this dispatcher BLOCKS until each L2 fit completes.
@@ -40,7 +40,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-WINNERS_FILE=output/bayesian/21_baseline/winners.txt
+WINNERS_FILE=models/bayesian/21_baseline/winners.txt
 
 if [ ! -f "$WINNERS_FILE" ]; then
   echo "[DISPATCH] No winners.txt — step 21.5 may have exited with code 2; pipeline paused."

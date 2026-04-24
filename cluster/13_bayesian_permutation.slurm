@@ -13,10 +13,10 @@
 #   python scripts/fitting/aggregate_permutation_results.py   # (scripts/fitting/ is the helpers bin — not a stage folder)
 #
 # Outputs per shuffle:
-#   output/bayesian/permutation/shuffle_{idx}_results.json
+#   models/bayesian/permutation/shuffle_{idx}_results.json
 #
 # Aggregated summary:
-#   output/bayesian/permutation/permutation_summary.md
+#   models/bayesian/permutation/permutation_summary.md
 # =============================================================================
 
 #SBATCH --job-name=perm_null
@@ -81,7 +81,7 @@ echo "JAX cache: ${JAX_COMPILATION_CACHE_DIR:-disabled}"
 
 # --- Create output directories ---
 mkdir -p logs
-mkdir -p output/bayesian/permutation
+mkdir -p models/bayesian/permutation
 
 # --- Run permutation shuffle ---
 echo ""
@@ -89,7 +89,7 @@ echo "[$(date)] Starting permutation shuffle ${SLURM_ARRAY_TASK_ID}"
 
 python scripts/04_model_fitting/b_bayesian/fit_bayesian.py \
     --model wmrl_m3 \
-    --data output/task_trials_long.csv \
+    --data data/processed/task_trials_long.csv \
     --permutation-shuffle "$SLURM_ARRAY_TASK_ID" \
     --chains 4 \
     --warmup 500 \
@@ -102,7 +102,7 @@ echo ""
 echo "[$(date)] Shuffle ${SLURM_ARRAY_TASK_ID} finished (exit code: $EXIT_CODE)"
 
 if [ $EXIT_CODE -eq 0 ]; then
-    OUT_FILE="output/bayesian/permutation/shuffle_${SLURM_ARRAY_TASK_ID}_results.json"
+    OUT_FILE="models/bayesian/permutation/shuffle_${SLURM_ARRAY_TASK_ID}_results.json"
     if [ -f "$OUT_FILE" ]; then
         echo "  Output: $OUT_FILE ($(du -h "$OUT_FILE" | cut -f1))"
     else

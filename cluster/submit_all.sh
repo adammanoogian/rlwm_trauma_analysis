@@ -225,7 +225,7 @@ fi
 # The L2 refit is a fan-out per winner (M1/M2 copy-through, M3/M5/M6a 2-cov,
 # M6b subscale). `cluster/21_6_dispatch_l2.slurm` wraps the dispatcher
 # `cluster/21_dispatch_l2_winners.sh` which reads
-# output/bayesian/21_baseline/winners.txt and submits one $L2_SCRIPT per
+# models/bayesian/21_baseline/winners.txt and submits one $L2_SCRIPT per
 # winner via `sbatch --wait`. The --wait pattern + &+wait in the dispatcher
 # ensures the SLURM job stays alive until every L2 fit completes.
 #

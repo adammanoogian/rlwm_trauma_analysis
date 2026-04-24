@@ -20,7 +20,7 @@
 # max_rhat <= 1.10, vs production 1.05):
 #   10 participants × 4 chains × 100 warmup × 200 samples
 #
-# Outputs land in `output/bayesian/23.1_smoke/{model}_smoke_posterior.nc`
+# Outputs land in `models/bayesian/23.1_smoke/{model}_smoke_posterior.nc`
 # (gitignored — see `.gitignore`). The post-job audit script
 # `validation/check_phase_23_1_smoke.py` enforces all 5 invariants.
 #
@@ -53,8 +53,8 @@ SAMPLES=200
 MAX_TREE_DEPTH=8
 N_PARTICIPANTS_LIMIT=10
 PER_MODEL_TIMEOUT=600
-DATA_FILE="output/task_trials_long.csv"
-SMOKE_OUT_DIR="output/bayesian/23.1_smoke"
+DATA_FILE="data/processed/task_trials_long.csv"
+SMOKE_OUT_DIR="models/bayesian/23.1_smoke"
 SMOKE_SUBDIR="23.1_smoke"
 
 # =============================================================================
@@ -176,14 +176,14 @@ for MODEL in $MODELS; do
     MODEL_START=$(date +%s)
 
     # NOTE on output paths: passing `--output output --output-subdir 23.1_smoke`
-    # routes writes to `output/bayesian/23.1_smoke/{model}_posterior.nc`
+    # routes writes to `models/bayesian/23.1_smoke/{model}_posterior.nc`
     # (per fit_bayesian.py:702-705 — bayesian_dir = output_dir / "bayesian" /
     # output_subdir). We rename to `_smoke_posterior.nc` after the loop so the
     # audit script can distinguish smoke vs production posteriors.
     timeout "$PER_MODEL_TIMEOUT" python scripts/04_model_fitting/b_bayesian/fit_bayesian.py \
         --model "$MODEL" \
         --data "$SMOKE_DATA" \
-        --output output \
+        --output models \
         --output-subdir "$SMOKE_SUBDIR" \
         --chains "$CHAINS" \
         --warmup "$WARMUP" \

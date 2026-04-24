@@ -144,24 +144,24 @@ stage_files() {
 }
 
 # Core MLE results (from step 12)
-stage_files "output/mle/*_individual_fits.csv" "MLE individual fits"
-stage_files "output/mle/*_group_summary.csv" "MLE group summaries"
-stage_files "output/mle/*_performance_summary.json" "MLE performance summaries"
-stage_files "output/mle/*_timing_log.csv" "MLE timing logs"
+stage_files "models/mle/*_individual_fits.csv" "MLE individual fits"
+stage_files "models/mle/*_group_summary.csv" "MLE group summaries"
+stage_files "models/mle/*_performance_summary.json" "MLE performance summaries"
+stage_files "models/mle/*_timing_log.csv" "MLE timing logs"
 
 # Model comparison (from step 14)
-stage_files "output/model_comparison/*" "model comparison"
+stage_files "reports/tables/model_comparison/*" "model comparison"
 
 # Trauma analysis (from step 15)
-stage_files "output/mle_by_trauma/*" "trauma analysis"
+stage_files "reports/tables/mle_by_trauma/*" "trauma analysis"
 
 # Regression results (from step 16 — .gitignore excludes PNGs)
-stage_files "output/regressions/*" "regression results"
+stage_files "reports/tables/regressions/*" "regression results"
 
 # Figures (analysis plots)
-stage_files "figures/mle_trauma_analysis/*" "trauma analysis figures"
-stage_files "figures/recovery/**/*" "recovery figures"
-stage_files "figures/regressions/**/*" "regression figures"
+stage_files "reports/figures/mle_trauma_analysis/*" "trauma analysis figures"
+stage_files "reports/figures/recovery/**/*" "recovery figures"
+stage_files "reports/figures/regressions/**/*" "regression figures"
 
 echo ""
 

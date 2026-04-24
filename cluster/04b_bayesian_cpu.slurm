@@ -20,16 +20,16 @@
 #     cluster/04b_bayesian_cpu.slurm
 #
 # M6b subscale variant (4 covariates x 8 params = 32 beta sites). Needs 12h+
-# walltime and requires output/summary_participant_metrics.csv to supply the
+# walltime and requires data/processed/summary_participant_metrics.csv to supply the
 # IES-R + LEC columns.
 #   sbatch --time=12:00:00 --mem=48G \
 #     --export=ALL,MODEL=wmrl_m6b,SUBSCALE=1 cluster/04b_bayesian_cpu.slurm
 #
 # Outputs saved to:
-#   - output/bayesian/${MODEL}_individual_fits.csv
-#   - output/bayesian/${MODEL}_posterior.nc
-#   - output/bayesian/${MODEL}_shrinkage_report.md
-#   - output/bayesian/${MODEL}_ppc_results.csv
+#   - models/bayesian/${MODEL}_individual_fits.csv
+#   - models/bayesian/${MODEL}_posterior.nc
+#   - models/bayesian/${MODEL}_shrinkage_report.md
+#   - models/bayesian/${MODEL}_ppc_results.csv
 # =============================================================================
 
 #SBATCH --job-name=bayesian_cpu
@@ -108,13 +108,13 @@ echo "JAX cache: ${JAX_COMPILATION_CACHE_DIR:-disabled}"
 
 # --- Create output directories ---
 mkdir -p logs
-mkdir -p output/bayesian
+mkdir -p models/bayesian
 
 # --- Verify required input files ---
 if [ "$SUBSCALE" = "1" ]; then
     echo ""
     echo "Checking subscale-required input files..."
-    for f in output/task_trials_long.csv output/summary_participant_metrics.csv; do
+    for f in data/processed/task_trials_long.csv data/processed/summary_participant_metrics.csv; do
         if [ -f "$f" ]; then
             echo "  OK: $f ($(du -h "$f" | cut -f1))"
         else
@@ -127,7 +127,7 @@ fi
 # --- Build fit_bayesian.py command ---
 CMD=(python scripts/04_model_fitting/b_bayesian/fit_bayesian.py
      --model "$MODEL"
-     --data output/task_trials_long.csv
+     --data data/processed/task_trials_long.csv
      --chains "$CHAINS"
      --warmup "$WARMUP"
      --samples "$SAMPLES"
@@ -152,10 +152,10 @@ echo "[$(date)] ${MODEL} hierarchical fit finished (exit code: $EXIT_CODE)"
 
 if [ $EXIT_CODE -eq 0 ]; then
     echo "Expected outputs:"
-    for f in "output/bayesian/${MODEL}_individual_fits.csv" \
-             "output/bayesian/${MODEL}_posterior.nc" \
-             "output/bayesian/${MODEL}_shrinkage_report.md" \
-             "output/bayesian/${MODEL}_ppc_results.csv"; do
+    for f in "models/bayesian/${MODEL}_individual_fits.csv" \
+             "models/bayesian/${MODEL}_posterior.nc" \
+             "models/bayesian/${MODEL}_shrinkage_report.md" \
+             "models/bayesian/${MODEL}_ppc_results.csv"; do
         if [ -f "$f" ]; then
             echo "  [OK] $f ($(du -h "$f" | cut -f1))"
         else

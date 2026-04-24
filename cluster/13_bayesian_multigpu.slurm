@@ -117,7 +117,7 @@ echo ""
 
 export PYTHONUNBUFFERED=1
 
-mkdir -p logs output/bayesian
+mkdir -p logs models/bayesian
 
 # =============================================================================
 # Run the fit
@@ -127,7 +127,7 @@ echo "[$(date)] Starting multi-GPU Bayesian fit for $MODEL"
 
 python scripts/04_model_fitting/b_bayesian/fit_bayesian.py \
     --model "$MODEL" \
-    --data output/task_trials_long.csv \
+    --data data/processed/task_trials_long.csv \
     --chains "$CHAINS" \
     --warmup "$WARMUP" \
     --samples "$SAMPLES" \

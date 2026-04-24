@@ -48,9 +48,9 @@ BFMI="${BFMI:-0.2}"
 HDI_PROB="${HDI_PROB:-0.95}"
 FDR_ALPHA="${FDR_ALPHA:-0.05}"
 ESS_DROP_THRESHOLD="${ESS_DROP_THRESHOLD:-0.5}"
-L2_DIR="${L2_DIR:-output/bayesian/21_l2/}"
-BASELINE_DIR="${BASELINE_DIR:-output/bayesian/21_baseline/}"
-WINNERS_FILE="${WINNERS_FILE:-output/bayesian/21_baseline/winners.txt}"
+L2_DIR="${L2_DIR:-models/bayesian/21_l2/}"
+BASELINE_DIR="${BASELINE_DIR:-models/bayesian/21_baseline/}"
+WINNERS_FILE="${WINNERS_FILE:-models/bayesian/21_baseline/winners.txt}"
 OUTPUT_DIR="${OUTPUT_DIR:-}"
 
 if [ -z "$STEP" ]; then
@@ -92,17 +92,17 @@ export PYTHONUNBUFFERED=1
 
 case "${STEP}" in
   baseline_audit)
-    OUTPUT_DIR="${OUTPUT_DIR:-output/bayesian/21_baseline/}"
+    OUTPUT_DIR="${OUTPUT_DIR:-models/bayesian/21_baseline/}"
     mkdir -p "$OUTPUT_DIR"
     CMD=(python scripts/05_post_fitting_checks/01_baseline_audit.py
-         --baseline-dir output/bayesian/21_baseline/
+         --baseline-dir models/bayesian/21_baseline/
          --output-dir "$OUTPUT_DIR"
          --rhat-threshold "$RHAT"
          --ess-threshold "$ESS"
          --bfmi-threshold "$BFMI")
     ;;
   scale_audit)
-    OUTPUT_DIR="${OUTPUT_DIR:-output/bayesian/21_l2/}"
+    OUTPUT_DIR="${OUTPUT_DIR:-models/bayesian/21_l2/}"
     mkdir -p "$OUTPUT_DIR"
     CMD=(python scripts/05_post_fitting_checks/02_scale_audit.py
          --l2-dir "$L2_DIR"

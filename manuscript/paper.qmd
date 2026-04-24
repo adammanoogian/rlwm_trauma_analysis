@@ -100,10 +100,10 @@ PARAM_TABLE_NAMES: dict[str, str] = {
 }
 
 # ── Paths (relative to manuscript/ directory) ────────────────────────────────
-MLE_DIR = Path("../output/mle")
-COMPARISON_DIR = Path("../output/model_comparison")
-GROUPS_DIR = Path("../output/trauma_groups")
-FIGURES_DIR = Path("../figures")
+MLE_DIR = Path("../models/mle")
+COMPARISON_DIR = Path("../reports/tables/model_comparison")
+GROUPS_DIR = Path("../reports/tables/trauma_groups")
+FIGURES_DIR = Path("../reports/figures")
 OUTPUT_DIR = Path("outputs")
 OUTPUT_DIR.mkdir(exist_ok=True)
 
@@ -399,7 +399,7 @@ df_plot = df_winner.merge(
 n_with_groups = len(df_plot)
 
 # Load regression results
-reg_dir = Path(f"../output/regressions/{winning_model}")
+reg_dir = Path(f"../reports/tables/regressions/{winning_model}")
 df_reg_simple = pd.read_csv(reg_dir / "regression_results_simple.csv") if (reg_dir / "regression_results_simple.csv").exists() else pd.DataFrame()
 df_reg_multi = pd.read_csv(reg_dir / "regression_results_multiple.csv") if (reg_dir / "regression_results_multiple.csv").exists() else pd.DataFrame()
 n_regression = int(df_reg_simple["N"].iloc[0]) if not df_reg_simple.empty and "N" in df_reg_simple.columns else 0
@@ -433,8 +433,8 @@ The LOO + stacking ranking is in @tbl-loo-stacking; the random-effects BMS PXP i
 
 from pathlib import Path
 import pandas as pd
-_loo_primary = Path("../output/bayesian/manuscript/loo_stacking.csv")
-_loo_fallback = Path("../output/bayesian/21_baseline/loo_stacking_results.csv")
+_loo_primary = Path("../models/bayesian/manuscript/loo_stacking.csv")
+_loo_fallback = Path("../models/bayesian/21_baseline/loo_stacking_results.csv")
 _loo_path = _loo_primary if _loo_primary.exists() else (_loo_fallback if _loo_fallback.exists() else None)
 if _loo_path is not None:
     df_loo = pd.read_csv(_loo_path)
@@ -454,7 +454,7 @@ else:
 
 from pathlib import Path
 import pandas as pd
-_rfx_path = Path("../output/bayesian/manuscript/rfx_bms.csv")
+_rfx_path = Path("../models/bayesian/manuscript/rfx_bms.csv")
 if _rfx_path.exists():
     df_rfx = pd.read_csv(_rfx_path)
     display(df_rfx.style.hide(axis="index").format(precision=3))
@@ -473,7 +473,7 @@ else:
 #| fig-height: 5.0
 
 from pathlib import Path
-_forest_path = Path("../figures/21_bayesian/forest_plot.png")
+_forest_path = Path("../reports/figures/bayesian/21_bayesian/forest_plot.png")
 if _forest_path.exists():
     from matplotlib.image import imread
     import matplotlib.pyplot as plt
@@ -493,7 +493,7 @@ else:
 ```{python}
 #| label: results-l2-setup
 # Load Level-2 effect estimates from hierarchical Bayesian pipeline
-l2_dir = Path("../output/bayesian/level2")
+l2_dir = Path("../models/bayesian/level2")
 l2_effects_exist = l2_dir.exists() and any(l2_dir.glob("*beta*"))
 ```
 
@@ -516,8 +516,8 @@ Per-participant Bayesian posterior mean versus MLE point estimate for each M6b p
 try:
     # Look for forest plot from 07_bayesian_level2_effects.py
     forest_candidates = [
-        Path(f"../output/bayesian/figures/m6b_forest_lec5.png"),
-        Path(f"../output/bayesian/level2/wmrl_m6b_forest.png"),
+        Path(f"../reports/figures/bayesian/m6b_forest_lec5.png"),
+        Path(f"../models/bayesian/level2/wmrl_m6b_forest.png"),
     ]
     forest_found = next((p for p in forest_candidates if p.exists()), None)
 
@@ -543,7 +543,7 @@ except Exception as e:
 
 from pathlib import Path
 import pandas as pd
-_betas_path = Path("../output/bayesian/manuscript/winner_betas.csv")
+_betas_path = Path("../models/bayesian/manuscript/winner_betas.csv")
 if _betas_path.exists():
     df_betas = pd.read_csv(_betas_path)
     display(df_betas.style.hide(axis="index").format(precision=3))
@@ -638,7 +638,7 @@ Bayesian model comparison via leave-one-out cross-validation with stacking weigh
 #| label: tbl-stacking-weights
 #| tbl-cap: "Bayesian model comparison: LOO-CV stacking weights for choice-only models. M4 (joint choice+RT) is excluded; see Limitations."
 
-stacking_path = Path("../output/bayesian/level2/stacking_weights.csv")
+stacking_path = Path("../models/bayesian/level2/stacking_weights.csv")
 if stacking_path.exists():
     df_stacking = pd.read_csv(stacking_path, index_col=0)
     # Select key columns for display
@@ -656,7 +656,7 @@ Although M6b was preferred at the aggregate level, only 55 of 154 participants (
 
 Kruskal-Wallis omnibus tests across winner groups revealed very large effects on both perseveration parameters. The $\kappa_{\text{share}}$ parameter differed dramatically across winner groups (H = 80.08, $p < 10^{-15}$, $\eta_H^2 = 0.51$): participants best-fit by M6a had $\kappa_{\text{share}}$ medians close to 0 (pure stimulus-level perseveration), those best-fit by M3 had medians near 0.76 (pure choice-level perseveration), and those best-fit by M6b had intermediate medians near 0.30 (a mix of both). The $\kappa_{\text{total}}$ parameter also varied (H = 53.36, $p < 10^{-9}$, $\eta_H^2 = 0.33$): M5 winners had the lowest overall perseveration (median 0.12), consistent with the interpretation that M5 wins when perseveration is weak and RL-level forgetting dominates. The winner-heterogeneity analysis therefore supports a clear mechanistic interpretation of the model hierarchy: M6b wins for participants who use both perseveration kernels, and the simpler models each capture the endpoint of the stick-breaking parameterization that matches their architecture (Figure\~\ref{fig-winner-heterogeneity}).
 
-![Winner heterogeneity. Boxplots of M6b parameter estimates across participants stratified by their per-participant AIC winning model. The two recoverable parameters ($\kappa_{\text{total}}$, $\kappa_{\text{share}}$; labeled "trusted") show the clearest group separation; the base RLWM parameters show weaker separation and are known to be poorly identifiable (see Section\~\ref{sec-parameter-recovery}).](../output/model_comparison/winner_heterogeneity_figure.png){#fig-winner-heterogeneity}
+![Winner heterogeneity. Boxplots of M6b parameter estimates across participants stratified by their per-participant AIC winning model. The two recoverable parameters ($\kappa_{\text{total}}$, $\kappa_{\text{share}}$; labeled "trusted") show the clearest group separation; the base RLWM parameters show weaker separation and are known to be poorly identifiable (see Section\~\ref{sec-parameter-recovery}).](../reports/figures/model_comparison/winner_heterogeneity_figure.png){#fig-winner-heterogeneity}
 
 ### Appendix C: Stratified Model Comparison by Trauma Group {#sec-stratified}
 
@@ -782,7 +782,7 @@ Spearman rank correlations between winning-model parameters and continuous traum
 #| fig-height: 4.0
 
 try:
-    corr_fig = Path(f"../figures/mle_trauma_analysis/correlation_heatmap_{winning_model}.png")
+    corr_fig = Path(f"../reports/figures/mle_trauma_analysis/correlation_heatmap_{winning_model}.png")
     if not corr_fig.exists():
         raise FileNotFoundError(f"Missing: {corr_fig}")
 
