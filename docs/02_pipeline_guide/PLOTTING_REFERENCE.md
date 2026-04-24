@@ -138,11 +138,11 @@ ArviZ provides 20+ plotting functions. Here are the most useful:
 import arviz as az
 import matplotlib.pyplot as plt
 
-idata = az.from_netcdf('output/qlearning_jax_posterior_TIMESTAMP.nc')
+idata = az.from_netcdf('models/bayesian/qlearning_posterior.nc')
 
 # Trace plots for group parameters
 az.plot_trace(idata, var_names=['mu_alpha_pos', 'mu_alpha_neg', 'mu_beta'])
-plt.savefig('figures/trace.png', dpi=300)
+plt.savefig('reports/figures/trace.png', dpi=300)
 plt.show()
 ```
 
@@ -162,7 +162,7 @@ az.plot_posterior(
     var_names=['mu_alpha_pos', 'mu_alpha_neg', 'mu_beta'],
     hdi_prob=0.94
 )
-plt.savefig('figures/posterior.png', dpi=300)
+plt.savefig('reports/figures/posterior.png', dpi=300)
 plt.show()
 ```
 
@@ -183,7 +183,7 @@ az.plot_forest(
     combined=True,
     hdi_prob=0.94
 )
-plt.savefig('figures/forest.png', dpi=300)
+plt.savefig('reports/figures/forest.png', dpi=300)
 plt.show()
 ```
 
@@ -204,7 +204,7 @@ az.plot_pair(
     kind='kde',
     marginals=True
 )
-plt.savefig('figures/pair.png', dpi=300)
+plt.savefig('reports/figures/pair.png', dpi=300)
 plt.show()
 ```
 
@@ -220,7 +220,7 @@ plt.show()
 ```python
 # Rank plots (should be uniform if converged)
 az.plot_rank(idata, var_names=['mu_alpha_pos', 'mu_alpha_neg', 'mu_beta'])
-plt.savefig('figures/rank.png', dpi=300)
+plt.savefig('reports/figures/rank.png', dpi=300)
 plt.show()
 ```
 
@@ -235,7 +235,7 @@ plt.show()
 ```python
 # Energy plot (specific to HMC/NUTS)
 az.plot_energy(idata)
-plt.savefig('figures/energy.png', dpi=300)
+plt.savefig('reports/figures/energy.png', dpi=300)
 plt.show()
 ```
 
@@ -250,7 +250,7 @@ plt.show()
 ```python
 # Autocorrelation plots
 az.plot_autocorr(idata, var_names=['mu_alpha_pos', 'mu_alpha_neg', 'mu_beta'])
-plt.savefig('figures/autocorr.png', dpi=300)
+plt.savefig('reports/figures/autocorr.png', dpi=300)
 plt.show()
 ```
 
@@ -266,7 +266,7 @@ plt.show()
 ```python
 import arviz as az
 
-idata = az.from_netcdf('output/qlearning_jax_posterior_TIMESTAMP.nc')
+idata = az.from_netcdf('models/bayesian/qlearning_posterior.nc')
 summary = az.summary(idata, var_names=['mu_alpha_pos', 'mu_alpha_neg', 'mu_beta'])
 print(summary)
 ```
@@ -280,7 +280,7 @@ print(summary)
 
 **Save to CSV:**
 ```python
-summary.to_csv('output/summary.csv')
+summary.to_csv('reports/tables/summary.csv')
 ```
 
 ---
@@ -294,7 +294,7 @@ import arviz as az
 import matplotlib.pyplot as plt
 
 # Load posterior
-idata = az.from_netcdf('output/qlearning_jax_posterior_TIMESTAMP.nc')
+idata = az.from_netcdf('models/bayesian/qlearning_posterior.nc')
 
 # Create 2x3 dashboard
 fig, axes = plt.subplots(2, 3, figsize=(18, 12))
@@ -315,7 +315,7 @@ az.plot_rank(idata, var_names=['mu_alpha_pos'], ax=axes[1, 1])
 az.plot_energy(idata, ax=axes[1, 2])
 
 plt.tight_layout()
-plt.savefig('figures/dashboard.png', dpi=300, bbox_inches='tight')
+plt.savefig('reports/figures/dashboard.png', dpi=300, bbox_inches='tight')
 plt.show()
 ```
 
@@ -329,7 +329,7 @@ import pandas as pd
 import numpy as np
 
 # Load posterior
-idata = az.from_netcdf('output/qlearning_jax_posterior_TIMESTAMP.nc')
+idata = az.from_netcdf('models/bayesian/qlearning_posterior.nc')
 
 # Extract individual learning rates
 alpha_pos_samples = idata.posterior['alpha_pos'].values  # shape: (chains, draws, participants)
@@ -360,7 +360,7 @@ df_params['alpha_pos_hdi_high'] = [
 ]
 
 # Save to CSV
-df_params.to_csv('output/individual_parameters.csv', index=False)
+df_params.to_csv('reports/tables/individual_parameters.csv', index=False)
 print(df_params)
 ```
 
@@ -378,7 +378,7 @@ sns.set_context("paper", font_scale=1.5)
 sns.set_style("whitegrid")
 
 # Load posterior
-idata = az.from_netcdf('output/qlearning_jax_posterior_TIMESTAMP.nc')
+idata = az.from_netcdf('models/bayesian/qlearning_posterior.nc')
 
 # Create figure
 fig, axes = plt.subplots(1, 3, figsize=(15, 5))
@@ -395,7 +395,7 @@ for ax, param, title in zip(axes, params, titles):
 plt.suptitle('Group-Level Parameter Estimates (Posterior Mean ± 94% HDI)',
              fontsize=18, fontweight='bold', y=1.05)
 plt.tight_layout()
-plt.savefig('figures/publication_figure.png', dpi=600, bbox_inches='tight')
+plt.savefig('reports/figures/publication_figure.png', dpi=600, bbox_inches='tight')
 plt.show()
 ```
 

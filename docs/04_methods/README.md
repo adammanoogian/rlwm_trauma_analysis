@@ -171,7 +171,7 @@ For the kappa-family coefficients, extract 95% HDI from the posterior:
 
 ```python
 import arviz as az
-idata = az.from_netcdf("output/bayesian/wmrl_m6b_posterior.nc")
+idata = az.from_netcdf("models/bayesian/wmrl_m6b_posterior.nc")
 az.hdi(idata, var_names=["beta_lec_kappa_total", "beta_lec_kappa_share"],
        hdi_prob=0.95)
 ```

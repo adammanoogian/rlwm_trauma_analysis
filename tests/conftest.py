@@ -71,7 +71,7 @@ def pytest_collection_modifyitems(config, items):
 
 
 # ---------------------------------------------------------------------------
-# Scientific-tier fixtures (migrated from validation/conftest.py)
+# Scientific-tier fixtures (migrated from pre-Phase-31 scientific-test tree)
 # ---------------------------------------------------------------------------
 
 

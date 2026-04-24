@@ -3,29 +3,6 @@
 # blocked from `git push` by .git/hooks/pre-push. Keeps planning work
 # private without losing git versioning.
 
-# Regression figures (can be regenerated, large file count)
-output/regressions/**/*.png
-
-# Bayesian traces (large NetCDF files, transfer via SCP)
-output/bayesian_fits/*.nc
-output/*.nc
-
-# Parameter sweep outputs (can be large, regenerable)
-output/parameter_sweeps/
-
-# Raw participant data (sensitive — not for public distribution)
-data/rlwm_trauma_PARTICIPANT_SESSION_*.csv
-data/backup_*.csv
-data/participant_id_mapping.json
-data/sync_log.txt
-
-# Parsed intermediates (contain raw survey responses + demographics)
-output/parsed_demographics.csv
-output/parsed_survey*.csv
-output/parsed_task_trials.csv
-output/demographics_complete.csv
-output/participant_info.csv
-
 # Python cache
 __pycache__/
 *.pyc
@@ -65,27 +42,6 @@ manuscript/*.synctex.gz
 manuscript/*.bbl
 manuscript/*.blg
 
-# Cluster logs (ephemeral SLURM output)
-cluster/logs/
-
-# MLE checkpoints (intermediate fitting state, regenerable)
-output/mle/*_checkpoint.csv
-
-# Temporary parameter sweep outputs
-output/_tmp_param_sweep*/
-
-# Legacy outputs at repo root (moved to output/mle/)
-output/wmrl_m3_*.csv
-output/wmrl_m3_*.json
-output/wmrl_m5_*.csv
-output/wmrl_m5_*.json
-
-# Old milestone outputs (archived)
-output/v1/
-
-# Quarto build cache
-manuscript/.jupyter_cache/
-
 # Backup files
 *.bak
 
@@ -95,12 +51,9 @@ Burrows_J_GDPA_Thesis.*
 # Pre-v5 cold-start stash (untracked outputs moved aside before fresh pipeline run)
 _stash_pre_v5_cold_start_*/
 
-# Phase 23.1 GPU smoke validation artifacts (throwaway)
-output/bayesian/23.1_smoke/
-
 # ============================================================================
-# Phase 31 — CCDS-aligned layout (new; co-exists with legacy patterns until
-# Waves B/C complete physical moves. Wave E (plan 31-05) removes legacy rows.)
+# Phase 31 — CCDS-aligned layout (authoritative; legacy output/ and figures/
+# patterns removed in plan 31-05 after physical moves completed in 31-02/03.)
 # ============================================================================
 
 # Raw participant data — sensitive, NEVER tracked

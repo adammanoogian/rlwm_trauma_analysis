@@ -1126,7 +1126,7 @@ from scripts.fitting.numpyro_models import (
 import pandas as pd
 
 # Load and prepare data
-data = pd.read_csv('output/task_trials_long.csv')
+data = pd.read_csv('data/processed/task_trials_long.csv')
 participant_data = prepare_data_for_numpyro(data)
 
 # Run MCMC inference
@@ -1148,7 +1148,7 @@ print(f"μ_ε: {samples['mu_epsilon'].mean():.3f}")
 # Save results
 import arviz as az
 idata = az.from_numpyro(mcmc)
-idata.to_netcdf('output/v1/posterior.nc')
+idata.to_netcdf('models/bayesian/posterior.nc')
 ```
 
 ### 5.6 Prior Specifications
@@ -1200,8 +1200,8 @@ Lower values indicate better predictive performance.
 import arviz as az
 
 # Load posteriors
-qlearning_idata = az.from_netcdf('output/v1/qlearning_posterior.nc')
-wmrl_idata = az.from_netcdf('output/v1/wmrl_posterior.nc')
+qlearning_idata = az.from_netcdf('models/bayesian/qlearning_posterior.nc')
+wmrl_idata = az.from_netcdf('models/bayesian/wmrl_posterior.nc')
 
 # Compare models
 comparison = az.compare({

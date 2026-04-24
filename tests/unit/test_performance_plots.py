@@ -16,7 +16,7 @@ sys.path.insert(0, str(project_root))
 
 import pytest
 
-from config import REPORTS_FIGURES_DIR as FIGURES_DIR
+from config import REPORTS_FIGURES_DIR
 
 # Module was never created — skip entire file
 pytest.skip(
@@ -111,7 +111,7 @@ def main():
     print(f"  Overall accuracy: {predictions_df['correct'].mean():.3f}")
 
     # Create test output directory
-    test_dir = FIGURES_DIR / 'test_performance'
+    test_dir = REPORTS_FIGURES_DIR / 'test_performance'
     test_dir.mkdir(parents=True, exist_ok=True)
 
     print("\nCreating visualizations...")

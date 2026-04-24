@@ -28,7 +28,7 @@ PROJECT_ROOT = Path(__file__).parent
 #   data/{raw,interim,processed,external}/ — data tiers (CCDS)
 #   models/{bayesian,mle,ppc,recovery,parameter_exploration}/ — fitted artifacts
 #   reports/{figures,tables}/ — analysis products for manuscript
-#   logs/ — single gitignored location (merges former cluster/logs/)
+#   logs/ — single gitignored location for dev + SLURM job outputs
 
 DATA_DIR = PROJECT_ROOT / 'data'
 DATA_RAW_DIR = DATA_DIR / 'raw'

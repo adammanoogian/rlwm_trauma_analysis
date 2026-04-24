@@ -2870,7 +2870,7 @@ def main():
                         help='Model to fit (qlearning=M1, wmrl=M2, wmrl_m3=M3, wmrl_m4=M4, wmrl_m5=M5, wmrl_m6a=M6a, wmrl_m6b=M6b)')
     parser.add_argument('--data', type=str, required=True,
                         help='Path to trial data CSV')
-    parser.add_argument('--output', type=str, default='output/mle/',
+    parser.add_argument('--output', type=str, default='models/mle/',
                         help='Output directory')
     parser.add_argument('--n-starts', type=int, default=50,
                         help='Number of random starting points (default: 50)')

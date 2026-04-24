@@ -221,7 +221,7 @@ def _load_lec_covariate(
         Shape ``(n_participants,)`` float32 z-scored LEC covariate, or ``None``
         if unavailable.
     """
-    metrics_path = Path("output/summary_participant_metrics.csv")
+    metrics_path = Path("data/processed/summary_participant_metrics.csv")
     if not metrics_path.exists():
         print(f"  WARNING: {metrics_path} not found. Running without L2 regression.")
         return None
@@ -282,7 +282,7 @@ def _load_subscale_design_matrix(
         build_level2_design_matrix,
     )
 
-    metrics_path = Path("output/summary_participant_metrics.csv")
+    metrics_path = Path("data/processed/summary_participant_metrics.csv")
     if not metrics_path.exists():
         print(
             f"  WARNING: {metrics_path} not found. "
@@ -856,7 +856,7 @@ def _run_permutation_shuffle(
     if covariate_lec is None:
         raise RuntimeError(
             "Permutation test requires LEC covariate. "
-            "output/summary_participant_metrics.csv not found or missing column."
+            "data/processed/summary_participant_metrics.csv not found or missing column."
         )
 
     rng = np.random.default_rng(shuffle_idx)
