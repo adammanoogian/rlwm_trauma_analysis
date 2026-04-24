@@ -123,11 +123,14 @@ ignore_missing_imports = true
 # ===========================================================================
 
 [tool.pytest.ini_options]
-testpaths = ["tests", "validation", "scripts/fitting/tests"]
+# Phase 31 consolidated layout — all tests live under tests/.
+# Wave D (plan 31-04) relocates scripts/fitting/tests/ + validation/ here.
+testpaths = ["tests"]
 addopts = "-v --tb=short --strict-markers --durations=10"
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks integration tests",
+    "scientific: marks tests as scientific-validation tests (slow, deselect with '-m \"not scientific\"')",
 ]
 filterwarnings = [
     "ignore::DeprecationWarning",
