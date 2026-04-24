@@ -13,9 +13,19 @@ This file contains project-specific instructions for Claude Code when working on
 2. **Standalone documents**: Each doc should be self-contained. A reader should understand the topic fully without needing to read other docs.
 
 3. **Current doc structure**:
+   - `docs/PROJECT_STRUCTURE.md` - **Canonical reference for repo layout (CCDS v2 + Scheme D)**
    - `docs/TASK_AND_ENVIRONMENT.md` - Task structure, environment API, parameters
    - `docs/MODEL_REFERENCE.md` - Model mathematics, fitting, paper comparisons
    - `docs/legacy/` - Deprecated docs (for reference only)
+
+### Project structure canonical reference
+
+See `docs/PROJECT_STRUCTURE.md` for the reader-facing layout doc describing
+the CCDS-aligned top-level tree (`data/{raw,interim,processed,external}`,
+`models/{bayesian,mle,ppc,recovery}`, `reports/{figures,tables}`,
+`tests/{unit,integration,scientific}`, `logs/`). Executable layout
+invariants live in `tests/integration/test_v5_phase29_structure.py`
+(covers both Phase 29 Scheme D scripts and Phase 31 CCDS top-level).
 
 4. **When updating docs**:
    - Update the existing document in place
@@ -62,6 +72,11 @@ This file contains project-specific instructions for Claude Code when working on
 ---
 
 ## Code Organization
+
+> **Top-level layout:** CCDS v2-aligned (`data/`, `models/`, `reports/`,
+> `scripts/`, `src/`, `tests/`, `cluster/`, `logs/`, `docs/`, `manuscript/`).
+> Canonical reference: `docs/PROJECT_STRUCTURE.md`. Executable invariants:
+> `tests/integration/test_v5_phase29_structure.py`.
 
 ### Numbered Pipeline Scripts
 
@@ -202,20 +217,20 @@ Install with `pip install -e .` (required to import `rlwm`).
 - Block 2: `practice_dynamic` - Dynamic practice (with reversals)
 - Blocks 3-23: `main_task` - Main experimental task (21 blocks max)
 
-**Output Files:**
+**Output Files (CCDS `data/processed/` tier):**
 | File | Description |
 |------|-------------|
-| `output/task_trials_long_all.csv` | All blocks with `is_practice` flag and `phase_type` |
-| `output/task_trials_long.csv` | Main task only (default for fitting) |
-| `output/task_trials_long_all_participants.csv` | Legacy filename (main task only) |
+| `data/processed/task_trials_long_all.csv` | All blocks with `is_practice` flag and `phase_type` |
+| `data/processed/task_trials_long.csv` | Main task only (default for fitting) |
+| `data/processed/task_trials_long_all_participants.csv` | Legacy filename (main task only) |
 
 **Fitting with Practice Data:**
 ```bash
 # MLE fitting with practice blocks
-python scripts/04_model_fitting/a_mle/fit_mle.py --model qlearning --data output/task_trials_long_all.csv --include-practice
+python scripts/04_model_fitting/a_mle/fit_mle.py --model qlearning --data data/processed/task_trials_long_all.csv --include-practice
 
 # Bayesian fitting with practice blocks
-python scripts/04_model_fitting/b_bayesian/fit_bayesian.py --model qlearning --data output/task_trials_long_all.csv --include-practice
+python scripts/04_model_fitting/b_bayesian/fit_bayesian.py --model qlearning --data data/processed/task_trials_long_all.csv --include-practice
 ```
 
 ---
@@ -272,31 +287,31 @@ python scripts/06_fit_analyses/06_analyze_winner_heterogeneity.py
 
 ```bash
 # Q-learning (M1)
-python scripts/04_model_fitting/a_mle/fit_mle.py --model qlearning --data output/task_trials_long.csv
+python scripts/04_model_fitting/a_mle/fit_mle.py --model qlearning --data data/processed/task_trials_long.csv
 
 # WM-RL (M2)
-python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl --data output/task_trials_long.csv
+python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl --data data/processed/task_trials_long.csv
 
 # WM-RL with perseveration (M3)
-python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m3 --data output/task_trials_long.csv
+python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m3 --data data/processed/task_trials_long.csv
 
 # M5: WM-RL + RL Forgetting
-python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m5 --data output/task_trials_long.csv
+python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m5 --data data/processed/task_trials_long.csv
 
 # M6a: WM-RL + Stimulus-Specific Perseveration
-python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m6a --data output/task_trials_long.csv
+python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m6a --data data/processed/task_trials_long.csv
 
 # M6b: WM-RL + Dual Perseveration
-python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m6b --data output/task_trials_long.csv
+python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m6b --data data/processed/task_trials_long.csv
 
 # M4: RLWM-LBA Joint Choice+RT (requires float64)
-python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m4 --data output/task_trials_long.csv
+python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m4 --data data/processed/task_trials_long.csv
 
 # Parallel fitting (multi-core, ~4-8x speedup)
-python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m5 --data output/task_trials_long.csv --n-jobs 16
+python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m5 --data data/processed/task_trials_long.csv --n-jobs 16
 
 # GPU-accelerated (requires rlwm_gpu environment)
-python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m5 --data output/task_trials_long.csv --use-gpu
+python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m5 --data data/processed/task_trials_long.csv --use-gpu
 ```
 
 ### Run Bayesian Pipeline (Full Hierarchical Fit)
@@ -345,10 +360,10 @@ sbatch cluster/13_bayesian_gpu.slurm
 
 ```bash
 # Q-learning
-python scripts/04_model_fitting/b_bayesian/fit_bayesian.py --model qlearning --data output/task_trials_long.csv
+python scripts/04_model_fitting/b_bayesian/fit_bayesian.py --model qlearning --data data/processed/task_trials_long.csv
 
 # WM-RL
-python scripts/04_model_fitting/b_bayesian/fit_bayesian.py --model wmrl --data output/task_trials_long.csv
+python scripts/04_model_fitting/b_bayesian/fit_bayesian.py --model wmrl --data data/processed/task_trials_long.csv
 
 # With custom MCMC settings
 python scripts/04_model_fitting/b_bayesian/fit_bayesian.py --model wmrl --data data.csv --chains 4 --warmup 1000 --samples 2000
@@ -380,10 +395,16 @@ python scripts/03_model_prefitting/03_run_model_recovery.py --mode cross-model -
 ### Run Tests
 
 ```bash
-# Run fitting module tests
-python -m pytest scripts/fitting/tests/ -v
+# Fast-tier (unit + integration, < 2 min; CI-equivalent)
+python -m pytest tests/ -m "not slow and not scientific" -v
 
-# Run all tests (including examples)
+# Integration tier only (fitting smoke, MLE quick, structure guard)
+python -m pytest tests/integration/ -v
+
+# Scientific tier (parameter recovery, v4 closure — slow)
+python -m pytest tests/scientific/ -v
+
+# All tests
 python -m pytest tests/ -v
 ```
 

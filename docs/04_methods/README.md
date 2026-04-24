@@ -24,7 +24,7 @@ methods are added or old ones documented.
 | Parameter recovery | scripts/03_model_prefitting/03_run_model_recovery.py | _TODO_ |
 | Prior predictive check gate | scripts/03_model_prefitting/04_run_prior_predictive.py | _TODO_ |
 | Bayesian parameter recovery | scripts/03_model_prefitting/05_run_bayesian_recovery.py | _TODO_ |
-| Posterior-vs-MLE sanity check | validation/compare_posterior_to_mle.py | _TODO_ |
+| Posterior-vs-MLE sanity check | tests/scientific/compare_posterior_to_mle.py | _TODO_ |
 
 Entries marked _TODO_ are scaffolding. Add short method writeups here
 as results are produced or as reviewers ask for them.
@@ -145,7 +145,7 @@ submatrix).  Canonical source: `scripts/fitting/level2_design.py`.
 | Check | Target | Where |
 |---|---|---|
 | Divergences | 0 at some `target_accept_prob ∈ {0.80, 0.95, 0.99}` | `run_inference_with_bump`, `numpyro_models.py:657` |
-| R-hat (all sites) | < 1.05 | `output/bayesian/{model}_convergence_summary.csv` |
+| R-hat (all sites) | < 1.05 | `models/bayesian/{model}_convergence_summary.csv` |
 | ESS bulk (group-level μ_pr) | > 400 | `mcmc.summary_frame()` via ArviZ |
 | ESS tail (group-level μ_pr) | > 400 | `mcmc.summary_frame()` via ArviZ |
 | Tree-depth saturation | < 10% of iterations | `extra["tree_depth"]` |
@@ -153,7 +153,7 @@ submatrix).  Canonical source: `scripts/fitting/level2_design.py`.
 
 #### 4.2 Posterior-vs-MLE spot check (one-off validation)
 
-Run `python validation/compare_posterior_to_mle.py --model {model}` after
+Run `python tests/scientific/compare_posterior_to_mle.py --model {model}` after
 a production fit completes.  Inspect the printed summary:
 
 | Parameter class | Expected pattern |
@@ -232,7 +232,7 @@ indicate the N(0,1) prior isn't providing enough shrinkage.
    survey-only participants lack task data.
 5. **No prior hierarchical Bayesian posterior exists** for direct
    comparison — the upcoming production refit is the first.  MLE fits in
-   `output/mle/` are the baseline.
+   `models/mle/` are the baseline.
 
 ---
 
@@ -243,8 +243,8 @@ indicate the N(0,1) prior isn't providing enough shrinkage.
 ```bash
 git pull origin main
 sbatch cluster/13_bayesian_choice_only.slurm  # pass --export=MODEL=wmrl_m6b
-# Autopush returns output/bayesian/wmrl_m6b_* on completion
-python validation/compare_posterior_to_mle.py --model wmrl_m6b
+# Autopush returns models/bayesian/wmrl_m6b_* on completion
+python tests/scientific/compare_posterior_to_mle.py --model wmrl_m6b
 ```
 
 #### If M6b passes, submit the other 5 in parallel
@@ -293,7 +293,7 @@ Covers two closely-linked questions for v4.0 Phase 15/16:
    exist?  Any non-standard choices flagged with rationale.
 
 The empirical numbers in this doc are computed from
-`output/summary_participant_metrics.csv` (N=166 for LEC-5, N=160 for
+`data/processed/summary_participant_metrics.csv` (N=166 for LEC-5, N=160 for
 IES-R complete-data participants).
 
 ---

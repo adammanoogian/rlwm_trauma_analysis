@@ -13,6 +13,24 @@ conda activate ds_env
 pip install -e .   # required: makes `import rlwm` resolve (src/ layout)
 ```
 
+## Project Structure
+
+This repository follows [Cookiecutter Data Science v2](https://cookiecutter-data-science.drivendata.org/)
+conventions. See [`docs/PROJECT_STRUCTURE.md`](docs/PROJECT_STRUCTURE.md)
+for the full layout.
+
+Quick orientation:
+
+- `data/{raw,interim,processed}/` — CCDS data tiers
+- `models/{bayesian,mle,ppc,recovery}/` — fitted model artifacts
+- `reports/{figures,tables}/` — manuscript figures and tables
+- `scripts/0N_.../` — six-stage numbered pipeline (preprocessing → behavioral
+  → prefit → fit → post-fit → analysis)
+- `src/rlwm/` — installable package (`pip install -e .`)
+- `tests/{unit,integration,scientific}/` — tiered test suite
+- `cluster/` — SLURM jobs + master orchestrator `submit_all.sh`
+- `logs/` — single unified log location (gitignored)
+
 ## Pipeline
 
 Scripts are numbered by stage; each depends on the previous.
