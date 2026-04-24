@@ -2,32 +2,34 @@
 Create summary dataset with derived metrics and scale scores.
 
 This script:
-1. Loads parsed data files (demographics, survey1, survey2, task)
+1. Loads parsed data files (demographics, survey1, survey2, task) from data/interim/
 2. Calculates all derived metrics:
    - LEC-5 summary scores
    - IES-R total and subscale scores
    - All task performance metrics
 3. Creates one-row-per-participant summary dataset
-4. Saves the summary dataset
+4. Saves the summary dataset to data/processed/summary_participant_metrics.csv
 
 Usage:
-    python scripts/04_create_summary_csv.py
+    python scripts/01_data_preprocessing/04_create_summary_csv.py
 """
 
 from __future__ import annotations
 
-import os
 import sys
+from pathlib import Path
 
 import pandas as pd
 
 # Add project root to path for config import
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from config import EXCLUDED_PARTICIPANTS, DataParams
+# Import config CCDS constants + DataParams + excluded participants
+# (CCDS constants landed in plan 31-01; physical files moved in plan 31-02)
+from config import EXCLUDED_PARTICIPANTS, PROCESSED_DIR, DataParams
 
 # Add utils to path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'utils'))
+sys.path.append(str(Path(__file__).resolve().parents[1] / 'utils'))
 
 from scoring import calculate_all_task_metrics, score_ies_r, score_less
 
@@ -38,16 +40,15 @@ def main():
     print("=" * 60)
     print()
 
-    # Paths
-    output_dir = 'output'
-    demographics_path = os.path.join(output_dir, 'parsed_demographics.csv')
-    survey1_path = os.path.join(output_dir, 'parsed_survey1.csv')
-    survey2_path = os.path.join(output_dir, 'parsed_survey2.csv')
-    task_path = os.path.join(output_dir, 'parsed_task_trials.csv')
+    # Paths — CCDS tiered (interim source → processed destination)
+    demographics_path = DataParams.PARSED_DEMOGRAPHICS
+    survey1_path = DataParams.PARSED_SURVEY1
+    survey2_path = DataParams.PARSED_SURVEY2
+    task_path = DataParams.PARSED_TASK_TRIALS
 
     # Check if parsed files exist
     for path in [demographics_path, survey1_path, survey2_path, task_path]:
-        if not os.path.exists(path):
+        if not Path(path).exists():
             print(f"ERROR: Required file not found: {path}")
             print("Please run 01_parse_raw_data.py first")
             sys.exit(1)
@@ -251,8 +252,9 @@ def main():
 
     print()
 
-    # Save summary data
-    output_path = os.path.join(output_dir, 'summary_participant_metrics.csv')
+    # Save summary data — CCDS processed tier (tracked, analysis-ready)
+    PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
+    output_path = DataParams.SUMMARY_METRICS
     summary.to_csv(output_path, index=False)
     print("-" * 60)
     print(f"[OK] SAVED: {output_path}")
@@ -276,10 +278,10 @@ def main():
     print("STEP 4 COMPLETE: Summary dataset created successfully")
     print("=" * 60)
     print()
-    print("All pipeline steps complete! Final outputs:")
-    print(f"  1. {output_dir}/collated_participant_data.csv")
-    print(f"  2. {output_dir}/task_trials_long.csv")
-    print(f"  3. {output_dir}/summary_participant_metrics.csv")
+    print("All pipeline steps complete! Final outputs (CCDS tiered):")
+    print(f"  1. {DataParams.COLLATED_DATA}")
+    print(f"  2. {DataParams.TASK_TRIALS_LONG}")
+    print(f"  3. {DataParams.SUMMARY_METRICS}")
     print()
 
 

@@ -8,15 +8,17 @@ This consolidated script combines best practices from multiple parsing approache
 - Detailed summary statistics
 
 Usage:
-    python scripts/01_parse_raw_data.py
+    python scripts/01_data_preprocessing/01_parse_raw_data.py
 
-Outputs:
-    output/task_trials_long_all_participants.csv  - Main trial-level data (cleaned)
-    output/participant_info.csv                    - Participant summary info
-    output/parsed_survey1.csv                      - LEC-5 with LESS scores
-    output/parsed_survey2.csv                      - IES-R with subscale scores
-    output/parsed_demographics.csv                 - Demographics data
-    output/summary_participant_metrics.csv         - Combined participant metrics
+Outputs (CCDS tiered layout — populated by plan 31-02):
+    data/processed/task_trials_long_all_participants.csv  - Main trial-level data (cleaned; legacy name)
+    data/processed/task_trials_long.csv                   - Main task only (canonical input to fitting)
+    data/processed/task_trials_long_all.csv               - All blocks incl. practice (is_practice flag)
+    data/processed/summary_participant_metrics.csv        - Combined participant metrics (tracked)
+    data/interim/participant_info.csv                     - Participant summary info (gitignored PII)
+    data/interim/parsed_survey1.csv                       - LEC-5 with LESS scores (gitignored PII)
+    data/interim/parsed_survey2.csv                       - IES-R with subscale scores (gitignored PII)
+    data/interim/parsed_demographics.csv                  - Demographics data (gitignored PII)
 """
 
 from __future__ import annotations
@@ -40,18 +42,24 @@ from data_cleaning import (
 )
 from scoring import score_ies_r, score_less
 
-# Import config for excluded participants
+# Import config CCDS constants + excluded participants
+# (CCDS constants landed in plan 31-01; physical files moved in plan 31-02)
+from config import (
+    DATA_RAW_DIR,
+    INTERIM_DIR,
+    PROCESSED_DIR,
+    DataParams,
+)
+
 try:
     from config import EXCLUDED_PARTICIPANTS
 except ImportError:
     EXCLUDED_PARTICIPANTS = []
 
 # ============================================================================
-# Configuration
+# Configuration (CCDS tiered: raw → interim → processed)
 # ============================================================================
-DATA_DIR = Path('data')
-OUTPUT_DIR = Path('output')
-MAPPING_FILE = DATA_DIR / 'participant_id_mapping.json'
+MAPPING_FILE = DATA_RAW_DIR / 'participant_id_mapping.json'
 
 # Minimum trials to include a participant (exclude incomplete sessions)
 MIN_TRIALS = 100
@@ -243,20 +251,21 @@ def main():
     print("=" * 80)
     print()
 
-    # Create output directory
-    OUTPUT_DIR.mkdir(exist_ok=True)
+    # Create output directories (CCDS tiered)
+    INTERIM_DIR.mkdir(parents=True, exist_ok=True)
+    PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
 
     # Load ID mapping
     id_mapping = load_participant_mapping()
 
-    # Find CSV files to process
+    # Find CSV files to process (data/raw/ — sensitive jsPsych drops)
     if id_mapping:
-        csv_files = [(DATA_DIR / filename, info['assigned_id'])
+        csv_files = [(DATA_RAW_DIR / filename, info['assigned_id'])
                      for filename, info in id_mapping.items()]
         print(f"Using ID mapping: {len(csv_files)} participants")
     else:
-        csv_files = [(f, None) for f in sorted(DATA_DIR.glob('rlwm_trauma_*.csv'))]
-        print(f"Found {len(csv_files)} CSV files in {DATA_DIR}")
+        csv_files = [(f, None) for f in sorted(DATA_RAW_DIR.glob('rlwm_trauma_*.csv'))]
+        print(f"Found {len(csv_files)} CSV files in {DATA_RAW_DIR}")
 
     if len(csv_files) == 0:
         print("ERROR: No participant files found!")
@@ -327,21 +336,21 @@ def main():
             info['status'] = 'complete' if info['n_trials_clean'] >= 700 else 'partial'
 
         # Save ALL task trials (including practice, with is_practice flag)
-        output_path_all = OUTPUT_DIR / 'task_trials_long_all.csv'
+        output_path_all = DataParams.TASK_TRIALS_ALL
         task_df_all.to_csv(output_path_all, index=False)
         print(f"[SAVED] {output_path_all}")
         print(f"  {len(task_df_all):,} trials from {task_df_all['sona_id'].nunique()} participants")
         print(f"  (includes {task_df_all['is_practice'].sum():,} practice trials)")
 
         # Save MAIN TASK ONLY (backwards compatible with existing pipelines)
-        output_path_main = OUTPUT_DIR / 'task_trials_long.csv'
+        output_path_main = DataParams.TASK_TRIALS_LONG
         task_df_main.to_csv(output_path_main, index=False)
         print(f"[SAVED] {output_path_main}")
         print(f"  {len(task_df_main):,} trials from {task_df_main['sona_id'].nunique()} participants")
         print("  (main task only, practice excluded)")
 
         # Also save to legacy filename for compatibility
-        output_path_legacy = OUTPUT_DIR / 'task_trials_long_all_participants.csv'
+        output_path_legacy = DataParams.TASK_TRIALS_LEGACY
         task_df_main.to_csv(output_path_legacy, index=False)
         print(f"[SAVED] {output_path_legacy} (legacy filename, main task only)")
 
@@ -353,7 +362,7 @@ def main():
     # ========================================================================
     if participant_info:
         info_df = pd.DataFrame(participant_info)
-        info_path = OUTPUT_DIR / 'participant_info.csv'
+        info_path = INTERIM_DIR / 'participant_info.csv'
         info_df.to_csv(info_path, index=False)
         print(f"[SAVED] {info_path}")
 
@@ -367,7 +376,7 @@ def main():
         survey1_df = pd.concat(all_survey1, ignore_index=True)
         survey1_df = score_less(survey1_df)
 
-        output_path = OUTPUT_DIR / 'parsed_survey1.csv'
+        output_path = DataParams.PARSED_SURVEY1
         survey1_df.to_csv(output_path, index=False)
         print(f"[SAVED] {output_path}")
         print(f"  {len(survey1_df)} participants with LEC-5 data")
@@ -382,7 +391,7 @@ def main():
         survey2_df = pd.concat(all_survey2, ignore_index=True)
         survey2_df = score_ies_r(survey2_df)
 
-        output_path = OUTPUT_DIR / 'parsed_survey2.csv'
+        output_path = DataParams.PARSED_SURVEY2
         survey2_df.to_csv(output_path, index=False)
         print(f"[SAVED] {output_path}")
         print(f"  {len(survey2_df)} participants with IES-R data")
@@ -397,7 +406,7 @@ def main():
         demo_df = pd.concat(all_demographics, ignore_index=True)
         demo_df = demo_df.drop_duplicates(subset=['sona_id'], keep='first')
 
-        output_path = OUTPUT_DIR / 'parsed_demographics.csv'
+        output_path = DataParams.PARSED_DEMOGRAPHICS
         demo_df.to_csv(output_path, index=False)
         print(f"[SAVED] {output_path}")
         print(f"  {len(demo_df)} participants with demographics")
@@ -430,7 +439,7 @@ def main():
             summary_df = summary_df.merge(task_metrics, on='sona_id', how='left')
 
         # Save
-        output_path = OUTPUT_DIR / 'summary_participant_metrics.csv'
+        output_path = DataParams.SUMMARY_METRICS
         summary_df.to_csv(output_path, index=False)
         print(f"[SAVED] {output_path}")
         print(f"  {len(summary_df)} participants with combined metrics")
@@ -474,15 +483,15 @@ def main():
     print("\n" + "=" * 80)
     print("STEP 1 COMPLETE: Raw data parsing finished successfully")
     print("=" * 80)
-    print("\nOutputs created:")
-    print("  - output/task_trials_long_all.csv      (ALL trials including practice)")
-    print("  - output/task_trials_long.csv          (Main task only, for fitting)")
-    print("  - output/task_trials_long_all_participants.csv (legacy, main task only)")
-    print("  - output/participant_info.csv")
-    print("  - output/parsed_survey1.csv (LEC-5 + LESS scores)")
-    print("  - output/parsed_survey2.csv (IES-R + subscale scores)")
-    print("  - output/parsed_demographics.csv")
-    print("  - output/summary_participant_metrics.csv")
+    print("\nOutputs created (CCDS tiered layout):")
+    print(f"  - {DataParams.TASK_TRIALS_ALL}   (ALL trials including practice)")
+    print(f"  - {DataParams.TASK_TRIALS_LONG}  (Main task only, for fitting)")
+    print(f"  - {DataParams.TASK_TRIALS_LEGACY}  (legacy filename, main task only)")
+    print(f"  - {INTERIM_DIR / 'participant_info.csv'}")
+    print(f"  - {DataParams.PARSED_SURVEY1}  (LEC-5 + LESS scores)")
+    print(f"  - {DataParams.PARSED_SURVEY2}  (IES-R + subscale scores)")
+    print(f"  - {DataParams.PARSED_DEMOGRAPHICS}")
+    print(f"  - {DataParams.SUMMARY_METRICS}")
     print("\nNote: Use task_trials_long_all.csv with --include-practice for")
     print("      fitting models on practice data.")
     print("\nNext step: Run 02_create_collated_csv.py")

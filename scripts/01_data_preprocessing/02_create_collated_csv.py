@@ -2,24 +2,33 @@
 Create collated participant dataset with all individual responses.
 
 This script:
-1. Loads parsed data files (demographics, survey1, survey2, task)
+1. Loads parsed data files (demographics, survey1, survey2, task) from data/interim/
 2. Merges all data into a wide-format dataset (one row per participant)
 3. Includes all demographic variables, survey responses, and task summary stats
-4. Saves the collated dataset
+4. Saves the collated dataset to data/interim/collated_participant_data.csv
 
 Usage:
-    python scripts/02_create_collated_csv.py
+    python scripts/01_data_preprocessing/02_create_collated_csv.py
 """
 
-import os
+from __future__ import annotations
+
 import sys
+from pathlib import Path
+
 import pandas as pd
-import numpy as np
+
+# Add project root to path for config import
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 # Add utils to path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'utils'))
+sys.path.append(str(Path(__file__).resolve().parents[1] / 'utils'))
 
 from scoring import calculate_all_task_metrics
+
+# Import config CCDS constants
+# (CCDS constants landed in plan 31-01; physical files moved in plan 31-02)
+from config import INTERIM_DIR, DataParams
 
 
 def main():
@@ -28,16 +37,15 @@ def main():
     print("=" * 60)
     print()
 
-    # Paths
-    output_dir = 'output'
-    demographics_path = os.path.join(output_dir, 'parsed_demographics.csv')
-    survey1_path = os.path.join(output_dir, 'parsed_survey1.csv')
-    survey2_path = os.path.join(output_dir, 'parsed_survey2.csv')
-    task_path = os.path.join(output_dir, 'parsed_task_trials.csv')
+    # Paths — CCDS interim tier (parsed products are gitignored PII)
+    demographics_path = DataParams.PARSED_DEMOGRAPHICS
+    survey1_path = DataParams.PARSED_SURVEY1
+    survey2_path = DataParams.PARSED_SURVEY2
+    task_path = DataParams.PARSED_TASK_TRIALS
 
     # Check if parsed files exist
     for path in [demographics_path, survey1_path, survey2_path, task_path]:
-        if not os.path.exists(path):
+        if not Path(path).exists():
             print(f"ERROR: Required file not found: {path}")
             print("Please run 01_parse_raw_data.py first")
             sys.exit(1)
@@ -135,8 +143,9 @@ def main():
     print(f"  Missing data percentage: {collated.isna().sum().sum() / (collated.shape[0] * collated.shape[1]) * 100:.1f}%")
     print()
 
-    # Save collated data
-    output_path = os.path.join(output_dir, 'collated_participant_data.csv')
+    # Save collated data — CCDS interim tier (gitignored PII)
+    INTERIM_DIR.mkdir(parents=True, exist_ok=True)
+    output_path = DataParams.COLLATED_DATA
     collated.to_csv(output_path, index=False)
     print("-" * 60)
     print(f"[OK] SAVED: {output_path}")

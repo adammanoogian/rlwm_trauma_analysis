@@ -2,19 +2,29 @@
 Create long-format task trials dataset.
 
 This script:
-1. Loads parsed task trial data
+1. Loads parsed task trial data from data/interim/
 2. Cleans and formats trial-level data
 3. Adds useful derived columns (e.g., trial_in_experiment)
-4. Saves clean trial-by-trial dataset in long format
+4. Saves clean trial-by-trial dataset in long format to data/processed/
 
 Usage:
-    python scripts/03_create_task_trials_csv.py
+    python scripts/01_data_preprocessing/03_create_task_trials_csv.py
 """
 
-import os
+from __future__ import annotations
+
 import sys
-import pandas as pd
+from pathlib import Path
+
 import numpy as np
+import pandas as pd
+
+# Add project root to path for config import
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+# Import config CCDS constants
+# (CCDS constants landed in plan 31-01; physical files moved in plan 31-02)
+from config import PROCESSED_DIR, DataParams
 
 
 def main():
@@ -23,12 +33,11 @@ def main():
     print("=" * 60)
     print()
 
-    # Paths
-    output_dir = 'output'
-    task_path = os.path.join(output_dir, 'parsed_task_trials.csv')
+    # Paths — CCDS tiered (interim source → processed destination)
+    task_path = DataParams.PARSED_TASK_TRIALS
 
     # Check if parsed file exists
-    if not os.path.exists(task_path):
+    if not Path(task_path).exists():
         print(f"ERROR: Required file not found: {task_path}")
         print("Please run 01_parse_raw_data.py first")
         sys.exit(1)
@@ -164,8 +173,9 @@ def main():
 
     print()
 
-    # Save task trials
-    output_path = os.path.join(output_dir, 'task_trials_long.csv')
+    # Save task trials — CCDS processed tier (tracked, analysis-ready)
+    PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
+    output_path = DataParams.TASK_TRIALS_LONG
     task_trials.to_csv(output_path, index=False)
     print("-" * 60)
     print(f"[OK] SAVED: {output_path}")
