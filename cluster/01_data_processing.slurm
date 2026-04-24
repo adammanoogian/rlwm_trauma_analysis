@@ -20,8 +20,8 @@
 # =============================================================================
 
 #SBATCH --job-name=p29_01_data
-#SBATCH --output=cluster/logs/01_data_processing_%j.out
-#SBATCH --error=cluster/logs/01_data_processing_%j.err
+#SBATCH --output=logs/01_data_processing_%j.out
+#SBATCH --error=logs/01_data_processing_%j.err
 #SBATCH --time=02:00:00
 #SBATCH --mem=16G
 #SBATCH --cpus-per-task=4
@@ -59,7 +59,7 @@ else
     exit 1
 fi
 
-mkdir -p cluster/logs data/processed data/interim
+mkdir -p logs data/processed data/interim
 
 export PYTHONUNBUFFERED=1
 

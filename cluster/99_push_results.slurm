@@ -45,8 +45,8 @@
 # =============================================================================
 
 #SBATCH --job-name=push_results
-#SBATCH --output=cluster/logs/push_results_%j.out
-#SBATCH --error=cluster/logs/push_results_%j.err
+#SBATCH --output=logs/push_results_%j.out
+#SBATCH --error=logs/push_results_%j.err
 #SBATCH --time=00:15:00
 #SBATCH --mem=4G
 #SBATCH --cpus-per-task=1
@@ -67,7 +67,7 @@ GIT_REMOTE="${GIT_REMOTE:-origin}"
 cd "${SLURM_SUBMIT_DIR:-$(dirname "$0")/..}"
 PROJECT_ROOT="$(pwd)"
 
-mkdir -p cluster/logs
+mkdir -p logs
 
 echo "============================================================"
 echo "Auto-Push Results to Git"

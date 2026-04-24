@@ -19,14 +19,14 @@
 #   - models/mle/{model}_group_summary.csv
 #   - models/mle/timing_log.csv (per-participant timing)
 #   - models/mle/performance_summary.json (overall performance metrics)
-#   - cluster/logs/mle_{jobid}.out
+#   - logs/mle_{jobid}.out
 #
 # Reference: https://docs.erc.monash.edu/old-M3/M3/slurm/partitions/
 # =============================================================================
 
 #SBATCH --job-name=rlwm_mle
-#SBATCH --output=cluster/logs/mle_%j.out
-#SBATCH --error=cluster/logs/mle_%j.err
+#SBATCH --output=logs/mle_%j.out
+#SBATCH --error=logs/mle_%j.err
 #SBATCH --time=08:00:00
 #SBATCH --mem=64G
 #SBATCH --cpus-per-task=16
@@ -76,7 +76,7 @@ conda activate /scratch/${PROJECT}/${USER}/conda/envs/rlwm || {
 }
 
 # Create logs directory if needed
-mkdir -p cluster/logs
+mkdir -p logs
 
 # =============================================================================
 # Thread Control (match NJOBS × threads to allocated CPUs)

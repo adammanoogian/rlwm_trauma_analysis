@@ -26,8 +26,8 @@
 # =============================================================================
 
 #SBATCH --job-name=p29_05_post_checks
-#SBATCH --output=cluster/logs/05_post_checks_%j.out
-#SBATCH --error=cluster/logs/05_post_checks_%j.err
+#SBATCH --output=logs/05_post_checks_%j.out
+#SBATCH --error=logs/05_post_checks_%j.err
 #SBATCH --time=02:00:00
 #SBATCH --mem=16G
 #SBATCH --cpus-per-task=2
@@ -86,7 +86,7 @@ else
     exit 1
 fi
 
-mkdir -p cluster/logs
+mkdir -p logs
 
 export PYTHONUNBUFFERED=1
 

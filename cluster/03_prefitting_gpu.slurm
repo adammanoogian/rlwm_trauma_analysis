@@ -22,8 +22,8 @@
 # =============================================================================
 
 #SBATCH --job-name=p29_03_prefit_gpu
-#SBATCH --output=cluster/logs/03_prefitting_gpu_%j.out
-#SBATCH --error=cluster/logs/03_prefitting_gpu_%j.err
+#SBATCH --output=logs/03_prefitting_gpu_%j.out
+#SBATCH --error=logs/03_prefitting_gpu_%j.err
 #SBATCH --time=06:00:00
 #SBATCH --mem=32G
 #SBATCH --cpus-per-task=4
@@ -90,7 +90,7 @@ export JAX_PERSISTENT_CACHE_MIN_ENTRY_SIZE_BYTES=0
 mkdir -p "$JAX_COMPILATION_CACHE_DIR" || unset JAX_COMPILATION_CACHE_DIR
 echo "JAX cache: ${JAX_COMPILATION_CACHE_DIR:-disabled}"
 
-mkdir -p cluster/logs models/bayesian/21_prior_predictive models/bayesian/21_recovery models/recovery
+mkdir -p logs models/bayesian/21_prior_predictive models/bayesian/21_recovery models/recovery
 
 export PYTHONUNBUFFERED=1
 

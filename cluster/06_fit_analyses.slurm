@@ -28,8 +28,8 @@
 # =============================================================================
 
 #SBATCH --job-name=p29_06_fit_analyses
-#SBATCH --output=cluster/logs/06_fit_analyses_%j.out
-#SBATCH --error=cluster/logs/06_fit_analyses_%j.err
+#SBATCH --output=logs/06_fit_analyses_%j.out
+#SBATCH --error=logs/06_fit_analyses_%j.err
 #SBATCH --time=02:00:00
 #SBATCH --mem=32G
 #SBATCH --cpus-per-task=4
@@ -88,7 +88,7 @@ else
     exit 1
 fi
 
-mkdir -p cluster/logs reports/tables/model_comparison reports/tables/mle_by_trauma reports/tables/regressions \
+mkdir -p logs reports/tables/model_comparison reports/tables/mle_by_trauma reports/tables/regressions \
          models/bayesian/21_tables reports/figures/bayesian/21_bayesian
 
 export PYTHONUNBUFFERED=1

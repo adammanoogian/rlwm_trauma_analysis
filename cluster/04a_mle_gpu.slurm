@@ -24,14 +24,14 @@
 # Outputs saved to:
 #   - models/mle/{model}_individual_fits.csv
 #   - models/mle/{model}_group_summary.csv
-#   - cluster/logs/mle_gpu_{jobid}.out
+#   - logs/mle_gpu_{jobid}.out
 #
 # Reference: https://docs.erc.monash.edu/old-M3/M3/slurm/partitions/
 # =============================================================================
 
 #SBATCH --job-name=rlwm_mle_gpu
-#SBATCH --output=cluster/logs/mle_gpu_%j.out
-#SBATCH --error=cluster/logs/mle_gpu_%j.err
+#SBATCH --output=logs/mle_gpu_%j.out
+#SBATCH --error=logs/mle_gpu_%j.err
 #SBATCH --time=12:00:00
 #SBATCH --mem=64G
 #SBATCH --gres=gpu:1
@@ -99,7 +99,7 @@ else:
 echo ""
 
 # Create logs directory if needed
-mkdir -p cluster/logs
+mkdir -p logs
 
 # =============================================================================
 # JAX Compilation Cache (optional for GPU but helps with restarts)
@@ -182,7 +182,7 @@ if [[ "$MODEL_COUNT" -gt 1 ]]; then
     echo "Tail logs:"
     for i in "${!JOBIDS[@]}"; do
         model=$(echo $MODELS | cut -d' ' -f$((i+1)))
-        echo "  tail -f cluster/logs/mle_gpu_${JOBIDS[$i]}.out   # $model"
+        echo "  tail -f logs/mle_gpu_${JOBIDS[$i]}.out   # $model"
     done
     exit 0
 fi
@@ -227,7 +227,7 @@ for model in $MODELS; do
     if [[ $EXIT_CODE -ne 0 ]]; then
         echo ""
         echo "*** ERROR: Model $model FAILED with exit code $EXIT_CODE ***"
-        echo "*** Check stderr log: cluster/logs/mle_gpu_${SLURM_JOB_ID}.err ***"
+        echo "*** Check stderr log: logs/mle_gpu_${SLURM_JOB_ID}.err ***"
         echo ""
     fi
 

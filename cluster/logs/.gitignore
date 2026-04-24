@@ -1,4 +1,0 @@
-# Keep cluster logs tracked for debugging
-# (gitignore removed — logs are small and essential for diagnosing failures)
-!.gitkeep
-!.gitignore

@@ -39,7 +39,7 @@ cluster/
 ├── 00_setup_env_gpu.sh               # GPU conda environment setup (JAX CUDA)
 ├── autopush.sh                       # Auto-push helper (sourced by SLURMs)
 ├── legacy/                           # Archived shipped-milestone SLURMs (pscan/fullybatched benchmarks, wave-based orchestrator)
-├── logs/                             # SLURM output (gitignored)
+│                                     # SLURM output goes to top-level logs/ (gitignored)
 └── README.md                         # this file
 ```
 
@@ -184,7 +184,7 @@ mamba env create -f environment_gpu.yml      # GPU (optional, required for M4 LB
 ### Option A — full chain
 
 ```bash
-mkdir -p cluster/logs
+mkdir -p logs
 bash cluster/submit_all.sh
 squeue -u $USER
 ```
@@ -237,7 +237,7 @@ sbatch --export=ALL,STEP=manuscript_tables cluster/06_fit_analyses.slurm
 ```bash
 squeue -u $USER
 sacct -j <JOBID> --format=JobID,Elapsed,MaxRSS,MaxVMSize,TotalCPU,State
-tail -f cluster/logs/*_%j.out
+tail -f logs/*_%j.out
 
 scancel JOBID
 scancel -u $USER

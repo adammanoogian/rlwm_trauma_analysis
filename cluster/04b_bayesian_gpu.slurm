@@ -43,8 +43,8 @@
 # =============================================================================
 
 #SBATCH --job-name=rlwm-bayesian-gpu-mgpu
-#SBATCH --output=cluster/logs/04b_bayesian_gpu_%j.out
-#SBATCH --error=cluster/logs/04b_bayesian_gpu_%j.err
+#SBATCH --output=logs/04b_bayesian_gpu_%j.out
+#SBATCH --error=logs/04b_bayesian_gpu_%j.err
 #SBATCH --time=06:00:00
 #SBATCH --mem=64G
 #SBATCH --cpus-per-task=8
@@ -143,7 +143,7 @@ echo "JAX cache: ${JAX_COMPILATION_CACHE_DIR:-disabled}"
 echo ""
 
 # Create output + log directories
-mkdir -p cluster/logs
+mkdir -p logs
 mkdir -p models/bayesian
 
 # =============================================================================
@@ -241,7 +241,7 @@ if [ $EXIT_CODE -eq 0 ]; then
     done
 else
     echo "*** ERROR: Model $MODEL FAILED with exit code $EXIT_CODE ***"
-    echo "*** Check stderr log: cluster/logs/04b_bayesian_gpu_${SLURM_JOB_ID}.err ***"
+    echo "*** Check stderr log: logs/04b_bayesian_gpu_${SLURM_JOB_ID}.err ***"
 fi
 
 # =============================================================================

@@ -17,8 +17,8 @@
 # =============================================================================
 
 #SBATCH --job-name=p29_02_behav
-#SBATCH --output=cluster/logs/02_behav_analyses_%j.out
-#SBATCH --error=cluster/logs/02_behav_analyses_%j.err
+#SBATCH --output=logs/02_behav_analyses_%j.out
+#SBATCH --error=logs/02_behav_analyses_%j.err
 #SBATCH --time=01:00:00
 #SBATCH --mem=16G
 #SBATCH --cpus-per-task=4
@@ -55,7 +55,7 @@ else
     exit 1
 fi
 
-mkdir -p cluster/logs reports/figures reports/tables data/processed
+mkdir -p logs reports/figures reports/tables data/processed
 
 export PYTHONUNBUFFERED=1
 

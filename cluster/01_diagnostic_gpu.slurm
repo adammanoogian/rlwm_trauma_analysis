@@ -10,8 +10,8 @@
 # =============================================================================
 
 #SBATCH --job-name=rlwm_diag
-#SBATCH --output=cluster/logs/diagnostic_%j.out
-#SBATCH --error=cluster/logs/diagnostic_%j.err
+#SBATCH --output=logs/diagnostic_%j.out
+#SBATCH --error=logs/diagnostic_%j.err
 #SBATCH --time=00:30:00
 #SBATCH --mem=32G
 #SBATCH --gres=gpu:1
@@ -58,7 +58,7 @@ print(f'GPU available: {len(gpu_devices) > 0}')
 echo ""
 
 # Create logs directory
-mkdir -p cluster/logs
+mkdir -p logs
 
 # =============================================================================
 # Run Diagnostic
