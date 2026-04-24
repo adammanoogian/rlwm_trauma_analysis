@@ -1,0 +1,19 @@
+{
+  "model": "wmrl_m3",
+  "n_participants": 2,
+  "n_starts": 5,
+  "total_time_s": 20.402652978897095,
+  "total_time_min": 0.3400442163149516,
+  "avg_time_per_participant_s": 10.201326489448547,
+  "jit_compilation_time_s": 10.654271364212036,
+  "steady_state_avg_s": 7.932940721511841,
+  "n_jobs": 1,
+  "peak_memory_mb": 330.70703125,
+  "initial_memory_mb": 167.13671875,
+  "memory_increase_mb": 163.5703125,
+  "timestamp": "2026-04-02T20:43:41.245782",
+  "seed": 42,
+  "data_file": "output/task_trials_long.csv",
+  "n_converged": 2,
+  "convergence_rate": 1.0
+}

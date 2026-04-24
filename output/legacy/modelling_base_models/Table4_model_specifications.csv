@@ -1,3 +1,0 @@
-Model,Free Parameters,Parameter List,Fixed Parameters,Blocks Used,Sample Size
-Q-Learning (M1),3,"α₊, α₋, ε",β = 50,3-23,N = 47
-WM-RL Hybrid (M2),6,"α₊, α₋, φ, ρ, K, ε",β = 50,3-23,N = 47
