@@ -1,0 +1,387 @@
+============================= test session starts ==============================
+platform linux -- Python 3.11.15, pytest-9.0.3, pluggy-1.6.0 -- /scratch/fc37/aman0087/conda/envs/rlwm_gpu/bin/python3.11
+cachedir: .pytest_cache
+rootdir: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis
+configfile: pytest.ini (WARNING: ignoring pytest config in pyproject.toml!)
+collecting ... collected 10 items / 1 deselected / 9 selected
+
+tests/integration/test_numpyro_models_2cov.py::test_model_accepts_covariate_iesr[wmrl_m3_hierarchical_model-kappa] FAILED [ 11%]
+tests/integration/test_numpyro_models_2cov.py::test_model_accepts_covariate_iesr[wmrl_m5_hierarchical_model-kappa] FAILED [ 22%]
+tests/integration/test_numpyro_models_2cov.py::test_model_accepts_covariate_iesr[wmrl_m6a_hierarchical_model-kappa_s] FAILED [ 33%]
+tests/integration/test_numpyro_models_2cov.py::test_m3_single_cov_unchanged[wmrl_m3_hierarchical_model-kappa] FAILED [ 44%]
+tests/integration/test_numpyro_models_2cov.py::test_m3_single_cov_unchanged[wmrl_m5_hierarchical_model-kappa] FAILED [ 55%]
+tests/integration/test_numpyro_models_2cov.py::test_m3_single_cov_unchanged[wmrl_m6a_hierarchical_model-kappa_s] FAILED [ 66%]
+tests/integration/test_numpyro_models_2cov.py::test_guard_raises_iesr_without_lec[wmrl_m3_hierarchical_model] FAILED [ 77%]
+tests/integration/test_numpyro_models_2cov.py::test_guard_raises_iesr_without_lec[wmrl_m5_hierarchical_model] FAILED [ 88%]
+tests/integration/test_numpyro_models_2cov.py::test_guard_raises_iesr_without_lec[wmrl_m6a_hierarchical_model] FAILED [100%]
+
+=================================== FAILURES ===================================
+_____ test_model_accepts_covariate_iesr[wmrl_m3_hierarchical_model-kappa] ______
+tests/integration/test_numpyro_models_2cov.py:150: in test_model_accepts_covariate_iesr
+    _mod = importlib.import_module(f"rlwm.fitting.models.{_model_id}")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1126: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1126: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1126: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1140: in _find_and_load_unlocked
+    ???
+E   ModuleNotFoundError: No module named 'rlwm'
+_____ test_model_accepts_covariate_iesr[wmrl_m5_hierarchical_model-kappa] ______
+tests/integration/test_numpyro_models_2cov.py:150: in test_model_accepts_covariate_iesr
+    _mod = importlib.import_module(f"rlwm.fitting.models.{_model_id}")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1126: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1126: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1126: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1140: in _find_and_load_unlocked
+    ???
+E   ModuleNotFoundError: No module named 'rlwm'
+____ test_model_accepts_covariate_iesr[wmrl_m6a_hierarchical_model-kappa_s] ____
+tests/integration/test_numpyro_models_2cov.py:150: in test_model_accepts_covariate_iesr
+    _mod = importlib.import_module(f"rlwm.fitting.models.{_model_id}")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1126: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1126: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1126: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1140: in _find_and_load_unlocked
+    ???
+E   ModuleNotFoundError: No module named 'rlwm'
+________ test_m3_single_cov_unchanged[wmrl_m3_hierarchical_model-kappa] ________
+tests/integration/test_numpyro_models_2cov.py:217: in test_m3_single_cov_unchanged
+    _mod = importlib.import_module(f"rlwm.fitting.models.{_model_id}")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1126: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1126: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1126: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1140: in _find_and_load_unlocked
+    ???
+E   ModuleNotFoundError: No module named 'rlwm'
+________ test_m3_single_cov_unchanged[wmrl_m5_hierarchical_model-kappa] ________
+tests/integration/test_numpyro_models_2cov.py:217: in test_m3_single_cov_unchanged
+    _mod = importlib.import_module(f"rlwm.fitting.models.{_model_id}")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1126: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1126: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1126: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1140: in _find_and_load_unlocked
+    ???
+E   ModuleNotFoundError: No module named 'rlwm'
+______ test_m3_single_cov_unchanged[wmrl_m6a_hierarchical_model-kappa_s] _______
+tests/integration/test_numpyro_models_2cov.py:217: in test_m3_single_cov_unchanged
+    _mod = importlib.import_module(f"rlwm.fitting.models.{_model_id}")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1126: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1126: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1126: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1140: in _find_and_load_unlocked
+    ???
+E   ModuleNotFoundError: No module named 'rlwm'
+________ test_guard_raises_iesr_without_lec[wmrl_m3_hierarchical_model] ________
+tests/integration/test_numpyro_models_2cov.py:276: in test_guard_raises_iesr_without_lec
+    _mod = importlib.import_module(f"rlwm.fitting.models.{_model_id}")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1126: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1126: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1126: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1140: in _find_and_load_unlocked
+    ???
+E   ModuleNotFoundError: No module named 'rlwm'
+________ test_guard_raises_iesr_without_lec[wmrl_m5_hierarchical_model] ________
+tests/integration/test_numpyro_models_2cov.py:276: in test_guard_raises_iesr_without_lec
+    _mod = importlib.import_module(f"rlwm.fitting.models.{_model_id}")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1126: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1126: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1126: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1140: in _find_and_load_unlocked
+    ???
+E   ModuleNotFoundError: No module named 'rlwm'
+_______ test_guard_raises_iesr_without_lec[wmrl_m6a_hierarchical_model] ________
+tests/integration/test_numpyro_models_2cov.py:276: in test_guard_raises_iesr_without_lec
+    _mod = importlib.import_module(f"rlwm.fitting.models.{_model_id}")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1126: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1126: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1126: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:241: in _call_with_frames_removed
+    ???
+<frozen importlib._bootstrap>:1204: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1176: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1140: in _find_and_load_unlocked
+    ???
+E   ModuleNotFoundError: No module named 'rlwm'
+============================= slowest 10 durations =============================
+9.90s call     tests/integration/test_numpyro_models_2cov.py::test_model_accepts_covariate_iesr[wmrl_m3_hierarchical_model-kappa]
+0.00s setup    tests/integration/test_numpyro_models_2cov.py::test_model_accepts_covariate_iesr[wmrl_m3_hierarchical_model-kappa]
+0.00s call     tests/integration/test_numpyro_models_2cov.py::test_model_accepts_covariate_iesr[wmrl_m5_hierarchical_model-kappa]
+0.00s call     tests/integration/test_numpyro_models_2cov.py::test_model_accepts_covariate_iesr[wmrl_m6a_hierarchical_model-kappa_s]
+0.00s setup    tests/integration/test_numpyro_models_2cov.py::test_model_accepts_covariate_iesr[wmrl_m5_hierarchical_model-kappa]
+0.00s setup    tests/integration/test_numpyro_models_2cov.py::test_model_accepts_covariate_iesr[wmrl_m6a_hierarchical_model-kappa_s]
+0.00s call     tests/integration/test_numpyro_models_2cov.py::test_m3_single_cov_unchanged[wmrl_m6a_hierarchical_model-kappa_s]
+0.00s call     tests/integration/test_numpyro_models_2cov.py::test_guard_raises_iesr_without_lec[wmrl_m6a_hierarchical_model]
+0.00s call     tests/integration/test_numpyro_models_2cov.py::test_m3_single_cov_unchanged[wmrl_m3_hierarchical_model-kappa]
+0.00s call     tests/integration/test_numpyro_models_2cov.py::test_m3_single_cov_unchanged[wmrl_m5_hierarchical_model-kappa]
+=========================== short test summary info ============================
+FAILED tests/integration/test_numpyro_models_2cov.py::test_model_accepts_covariate_iesr[wmrl_m3_hierarchical_model-kappa] - ModuleNotFoundError: No module named 'rlwm'
+FAILED tests/integration/test_numpyro_models_2cov.py::test_model_accepts_covariate_iesr[wmrl_m5_hierarchical_model-kappa] - ModuleNotFoundError: No module named 'rlwm'
+FAILED tests/integration/test_numpyro_models_2cov.py::test_model_accepts_covariate_iesr[wmrl_m6a_hierarchical_model-kappa_s] - ModuleNotFoundError: No module named 'rlwm'
+FAILED tests/integration/test_numpyro_models_2cov.py::test_m3_single_cov_unchanged[wmrl_m3_hierarchical_model-kappa] - ModuleNotFoundError: No module named 'rlwm'
+FAILED tests/integration/test_numpyro_models_2cov.py::test_m3_single_cov_unchanged[wmrl_m5_hierarchical_model-kappa] - ModuleNotFoundError: No module named 'rlwm'
+FAILED tests/integration/test_numpyro_models_2cov.py::test_m3_single_cov_unchanged[wmrl_m6a_hierarchical_model-kappa_s] - ModuleNotFoundError: No module named 'rlwm'
+FAILED tests/integration/test_numpyro_models_2cov.py::test_guard_raises_iesr_without_lec[wmrl_m3_hierarchical_model] - ModuleNotFoundError: No module named 'rlwm'
+FAILED tests/integration/test_numpyro_models_2cov.py::test_guard_raises_iesr_without_lec[wmrl_m5_hierarchical_model] - ModuleNotFoundError: No module named 'rlwm'
+FAILED tests/integration/test_numpyro_models_2cov.py::test_guard_raises_iesr_without_lec[wmrl_m6a_hierarchical_model] - ModuleNotFoundError: No module named 'rlwm'
+======================= 9 failed, 1 deselected in 10.27s =======================
+--- clean-tree check ---
+?? models/bayesian/21_canary_preflight.log
+--- submit-host verification ---
+/apps/slurm-25.05.5/bin/sbatch
+Linux m3-login2 5.14.0-611.30.1.el9_7.x86_64 #1 SMP PREEMPT_DYNAMIC Fri Feb 13 17:04:55 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux
