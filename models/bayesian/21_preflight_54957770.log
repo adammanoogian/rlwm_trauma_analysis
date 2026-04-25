@@ -1,0 +1,87 @@
+============================================================
+Phase 24 Wave 1 Pre-flight Gate (SLURM-automated)
+============================================================
+Job ID:     54957770
+Node:       m3g110
+GPU(s):     0
+Project:    /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis
+Git HEAD:   8abb156
+Start time: Sun Apr 26 07:03:35 AM AEST 2026
+============================================================
+
+[1/5] Activating rlwm_gpu env...
+  -> activated by name
+  python: /scratch/fc37/aman0087/conda/envs/rlwm_gpu/bin/python
+  pip:    /scratch/fc37/aman0087/conda/envs/rlwm_gpu/bin/pip
+
+[2/5] pip install -e . --no-deps (idempotent registration)...
+  -> install OK
+
+[3/5] JAX devices probe...
+/scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/site-packages/jaxlib/plugin_support.py:71: RuntimeWarning: JAX plugin jax_cuda12_plugin version 0.9.2 is installed, but it is not compatible with the installed jaxlib version 0.9.0, so it will not be used.
+  warnings.warn(
+E0426 07:04:01.247540 2528333 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0426 07:04:01.247624 2528334 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0426 07:04:01.247950 2528335 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+  jax.__version__ = 0.9.0
+  jax.devices()   = [CudaDevice(id=0)]
+  GPU count       = 1
+  -> JAX sees GPU
+
+[4/5] rlwm import smoke test...
+/scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/site-packages/jaxlib/plugin_support.py:71: RuntimeWarning: JAX plugin jax_cuda12_plugin version 0.9.2 is installed, but it is not compatible with the installed jaxlib version 0.9.0, so it will not be used.
+  warnings.warn(
+  -> rlwm.fitting.core OK
+  -> rlwm.fitting.models.qlearning OK
+  -> rlwm.fitting.models.wmrl OK
+  -> rlwm.fitting.models.wmrl_m3 OK
+  -> rlwm.fitting.models.wmrl_m5 OK
+  -> rlwm.fitting.models.wmrl_m6a OK
+  -> rlwm.fitting.models.wmrl_m6b OK
+  -> all rlwm imports succeed
+
+[5/5] pytest gate (test_numpyro_models_2cov.py)...
+============================= test session starts ==============================
+platform linux -- Python 3.11.15, pytest-9.0.3, pluggy-1.6.0 -- /scratch/fc37/aman0087/conda/envs/rlwm_gpu/bin/python3.11
+cachedir: .pytest_cache
+rootdir: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis
+configfile: pytest.ini (WARNING: ignoring pytest config in pyproject.toml!)
+collecting ... collected 10 items / 1 deselected / 9 selected
+
+tests/integration/test_numpyro_models_2cov.py::test_model_accepts_covariate_iesr[wmrl_m3_hierarchical_model-kappa] PASSED [ 11%]
+tests/integration/test_numpyro_models_2cov.py::test_model_accepts_covariate_iesr[wmrl_m5_hierarchical_model-kappa] PASSED [ 22%]
+tests/integration/test_numpyro_models_2cov.py::test_model_accepts_covariate_iesr[wmrl_m6a_hierarchical_model-kappa_s] PASSED [ 33%]
+tests/integration/test_numpyro_models_2cov.py::test_m3_single_cov_unchanged[wmrl_m3_hierarchical_model-kappa] PASSED [ 44%]
+tests/integration/test_numpyro_models_2cov.py::test_m3_single_cov_unchanged[wmrl_m5_hierarchical_model-kappa] PASSED [ 55%]
+tests/integration/test_numpyro_models_2cov.py::test_m3_single_cov_unchanged[wmrl_m6a_hierarchical_model-kappa_s] PASSED [ 66%]
+tests/integration/test_numpyro_models_2cov.py::test_guard_raises_iesr_without_lec[wmrl_m3_hierarchical_model] PASSED [ 77%]
+tests/integration/test_numpyro_models_2cov.py::test_guard_raises_iesr_without_lec[wmrl_m5_hierarchical_model] PASSED [ 88%]
+tests/integration/test_numpyro_models_2cov.py::test_guard_raises_iesr_without_lec[wmrl_m6a_hierarchical_model] PASSED [100%]
+
+=============================== warnings summary ===============================
+../../../../../../scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/site-packages/jaxlib/plugin_support.py:71
+  /scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/site-packages/jaxlib/plugin_support.py:71: RuntimeWarning: JAX plugin jax_cuda12_plugin version 0.9.2 is installed, but it is not compatible with the installed jaxlib version 0.9.0, so it will not be used.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+============================= slowest 10 durations =============================
+4.98s call     tests/integration/test_numpyro_models_2cov.py::test_model_accepts_covariate_iesr[wmrl_m3_hierarchical_model-kappa]
+0.59s call     tests/integration/test_numpyro_models_2cov.py::test_model_accepts_covariate_iesr[wmrl_m6a_hierarchical_model-kappa_s]
+0.56s call     tests/integration/test_numpyro_models_2cov.py::test_m3_single_cov_unchanged[wmrl_m5_hierarchical_model-kappa]
+0.52s call     tests/integration/test_numpyro_models_2cov.py::test_m3_single_cov_unchanged[wmrl_m3_hierarchical_model-kappa]
+0.48s call     tests/integration/test_numpyro_models_2cov.py::test_m3_single_cov_unchanged[wmrl_m6a_hierarchical_model-kappa_s]
+0.47s call     tests/integration/test_numpyro_models_2cov.py::test_model_accepts_covariate_iesr[wmrl_m5_hierarchical_model-kappa]
+0.24s call     tests/integration/test_numpyro_models_2cov.py::test_guard_raises_iesr_without_lec[wmrl_m3_hierarchical_model]
+0.02s call     tests/integration/test_numpyro_models_2cov.py::test_guard_raises_iesr_without_lec[wmrl_m6a_hierarchical_model]
+0.01s call     tests/integration/test_numpyro_models_2cov.py::test_guard_raises_iesr_without_lec[wmrl_m5_hierarchical_model]
+0.00s setup    tests/integration/test_numpyro_models_2cov.py::test_model_accepts_covariate_iesr[wmrl_m3_hierarchical_model-kappa]
+================== 9 passed, 1 deselected, 1 warning in 7.97s ==================
+
+============================================================
+PREFLIGHT: PASS
+End time: Sun Apr 26 07:04:27 AM AEST 2026
+============================================================
+
+============================================================
+AUTO-PUSH: Committing and pushing results
+============================================================
