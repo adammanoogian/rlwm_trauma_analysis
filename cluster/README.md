@@ -12,6 +12,9 @@ paths (`scripts/0{1..6}_*/*.py`).
 
 ```
 cluster/
+├── 00_precheck.sh                    # PRE-SUBMIT GATE: 6-layer validation; run BEFORE submit_all.sh
+├── 00_preflight.slurm                # Compute-node body of L6 gate (env + GPU + pytest); sourced by 00_precheck.sh via sbatch --wait
+├── 03_submit_canary.sh               # Stage-03 prior_predictive fan-out canary (validates cluster→repo flow before full chain)
 ├── submit_all.sh                     # MASTER: chains 01..06 via afterok (canonical entry)
 ├── 21_submit_pipeline.sh             # Shim delegating to submit_all.sh (back-compat)
 │
@@ -103,18 +106,30 @@ Seven shipped-milestone SLURMs moved to `cluster/legacy/` — all referenced mil
 
 ## Canonical full-pipeline invocation
 
+**Always run the precheck before submit_all.** It's the single login-node entry-point that runs every check needed to fire `submit_all.sh` without worry.
+
 ```bash
-# Full chain (01 -> 02 -> 03 -> 04 -> 05 -> 06) via --afterok
-bash cluster/submit_all.sh
+# Step 0 — REQUIRED before any cluster submission. 6 layers:
+#   L1 git state, L2 data files, L3 syntax, L4 pytest fast tier,
+#   L5 submit_all dry-run, L6 compute-node env+GPU+pytest gate (sbatch --wait)
+bash cluster/00_precheck.sh                  # ~5-15 min wall (L6 dominates)
+bash cluster/00_precheck.sh --quick          # local layers only (~1-2 min) — for quick iteration
+bash cluster/00_precheck.sh --skip-cluster   # everything except L6 sbatch — for offline checks
 
-# Dry-run: verify every SLURM passes bash -n and every python path resolves
-bash cluster/submit_all.sh --dry-run
+# On PRECHECK: PASS, then either:
 
-# Restart mid-pipeline
-bash cluster/submit_all.sh --from-stage 5
+# (a) Phase-24-style canary first (validates cluster→repo flow on shortest stage)
+bash cluster/03_submit_canary.sh             # 6 prior_predictive jobs, no afterok chain
+                                             # Then run the four-criteria acceptance gate
+                                             # before resuming the full chain
 
-# Subset of models
-bash cluster/submit_all.sh --models "wmrl_m3 wmrl_m5"
+# (b) Or fire the full chain immediately
+bash cluster/submit_all.sh                   # 01 -> 02 -> 03 -> 04 -> 05 -> 06 via afterok
+
+# Variants:
+bash cluster/submit_all.sh --dry-run         # verify every SLURM bash -n + python path resolves
+bash cluster/submit_all.sh --from-stage 5    # restart mid-pipeline
+bash cluster/submit_all.sh --models "wmrl_m3 wmrl_m5"   # subset
 
 # Back-compat shim (preserves v4.0 user-memory invocation)
 bash cluster/21_submit_pipeline.sh           # -> delegates to submit_all.sh
