@@ -15,6 +15,7 @@ cluster/
 ├── 00_precheck.sh                    # PRE-SUBMIT GATE: 6-layer validation; run BEFORE submit_all.sh
 ├── 00_preflight.slurm                # Compute-node body of L6 gate (env + GPU + pytest); sourced by 00_precheck.sh via sbatch --wait
 ├── 03_submit_canary.sh               # Stage-03 prior_predictive fan-out canary (validates cluster→repo flow before full chain)
+├── 03_check_canary.slurm             # Productionized canary acceptance gate (4-criteria + Baribault SOFT_PASS); emits 21_canary_acceptance_report.md
 ├── submit_all.sh                     # MASTER: chains 01..06 via afterok (canonical entry)
 ├── 21_submit_pipeline.sh             # Shim delegating to submit_all.sh (back-compat)
 │
@@ -120,8 +121,8 @@ bash cluster/00_precheck.sh --skip-cluster   # everything except L6 sbatch — f
 
 # (a) Phase-24-style canary first (validates cluster→repo flow on shortest stage)
 bash cluster/03_submit_canary.sh             # 6 prior_predictive jobs, no afterok chain
-                                             # Then run the four-criteria acceptance gate
-                                             # before resuming the full chain
+sbatch --wait cluster/03_check_canary.slurm  # 4-criteria acceptance gate; emits + autopushes
+                                             # 21_canary_acceptance_report.md (APPROVED|REJECTED)
 
 # (b) Or fire the full chain immediately
 bash cluster/submit_all.sh                   # 01 -> 02 -> 03 -> 04 -> 05 -> 06 via afterok
