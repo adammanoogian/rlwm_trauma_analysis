@@ -108,25 +108,37 @@ def test_prior_predictive_wmrl_m3_smoke():
 
 
 def test_prior_predictive_gate_helper():
-    """Pure unit test of the three-part gate evaluator.
+    """Pure unit test of the three-tier gate evaluator.
 
     The ``_evaluate_gate`` helper was consolidated into scripts/utils/ppc.py
-    by Phase 29 (utils consolidation), making it directly importable rather
-    than requiring a leading-digit file-path load.
+    by Phase 29 (utils consolidation). v5.0 Phase 24 follow-up extended its
+    return type from binary ``(bool, metrics)`` to three-tier
+    ``(verdict_str, metrics)`` where verdict ∈ {HARD_PASS, SOFT_PASS, FAIL}.
     """
-    # Canonical post-Phase-29 location: scripts/utils/ppc.py.
     from scripts.utils.ppc import _evaluate_gate  # noqa: WPS433
 
-    # All plausible
+    # HARD_PASS: median 0.61, no sub-chance, no at-ceiling
     good = np.array([0.55, 0.60, 0.58, 0.62, 0.70])
-    passed, metrics = _evaluate_gate(good)
-    assert passed
+    verdict, metrics = _evaluate_gate(good)
+    assert verdict == "HARD_PASS"
     assert 0.40 <= metrics["median"] <= 0.90
     assert metrics["frac_below_chance"] == pytest.approx(0.0)
     assert metrics["frac_at_ceiling"] == pytest.approx(0.0)
 
-    # Mostly ceiling
+    # SOFT_PASS: median 0.91 (just over hard 0.90 ceiling, within soft 0.92).
+    # Mirrors the qlearning Phase-24 canary boundary case — the policy
+    # change exists specifically so this classifies as SOFT_PASS, not FAIL.
+    boundary = np.array([0.85, 0.88, 0.91, 0.92, 0.92])
+    verdict_soft, metrics_soft = _evaluate_gate(boundary)
+    assert verdict_soft == "SOFT_PASS", (
+        f"Expected SOFT_PASS for median={metrics_soft['median']:.3f}; "
+        f"got {verdict_soft}"
+    )
+    assert metrics_soft["median"] > 0.90
+    assert metrics_soft["median"] <= 0.92
+
+    # FAIL: 4-of-5 above 0.95 ceiling => 80% at-ceiling, way above soft 7%
     bad_ceiling = np.array([0.99, 0.98, 0.97, 0.96, 0.50])
-    passed_bad, metrics_bad = _evaluate_gate(bad_ceiling)
-    assert not passed_bad
-    assert metrics_bad["frac_at_ceiling"] >= 0.05
+    verdict_bad, metrics_bad = _evaluate_gate(bad_ceiling)
+    assert verdict_bad == "FAIL"
+    assert metrics_bad["frac_at_ceiling"] >= 0.07

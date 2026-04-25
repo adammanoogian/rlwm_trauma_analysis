@@ -501,8 +501,60 @@ def _unstack_participant_template(
 # ---------------------------------------------------------------------------
 
 
-def _evaluate_gate(accuracies: np.ndarray) -> tuple[bool, dict[str, float]]:
-    """Apply the three-part Baribault & Collins (2023) gate.
+# Three-tier Baribault & Collins (2023) gate thresholds.
+#
+# Hard band = the original Baribault & Collins specification.
+# Soft band = a documented tolerance margin around the hard upper bounds
+# that classifies boundary cases as SOFT_PASS (advisory, monitor in stage
+# 04b) rather than FAIL. Encoded once here so the canary acceptance gate
+# (tests/scientific/check_canary.py) and any future cold-start consumer
+# inherit the policy rather than re-implementing it.
+GATE_MEDIAN_HARD: tuple[float, float] = (0.40, 0.90)
+GATE_MEDIAN_SOFT_UPPER: float = 0.92  # SOFT_PASS extends to median <= 0.92
+GATE_BELOW_HARD: float = 0.10
+GATE_BELOW_SOFT: float = 0.12
+GATE_CEILING_HARD: float = 0.05
+GATE_CEILING_SOFT: float = 0.07
+
+
+def _classify_gate_verdict(metrics: dict[str, float]) -> str:
+    """Three-tier verdict from Baribault & Collins (2023) gate metrics.
+
+    Parameters
+    ----------
+    metrics : dict[str, float]
+        Dict with ``median``, ``frac_below_chance``, ``frac_at_ceiling``.
+
+    Returns
+    -------
+    str
+        One of ``"HARD_PASS"`` (original B&C hard band), ``"SOFT_PASS"``
+        (within the documented soft margin — advisory), or ``"FAIL"``
+        (outside both bands).
+    """
+    median = metrics["median"]
+    below = metrics["frac_below_chance"]
+    ceiling = metrics["frac_at_ceiling"]
+
+    hard_lo, hard_hi = GATE_MEDIAN_HARD
+
+    median_hard = hard_lo <= median <= hard_hi
+    below_hard = below < GATE_BELOW_HARD
+    ceiling_hard = ceiling < GATE_CEILING_HARD
+    if median_hard and below_hard and ceiling_hard:
+        return "HARD_PASS"
+
+    median_soft = hard_lo <= median <= GATE_MEDIAN_SOFT_UPPER
+    below_soft = below < GATE_BELOW_SOFT
+    ceiling_soft = ceiling < GATE_CEILING_SOFT
+    if median_soft and below_soft and ceiling_soft:
+        return "SOFT_PASS"
+
+    return "FAIL"
+
+
+def _evaluate_gate(accuracies: np.ndarray) -> tuple[str, dict[str, float]]:
+    """Apply the three-tier Baribault & Collins (2023) gate.
 
     Parameters
     ----------
@@ -511,8 +563,10 @@ def _evaluate_gate(accuracies: np.ndarray) -> tuple[bool, dict[str, float]]:
 
     Returns
     -------
-    passed : bool
-        True iff all three sub-gates pass.
+    verdict : str
+        One of ``"HARD_PASS"``, ``"SOFT_PASS"``, or ``"FAIL"``. SOFT_PASS
+        is advisory: the canary acceptance gate treats it as non-blocking
+        but flags it for monitoring during stage 04b fitting.
     metrics : dict[str, float]
         Holds ``median``, ``frac_below_chance``, ``frac_at_ceiling``, and
         ``n_draws``.
@@ -520,20 +574,29 @@ def _evaluate_gate(accuracies: np.ndarray) -> tuple[bool, dict[str, float]]:
     median = float(np.median(accuracies))
     below = float(np.mean(accuracies < 0.33))
     ceiling = float(np.mean(accuracies > 0.95))
-    passed = (0.4 <= median <= 0.9) and (below < 0.10) and (ceiling < 0.05)
-    return passed, {
+    metrics = {
         "median": median,
         "frac_below_chance": below,
         "frac_at_ceiling": ceiling,
         "n_draws": int(len(accuracies)),
     }
+    return _classify_gate_verdict(metrics), metrics
+
+
+def _classify_metric_band(value: float, hard_ok: bool, soft_ok: bool) -> str:
+    """Return per-metric band label: ``hard`` | ``soft`` | ``no``."""
+    if hard_ok:
+        return "hard"
+    if soft_ok:
+        return "soft"
+    return "no"
 
 
 def _write_gate_report(
     path: Path,
     model: str,
     metrics: dict[str, float],
-    passed: bool,
+    verdict: str,
     num_draws: int,
     seed: int,
 ) -> None:
@@ -547,8 +610,9 @@ def _write_gate_report(
         Model identifier.
     metrics : dict[str, float]
         Output of :func:`_evaluate_gate`.
-    passed : bool
-        Gate verdict.
+    verdict : str
+        Three-tier verdict from :func:`_classify_gate_verdict`. One of
+        ``"HARD_PASS"``, ``"SOFT_PASS"``, or ``"FAIL"``.
     num_draws : int
         Number of prior draws simulated.
     seed : int
@@ -556,35 +620,62 @@ def _write_gate_report(
     """
     from rlwm.fitting.numpyro_helpers import PARAM_PRIOR_DEFAULTS
 
-    median_ok = 0.4 <= metrics["median"] <= 0.9
-    below_ok = metrics["frac_below_chance"] < 0.10
-    ceiling_ok = metrics["frac_at_ceiling"] < 0.05
+    hard_lo, hard_hi = GATE_MEDIAN_HARD
+    median = metrics["median"]
+    below = metrics["frac_below_chance"]
+    ceiling = metrics["frac_at_ceiling"]
+
+    median_hard = hard_lo <= median <= hard_hi
+    median_soft = hard_lo <= median <= GATE_MEDIAN_SOFT_UPPER
+    below_hard = below < GATE_BELOW_HARD
+    below_soft = below < GATE_BELOW_SOFT
+    ceiling_hard = ceiling < GATE_CEILING_HARD
+    ceiling_soft = ceiling < GATE_CEILING_SOFT
+
+    soft_note = ""
+    if verdict == "SOFT_PASS":
+        soft_note = (
+            "- **Note:** boundary case — within soft-margin band; advisory only, "
+            "monitor in stage 04b fitting (rho/kappa shrinkage check)."
+        )
 
     lines = [
         f"# Prior predictive gate: {model}",
         "",
-        f"- **Verdict:** {'**PASS**' if passed else '**FAIL**'}",
+        f"- **Verdict:** **{verdict}**",
+    ]
+    if soft_note:
+        lines.append(soft_note)
+    lines += [
         f"- Draws: {num_draws}",
         f"- Seed: {seed}",
         f"- Real draws simulated: {metrics['n_draws']}",
         "",
-        "## Gate checks (Baribault & Collins 2023)",
+        "## Gate checks (Baribault & Collins 2023; three-tier policy)",
         "",
-        "| Check | Threshold | Value | Pass |",
-        "|---|---|---|---|",
+        "Per-metric band: `hard` = within original B&C hard band; "
+        "`soft` = within documented soft margin (advisory); "
+        "`no` = outside both bands.",
+        "",
+        "| Check | Hard threshold | Soft threshold | Value | Band |",
+        "|---|---|---|---|---|",
         (
-            f"| Median accuracy | [0.40, 0.90] | "
-            f"{metrics['median']:.3f} | {'yes' if median_ok else 'no'} |"
+            f"| Median accuracy | [{hard_lo:.2f}, {hard_hi:.2f}] | "
+            f"[{hard_lo:.2f}, {GATE_MEDIAN_SOFT_UPPER:.2f}] | "
+            f"{median:.3f} | "
+            f"{_classify_metric_band(median, median_hard, median_soft)} |"
         ),
         (
-            f"| Sub-chance fraction | < 10% | "
-            f"{metrics['frac_below_chance'] * 100:.1f}% | "
-            f"{'yes' if below_ok else 'no'} |"
+            f"| Sub-chance fraction | < {GATE_BELOW_HARD * 100:.0f}% | "
+            f"< {GATE_BELOW_SOFT * 100:.0f}% | "
+            f"{below * 100:.1f}% | "
+            f"{_classify_metric_band(below, below_hard, below_soft)} |"
         ),
         (
-            f"| At-ceiling fraction | < 5% | "
-            f"{metrics['frac_at_ceiling'] * 100:.1f}% | "
-            f"{'yes' if ceiling_ok else 'no'} |"
+            f"| At-ceiling fraction | < {GATE_CEILING_HARD * 100:.0f}% | "
+            f"< {GATE_CEILING_SOFT * 100:.0f}% | "
+            f"{ceiling * 100:.1f}% | "
+            f"{_classify_metric_band(ceiling, ceiling_hard, ceiling_soft)} |"
         ),
         "",
         "## Priors used",
@@ -620,12 +711,14 @@ def run_prior_ppc(
        that draw's individual-level parameters using
        :func:`simulate_from_samples`, mirroring the likelihood update
        equations in ``rlwm.fitting.jax_likelihoods``.
-    5. Applies the three-part Baribault & Collins (2023) gate: median
-       accuracy in [0.4, 0.9], < 10% draws sub-chance, < 5% draws
-       at-ceiling.
+    5. Applies the three-tier Baribault & Collins (2023) gate. Hard band:
+       median in [0.40, 0.90], sub-chance < 10%, at-ceiling < 5%
+       (HARD_PASS). Soft margin: median in [0.40, 0.92], sub-chance < 12%,
+       at-ceiling < 7% classifies as SOFT_PASS — advisory only, monitor
+       in stage 04b. Outside both bands is FAIL.
     6. Writes ``{model}_prior_sim.nc`` (ArviZ NetCDF),
        ``{model}_prior_accuracy.csv`` (per-draw table), and
-       ``{model}_gate.md`` (PASS/FAIL verdict).
+       ``{model}_gate.md`` (HARD_PASS / SOFT_PASS / FAIL verdict).
 
     Parameters
     ----------
@@ -644,8 +737,9 @@ def run_prior_ppc(
     Returns
     -------
     int
-        Exit code: 0 on PASS, 1 on FAIL (so a pipeline orchestrator can
-        short-circuit).
+        Exit code: 0 on HARD_PASS or SOFT_PASS, 1 on FAIL (so a pipeline
+        orchestrator can short-circuit). The full verdict label lands in
+        ``{model}_gate.md`` for the canary acceptance gate to consume.
     """
     # Heavy imports done lazily to keep import-time cheap and allow tests
     # that import scripts.utils.ppc but never call run_prior_ppc to avoid
@@ -740,12 +834,13 @@ def run_prior_ppc(
                 f"{float(np.median(accuracies[: d + 1])):.3f}"
             )
 
-    # --- 5. Gate evaluation ---------------------------------------------
-    passed, metrics = _evaluate_gate(accuracies)
+    # --- 5. Gate evaluation (three-tier: HARD_PASS / SOFT_PASS / FAIL) ---
+    verdict, metrics = _evaluate_gate(accuracies)
     print("\n>> Gate metrics:")
     for k, v in metrics.items():
         print(f"   {k}: {v}")
-    print(f">> Verdict: {'PASS' if passed else 'FAIL'}")
+    print(f">> Verdict: {verdict}")
+    passed = verdict != "FAIL"
 
     # --- 6. Write artifacts ---------------------------------------------
     below_chance = (accuracies < 0.33).astype(np.int8)
@@ -781,7 +876,7 @@ def run_prior_ppc(
         gate_path,
         model=model,
         metrics=metrics,
-        passed=passed,
+        verdict=verdict,
         num_draws=num_draws,
         seed=seed,
     )
