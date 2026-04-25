@@ -1,0 +1,8 @@
+Canary timestamp (UTC): 20260425T193756Z
+HEAD commit at submission: 97aa22093d3a7bc90953e28c3f5185a649de99c1
+Hostname: m3-login2
+Dispatch: GPU (Phase 23.1 default)
+SLURM script: cluster/03_prefitting_gpu.slurm
+STEP: prior_predictive
+Models: qlearning wmrl wmrl_m3 wmrl_m5 wmrl_m6a wmrl_m6b
+Tag: 21_canary
