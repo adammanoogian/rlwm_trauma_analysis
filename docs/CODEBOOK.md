@@ -32,8 +32,7 @@ Trial-level table. Included participants only (see `included_in_analysis` in
 `summary_participant_metrics.csv`). Main task only — practice blocks excluded.
 Filter: `block >= 3` AND `is_practice == False`.
 
-Row count (v5.0 cohort): see `git log --oneline -1 data/processed/task_trials_long.csv`
-for the commit that regenerated this file.
+Row count (v5.0 cohort): 129,104 rows, 178 participants (regenerated 2026-04-26).
 
 | Column | Type | Range / Units | Description |
 |--------|------|---------------|-------------|
@@ -62,7 +61,7 @@ practice from main task via `is_practice` (bool) and `phase_type` (str).
 
 Included participants only. Block range: 1–23 (blocks 1–2 = practice).
 
-Row count (v5.0 cohort): ~125,900 (main task rows ≈ 112,500 + practice ≈ 13,400).
+Row count (v5.0 cohort): 144,238 rows, 178 participants (129,104 main-task + 15,134 practice).
 
 All columns are identical to `task_trials_long.csv`. Key differences:
 
@@ -79,10 +78,9 @@ models on the combined dataset.
 
 ## summary_participant_metrics.csv
 
-One row per parseable participant. Includes ALL participants (~250) whose raw
+One row per parseable participant. Includes ALL participants (196 total) whose raw
 CSV was successfully parsed. Use `included_in_analysis == True` to filter
-to the analysis cohort (N ≈ 169 for the v5.0 cohort before regeneration;
-see Task 5 of quick-task-010 for updated counts).
+to the analysis cohort (N = 178 for the v5.0 cohort, regenerated 2026-04-26).
 
 ### Identification
 
