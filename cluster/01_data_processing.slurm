@@ -63,6 +63,22 @@ mkdir -p logs data/processed data/interim
 
 export PYTHONUNBUFFERED=1
 
+# Pre-flight: raw data presence (PII gitignored — must be rsynced to the cluster
+# manually before this stage will run). Catches the silent-data-missing case at
+# the SLURM level so afterok chains halt before stages 02-06 enter the queue.
+shopt -s nullglob
+RAW_CSVS=(data/raw/rlwm_trauma_*.csv)
+shopt -u nullglob
+if [[ ${#RAW_CSVS[@]} -eq 0 ]]; then
+    echo "ERROR: data/raw/ contains no rlwm_trauma_*.csv participant files" >&2
+    echo "       Raw data is PII (gitignored) — sync from a local checkout via:" >&2
+    echo "         rsync -av --include='rlwm_trauma_*.csv' \\" >&2
+    echo "               --include='participant_id_mapping.json' --exclude='*' \\" >&2
+    echo "               <local>/data/raw/ ${USER}@m3-login1:${PROJECT_ROOT}/data/raw/" >&2
+    exit 1
+fi
+echo "Pre-flight: found ${#RAW_CSVS[@]} raw participant CSV files in data/raw/"
+
 run_step() {
     local desc="$1"
     shift
