@@ -60,8 +60,12 @@ except ImportError:
 # ============================================================================
 MAPPING_FILE = DATA_RAW_DIR / 'participant_id_mapping.json'
 
-# Minimum trials to include a participant (exclude incomplete sessions)
-MIN_TRIALS = 100
+# Minimum trials to include a participant in task_trials_long.csv.
+# Must match DataParams.MIN_TRIALS_THRESHOLD (400) so that
+# task_trials_long.csv contains exactly the included cohort and the
+# consistency invariant holds: task_trials_long.unique(sona_id)
+# == summary_participant_metrics[included_in_analysis].sum().
+MIN_TRIALS = DataParams.MIN_TRIALS
 
 
 def load_participant_mapping():

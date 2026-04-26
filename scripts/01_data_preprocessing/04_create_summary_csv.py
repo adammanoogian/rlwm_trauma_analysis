@@ -46,7 +46,10 @@ def main():
     demographics_path = DataParams.PARSED_DEMOGRAPHICS
     survey1_path = DataParams.PARSED_SURVEY1
     survey2_path = DataParams.PARSED_SURVEY2
-    task_path = DataParams.PARSED_TASK_TRIALS
+    # Use task_trials_long_all.csv (written by 01_parse_raw_data.py) as the
+    # source for task metrics. This covers all participants with >=MIN_TRIALS,
+    # including practice trials so block counts are correct.
+    task_path = DataParams.TASK_TRIALS_ALL
 
     # Check if parsed files exist
     for path in [demographics_path, survey1_path, survey2_path, task_path]:
@@ -94,9 +97,15 @@ def main():
         corrupted_ids = set(corrupted_df['sona_id'].tolist())
         print(f"  Corrupted CSVs detected: {len(corrupted_ids)} participant(s)")
 
-    # Build inclusion flag + reason string for every participant that appears
-    # in task_trials (parsed successfully) or was flagged as corrupted.
-    all_parsed_ids = set(task_trials['sona_id'].unique()) | corrupted_ids
+    # Build inclusion flag + reason string for every participant that was parsed
+    # successfully (whether or not they passed quality thresholds). Demographics
+    # covers the full parseable cohort; task_trials may add a few extra if their
+    # demographics extraction failed but their task data was usable.
+    all_parsed_ids = (
+        set(demographics['sona_id'].unique())
+        | set(task_trials['sona_id'].unique())
+        | corrupted_ids
+    )
 
     inclusion_rows: list[dict] = []
     for sona_id in all_parsed_ids:
@@ -120,7 +129,7 @@ def main():
 
     inclusion_df = pd.DataFrame(inclusion_rows)
     n_included = inclusion_df['included_in_analysis'].sum()
-    n_excluded = (~inclusion_df['included_in_analysis']).sum()
+    n_excluded = (~inclusion_df['included_in_analysis'].astype(bool)).sum()
     print(f"  Included in analysis: {n_included}")
     print(f"  Excluded with reason: {n_excluded}")
     print()
@@ -207,6 +216,12 @@ def main():
     # Merge inclusion flag + exclusion_reason (outer so corrupted participants
     # that have no demographics row still appear in the summary).
     summary = summary.merge(inclusion_df, on='sona_id', how='outer')
+    # Fill NaN inclusion values (e.g. participants in demographics but not yet
+    # seen in task_trials — shouldn't occur with demographics-seeded all_parsed_ids,
+    # but guard for robustness).
+    if summary['included_in_analysis'].isna().any():
+        summary['included_in_analysis'] = summary['included_in_analysis'].fillna(False)
+        summary['exclusion_reason'] = summary['exclusion_reason'].fillna('low_trial_count_0')
     print(f"After merging inclusion flag: {len(summary)} rows, {len(summary.columns)} columns")
     print()
 
@@ -248,9 +263,10 @@ def main():
     # Data quality summary
     print("-" * 60)
     print("Data Quality Summary:")
+    incl_flag = summary['included_in_analysis'].astype(bool)
     print(f"  Total participants: {len(summary)}")
-    print(f"  Included in analysis: {summary['included_in_analysis'].sum()}")
-    print(f"  Excluded with reason: {(~summary['included_in_analysis']).sum()}")
+    print(f"  Included in analysis: {incl_flag.sum()}")
+    print(f"  Excluded with reason: {(~incl_flag).sum()}")
 
     # Check completeness
     participants_with_all_data = summary.dropna(subset=lec_cols + ies_cols + ['accuracy_overall']).shape[0]
