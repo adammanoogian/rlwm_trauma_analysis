@@ -66,23 +66,38 @@ echo "Start time: $(date)"
 echo "============================================================"
 
 # ---------------------------------------------------------------
-# Activate rlwm env (ArviZ + numpy + pandas + numpyro)
-# Same dispatch ladder used by cluster/03_prefitting_gpu.slurm.
-# CPU env (rlwm) is sufficient — no GPU needed for the verifier.
-# Falls back to rlwm_gpu if rlwm isn't present.
+# Activate an env that has arviz importable (criterion (b) dependency).
+# Probes by capability rather than name — so this stays correct on any
+# cluster where the "rlwm" env doesn't carry arviz but "rlwm_gpu" does
+# (the M3 case as of Phase 24, where the rlwm CPU env shipped without
+# arviz and the original name-based ladder always picked it first,
+# making criterion (b) reliably FAIL). Walks the candidate ladder,
+# activating each in turn and exiting on the first env where
+# `import arviz` succeeds; deactivates failed candidates so the next
+# starts clean.
 # ---------------------------------------------------------------
-if conda activate rlwm 2>/dev/null; then
-    echo "Activated rlwm env"
-elif conda activate /scratch/fc37/$USER/conda/envs/rlwm 2>/dev/null; then
-    echo "Activated rlwm from /scratch/fc37/$USER/"
-elif conda activate /scratch/${PROJECT:-fc37}/$USER/conda/envs/rlwm 2>/dev/null; then
-    echo "Activated rlwm from /scratch/${PROJECT:-fc37}/$USER/"
-elif conda activate rlwm_gpu 2>/dev/null; then
-    echo "Activated rlwm_gpu env (rlwm CPU env not found; fallback)"
-elif conda activate /scratch/fc37/$USER/conda/envs/rlwm_gpu 2>/dev/null; then
-    echo "Activated rlwm_gpu from /scratch/fc37/$USER/ (fallback)"
-else
-    echo "ERROR: failed to activate rlwm or rlwm_gpu conda env"
+ENV_CANDIDATES=(
+    rlwm
+    rlwm_gpu
+    "/scratch/fc37/$USER/conda/envs/rlwm"
+    "/scratch/fc37/$USER/conda/envs/rlwm_gpu"
+    "/scratch/${PROJECT:-fc37}/$USER/conda/envs/rlwm"
+    "/scratch/${PROJECT:-fc37}/$USER/conda/envs/rlwm_gpu"
+)
+
+ACTIVATED=""
+for env in "${ENV_CANDIDATES[@]}"; do
+    if conda activate "$env" 2>/dev/null \
+       && python -c "import arviz" 2>/dev/null; then
+        ACTIVATED="$env"
+        echo "Activated env $env (arviz importable)"
+        break
+    fi
+    conda deactivate 2>/dev/null || true
+done
+
+if [[ -z "$ACTIVATED" ]]; then
+    echo "ERROR: no candidate env has arviz importable. Tried: ${ENV_CANDIDATES[*]}"
     exit 1
 fi
 echo "  python: $(which python)"

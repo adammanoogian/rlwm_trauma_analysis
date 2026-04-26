@@ -88,19 +88,35 @@ class ModelGateResult:
 
 
 def _read_jobids() -> dict[str, str]:
-    """Parse ``21_canary_jobids.txt`` into ``{model: jid}``."""
-    if not JOBIDS_FILE.exists():
-        return {}
+    """Parse jobids files into ``{model: jid}`` with overlay-wins semantics.
+
+    Reads the canonical ``21_canary_jobids.txt`` first, then overlays any
+    per-model re-submission jobids files matching the glob
+    ``21_canary_*_jobids.txt`` (e.g. ``21_canary_qlearning_resoft_jobids.txt``
+    written by a single-model re-fan-out). The pattern's two-underscore shape
+    excludes the canonical file itself, so each overlay strictly adds new
+    information. Last-write-wins per model.
+
+    This productionizes the SOFT_PASS recovery workflow: an operator who
+    re-runs a single model under the new three-tier Baribault gate gets
+    that model's jobid honored automatically — no surgery on the canonical
+    jobids file required.
+    """
     out: dict[str, str] = {}
-    for line in JOBIDS_FILE.read_text().splitlines():
-        line = line.strip()
-        if not line:
-            continue
-        parts = line.split("|")
-        if len(parts) != 3:
-            continue
-        _, model, jid = parts
-        out[model] = jid
+    sources: list[Path] = []
+    if JOBIDS_FILE.exists():
+        sources.append(JOBIDS_FILE)
+    sources.extend(sorted(MODELS_DIR.glob(f"{CANARY_TAG}_*_jobids.txt")))
+    for path in sources:
+        for line in path.read_text().splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            parts = line.split("|")
+            if len(parts) != 3:
+                continue
+            _, model, jid = parts
+            out[model] = jid
     return out
 
 
