@@ -268,8 +268,23 @@ def main():
         print(f"Found {len(csv_files)} CSV files in {DATA_RAW_DIR}")
 
     if len(csv_files) == 0:
-        print("ERROR: No participant files found!")
-        return
+        # Fail-fast with non-zero exit so SLURM afterok chains halt instead of
+        # cascading into 02-04 (which then error-and-exit-1 on missing interim
+        # files, masking the real cause). Raw data is PII / gitignored and must
+        # be synced manually to the cluster.
+        print(
+            f"ERROR: No participant CSV files found in {DATA_RAW_DIR}",
+            file=sys.stderr,
+        )
+        print(
+            "       Expected pattern: rlwm_trauma_*.csv (+ participant_id_mapping.json)\n"
+            "       Raw data is PII and gitignored — sync from local via:\n"
+            "         rsync -av --include='rlwm_trauma_*.csv' \\\n"
+            "               --include='participant_id_mapping.json' --exclude='*' \\\n"
+            "               <local>/data/raw/ <cluster>:<project>/data/raw/",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
     # Parse each file
     all_task_trials = []
