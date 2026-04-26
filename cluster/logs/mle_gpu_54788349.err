@@ -1,0 +1,17 @@
+E0413 05:58:53.287370 4109223 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0413 05:58:53.287531 4109224 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0413 05:58:53.287705 4109225 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0413 05:59:14.400590 4109586 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0413 05:59:14.400792 4109588 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0413 05:59:14.400790 4109587 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+W0413 11:12:33.350723 4109237 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0413 11:12:33.817547 4109237 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0413 11:12:33.843755 4109237 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0413 11:12:33.888920 4109237 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0413 11:12:33.898257 4109237 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0413 11:12:33.904824 4109237 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0413 11:12:33.911722 4109237 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0413 11:18:33.761028 4109237 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0413 11:18:34.629478 4109237 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0413 11:25:19.059321 4109237 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0413 11:25:19.693677 4109237 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.

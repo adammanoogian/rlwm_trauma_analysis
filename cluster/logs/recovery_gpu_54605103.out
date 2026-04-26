@@ -1,0 +1,89 @@
+============================================================
+RLWM Parameter Recovery (GPU) - M3 SLURM Job
+============================================================
+Job ID: 54605103
+Node: m3g117
+Partition: gpu
+GPU(s): 0
+Project: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis
+Start time: Wed Apr  8 04:07:28 PM AEST 2026
+============================================================
+Activated rlwm_gpu by name
+
+Verifying GPU access...
+JAX devices: [CudaDevice(id=0)]
+GPU(s) available: [CudaDevice(id=0)]
+
+JAX cache: /scratch/fc37/aman0087/.jax_cache_gpu
+
+============================================================
+Parameter Recovery Settings
+============================================================
+Model:         qlearning
+N subjects:    50
+N datasets:    3
+N starts:      20
+Seed:          42
+============================================================
+
+[GPU 16:07:44] util=9% mem=0/46068MB temp=29C
+================================================================================
+PARAMETER RECOVERY ANALYSIS
+================================================================================
+Model:        qlearning
+N subjects:   50
+N datasets:   3
+Seed:         42
+Output dir:   output/recovery/qlearning
+Figures dir:  figures/recovery/qlearning
+GPU:          1 device(s) available
+================================================================================
+
+Running parameter recovery pipeline...
+[GPU 16:12:44] util=6% mem=34549/46068MB temp=37C
+[GPU 16:17:44] util=99% mem=34549/46068MB temp=38C
+[GPU 16:22:44] util=96% mem=34549/46068MB temp=38C
+[GPU 16:27:44] util=99% mem=34549/46068MB temp=39C
+[GPU 16:32:44] util=99% mem=34549/46068MB temp=38C
+[GPU 16:37:44] util=99% mem=34549/46068MB temp=38C
+[GPU 16:42:44] util=98% mem=34551/46068MB temp=38C
+[GPU 16:47:44] util=99% mem=34551/46068MB temp=38C
+[GPU 16:52:44] util=99% mem=34551/46068MB temp=38C
+[GPU 16:57:44] util=97% mem=34551/46068MB temp=38C
+[GPU 17:02:44] util=93% mem=34551/46068MB temp=38C
+[GPU 17:07:44] util=99% mem=34551/46068MB temp=38C
+[GPU 17:12:44] util=98% mem=34551/46068MB temp=39C
+[GPU 17:17:44] util=99% mem=34551/46068MB temp=38C
+[GPU 17:22:44] util=98% mem=34551/46068MB temp=38C
+[GPU 17:27:44] util=99% mem=34551/46068MB temp=38C
+
+Computing recovery metrics...
+Saved results:  output/recovery/qlearning/recovery_results.csv
+Saved metrics:  output/recovery/qlearning/recovery_metrics.csv
+
+Generating visualization plots...
+Saved scatter plots: figures/recovery/qlearning/
+Saved distribution plots: figures/recovery/qlearning/
+
+================================================================================
+RECOVERY METRICS SUMMARY
+================================================================================
+parameter  pearson_r       p_value     rmse      bias pass_fail
+alpha_pos   0.818878  1.647521e-37 0.175909 -0.009397      PASS
+alpha_neg   0.911792  4.465871e-59 0.125239  0.007865      PASS
+  epsilon   0.996389 1.994552e-160 0.025884 -0.008844      PASS
+================================================================================
+
+✓ ALL PARAMETERS PASSED (r >= 0.80)
+  Recovery quality is excellent.
+
+============================================================
+Recovery complete!
+End time: Wed Apr  8 05:30:09 PM AEST 2026
+============================================================
+
+Results saved to:
+  output/recovery/qlearning/recovery_results.csv
+  output/recovery/qlearning/recovery_metrics.csv
+  figures/recovery/qlearning/
+============================================================

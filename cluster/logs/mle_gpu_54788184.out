@@ -1,0 +1,41 @@
+============================================================
+RLWM GPU-Accelerated MLE Fitting - M3 SLURM Job
+============================================================
+Job ID: 54788184
+Node: m3g111
+Partition: gpu
+GPU(s): 0
+Project: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis
+Start time: Mon Apr 13 01:08:57 AM AEST 2026
+============================================================
+Activated rlwm_gpu by name
+
+Verifying GPU access...
+JAX devices: [CudaDevice(id=0)]
+GPU(s) available: [CudaDevice(id=0)]
+
+JAX cache: /scratch/fc37/aman0087/.jax_cache_gpu
+
+Cleaning up stale checkpoints...
+
+Dispatching 7 models as parallel GPU jobs...
+
+  qlearning -> Job 54788344
+  wmrl -> Job 54788345
+  wmrl_m3 -> Job 54788346
+  wmrl_m5 -> Job 54788347
+  wmrl_m6a -> Job 54788348
+  wmrl_m6b -> Job 54788349
+  wmrl_m4 -> Job 54788350
+
+All jobs submitted. Monitor with:
+  squeue -u aman0087
+
+Tail logs:
+  tail -f cluster/logs/mle_gpu_54788344.out   # qlearning
+  tail -f cluster/logs/mle_gpu_54788345.out   # wmrl
+  tail -f cluster/logs/mle_gpu_54788346.out   # wmrl_m3
+  tail -f cluster/logs/mle_gpu_54788347.out   # wmrl_m5
+  tail -f cluster/logs/mle_gpu_54788348.out   # wmrl_m6a
+  tail -f cluster/logs/mle_gpu_54788349.out   # wmrl_m6b
+  tail -f cluster/logs/mle_gpu_54788350.out   # wmrl_m4

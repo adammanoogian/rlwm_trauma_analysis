@@ -1,0 +1,4 @@
+W0413 09:32:33.112453 1675258 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0413 09:32:34.076243 1675258 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0413 09:43:02.214876 1675258 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0413 09:43:03.347317 1675258 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.

@@ -1,0 +1,132 @@
+============================================================
+RLWM Parameter Recovery (GPU) - M3 SLURM Job
+============================================================
+Job ID: 54605113
+Node: m3g105
+Partition: gpu
+GPU(s): 0
+Project: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis
+Start time: Thu Apr  9 12:52:32 PM AEST 2026
+============================================================
+Activated rlwm_gpu by name
+
+Verifying GPU access...
+JAX devices: [CudaDevice(id=0)]
+GPU(s) available: [CudaDevice(id=0)]
+
+JAX cache: /scratch/fc37/aman0087/.jax_cache_gpu
+
+============================================================
+Parameter Recovery Settings
+============================================================
+Model:         wmrl_m6b
+N subjects:    50
+N datasets:    3
+N starts:      20
+Seed:          42
+============================================================
+
+[GPU 12:52:44] util=0% mem=0/46068MB temp=39C
+================================================================================
+PARAMETER RECOVERY ANALYSIS
+================================================================================
+Model:        wmrl_m6b
+N subjects:   50
+N datasets:   3
+Seed:         42
+Output dir:   output/recovery/wmrl_m6b
+Figures dir:  figures/recovery/wmrl_m6b
+GPU:          1 device(s) available
+================================================================================
+
+Running parameter recovery pipeline...
+[GPU 12:57:44] util=100% mem=34549/46068MB temp=37C
+[GPU 13:02:44] util=100% mem=34549/46068MB temp=37C
+[GPU 13:07:44] util=100% mem=34549/46068MB temp=37C
+[GPU 13:12:44] util=100% mem=34551/46068MB temp=37C
+[GPU 13:17:44] util=99% mem=34551/46068MB temp=37C
+[GPU 13:22:44] util=99% mem=34551/46068MB temp=37C
+[GPU 13:27:44] util=99% mem=34551/46068MB temp=37C
+[GPU 13:32:44] util=99% mem=34551/46068MB temp=37C
+[GPU 13:37:44] util=100% mem=34551/46068MB temp=37C
+[GPU 13:42:44] util=99% mem=34551/46068MB temp=37C
+[GPU 13:47:44] util=99% mem=34551/46068MB temp=37C
+[GPU 13:52:44] util=99% mem=34551/46068MB temp=37C
+[GPU 13:57:44] util=100% mem=34551/46068MB temp=37C
+[GPU 14:02:44] util=100% mem=34551/46068MB temp=37C
+[GPU 14:07:44] util=99% mem=34551/46068MB temp=37C
+[GPU 14:12:44] util=99% mem=34551/46068MB temp=37C
+[GPU 14:17:44] util=96% mem=34551/46068MB temp=37C
+[GPU 14:22:44] util=99% mem=34551/46068MB temp=37C
+[GPU 14:27:44] util=0% mem=34551/46068MB temp=36C
+[GPU 14:32:44] util=99% mem=34551/46068MB temp=37C
+[GPU 14:37:44] util=99% mem=34551/46068MB temp=37C
+[GPU 14:42:45] util=99% mem=34551/46068MB temp=37C
+[GPU 14:47:45] util=99% mem=34551/46068MB temp=37C
+[GPU 14:52:45] util=100% mem=34551/46068MB temp=38C
+[GPU 14:57:45] util=99% mem=34551/46068MB temp=36C
+[GPU 15:02:45] util=100% mem=34551/46068MB temp=37C
+[GPU 15:07:45] util=100% mem=34551/46068MB temp=37C
+[GPU 15:12:45] util=100% mem=34551/46068MB temp=37C
+[GPU 15:17:45] util=99% mem=34551/46068MB temp=37C
+[GPU 15:22:45] util=99% mem=34551/46068MB temp=37C
+[GPU 15:27:45] util=99% mem=34551/46068MB temp=37C
+[GPU 15:32:45] util=99% mem=34551/46068MB temp=37C
+[GPU 15:37:45] util=99% mem=34551/46068MB temp=37C
+[GPU 15:42:45] util=100% mem=34551/46068MB temp=37C
+[GPU 15:47:45] util=99% mem=34551/46068MB temp=38C
+[GPU 15:52:45] util=99% mem=34551/46068MB temp=37C
+[GPU 15:57:45] util=99% mem=34551/46068MB temp=37C
+[GPU 16:02:45] util=99% mem=34551/46068MB temp=37C
+[GPU 16:07:45] util=99% mem=34551/46068MB temp=37C
+[GPU 16:12:45] util=100% mem=34551/46068MB temp=37C
+[GPU 16:17:45] util=99% mem=34551/46068MB temp=37C
+[GPU 16:22:45] util=100% mem=34551/46068MB temp=37C
+[GPU 16:27:45] util=100% mem=34551/46068MB temp=37C
+[GPU 16:32:45] util=100% mem=34551/46068MB temp=37C
+[GPU 16:37:45] util=99% mem=34551/46068MB temp=37C
+[GPU 16:42:45] util=100% mem=34551/46068MB temp=37C
+[GPU 16:47:45] util=99% mem=34551/46068MB temp=37C
+[GPU 16:52:45] util=99% mem=34551/46068MB temp=37C
+[GPU 16:57:46] util=100% mem=34551/46068MB temp=37C
+[GPU 17:02:46] util=99% mem=34551/46068MB temp=37C
+[GPU 17:07:46] util=100% mem=34551/46068MB temp=37C
+[GPU 17:12:46] util=99% mem=34551/46068MB temp=37C
+[GPU 17:17:46] util=99% mem=34551/46068MB temp=37C
+[GPU 17:22:46] util=99% mem=34551/46068MB temp=37C
+
+Computing recovery metrics...
+Saved results:  output/recovery/wmrl_m6b/recovery_results.csv
+Saved metrics:  output/recovery/wmrl_m6b/recovery_metrics.csv
+
+Generating visualization plots...
+Saved scatter plots: figures/recovery/wmrl_m6b/
+Saved distribution plots: figures/recovery/wmrl_m6b/
+
+================================================================================
+RECOVERY METRICS SUMMARY
+================================================================================
+  parameter  pearson_r       p_value     rmse      bias pass_fail
+  alpha_pos   0.598222  6.284451e-16 0.270817 -0.045521      FAIL
+  alpha_neg   0.516119  1.382348e-11 0.295606 -0.071280      FAIL
+        phi   0.442229  1.463874e-08 0.335450  0.032563      FAIL
+        rho   0.628919  6.829873e-18 0.270642  0.071926      FAIL
+   capacity   0.213509  8.706109e-03 2.285789 -0.215367      FAIL
+kappa_total   0.997107 1.553606e-167 0.022077 -0.003052      PASS
+kappa_share   0.931084  1.075665e-66 0.111518  0.001627      PASS
+    epsilon   0.772144  6.056195e-31 0.209468 -0.097560      FAIL
+================================================================================
+
+✗ SOME PARAMETERS FAILED: alpha_pos, alpha_neg, phi, rho, capacity, epsilon
+  Recovery quality needs improvement.
+
+============================================================
+Recovery complete!
+End time: Thu Apr  9 05:23:41 PM AEST 2026
+============================================================
+
+Results saved to:
+  output/recovery/wmrl_m6b/recovery_results.csv
+  output/recovery/wmrl_m6b/recovery_metrics.csv
+  figures/recovery/wmrl_m6b/
+============================================================

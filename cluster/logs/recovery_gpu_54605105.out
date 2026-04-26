@@ -1,0 +1,115 @@
+============================================================
+RLWM Parameter Recovery (GPU) - M3 SLURM Job
+============================================================
+Job ID: 54605105
+Node: m3g117
+Partition: gpu
+GPU(s): 0
+Project: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis
+Start time: Wed Apr  8 09:31:41 PM AEST 2026
+============================================================
+Activated rlwm_gpu by name
+
+Verifying GPU access...
+JAX devices: [CudaDevice(id=0)]
+GPU(s) available: [CudaDevice(id=0)]
+
+JAX cache: /scratch/fc37/aman0087/.jax_cache_gpu
+
+============================================================
+Parameter Recovery Settings
+============================================================
+Model:         wmrl
+N subjects:    50
+N datasets:    3
+N starts:      20
+Seed:          42
+============================================================
+
+[GPU 21:31:50] util=0% mem=0/46068MB temp=35C
+================================================================================
+PARAMETER RECOVERY ANALYSIS
+================================================================================
+Model:        wmrl
+N subjects:   50
+N datasets:   3
+Seed:         42
+Output dir:   output/recovery/wmrl
+Figures dir:  figures/recovery/wmrl
+GPU:          1 device(s) available
+================================================================================
+
+Running parameter recovery pipeline...
+[GPU 21:36:51] util=99% mem=34549/46068MB temp=38C
+[GPU 21:41:51] util=99% mem=34549/46068MB temp=38C
+[GPU 21:46:51] util=100% mem=34551/46068MB temp=38C
+[GPU 21:51:51] util=99% mem=34551/46068MB temp=38C
+[GPU 21:56:51] util=99% mem=34551/46068MB temp=38C
+[GPU 22:01:51] util=99% mem=34551/46068MB temp=38C
+[GPU 22:06:51] util=100% mem=34551/46068MB temp=39C
+[GPU 22:11:51] util=99% mem=34551/46068MB temp=39C
+[GPU 22:16:51] util=99% mem=34549/46068MB temp=39C
+[GPU 22:21:51] util=99% mem=34549/46068MB temp=38C
+[GPU 22:26:51] util=99% mem=34549/46068MB temp=38C
+[GPU 22:31:51] util=99% mem=34549/46068MB temp=38C
+[GPU 22:36:52] util=99% mem=34549/46068MB temp=38C
+[GPU 22:41:52] util=99% mem=34549/46068MB temp=39C
+[GPU 22:46:52] util=99% mem=34549/46068MB temp=38C
+[GPU 22:51:52] util=99% mem=34549/46068MB temp=38C
+[GPU 22:56:52] util=99% mem=34549/46068MB temp=38C
+[GPU 23:01:52] util=99% mem=34549/46068MB temp=39C
+[GPU 23:06:52] util=99% mem=34551/46068MB temp=39C
+[GPU 23:11:52] util=99% mem=34551/46068MB temp=38C
+[GPU 23:16:52] util=99% mem=34551/46068MB temp=38C
+[GPU 23:21:52] util=99% mem=34549/46068MB temp=38C
+[GPU 23:26:52] util=99% mem=34549/46068MB temp=38C
+[GPU 23:31:52] util=99% mem=34551/46068MB temp=38C
+[GPU 23:36:52] util=99% mem=34549/46068MB temp=38C
+[GPU 23:41:52] util=99% mem=34549/46068MB temp=38C
+[GPU 23:46:52] util=99% mem=34549/46068MB temp=39C
+[GPU 23:51:52] util=99% mem=34549/46068MB temp=38C
+[GPU 23:56:53] util=100% mem=34549/46068MB temp=38C
+[GPU 00:01:53] util=99% mem=34551/46068MB temp=38C
+[GPU 00:06:53] util=100% mem=34551/46068MB temp=38C
+[GPU 00:11:53] util=99% mem=34551/46068MB temp=38C
+[GPU 00:16:53] util=99% mem=34551/46068MB temp=38C
+[GPU 00:21:53] util=99% mem=34549/46068MB temp=38C
+[GPU 00:26:53] util=99% mem=34551/46068MB temp=38C
+[GPU 00:31:53] util=99% mem=34551/46068MB temp=38C
+[GPU 00:36:53] util=99% mem=34551/46068MB temp=38C
+[GPU 00:41:53] util=99% mem=34549/46068MB temp=39C
+[GPU 00:46:53] util=99% mem=34549/46068MB temp=38C
+
+Computing recovery metrics...
+Saved results:  output/recovery/wmrl/recovery_results.csv
+Saved metrics:  output/recovery/wmrl/recovery_metrics.csv
+
+Generating visualization plots...
+Saved scatter plots: figures/recovery/wmrl/
+Saved distribution plots: figures/recovery/wmrl/
+
+================================================================================
+RECOVERY METRICS SUMMARY
+================================================================================
+parameter  pearson_r      p_value     rmse      bias pass_fail
+alpha_pos   0.661047 3.394612e-20 0.251817 -0.018430      FAIL
+alpha_neg   0.749788 2.480920e-28 0.221741 -0.004618      FAIL
+      phi   0.615830 4.988705e-17 0.263083  0.018162      FAIL
+      rho   0.763170 7.335811e-30 0.192108  0.030068      FAIL
+ capacity   0.350867 1.072313e-05 1.962132  0.079245      FAIL
+  epsilon   0.927080 6.052119e-65 0.112258 -0.037302      PASS
+================================================================================
+
+✗ SOME PARAMETERS FAILED: alpha_pos, alpha_neg, phi, rho, capacity
+  Recovery quality needs improvement.
+
+============================================================
+Recovery complete!
+End time: Thu Apr  9 12:50:52 AM AEST 2026
+============================================================
+
+Results saved to:
+  output/recovery/wmrl/recovery_results.csv
+  output/recovery/wmrl/recovery_metrics.csv
+  figures/recovery/wmrl/
+============================================================

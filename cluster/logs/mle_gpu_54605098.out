@@ -1,0 +1,272 @@
+============================================================
+RLWM GPU-Accelerated MLE Fitting - M3 SLURM Job
+============================================================
+Job ID: 54605098
+Node: m3g118
+Partition: gpu
+GPU(s): 0
+Project: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis
+Start time: Wed Apr  8 06:49:44 AM AEST 2026
+============================================================
+Activated rlwm_gpu by name
+
+Verifying GPU access...
+JAX devices: [CudaDevice(id=0)]
+GPU(s) available: [CudaDevice(id=0)]
+
+JAX cache: /scratch/fc37/aman0087/.jax_cache_gpu
+
+Cleaning up stale checkpoints...
+
+
+============================================================
+Fitting model: wmrl_m3 (GPU-accelerated)
+Started: Wed Apr  8 06:49:55 AM AEST 2026
+============================================================
+[GPU 06:49:55] util=0% mem=0/46068MB temp=31C
+GPU detected: [CudaDevice(id=0)]
+
+============================================================
+MLE Fitting: WMRL_M3
+============================================================
+Data: output/task_trials_long.csv
+Random starts: 50
+Seed: 42
+Output: output/mle/
+Include practice: False
+Parallel workers: 1
+GPU acceleration: enabled
+Hessian diagnostics: enabled (adds 5-30s per participant)
+============================================================
+
+Loading data...
+  Total participants in data: 157
+  Excluded participants: 3 (insufficient data/duplicates)
+  Final sample: 154
+  Total trials: 111943
+
+[MEMORY] START: 552.6MB (psutil)
+
+============================================================
+MLE Fitting: WMRL_M3
+============================================================
+Start time: 2026-04-08 06:50:20
+Participants: 154
+Random starts per participant: 50
+Parallel workers: 1
+============================================================
+
+Preparing participant data...
+  Prepared 10/154 participants...
+  Prepared 20/154 participants...
+  Prepared 30/154 participants...
+  Prepared 40/154 participants...
+  Prepared 50/154 participants...
+  Prepared 60/154 participants...
+  Prepared 70/154 participants...
+  Prepared 80/154 participants...
+  Prepared 90/154 participants...
+  Prepared 100/154 participants...
+  Prepared 110/154 participants...
+  Prepared 120/154 participants...
+  Prepared 130/154 participants...
+  Prepared 140/154 participants...
+  Prepared 150/154 participants...
+  Data preparation complete (11.7s)
+
+GPU detected (cuda:0). Using vectorized GPU fitting path.
+
+
+============================================================
+GPU-Vectorized MLE Fitting: WMRL_M3
+============================================================
+Start time: 2026-04-08 06:50:31
+Participants: 154
+Random starts per participant: 50
+Method: jaxopt.LBFGS + jax.vmap (fully vectorized)
+============================================================
+
+Stage 1: Preparing and stacking participant data...
+  Stacked data shape: (154, 17, 100) (4.9s)
+Stage 2: Generating unconstrained starting points...
+  Starting points: (50, 7)
+Stage 3: Building vmapped optimizer...
+Stage 4: Running GPU-vectorized fitting (JIT compiling + executing)...
+[MEMORY] PRE-GPU-FIT: 2301.0MB (psutil)
+[GPU 06:54:55] util=100% mem=34571/46068MB temp=60C
+[GPU 06:59:55] util=100% mem=34571/46068MB temp=64C
+[GPU 07:04:55] util=100% mem=34571/46068MB temp=65C
+[GPU 07:09:55] util=100% mem=34571/46068MB temp=64C
+[GPU 07:14:55] util=100% mem=34571/46068MB temp=65C
+[GPU 07:19:55] util=100% mem=34571/46068MB temp=65C
+[GPU 07:24:55] util=100% mem=34571/46068MB temp=65C
+[GPU 07:29:55] util=100% mem=34571/46068MB temp=65C
+[GPU 07:34:55] util=100% mem=34571/46068MB temp=65C
+[GPU 07:39:55] util=100% mem=34571/46068MB temp=64C
+[GPU 07:44:55] util=100% mem=34571/46068MB temp=64C
+[GPU 07:49:55] util=100% mem=34571/46068MB temp=65C
+[GPU 07:54:55] util=100% mem=34571/46068MB temp=65C
+[GPU 07:59:55] util=100% mem=34571/46068MB temp=65C
+[GPU 08:04:55] util=100% mem=34571/46068MB temp=64C
+[GPU 08:09:55] util=100% mem=34571/46068MB temp=64C
+[GPU 08:14:55] util=100% mem=34571/46068MB temp=64C
+[GPU 08:19:55] util=100% mem=34571/46068MB temp=65C
+[GPU 08:24:55] util=100% mem=34571/46068MB temp=65C
+[GPU 08:29:55] util=100% mem=34571/46068MB temp=65C
+[GPU 08:34:55] util=100% mem=34571/46068MB temp=65C
+[GPU 08:39:55] util=100% mem=34571/46068MB temp=65C
+[GPU 08:44:55] util=100% mem=34571/46068MB temp=65C
+[GPU 08:49:55] util=100% mem=34571/46068MB temp=65C
+[GPU 08:54:55] util=100% mem=34571/46068MB temp=65C
+[GPU 08:59:55] util=100% mem=34571/46068MB temp=64C
+[GPU 09:04:56] util=100% mem=34571/46068MB temp=65C
+[GPU 09:09:56] util=100% mem=34571/46068MB temp=65C
+[GPU 09:14:56] util=100% mem=34571/46068MB temp=65C
+[GPU 09:19:56] util=100% mem=34571/46068MB temp=65C
+[GPU 09:24:56] util=100% mem=34571/46068MB temp=65C
+[GPU 09:29:56] util=100% mem=34571/46068MB temp=65C
+[GPU 09:34:56] util=100% mem=34571/46068MB temp=64C
+[GPU 09:39:56] util=100% mem=34571/46068MB temp=65C
+[GPU 09:44:56] util=100% mem=34571/46068MB temp=65C
+[GPU 09:49:56] util=100% mem=34571/46068MB temp=65C
+[GPU 09:54:56] util=100% mem=34571/46068MB temp=65C
+[GPU 09:59:56] util=100% mem=34571/46068MB temp=65C
+[GPU 10:04:56] util=100% mem=34571/46068MB temp=64C
+[GPU 10:09:56] util=100% mem=34571/46068MB temp=64C
+[GPU 10:14:56] util=100% mem=34571/46068MB temp=65C
+[GPU 10:19:56] util=100% mem=34571/46068MB temp=65C
+[GPU 10:24:56] util=100% mem=34571/46068MB temp=65C
+[GPU 10:29:56] util=100% mem=34571/46068MB temp=64C
+[GPU 10:34:56] util=100% mem=34571/46068MB temp=65C
+[GPU 10:39:56] util=100% mem=34571/46068MB temp=64C
+[GPU 10:44:56] util=100% mem=34571/46068MB temp=65C
+[GPU 10:49:56] util=100% mem=34571/46068MB temp=65C
+[GPU 10:54:56] util=100% mem=34571/46068MB temp=65C
+[GPU 10:59:56] util=100% mem=34571/46068MB temp=65C
+[GPU 11:04:56] util=100% mem=34571/46068MB temp=65C
+[GPU 11:09:56] util=100% mem=34571/46068MB temp=65C
+[GPU 11:14:56] util=100% mem=34571/46068MB temp=65C
+[GPU 11:19:56] util=100% mem=34571/46068MB temp=65C
+[GPU 11:24:56] util=100% mem=34571/46068MB temp=65C
+[GPU 11:29:56] util=100% mem=34571/46068MB temp=65C
+[GPU 11:34:56] util=100% mem=34571/46068MB temp=65C
+[GPU 11:39:56] util=100% mem=34571/46068MB temp=65C
+[GPU 11:44:56] util=100% mem=34571/46068MB temp=65C
+[MEMORY] POST-GPU-FIT: 2398.0MB (psutil)
+  GPU fitting complete: 17763.9s
+  Output shapes: params=(154, 50, 7), nlls=(154, 50)
+Stage 5: Selecting best results and transforming parameters...
+Stage 6: Building result dictionaries...
+Stage 7: Computing Hessian diagnostics (sequential)...
+    Hessian: 10/154 done
+    Hessian: 20/154 done
+    Hessian: 30/154 done
+    Hessian: 40/154 done
+    Hessian: 50/154 done
+    Hessian: 60/154 done
+    Hessian: 70/154 done
+    Hessian: 80/154 done
+    Hessian: 90/154 done
+    Hessian: 100/154 done
+    Hessian: 110/154 done
+    Hessian: 120/154 done
+    Hessian: 130/154 done
+[GPU 11:49:56] util=0% mem=34573/46068MB temp=50C
+    Hessian: 140/154 done
+    Hessian: 150/154 done
+  Hessian diagnostics complete: 150/154 successful (212.1s)
+
+============================================================
+GPU FITTING COMPLETE
+============================================================
+Total duration: 17984.3s (299.7min)
+  GPU optimization: 17763.9s
+Participants: 154 | Converged: 117 (76%)
+Peak memory: 2.34GB
+============================================================
+
+
+============================================================
+RESULTS
+============================================================
+
+Convergence: 117/154 (76.0%)
+
+Group Statistics (n=117):
+--------------------------------------------------
+  alpha_pos   : 0.044 +/- 0.014  (SD=0.152)
+  alpha_neg   : 0.018 +/- 0.011  (SD=0.122)
+  phi         : 0.243 +/- 0.017  (SD=0.179)
+  rho         : 0.857 +/- 0.017  (SD=0.189)
+  capacity    : 2.928 +/- 0.116  (SD=1.257)
+  kappa       : 0.060 +/- 0.010  (SD=0.106)
+  epsilon     : 0.064 +/- 0.008  (SD=0.090)
+
+Model Fit:
+--------------------------------------------------
+  NLL         : 465.76 +/- 11.18
+  AIC         : 945.52 +/- 22.36
+  BIC         : 977.61 +/- 22.37
+  PSEUDO-R²   : 0.418 +/- 0.149
+
+Hessian Diagnostics:
+--------------------------------------------------
+  Successfully computed: 150/154
+  Median condition number: 786817856.0
+  Warning: 151 participants with condition > 1000 (identifiability issues)
+
+Warning: Parameters hitting bounds:
+  alpha_pos: 68 participants
+  alpha_neg: 150 participants
+  kappa: 51 participants
+  phi: 20 participants
+  epsilon: 61 participants
+  rho: 43 participants
+  capacity: 6 participants
+
+============================================================
+Results saved to:
+  Individual fits:     output/mle/wmrl_m3_individual_fits.csv
+  Group summary:       output/mle/wmrl_m3_group_summary.csv
+  Timing log:          output/mle/wmrl_m3_timing_log.csv
+  Performance summary: output/mle/wmrl_m3_performance_summary.json
+============================================================
+
+============================================================
+STATUS: COMPLETE - 154 participants fit (117 converged, 37 did not converge)
+============================================================
+
+Completed: Wed Apr  8 11:50:22 AM AEST 2026 (exit code: 0)
+
+============================================================
+All models complete!
+End time: Wed Apr  8 11:50:22 AM AEST 2026
+============================================================
+
+Results saved to:
+  output/mle/*_individual_fits.csv
+  output/mle/*_group_summary.csv
+============================================================
+
+============================================================
+JOB RESOURCE REPORT
+============================================================
+Job ID: 54605098
+Node: m3g118
+
+GPU Info:
+  Model:       NVIDIA L40S
+  VRAM Total:   46068 MiB
+  VRAM Used:    0 MiB
+  VRAM Free:    45468 MiB
+  Utilization:  0 %
+  Temperature:  49
+
+SLURM Accounting:
+            54605098   05:00:40                              64G          4      RUNNING 
+      54605098.batch   05:00:40                                           4      RUNNING 
+     54605098.extern   05:00:40                                           4      RUNNING 
+
+For detailed stats after completion:
+  jobstats 54605098
+============================================================

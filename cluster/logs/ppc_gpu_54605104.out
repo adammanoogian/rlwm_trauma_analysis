@@ -1,0 +1,169 @@
+==========================================
+Posterior Predictive Check (GPU)
+==========================================
+Job ID: 54605104
+Model: qlearning
+Skip model recovery: false
+Start time: Wed Apr  8 04:54:10 PM AEST 2026
+==========================================
+[GPU 16:54:10] util=0% mem=0/46068MB temp=42C
+
+============================================================
+POSTERIOR PREDICTIVE CHECK: QLEARNING
+============================================================
+Loading fitted parameters from: output/mle/qlearning_individual_fits.csv
+  Found 154 participants
+Saved synthetic data to: output/ppc/qlearning/synthetic_trials.csv
+Loading real data from: output/task_trials_long.csv
+Saved comparison to: output/ppc/qlearning/behavioral_comparison.csv
+Saved comparison plots to: figures/ppc/qlearning
+
+Fitting qlearning to synthetic data...
+[GPU 16:59:10] util=4% mem=44622/46068MB temp=44C
+[GPU 17:04:10] util=100% mem=44632/46068MB temp=54C
+[GPU 17:09:10] util=100% mem=44632/46068MB temp=56C
+[GPU 17:14:10] util=100% mem=44632/46068MB temp=56C
+[GPU 17:19:11] util=100% mem=44632/46068MB temp=56C
+[GPU 17:24:11] util=100% mem=44632/46068MB temp=56C
+[GPU 17:29:11] util=100% mem=44632/46068MB temp=56C
+[GPU 17:34:11] util=100% mem=44632/46068MB temp=56C
+[GPU 17:39:11] util=100% mem=44632/46068MB temp=56C
+[GPU 17:44:11] util=100% mem=44632/46068MB temp=56C
+[GPU 17:49:11] util=100% mem=44632/46068MB temp=56C
+[GPU 17:54:11] util=100% mem=44632/46068MB temp=56C
+[GPU 17:59:11] util=100% mem=44632/46068MB temp=56C
+[GPU 18:04:11] util=100% mem=44632/46068MB temp=56C
+[GPU 18:09:11] util=100% mem=44632/46068MB temp=56C
+[GPU 18:14:11] util=100% mem=44632/46068MB temp=56C
+[GPU 18:19:11] util=100% mem=44632/46068MB temp=56C
+[GPU 18:24:11] util=100% mem=44632/46068MB temp=56C
+[GPU 18:29:11] util=100% mem=44632/46068MB temp=56C
+[GPU 18:34:11] util=100% mem=44632/46068MB temp=56C
+[GPU 18:39:11] util=100% mem=44632/46068MB temp=56C
+[GPU 18:44:11] util=100% mem=44632/46068MB temp=56C
+[GPU 18:49:11] util=100% mem=44632/46068MB temp=56C
+[GPU 18:54:11] util=100% mem=44632/46068MB temp=56C
+[GPU 18:59:11] util=100% mem=44632/46068MB temp=56C
+[GPU 19:04:11] util=100% mem=44632/46068MB temp=56C
+[GPU 19:09:11] util=100% mem=44632/46068MB temp=56C
+[GPU 19:14:11] util=100% mem=44632/46068MB temp=56C
+[GPU 19:19:11] util=100% mem=44632/46068MB temp=56C
+[GPU 19:24:11] util=100% mem=44632/46068MB temp=56C
+[GPU 19:29:11] util=100% mem=44632/46068MB temp=56C
+[GPU 19:34:11] util=100% mem=44632/46068MB temp=56C
+[GPU 19:39:11] util=0% mem=44632/46068MB temp=54C
+
+Fitting wmrl to synthetic data...
+[GPU 19:44:11] util=100% mem=44642/46068MB temp=59C
+[GPU 19:49:11] util=100% mem=44642/46068MB temp=60C
+[GPU 19:54:11] util=100% mem=44642/46068MB temp=60C
+[GPU 19:59:11] util=100% mem=44642/46068MB temp=61C
+[GPU 20:04:11] util=100% mem=44642/46068MB temp=60C
+[GPU 20:09:11] util=100% mem=44642/46068MB temp=61C
+[GPU 20:14:11] util=100% mem=44642/46068MB temp=61C
+[GPU 20:19:11] util=100% mem=44642/46068MB temp=61C
+[GPU 20:24:11] util=100% mem=44642/46068MB temp=61C
+[GPU 20:29:11] util=100% mem=44642/46068MB temp=60C
+[GPU 20:34:11] util=100% mem=44642/46068MB temp=60C
+[GPU 20:39:12] util=100% mem=44642/46068MB temp=61C
+[GPU 20:44:12] util=100% mem=44642/46068MB temp=61C
+[GPU 20:49:12] util=100% mem=44642/46068MB temp=61C
+[GPU 20:54:12] util=100% mem=44642/46068MB temp=61C
+[GPU 20:59:12] util=100% mem=44642/46068MB temp=61C
+[GPU 21:04:12] util=100% mem=44642/46068MB temp=60C
+[GPU 21:09:12] util=100% mem=44642/46068MB temp=61C
+[GPU 21:14:12] util=100% mem=44642/46068MB temp=61C
+[GPU 21:19:12] util=100% mem=44642/46068MB temp=60C
+[GPU 21:24:12] util=100% mem=44642/46068MB temp=60C
+[GPU 21:29:12] util=100% mem=44642/46068MB temp=60C
+[GPU 21:34:12] util=100% mem=44642/46068MB temp=60C
+[GPU 21:39:12] util=100% mem=44642/46068MB temp=61C
+[GPU 21:44:12] util=100% mem=44642/46068MB temp=61C
+[GPU 21:49:12] util=100% mem=44642/46068MB temp=60C
+[GPU 21:54:12] util=100% mem=44642/46068MB temp=60C
+[GPU 21:59:12] util=100% mem=44642/46068MB temp=60C
+[GPU 22:04:12] util=100% mem=44642/46068MB temp=61C
+[GPU 22:09:12] util=100% mem=44642/46068MB temp=61C
+[GPU 22:14:12] util=100% mem=44642/46068MB temp=61C
+[GPU 22:19:12] util=100% mem=44642/46068MB temp=61C
+[GPU 22:24:12] util=100% mem=44642/46068MB temp=60C
+[GPU 22:29:12] util=100% mem=44642/46068MB temp=60C
+[GPU 22:34:12] util=100% mem=44642/46068MB temp=61C
+[GPU 22:39:12] util=100% mem=44642/46068MB temp=61C
+[GPU 22:44:13] util=100% mem=44642/46068MB temp=60C
+[GPU 22:49:13] util=100% mem=44642/46068MB temp=60C
+[GPU 22:54:13] util=100% mem=44642/46068MB temp=60C
+[GPU 22:59:13] util=100% mem=44642/46068MB temp=61C
+[GPU 23:04:13] util=100% mem=44642/46068MB temp=61C
+[GPU 23:09:13] util=100% mem=44642/46068MB temp=60C
+[GPU 23:14:13] util=100% mem=44642/46068MB temp=60C
+[GPU 23:19:13] util=100% mem=44642/46068MB temp=60C
+[GPU 23:24:13] util=100% mem=44642/46068MB temp=60C
+[GPU 23:29:13] util=100% mem=44642/46068MB temp=61C
+[GPU 23:34:13] util=100% mem=44642/46068MB temp=61C
+[GPU 23:39:13] util=100% mem=44642/46068MB temp=60C
+[GPU 23:44:13] util=100% mem=44642/46068MB temp=60C
+[GPU 23:49:13] util=100% mem=44642/46068MB temp=60C
+[GPU 23:54:13] util=100% mem=44642/46068MB temp=60C
+[GPU 23:59:13] util=100% mem=44642/46068MB temp=61C
+[GPU 00:04:13] util=100% mem=44642/46068MB temp=61C
+[GPU 00:09:13] util=100% mem=44642/46068MB temp=61C
+[GPU 00:14:13] util=100% mem=44642/46068MB temp=61C
+[GPU 00:19:13] util=100% mem=44642/46068MB temp=60C
+[GPU 00:24:13] util=100% mem=44642/46068MB temp=60C
+[GPU 00:29:13] util=100% mem=44642/46068MB temp=61C
+[GPU 00:34:13] util=100% mem=44642/46068MB temp=61C
+[GPU 00:39:13] util=100% mem=44642/46068MB temp=61C
+[GPU 00:44:13] util=100% mem=44642/46068MB temp=60C
+[GPU 00:49:13] util=100% mem=44642/46068MB temp=60C
+[GPU 00:54:13] util=100% mem=44642/46068MB temp=60C
+[GPU 00:59:13] util=100% mem=44642/46068MB temp=61C
+[GPU 01:04:13] util=100% mem=44642/46068MB temp=61C
+[GPU 01:09:13] util=100% mem=44642/46068MB temp=61C
+[GPU 01:14:13] util=100% mem=44642/46068MB temp=60C
+[GPU 01:19:13] util=100% mem=44642/46068MB temp=60C
+
+Fitting wmrl_m3 to synthetic data...
+[GPU 01:24:13] util=100% mem=44646/46068MB temp=57C
+[GPU 01:29:13] util=100% mem=44646/46068MB temp=61C
+[GPU 01:34:13] util=100% mem=44646/46068MB temp=61C
+[GPU 01:39:14] util=100% mem=44646/46068MB temp=61C
+[GPU 01:44:14] util=100% mem=44646/46068MB temp=61C
+[GPU 01:49:14] util=100% mem=44646/46068MB temp=61C
+[GPU 01:54:14] util=100% mem=44646/46068MB temp=61C
+[GPU 01:59:14] util=100% mem=44646/46068MB temp=61C
+[GPU 02:04:14] util=100% mem=44646/46068MB temp=61C
+[GPU 02:09:14] util=100% mem=44646/46068MB temp=61C
+[GPU 02:14:14] util=100% mem=44646/46068MB temp=61C
+[GPU 02:19:14] util=100% mem=44646/46068MB temp=61C
+[GPU 02:24:14] util=100% mem=44646/46068MB temp=61C
+[GPU 02:29:14] util=100% mem=44646/46068MB temp=61C
+[GPU 02:34:14] util=100% mem=44646/46068MB temp=61C
+[GPU 02:39:14] util=100% mem=44646/46068MB temp=61C
+[GPU 02:44:14] util=100% mem=44646/46068MB temp=61C
+[GPU 02:49:14] util=100% mem=44646/46068MB temp=61C
+[GPU 02:54:14] util=100% mem=44646/46068MB temp=61C
+[GPU 02:59:14] util=100% mem=44646/46068MB temp=61C
+[GPU 03:04:14] util=100% mem=44646/46068MB temp=61C
+[GPU 03:09:14] util=100% mem=44646/46068MB temp=61C
+[GPU 03:14:14] util=100% mem=44646/46068MB temp=61C
+[GPU 03:19:14] util=100% mem=44646/46068MB temp=61C
+[GPU 03:24:14] util=100% mem=44646/46068MB temp=61C
+[GPU 03:29:14] util=100% mem=44646/46068MB temp=61C
+[GPU 03:34:14] util=100% mem=44646/46068MB temp=61C
+[GPU 03:39:14] util=100% mem=44646/46068MB temp=60C
+[GPU 03:44:14] util=100% mem=44646/46068MB temp=60C
+[GPU 03:49:14] util=100% mem=44646/46068MB temp=61C
+[GPU 03:54:14] util=100% mem=44646/46068MB temp=61C
+[GPU 03:59:14] util=100% mem=44646/46068MB temp=61C
+[GPU 04:04:14] util=100% mem=44646/46068MB temp=60C
+[GPU 04:09:14] util=100% mem=44646/46068MB temp=60C
+[GPU 04:14:14] util=100% mem=44646/46068MB temp=60C
+[GPU 04:19:14] util=100% mem=44646/46068MB temp=61C
+[GPU 04:24:14] util=100% mem=44646/46068MB temp=61C
+[GPU 04:29:14] util=100% mem=44646/46068MB temp=61C
+[GPU 04:34:14] util=100% mem=44646/46068MB temp=60C
+[GPU 04:39:14] util=100% mem=44646/46068MB temp=60C
+[GPU 04:44:14] util=100% mem=44646/46068MB temp=61C
+[GPU 04:49:14] util=100% mem=44646/46068MB temp=61C
+[GPU 04:54:15] util=100% mem=44646/46068MB temp=61C

@@ -1,0 +1,167 @@
+==========================================
+Posterior Predictive Check (GPU)
+==========================================
+Job ID: 54605114
+Model: wmrl_m6b
+Skip model recovery: false
+Start time: Thu Apr  9 03:09:59 PM AEST 2026
+==========================================
+[GPU 15:09:59] util=0% mem=0/81920MB temp=37C
+
+============================================================
+POSTERIOR PREDICTIVE CHECK: WMRL_M6B
+============================================================
+Loading fitted parameters from: output/mle/wmrl_m6b_individual_fits.csv
+  Found 154 participants
+[GPU 15:14:59] util=6% mem=61301/81920MB temp=37C
+Saved synthetic data to: output/ppc/wmrl_m6b/synthetic_trials.csv
+Loading real data from: output/task_trials_long.csv
+Saved comparison to: output/ppc/wmrl_m6b/behavioral_comparison.csv
+Saved comparison plots to: figures/ppc/wmrl_m6b
+
+Fitting qlearning to synthetic data...
+[GPU 15:19:59] util=100% mem=80843/81920MB temp=42C
+[GPU 15:24:59] util=99% mem=80843/81920MB temp=43C
+[GPU 15:29:59] util=99% mem=80843/81920MB temp=44C
+[GPU 15:34:59] util=99% mem=80843/81920MB temp=44C
+[GPU 15:39:59] util=99% mem=80843/81920MB temp=44C
+[GPU 15:44:59] util=99% mem=80843/81920MB temp=44C
+[GPU 15:49:59] util=99% mem=80843/81920MB temp=44C
+[GPU 15:54:59] util=100% mem=80843/81920MB temp=44C
+[GPU 15:59:59] util=100% mem=80843/81920MB temp=44C
+[GPU 16:04:59] util=99% mem=80843/81920MB temp=44C
+[GPU 16:09:59] util=100% mem=80843/81920MB temp=44C
+[GPU 16:14:59] util=99% mem=80843/81920MB temp=44C
+[GPU 16:19:59] util=99% mem=80843/81920MB temp=44C
+[GPU 16:24:59] util=99% mem=80843/81920MB temp=44C
+[GPU 16:29:59] util=99% mem=80843/81920MB temp=44C
+[GPU 16:34:59] util=99% mem=80843/81920MB temp=44C
+[GPU 16:40:00] util=100% mem=80843/81920MB temp=44C
+[GPU 16:45:00] util=99% mem=80843/81920MB temp=44C
+[GPU 16:50:00] util=99% mem=80843/81920MB temp=44C
+[GPU 16:55:00] util=99% mem=80843/81920MB temp=44C
+[GPU 17:00:00] util=99% mem=80843/81920MB temp=44C
+[GPU 17:05:00] util=99% mem=80843/81920MB temp=44C
+[GPU 17:10:00] util=99% mem=80843/81920MB temp=44C
+[GPU 17:15:00] util=99% mem=80843/81920MB temp=44C
+[GPU 17:20:00] util=100% mem=80843/81920MB temp=44C
+[GPU 17:25:00] util=99% mem=80843/81920MB temp=43C
+[GPU 17:30:00] util=99% mem=80843/81920MB temp=43C
+[GPU 17:35:00] util=100% mem=80843/81920MB temp=44C
+[GPU 17:40:00] util=100% mem=80843/81920MB temp=44C
+[GPU 17:45:00] util=99% mem=80843/81920MB temp=44C
+[GPU 17:50:00] util=99% mem=80843/81920MB temp=44C
+[GPU 17:55:00] util=100% mem=80843/81920MB temp=44C
+[GPU 18:00:00] util=100% mem=80843/81920MB temp=44C
+[GPU 18:05:00] util=99% mem=80843/81920MB temp=44C
+[GPU 18:10:00] util=99% mem=80843/81920MB temp=44C
+[GPU 18:15:00] util=100% mem=80843/81920MB temp=44C
+[GPU 18:20:00] util=100% mem=80843/81920MB temp=44C
+[GPU 18:25:00] util=99% mem=80843/81920MB temp=44C
+[GPU 18:30:00] util=99% mem=80843/81920MB temp=44C
+[GPU 18:35:00] util=99% mem=80843/81920MB temp=44C
+[GPU 18:40:00] util=100% mem=80843/81920MB temp=44C
+[GPU 18:45:00] util=99% mem=80843/81920MB temp=43C
+[GPU 18:50:00] util=99% mem=80843/81920MB temp=44C
+[GPU 18:55:00] util=100% mem=80843/81920MB temp=44C
+[GPU 19:00:00] util=100% mem=80843/81920MB temp=44C
+[GPU 19:05:00] util=99% mem=80843/81920MB temp=44C
+[GPU 19:10:00] util=99% mem=80843/81920MB temp=44C
+[GPU 19:15:00] util=99% mem=80843/81920MB temp=44C
+[GPU 19:20:00] util=100% mem=80843/81920MB temp=44C
+[GPU 19:25:00] util=100% mem=80843/81920MB temp=44C
+[GPU 19:30:00] util=99% mem=80843/81920MB temp=44C
+
+Fitting wmrl to synthetic data...
+[GPU 19:35:00] util=4% mem=80829/81920MB temp=40C
+[GPU 19:40:00] util=100% mem=80851/81920MB temp=45C
+[GPU 19:45:00] util=100% mem=80851/81920MB temp=46C
+[GPU 19:50:00] util=100% mem=80851/81920MB temp=46C
+[GPU 19:55:00] util=100% mem=80851/81920MB temp=46C
+[GPU 20:00:00] util=100% mem=80851/81920MB temp=46C
+[GPU 20:05:00] util=100% mem=80851/81920MB temp=46C
+[GPU 20:10:00] util=100% mem=80851/81920MB temp=46C
+[GPU 20:15:00] util=100% mem=80851/81920MB temp=46C
+[GPU 20:20:00] util=100% mem=80851/81920MB temp=35C
+[GPU 20:25:00] util=100% mem=80851/81920MB temp=35C
+[GPU 20:30:01] util=100% mem=80851/81920MB temp=35C
+[GPU 20:35:01] util=100% mem=80851/81920MB temp=35C
+[GPU 20:40:01] util=100% mem=80851/81920MB temp=35C
+[GPU 20:45:01] util=100% mem=80851/81920MB temp=35C
+[GPU 20:50:01] util=100% mem=80851/81920MB temp=35C
+[GPU 20:55:01] util=100% mem=80851/81920MB temp=35C
+[GPU 21:00:01] util=99% mem=80851/81920MB temp=35C
+[GPU 21:05:01] util=100% mem=80851/81920MB temp=35C
+[GPU 21:10:01] util=100% mem=80851/81920MB temp=34C
+[GPU 21:15:01] util=99% mem=80851/81920MB temp=34C
+[GPU 21:20:01] util=100% mem=80851/81920MB temp=34C
+[GPU 21:25:01] util=99% mem=80851/81920MB temp=34C
+[GPU 21:30:01] util=100% mem=80851/81920MB temp=35C
+[GPU 21:35:01] util=100% mem=80851/81920MB temp=35C
+[GPU 21:40:01] util=100% mem=80851/81920MB temp=35C
+[GPU 21:45:01] util=100% mem=80851/81920MB temp=35C
+[GPU 21:50:01] util=100% mem=80851/81920MB temp=35C
+[GPU 21:55:01] util=100% mem=80851/81920MB temp=35C
+[GPU 22:00:01] util=99% mem=80851/81920MB temp=35C
+[GPU 22:05:01] util=100% mem=80851/81920MB temp=35C
+[GPU 22:10:01] util=100% mem=80851/81920MB temp=35C
+[GPU 22:15:01] util=100% mem=80851/81920MB temp=34C
+[GPU 22:20:01] util=100% mem=80851/81920MB temp=35C
+[GPU 22:25:01] util=100% mem=80851/81920MB temp=34C
+[GPU 22:30:01] util=100% mem=80851/81920MB temp=35C
+[GPU 22:35:01] util=100% mem=80851/81920MB temp=35C
+[GPU 22:40:01] util=100% mem=80851/81920MB temp=35C
+[GPU 22:45:01] util=100% mem=80851/81920MB temp=35C
+[GPU 22:50:01] util=100% mem=80851/81920MB temp=35C
+[GPU 22:55:01] util=99% mem=80851/81920MB temp=35C
+[GPU 23:00:01] util=100% mem=80851/81920MB temp=35C
+[GPU 23:05:01] util=100% mem=80851/81920MB temp=35C
+[GPU 23:10:01] util=100% mem=80851/81920MB temp=35C
+[GPU 23:15:01] util=100% mem=80851/81920MB temp=35C
+[GPU 23:20:01] util=100% mem=80851/81920MB temp=35C
+[GPU 23:25:01] util=99% mem=80851/81920MB temp=34C
+[GPU 23:30:01] util=100% mem=80851/81920MB temp=35C
+[GPU 23:35:02] util=99% mem=80851/81920MB temp=35C
+[GPU 23:40:02] util=100% mem=80851/81920MB temp=35C
+[GPU 23:45:02] util=100% mem=80851/81920MB temp=35C
+[GPU 23:50:02] util=100% mem=80851/81920MB temp=35C
+[GPU 23:55:02] util=99% mem=80851/81920MB temp=35C
+[GPU 00:00:02] util=100% mem=80851/81920MB temp=35C
+[GPU 00:05:02] util=100% mem=80851/81920MB temp=35C
+[GPU 00:10:02] util=100% mem=80851/81920MB temp=35C
+[GPU 00:15:02] util=100% mem=80851/81920MB temp=35C
+[GPU 00:20:02] util=100% mem=80851/81920MB temp=35C
+[GPU 00:25:02] util=100% mem=80851/81920MB temp=35C
+[GPU 00:30:02] util=100% mem=80851/81920MB temp=35C
+[GPU 00:35:02] util=100% mem=80851/81920MB temp=35C
+[GPU 00:40:02] util=100% mem=80851/81920MB temp=35C
+[GPU 00:45:02] util=99% mem=80851/81920MB temp=37C
+[GPU 00:50:02] util=100% mem=80851/81920MB temp=45C
+[GPU 00:55:02] util=100% mem=80851/81920MB temp=38C
+[GPU 01:00:02] util=100% mem=80851/81920MB temp=45C
+[GPU 01:05:02] util=99% mem=80851/81920MB temp=37C
+[GPU 01:10:02] util=100% mem=80851/81920MB temp=44C
+[GPU 01:15:02] util=100% mem=80851/81920MB temp=46C
+[GPU 01:20:02] util=100% mem=80851/81920MB temp=46C
+[GPU 01:25:02] util=100% mem=80851/81920MB temp=46C
+[GPU 01:30:02] util=100% mem=80851/81920MB temp=46C
+[GPU 01:35:02] util=99% mem=80851/81920MB temp=46C
+[GPU 01:40:02] util=99% mem=80851/81920MB temp=46C
+[GPU 01:45:02] util=100% mem=80851/81920MB temp=46C
+[GPU 01:50:02] util=100% mem=80851/81920MB temp=46C
+[GPU 01:55:02] util=100% mem=80851/81920MB temp=46C
+[GPU 02:00:02] util=100% mem=80851/81920MB temp=46C
+[GPU 02:05:02] util=100% mem=80851/81920MB temp=46C
+[GPU 02:10:02] util=100% mem=80851/81920MB temp=41C
+[GPU 02:15:02] util=100% mem=80851/81920MB temp=44C
+[GPU 02:20:02] util=100% mem=80851/81920MB temp=41C
+[GPU 02:25:02] util=100% mem=80851/81920MB temp=45C
+[GPU 02:30:02] util=100% mem=80851/81920MB temp=36C
+[GPU 02:35:02] util=100% mem=80851/81920MB temp=44C
+[GPU 02:40:02] util=100% mem=80851/81920MB temp=36C
+[GPU 02:45:03] util=100% mem=80851/81920MB temp=45C
+[GPU 02:50:03] util=100% mem=80851/81920MB temp=46C
+[GPU 02:55:03] util=100% mem=80851/81920MB temp=46C
+[GPU 03:00:03] util=99% mem=80851/81920MB temp=46C
+[GPU 03:05:03] util=100% mem=80851/81920MB temp=46C
+[GPU 03:10:03] util=100% mem=80851/81920MB temp=46C

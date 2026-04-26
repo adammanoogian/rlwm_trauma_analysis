@@ -1,0 +1,3 @@
+E0413 01:09:09.172746 3772870 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0413 01:09:09.173260 3772872 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0413 01:09:09.172828 3772871 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]

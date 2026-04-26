@@ -1,0 +1,129 @@
+============================================================
+RLWM PScan CPU Benchmark
+============================================================
+Job ID: 54819814
+Node: m3k021
+Partition: comp
+CPUs: 4
+Project: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis
+Model: all
+Repeats: 20
+Start time: Tue Apr 14 08:22:08 PM AEST 2026
+============================================================
+Activated ds_env
+JAX cache: /scratch/fc37/aman0087/.jax_cache_cpu
+
+JAX devices: [CpuDevice(id=0)]
+JAX default backend: cpu
+
+Running benchmark...
+
+========================================================================
+PARALLEL SCAN LIKELIHOOD MICRO-BENCHMARK
+========================================================================
+Device:        cpu
+JAX version:   0.4.31
+Models:        qlearning, wmrl, wmrl_m3, wmrl_m5, wmrl_m6a, wmrl_m6b
+N repeats:     20
+N blocks:      17
+Trials/block:  100
+Timestamp:     2026-04-14T10:22:25.291272+00:00
+========================================================================
+
+Generating synthetic data...
+  Shape: (17, 100) (blocks x trials_per_block)
+
+────────────────────────────────────────────────────────────
+Benchmarking: qlearning
+────────────────────────────────────────────────────────────
+  Compiling sequential... 455ms
+  Compiling pscan... 647ms
+  NLL sequential: -4097.093262
+  NLL pscan:      -4097.093262
+  NLL agreement:  0.00e+00 (abs diff: 0.00e+00)
+  Timing sequential (20 repeats)... 149.40 +/- 3.34 ms
+  Timing pscan (20 repeats)... 622.75 +/- 25.22 ms
+  Speedup: 0.24x
+
+────────────────────────────────────────────────────────────
+Benchmarking: wmrl
+────────────────────────────────────────────────────────────
+  Compiling sequential... 222ms
+  Compiling pscan... 1015ms
+  NLL sequential: -3100.329590
+  NLL pscan:      -3100.329346
+  NLL agreement:  7.87e-08 (abs diff: 2.44e-04)
+  Timing sequential (20 repeats)... 224.69 +/- 23.01 ms
+  Timing pscan (20 repeats)... 1069.64 +/- 57.79 ms
+  Speedup: 0.21x
+
+────────────────────────────────────────────────────────────
+Benchmarking: wmrl_m3
+────────────────────────────────────────────────────────────
+  Compiling sequential... 250ms
+  Compiling pscan... 1053ms
+  NLL sequential: -2852.244873
+  NLL pscan:      -2852.244873
+  NLL agreement:  0.00e+00 (abs diff: 0.00e+00)
+  Timing sequential (20 repeats)... 256.60 +/- 44.00 ms
+  Timing pscan (20 repeats)... 1081.54 +/- 53.25 ms
+  Speedup: 0.24x
+
+────────────────────────────────────────────────────────────
+Benchmarking: wmrl_m5
+────────────────────────────────────────────────────────────
+  Compiling sequential... 251ms
+  Compiling pscan... 1107ms
+  NLL sequential: -2942.468750
+  NLL pscan:      -2942.468506
+  NLL agreement:  8.30e-08 (abs diff: 2.44e-04)
+  Timing sequential (20 repeats)... 258.67 +/- 65.51 ms
+  Timing pscan (20 repeats)... 1097.46 +/- 75.85 ms
+  Speedup: 0.24x
+
+────────────────────────────────────────────────────────────
+Benchmarking: wmrl_m6a
+────────────────────────────────────────────────────────────
+  Compiling sequential... 248ms
+  Compiling pscan... 1069ms
+  NLL sequential: -2909.187744
+  NLL pscan:      -2909.187500
+  NLL agreement:  8.39e-08 (abs diff: 2.44e-04)
+  Timing sequential (20 repeats)... 273.40 +/- 83.31 ms
+  Timing pscan (20 repeats)... 1084.77 +/- 102.04 ms
+  Speedup: 0.25x
+
+────────────────────────────────────────────────────────────
+Benchmarking: wmrl_m6b
+────────────────────────────────────────────────────────────
+  Compiling sequential... 284ms
+  Compiling pscan... 1119ms
+  NLL sequential: -2763.764404
+  NLL pscan:      -2763.764404
+  NLL agreement:  0.00e+00 (abs diff: 0.00e+00)
+  Timing sequential (20 repeats)... 270.93 +/- 5.29 ms
+  Timing pscan (20 repeats)... 1112.28 +/- 126.63 ms
+  Speedup: 0.24x
+
+========================================================================
+SUMMARY
+========================================================================
+Model         Sequential (ms)   PScan (ms)   Speedup    NLL Agree
+-----------------------------------------------------------------
+qlearning          149.40       622.75       0.24x    0.00e+00
+wmrl               224.69      1069.64       0.21x    7.87e-08
+wmrl_m3            256.60      1081.54       0.24x    0.00e+00
+wmrl_m5            258.67      1097.46       0.24x    8.30e-08
+wmrl_m6a           273.39      1084.77       0.25x    8.39e-08
+wmrl_m6b           270.93      1112.28       0.24x    0.00e+00
+========================================================================
+
+Results saved to: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/output/bayesian/pscan_benchmark_cpu.json
+
+============================================================
+COMPLETE
+============================================================
+Exit code: 0
+End time: Tue Apr 14 08:25:23 PM AEST 2026
+Results: output/bayesian/pscan_benchmark.json
+============================================================

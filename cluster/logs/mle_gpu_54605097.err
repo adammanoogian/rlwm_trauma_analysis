@@ -1,0 +1,10 @@
+E0408 06:49:54.655206  454608 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0408 06:49:54.655285  454609 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0408 06:49:54.655590  454610 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0408 06:50:19.485761  454672 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0408 06:50:19.485830  454673 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0408 06:50:19.485886  454674 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+W0408 13:28:42.478800  454622 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0408 13:28:43.575601  454622 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0408 13:37:21.461043  454622 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.
+W0408 13:37:22.554851  454622 pjrt_executable.cc:642] Assume version compatibility. PjRt-IFRT does not track XLA executable versions.

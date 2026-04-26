@@ -1,0 +1,142 @@
+============================================================
+RLWM PScan GPU Benchmark
+============================================================
+Job ID: 54819815
+Node: m3g107
+Partition: gpu
+GPU(s): 0
+Project: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis
+Model: all
+Repeats: 20
+Start time: Wed Apr 15 01:04:43 AM AEST 2026
+============================================================
+Activated rlwm_gpu by name
+JAX cache: /scratch/fc37/aman0087/.jax_cache_gpu
+
+Verifying GPU access...
+JAX devices: [CudaDevice(id=0)]
+JAX default backend: gpu
+GPU(s) available: [CudaDevice(id=0)]
+
+GPU hardware:
+NVIDIA L40S, 46068 MiB, 570.195.03
+
+Running benchmark...
+
+========================================================================
+PARALLEL SCAN LIKELIHOOD MICRO-BENCHMARK
+========================================================================
+Device:        NVIDIA L40S
+JAX version:   0.9.2
+Models:        qlearning, wmrl, wmrl_m3, wmrl_m5, wmrl_m6a, wmrl_m6b
+N repeats:     20
+N blocks:      17
+Trials/block:  100
+Timestamp:     2026-04-14T15:04:57.284856+00:00
+========================================================================
+
+Generating synthetic data...
+  Shape: (17, 100) (blocks x trials_per_block)
+
+────────────────────────────────────────────────────────────
+Benchmarking: qlearning
+────────────────────────────────────────────────────────────
+  Compiling sequential... 933ms
+  Compiling pscan... 765ms
+  NLL sequential: -4097.093262
+  NLL pscan:      -4097.093262
+  NLL agreement:  0.00e+00 (abs diff: 0.00e+00)
+  Timing sequential (20 repeats)... 167.05 +/- 1.34 ms
+  Timing pscan (20 repeats)... 728.60 +/- 9.14 ms
+  Speedup: 0.23x
+
+────────────────────────────────────────────────────────────
+Benchmarking: wmrl
+────────────────────────────────────────────────────────────
+  Compiling sequential... 242ms
+  Compiling pscan... 1328ms
+  NLL sequential: -3100.329834
+  NLL pscan:      -3100.329102
+  NLL agreement:  2.36e-07 (abs diff: 7.32e-04)
+  Timing sequential (20 repeats)... 232.86 +/- 10.59 ms
+  Timing pscan (20 repeats)... 125.85 +/- 19.07 ms
+  Speedup: 1.85x
+
+────────────────────────────────────────────────────────────
+Benchmarking: wmrl_m3
+────────────────────────────────────────────────────────────
+  Compiling sequential... 259ms
+  Compiling pscan... 1314ms
+  NLL sequential: -2852.244873
+  NLL pscan:      -2852.244385
+  NLL agreement:  1.71e-07 (abs diff: 4.88e-04)
+  Timing sequential (20 repeats)... 255.31 +/- 1.47 ms
+  Timing pscan (20 repeats)... 132.46 +/- 20.14 ms
+  Speedup: 1.93x
+
+────────────────────────────────────────────────────────────
+Benchmarking: wmrl_m5
+────────────────────────────────────────────────────────────
+  Compiling sequential... 260ms
+  Compiling pscan... 1311ms
+  NLL sequential: -2942.468506
+  NLL pscan:      -2942.468506
+  NLL agreement:  0.00e+00 (abs diff: 0.00e+00)
+  Timing sequential (20 repeats)... 268.03 +/- 26.51 ms
+  Timing pscan (20 repeats)... 141.99 +/- 35.29 ms
+  Speedup: 1.89x
+
+────────────────────────────────────────────────────────────
+Benchmarking: wmrl_m6a
+────────────────────────────────────────────────────────────
+  Compiling sequential... 277ms
+  Compiling pscan... 1340ms
+  NLL sequential: -2909.187500
+  NLL pscan:      -2909.187256
+  NLL agreement:  8.39e-08 (abs diff: 2.44e-04)
+  Timing sequential (20 repeats)... 276.28 +/- 1.89 ms
+  Timing pscan (20 repeats)... 146.91 +/- 40.15 ms
+  Speedup: 1.88x
+
+────────────────────────────────────────────────────────────
+Benchmarking: wmrl_m6b
+────────────────────────────────────────────────────────────
+  Compiling sequential... 291ms
+  Compiling pscan... 1355ms
+  NLL sequential: -2763.764648
+  NLL pscan:      -2763.764648
+  NLL agreement:  0.00e+00 (abs diff: 0.00e+00)
+  Timing sequential (20 repeats)... 302.82 +/- 46.12 ms
+  Timing pscan (20 repeats)... 153.37 +/- 53.30 ms
+  Speedup: 1.97x
+
+========================================================================
+SUMMARY
+========================================================================
+Model         Sequential (ms)   PScan (ms)   Speedup    NLL Agree
+-----------------------------------------------------------------
+qlearning          167.05       728.60       0.23x    0.00e+00
+wmrl               232.87       125.84       1.85x    2.36e-07
+wmrl_m3            255.31       132.46       1.93x    1.71e-07
+wmrl_m5            268.03       141.99       1.89x    0.00e+00
+wmrl_m6a           276.28       146.91       1.88x    8.39e-08
+wmrl_m6b           302.82       153.37       1.97x    0.00e+00
+========================================================================
+GPU peak memory: 0.1 MB
+
+Results saved to: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/output/bayesian/pscan_benchmark_gpu.json
+
+GPU memory after benchmark:
+0 MiB, 45468 MiB, 46068 MiB
+
+============================================================
+COMPLETE
+============================================================
+Exit code: 0
+End time: Wed Apr 15 01:06:13 AM AEST 2026
+Results: output/bayesian/pscan_benchmark.json
+
+Next steps:
+  Compare CPU vs GPU results in pscan_benchmark.json
+  For full MCMC A/B comparison: sbatch cluster/13_bayesian_pscan.slurm
+============================================================

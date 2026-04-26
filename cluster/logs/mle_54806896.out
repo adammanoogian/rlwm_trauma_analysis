@@ -1,0 +1,14 @@
+============================================================
+RLWM MLE Fitting - M3 SLURM Job
+============================================================
+Job ID: 54806896
+Node: m3j002
+Partition: comp
+CPUs requested: 16
+Memory requested: 65536
+Parallel workers: 4
+Project: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis
+Start time: Tue Apr 14 05:51:33 AM AEST 2026
+============================================================
+ERROR: Failed to activate 'rlwm' conda environment
+Create it first with: conda env create -f environment.yml
