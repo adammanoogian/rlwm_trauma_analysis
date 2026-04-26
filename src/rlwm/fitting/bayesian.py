@@ -228,6 +228,8 @@ def _load_lec_covariate(
 
     try:
         metrics_df = pd.read_csv(metrics_path)
+        if 'included_in_analysis' in metrics_df.columns:
+            metrics_df = metrics_df[metrics_df['included_in_analysis'] == True].copy()
         lec_col = "less_total_events"
         if lec_col not in metrics_df.columns:
             print(

@@ -311,6 +311,8 @@ def _fit_two_covariate_l2(
         )
     print(f"\n>> Loading 2-covariate L2 design matrix from {metrics_path}...")
     metrics = pd.read_csv(metrics_path)
+    if 'included_in_analysis' in metrics.columns:
+        metrics = metrics[metrics['included_in_analysis'] == True].copy()
     design, cov_names = build_level2_design_matrix_2cov(metrics, participant_ids)
     print(f"  Design shape: {design.shape}, covariates: {cov_names}")
     covariate_lec = jnp.array(design[:, 0], dtype=jnp.float32)

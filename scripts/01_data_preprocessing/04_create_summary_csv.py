@@ -7,7 +7,9 @@ This script:
    - LEC-5 summary scores
    - IES-R total and subscale scores
    - All task performance metrics
-3. Creates one-row-per-participant summary dataset
+3. Creates one-row-per-participant summary dataset including ALL parseable
+   participants, with ``included_in_analysis`` (bool) and ``exclusion_reason``
+   (str, "|"-joined) for OSF transparency.
 4. Saves the summary dataset to data/processed/summary_participant_metrics.csv
 
 Usage:
@@ -26,7 +28,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 # Import config CCDS constants + DataParams + excluded participants
 # (CCDS constants landed in plan 31-01; physical files moved in plan 31-02)
-from config import EXCLUDED_PARTICIPANTS, PROCESSED_DIR, DataParams
+from config import EXCLUDED_PARTICIPANTS, INTERIM_DIR, PROCESSED_DIR, DataParams
 
 # Add utils to path
 sys.path.append(str(Path(__file__).resolve().parents[1] / 'utils'))
@@ -70,7 +72,7 @@ def main():
     print()
 
     # ==========================================================================
-    # DATA QUALITY FILTERING
+    # DATA QUALITY — compute inclusion flag + exclusion_reason per participant
     # ==========================================================================
     print("-" * 60)
     print("Checking data quality thresholds...")
@@ -83,35 +85,44 @@ def main():
     block_counts = main_task_trials.groupby('sona_id')['block'].nunique()
     trial_counts = main_task_trials.groupby('sona_id').size()
 
-    # Identify participants with insufficient data
-    insufficient_blocks = block_counts[block_counts < DataParams.MIN_BLOCKS].index.tolist()
-    insufficient_trials = trial_counts[trial_counts < DataParams.MIN_TRIALS].index.tolist()
+    # Load corrupted participants surfaced by 01_parse_raw_data.py (if any)
+    # File is gitignored (data/interim/*); absence means no parse failures.
+    corrupted_path = INTERIM_DIR / 'corrupted_participants.csv'
+    corrupted_ids: set = set()
+    if corrupted_path.exists():
+        corrupted_df = pd.read_csv(corrupted_path)
+        corrupted_ids = set(corrupted_df['sona_id'].tolist())
+        print(f"  Corrupted CSVs detected: {len(corrupted_ids)} participant(s)")
 
-    # Report auto-detected exclusions (computed dynamically in config.py)
-    quality_exclusions = set(insufficient_blocks) | set(insufficient_trials)
-    print(f"Auto-excluded by trial count (<{DataParams.MIN_TRIALS}): {len(EXCLUDED_PARTICIPANTS)}")
-    for pid in sorted(EXCLUDED_PARTICIPANTS):
-        n_blocks = block_counts.get(pid, 0)
-        n_trials = trial_counts.get(pid, 0)
-        print(f"  {pid}: {n_trials} trials, {n_blocks} blocks")
+    # Build inclusion flag + reason string for every participant that appears
+    # in task_trials (parsed successfully) or was flagged as corrupted.
+    all_parsed_ids = set(task_trials['sona_id'].unique()) | corrupted_ids
 
-    # Flag block-based exclusions not caught by trial-count threshold
-    block_only = quality_exclusions - set(EXCLUDED_PARTICIPANTS)
-    if block_only:
-        print(f"\nWARNING: {len(block_only)} participants have <{DataParams.MIN_BLOCKS} blocks "
-              f"but >{DataParams.MIN_TRIALS} trials (not auto-excluded):")
-        for pid in sorted(block_only):
-            n_blocks = block_counts.get(pid, 0)
-            n_trials = trial_counts.get(pid, 0)
-            print(f"  {pid}: {n_trials} trials, {n_blocks} blocks")
-        print("  Add these to MANUAL_EXCLUSIONS in config.py if needed")
-    print()
+    inclusion_rows: list[dict] = []
+    for sona_id in all_parsed_ids:
+        reasons: list[str] = []
+        if sona_id in corrupted_ids:
+            reasons.append('corrupted_csv')
+        else:
+            n_trials = trial_counts.get(sona_id, 0)
+            n_blocks = block_counts.get(sona_id, 0)
+            if n_trials < DataParams.MIN_TRIALS:
+                reasons.append(f'low_trial_count_{DataParams.MIN_TRIALS}')
+            if n_blocks < DataParams.MIN_BLOCKS:
+                reasons.append(f'low_block_count_{DataParams.MIN_BLOCKS}')
+            if sona_id in EXCLUDED_PARTICIPANTS:
+                reasons.append('manual_excluded_list')
+        inclusion_rows.append({
+            'sona_id': sona_id,
+            'included_in_analysis': len(reasons) == 0,
+            'exclusion_reason': '|'.join(reasons),
+        })
 
-    # Apply exclusions to task_trials for metrics calculation
-    n_before = task_trials['sona_id'].nunique()
-    task_trials_filtered = task_trials[~task_trials['sona_id'].isin(EXCLUDED_PARTICIPANTS)]
-    n_after = task_trials_filtered['sona_id'].nunique()
-    print(f"After exclusions: {n_after} participants (excluded {n_before - n_after})")
+    inclusion_df = pd.DataFrame(inclusion_rows)
+    n_included = inclusion_df['included_in_analysis'].sum()
+    n_excluded = (~inclusion_df['included_in_analysis']).sum()
+    print(f"  Included in analysis: {n_included}")
+    print(f"  Excluded with reason: {n_excluded}")
     print()
 
     # Calculate LESS scores
@@ -144,14 +155,10 @@ def main():
 
     task_metrics_list = []
 
-    # Use original task_trials (not filtered) to calculate metrics for ALL participants
-    # We'll add an exclusion flag separately
     for sona_id in task_trials['sona_id'].unique():
         participant_trials = task_trials[task_trials['sona_id'] == sona_id]
         metrics = calculate_all_task_metrics(participant_trials)
         metrics['sona_id'] = sona_id
-        # Add exclusion flag for downstream scripts
-        metrics['excluded'] = sona_id in EXCLUDED_PARTICIPANTS
         task_metrics_list.append(metrics)
 
     task_metrics = pd.DataFrame(task_metrics_list)
@@ -179,7 +186,9 @@ def main():
     print("-" * 60)
     print("Merging all summary data...")
 
-    # Start with demographics
+    # Start with demographics — covers all successfully parsed participants.
+    # Corrupted-CSV participants have no demographics row; they'll appear via
+    # the outer join on inclusion_df at the end.
     summary = demographics.copy()
     print(f"Starting with demographics: {len(summary)} rows")
 
@@ -194,6 +203,11 @@ def main():
     # Merge task metrics
     summary = summary.merge(task_metrics, on='sona_id', how='left')
     print(f"After merging task metrics: {len(summary)} rows, {len(summary.columns)} columns")
+
+    # Merge inclusion flag + exclusion_reason (outer so corrupted participants
+    # that have no demographics row still appear in the summary).
+    summary = summary.merge(inclusion_df, on='sona_id', how='outer')
+    print(f"After merging inclusion flag: {len(summary)} rows, {len(summary.columns)} columns")
     print()
 
     # Organize columns
@@ -202,6 +216,8 @@ def main():
 
     # Define column order groups
     id_cols = ['sona_id']
+    # Inclusion gate — immediately after ID for discoverability
+    inclusion_cols = ['included_in_analysis', 'exclusion_reason']
 
     demographic_cols = [col for col in summary.columns if col in [
         'age_years', 'country', 'primary_language', 'gender', 'education',
@@ -211,16 +227,17 @@ def main():
     lec_cols = [col for col in summary.columns if col.startswith('lec_')]
     ies_cols = [col for col in summary.columns if col.startswith('ies_')]
 
-    # Task metrics (all remaining columns)
-    task_metric_cols = [col for col in summary.columns
-                        if col not in id_cols + demographic_cols + lec_cols + ies_cols]
+    # Task metrics (all remaining columns, exclusion columns already placed)
+    reserved = set(id_cols + inclusion_cols + demographic_cols + lec_cols + ies_cols)
+    task_metric_cols = [col for col in summary.columns if col not in reserved]
 
     # Reorder columns
-    ordered_cols = id_cols + demographic_cols + lec_cols + ies_cols + task_metric_cols
+    ordered_cols = id_cols + inclusion_cols + demographic_cols + lec_cols + ies_cols + task_metric_cols
     summary = summary[ordered_cols]
 
     print("Column organization:")
     print("  - ID: 1 column")
+    print("  - Inclusion: 2 columns (included_in_analysis, exclusion_reason)")
     print(f"  - Demographics: {len(demographic_cols)} columns")
     print(f"  - LEC-5 summary: {len(lec_cols)} columns")
     print(f"  - IES-R summary: {len(ies_cols)} columns")
@@ -232,6 +249,8 @@ def main():
     print("-" * 60)
     print("Data Quality Summary:")
     print(f"  Total participants: {len(summary)}")
+    print(f"  Included in analysis: {summary['included_in_analysis'].sum()}")
+    print(f"  Excluded with reason: {(~summary['included_in_analysis']).sum()}")
 
     # Check completeness
     participants_with_all_data = summary.dropna(subset=lec_cols + ies_cols + ['accuracy_overall']).shape[0]

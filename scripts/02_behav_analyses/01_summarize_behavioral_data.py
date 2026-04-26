@@ -71,7 +71,9 @@ def load_processed_data():
         print(f"  [WARN] Collated data not found: {collated_path}")
         data['collated'] = None
 
-    # Load summary metrics
+    # Load summary metrics — intentionally unfiltered (all parseable participants)
+    # because this script produces descriptive cohort summaries, not analysis inputs.
+    # Use included_in_analysis to subset for modelling; see docs/CODEBOOK.md.
     summary_path = PROCESSED_DIR / 'summary_participant_metrics.csv'
     if summary_path.exists():
         data['summary'] = pd.read_csv(summary_path)

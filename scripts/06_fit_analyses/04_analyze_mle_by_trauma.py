@@ -161,8 +161,10 @@ def load_data(fits_dir: Path = OUTPUT_DIR) -> tuple:
         ``(qlearning, wmrl, wmrl_m3, surveys, groups, wmrl_m5, wmrl_m6a,
         wmrl_m6b, wmrl_m4)`` as DataFrames (optional models may be ``None``).
     """
-    # Load survey data
+    # Load survey data — filter to included cohort before joining fit parameters
     surveys = pd.read_csv(PROCESSED_DIR / "summary_participant_metrics.csv")
+    if 'included_in_analysis' in surveys.columns:
+        surveys = surveys[surveys['included_in_analysis'] == True].copy()
     # Rename columns to match names expected throughout this script
     surveys = surveys.rename(columns={
         'less_total_events': 'lec_total',

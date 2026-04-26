@@ -291,7 +291,13 @@ def main():
     all_survey1 = []
     all_survey2 = []
     participant_info = []
+    # Corrupted-CSV participants: surfaced to 04_create_summary_csv.py so they
+    # appear in summary_participant_metrics.csv with exclusion_reason='corrupted_csv'.
+    corrupted_participants: list[dict] = []
 
+    # NOTE: task_trials_long.csv stays filtered to included participants
+    # (analysis-ready). Per-participant inclusion flag with exclusion_reason
+    # lives in summary_participant_metrics.csv (see docs/CODEBOOK.md).
     print("\nParsing files...")
     for filepath, assigned_id in tqdm(csv_files, desc='Parsing', unit='file'):
         if not filepath.exists():
@@ -301,7 +307,12 @@ def main():
         if assigned_id in EXCLUDED_PARTICIPANTS:
             continue
 
-        result = parse_single_file(filepath, assigned_id)
+        try:
+            result = parse_single_file(filepath, assigned_id)
+        except (pd.errors.ParserError, UnicodeDecodeError, ValueError) as exc:
+            print(f"  Corrupted CSV (skipped): {filepath.name}: {exc}")
+            corrupted_participants.append({'sona_id': assigned_id, 'filename': filepath.name})
+            continue
 
         # Only include participants with sufficient trials
         if result['task_trials'] is not None and result['n_trials'] >= MIN_TRIALS:
@@ -324,6 +335,12 @@ def main():
 
         if result['survey2'] is not None:
             all_survey2.append(result['survey2'])
+
+    if corrupted_participants:
+        corrupted_df = pd.DataFrame(corrupted_participants)
+        corrupted_path = INTERIM_DIR / 'corrupted_participants.csv'
+        corrupted_df.to_csv(corrupted_path, index=False)
+        print(f"\n  Corrupted CSVs logged: {corrupted_path} ({len(corrupted_participants)} files)")
 
     print(f"\nSuccessfully parsed: {len(all_task_trials)} participants (>={MIN_TRIALS} trials)")
 

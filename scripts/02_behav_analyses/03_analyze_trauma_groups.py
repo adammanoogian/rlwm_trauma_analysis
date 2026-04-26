@@ -94,6 +94,10 @@ def load_participant_data():
 
     df = pd.read_csv(data_path)
 
+    # Filter to analysis cohort (excluded participants carry no valid task metrics)
+    if 'included_in_analysis' in df.columns:
+        df = df[df['included_in_analysis'] == True].copy()
+
     # Normalize column names (LESS → LEC naming convention used downstream)
     rename_map = {
         'less_total_events': 'lec_total_events',

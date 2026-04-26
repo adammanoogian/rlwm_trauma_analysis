@@ -198,8 +198,10 @@ def load_integrated_data(params_path: Path, model_type: str = 'qlearning',
     params_df = params_df.rename(columns=param_rename)
     print(f"  Loaded {len(params_df)} participant fits")
 
-    # Load trauma scales from summary_participant_metrics.csv (169 rows, complete dataset)
+    # Load trauma scales — filter to included cohort before regressing fit parameters
     participant_data = pd.read_csv(PROCESSED_DIR / 'summary_participant_metrics.csv')
+    if 'included_in_analysis' in participant_data.columns:
+        participant_data = participant_data[participant_data['included_in_analysis'] == True].copy()
     # Rename columns to match expected names used throughout this script
     rename_map = {
         'less_total_events': 'lec_total_events',

@@ -269,15 +269,13 @@ def generate_descriptive_tables(output_dir):
     summary_path = PROCESSED_DIR / 'summary_participant_metrics.csv'
     trials_path = PROCESSED_DIR / 'task_trials_long.csv'
 
-    # Try alternative trials path if primary doesn't exist
-    if not trials_path.exists():
-        trials_path = PROCESSED_DIR / 'task_trials_long_all_participants.csv'
-
     if not summary_path.exists():
         print(f"\nERROR: Summary data not found at {summary_path}")
         return
 
     summary_df = pd.read_csv(summary_path)
+    if 'included_in_analysis' in summary_df.columns:
+        summary_df = summary_df[summary_df['included_in_analysis'] == True].copy()
     # Normalize column names (LESS → LEC naming convention used downstream)
     rename_map = {
         'less_total_events': 'lec_total_events',
@@ -462,14 +460,13 @@ def run_statistical_analyses(output_dir):
     summary_path = PROCESSED_DIR / 'summary_participant_metrics.csv'
     trials_path = PROCESSED_DIR / 'task_trials_long.csv'
 
-    if not trials_path.exists():
-        trials_path = PROCESSED_DIR / 'task_trials_long_all_participants.csv'
-
     if not summary_path.exists():
         print(f"\nERROR: Summary data not found at {summary_path}")
         return
 
     summary_df = pd.read_csv(summary_path)
+    if 'included_in_analysis' in summary_df.columns:
+        summary_df = summary_df[summary_df['included_in_analysis'] == True].copy()
     # Normalize column names (LESS → LEC naming convention used downstream)
     rename_map = {
         'less_total_events': 'lec_total_events',
