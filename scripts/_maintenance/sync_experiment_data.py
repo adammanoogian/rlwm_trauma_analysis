@@ -2,22 +2,27 @@
 Sync Experiment Data to Analysis Project
 
 Safely copies new participant CSV files from the experiment data folder
-to the analysis project data folder without modifying source files.
+(../rlwm_trauma/data, the Pavlovia gitlab clone) to data/raw/ in this
+analysis project, without modifying source files.
 
 Usage:
-    python sync_experiment_data.py
+    python scripts/_maintenance/sync_experiment_data.py
 """
 
 import shutil
+import sys
 from pathlib import Path
 from datetime import datetime
-import sys
+
+# Resolve to project root so `from config import ...` works regardless of cwd
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from config import DATA_RAW_DIR, LOGS_DIR
 
 # Configuration
-EXPERIMENT_DATA_DIR = Path('../rlwm_trauma/data')  # Experiment folder
-ANALYSIS_DATA_DIR = Path('data')  # Analysis project folder
+EXPERIMENT_DATA_DIR = Path('../rlwm_trauma/data')  # Experiment folder (Pavlovia clone)
+ANALYSIS_DATA_DIR = DATA_RAW_DIR  # CCDS tier (Phase 31-02; was Path('data') flat pre-migration)
 FILE_PATTERN = 'rlwm_trauma_PARTICIPANT_SESSION_*.csv'
-LOG_FILE = ANALYSIS_DATA_DIR / 'sync_log.txt'
+LOG_FILE = LOGS_DIR / 'sync_log.txt'  # Phase 31-05 consolidated logs/
 
 def log_message(message, print_to_console=True):
     """Write message to log file and optionally print to console."""

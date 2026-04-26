@@ -1,13 +1,19 @@
 """
-Update participant_id_mapping.json to include all CSV files in data/ directory.
+Update participant_id_mapping.json to include all CSV files in data/raw/.
 
-This script scans the data directory for all CSV files matching the experiment pattern
+This script scans data/raw/ for all CSV files matching the experiment pattern
 and assigns anonymous IDs to new participants, preserving existing mappings.
 """
 
-import pandas as pd
 import json
+import sys
 from pathlib import Path
+
+import pandas as pd
+
+# Resolve to project root so `from config import ...` works regardless of cwd
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from config import DATA_RAW_DIR
 
 def count_task_trials(filepath):
     """Count number of task trials (categorize-html) in a CSV file."""
@@ -22,7 +28,7 @@ def count_task_trials(filepath):
         return 0
 
 def main():
-    data_dir = Path('data')
+    data_dir = DATA_RAW_DIR  # CCDS tier (Phase 31-02; was Path('data') flat pre-migration)
     mapping_file = data_dir / 'participant_id_mapping.json'
 
     print("=" * 80)
