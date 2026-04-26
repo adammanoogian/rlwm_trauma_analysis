@@ -63,21 +63,38 @@ mkdir -p logs data/processed data/interim
 
 export PYTHONUNBUFFERED=1
 
-# Pre-flight: raw data presence (PII gitignored — must be rsynced to the cluster
-# manually before this stage will run). Catches the silent-data-missing case at
-# the SLURM level so afterok chains halt before stages 02-06 enter the queue.
+# Pre-flight: data sourcing strategy.
+#   - If data/raw/ contains rlwm_trauma_*.csv: parse fresh (full stage 01).
+#   - Else if data/processed/task_trials_long.csv exists: skip stage 01 entirely
+#     (cluster pulled processed CSVs from git; raw PII stays on the local
+#     workstation per .gitignore data/raw/* rule).
+#   - Else: hard fail — neither raw input nor processed output is available.
 shopt -s nullglob
 RAW_CSVS=(data/raw/rlwm_trauma_*.csv)
 shopt -u nullglob
 if [[ ${#RAW_CSVS[@]} -eq 0 ]]; then
-    echo "ERROR: data/raw/ contains no rlwm_trauma_*.csv participant files" >&2
-    echo "       Raw data is PII (gitignored) — sync from a local checkout via:" >&2
-    echo "         rsync -av --include='rlwm_trauma_*.csv' \\" >&2
-    echo "               --include='participant_id_mapping.json' --exclude='*' \\" >&2
-    echo "               <local>/data/raw/ ${USER}@m3-login1:${PROJECT_ROOT}/data/raw/" >&2
+    if [[ -f data/processed/task_trials_long.csv \
+       && -f data/processed/task_trials_long_all.csv \
+       && -f data/processed/summary_participant_metrics.csv ]]; then
+        echo "Pre-flight: data/raw/ empty AND data/processed/ populated — skipping stage 01"
+        echo "  task_trials_long.csv:           $(wc -l < data/processed/task_trials_long.csv) lines"
+        echo "  task_trials_long_all.csv:       $(wc -l < data/processed/task_trials_long_all.csv) lines"
+        echo "  summary_participant_metrics.csv: $(wc -l < data/processed/summary_participant_metrics.csv) lines"
+        echo "Stage 01 skipped — downstream stages will read committed processed/ CSVs"
+        if [[ -f cluster/autopush.sh ]]; then
+            source cluster/autopush.sh
+        fi
+        exit 0
+    fi
+    echo "ERROR: neither data/raw/ nor data/processed/ has data" >&2
+    echo "       Expected EITHER: rlwm_trauma_*.csv files in data/raw/" >&2
+    echo "       OR:              task_trials_long.csv + task_trials_long_all.csv" >&2
+    echo "                        + summary_participant_metrics.csv in data/processed/" >&2
+    echo "       For OSF/cluster cold-start workflow:" >&2
+    echo "         git pull (processed/ CSVs are tracked since v5.0)" >&2
     exit 1
 fi
-echo "Pre-flight: found ${#RAW_CSVS[@]} raw participant CSV files in data/raw/"
+echo "Pre-flight: found ${#RAW_CSVS[@]} raw participant CSV files in data/raw/ — running full stage 01"
 
 run_step() {
     local desc="$1"

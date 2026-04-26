@@ -17,7 +17,10 @@
 #
 # Usage:
 #   bash cluster/submit_all.sh                          # full chain, real submission
+#                                                      #   stage 01 auto-skips if data/raw/ empty AND data/processed/ tracked
 #   bash cluster/submit_all.sh --dry-run                # path-check only (no sbatch)
+#   bash cluster/submit_all.sh --from-stage 2          # canonical cluster cold-start entry
+#                                                      #   (use after git pull delivers processed/ CSVs; bypasses stage 01 SLURM cost)
 #   bash cluster/submit_all.sh --from-stage 4           # start mid-pipeline
 #   bash cluster/submit_all.sh --models "wmrl_m3 wmrl_m5"  # subset of choice-only models
 #
