@@ -11,7 +11,6 @@ Usage:
     python scripts/01_data_preprocessing/01_parse_raw_data.py
 
 Outputs (CCDS tiered layout — populated by plan 31-02):
-    data/processed/task_trials_long_all_participants.csv  - Main trial-level data (cleaned; legacy name)
     data/processed/task_trials_long.csv                   - Main task only (canonical input to fitting)
     data/processed/task_trials_long_all.csv               - All blocks incl. practice (is_practice flag)
     data/processed/summary_participant_metrics.csv        - Combined participant metrics (tracked)
@@ -364,11 +363,6 @@ def main():
         print(f"  {len(task_df_main):,} trials from {task_df_main['sona_id'].nunique()} participants")
         print("  (main task only, practice excluded)")
 
-        # Also save to legacy filename for compatibility
-        output_path_legacy = DataParams.TASK_TRIALS_LEGACY
-        task_df_main.to_csv(output_path_legacy, index=False)
-        print(f"[SAVED] {output_path_legacy} (legacy filename, main task only)")
-
         # Use main task data for summary statistics
         task_df = task_df_main
 
@@ -501,7 +495,6 @@ def main():
     print("\nOutputs created (CCDS tiered layout):")
     print(f"  - {DataParams.TASK_TRIALS_ALL}   (ALL trials including practice)")
     print(f"  - {DataParams.TASK_TRIALS_LONG}  (Main task only, for fitting)")
-    print(f"  - {DataParams.TASK_TRIALS_LEGACY}  (legacy filename, main task only)")
     print(f"  - {INTERIM_DIR / 'participant_info.csv'}")
     print(f"  - {DataParams.PARSED_SURVEY1}  (LEC-5 + LESS scores)")
     print(f"  - {DataParams.PARSED_SURVEY2}  (IES-R + subscale scores)")

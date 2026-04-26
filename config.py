@@ -348,7 +348,6 @@ class DataParams:
     # Task trial data files (processed tier)
     TASK_TRIALS_LONG = PROCESSED_DIR / 'task_trials_long.csv'       # Main task only (default for fitting)
     TASK_TRIALS_ALL = PROCESSED_DIR / 'task_trials_long_all.csv'    # All blocks including practice
-    TASK_TRIALS_LEGACY = PROCESSED_DIR / 'task_trials_long_all_participants.csv'  # Legacy filename
     SUMMARY_METRICS = PROCESSED_DIR / 'summary_participant_metrics.csv'
 
     # Exclusion criteria (references module-level constant)

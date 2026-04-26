@@ -56,23 +56,22 @@ _stash_pre_v5_cold_start_*/
 # patterns removed in plan 31-05 after physical moves completed in 31-02/03.)
 # ============================================================================
 
-# Raw participant data — sensitive, NEVER tracked
-data/raw/rlwm_trauma_PARTICIPANT_SESSION_*.csv
-data/raw/backup_*.csv
-data/raw/participant_id_mapping.json
+# Raw participant data — sensitive, NEVER tracked (wildcard form: any new
+# raw artifact is gitignored by default; only .gitkeep is preserved).
+data/raw/*
 !data/raw/.gitkeep
 
-# Interim (parsed/collated) — sensitive PII, gitignored
-data/interim/parsed_demographics.csv
-data/interim/parsed_survey*.csv
-data/interim/parsed_task_trials.csv
-data/interim/collated_participant_data.csv
-data/interim/demographics_complete.csv
-data/interim/participant_info.csv
+# Interim (parsed/collated) — sensitive PII, gitignored under the same
+# wildcard pattern.
+data/interim/*
 !data/interim/.gitkeep
 
-# Processed — analysis-ready CSVs, TRACKED (except temp dev artifacts)
+# Processed — analysis-ready, EXPLICITLY tracked. CSVs and JSONs ship with
+# the repo for OSF deposit + cluster cold-start (see docs/CODEBOOK.md).
+# (No ignore pattern needed; listed here for intent visibility.)
 !data/processed/.gitkeep
+!data/processed/*.csv
+!data/processed/*.json
 
 # Models — large binary posteriors gitignored; small CSVs tracked
 models/bayesian/*.nc
