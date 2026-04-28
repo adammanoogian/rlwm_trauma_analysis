@@ -12,9 +12,9 @@ Per-metric band: `hard` = within original B&C hard band; `soft` = within documen
 
 | Check | Hard threshold | Soft threshold | Value | Band |
 |---|---|---|---|---|
-| Median accuracy | [0.40, 0.90] | [0.40, 0.92] | 0.901 | soft |
+| Median accuracy | [0.40, 0.90] | [0.40, 0.92] | 0.907 | soft |
 | Sub-chance fraction | < 10% | < 12% | 0.0% | hard |
-| At-ceiling fraction | < 5% | < 7% | 0.6% | hard |
+| At-ceiling fraction | < 5% | < 7% | 0.2% | hard |
 
 ## Priors used
 

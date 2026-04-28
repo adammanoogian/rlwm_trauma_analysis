@@ -359,3 +359,56 @@ Stage 02 complete — Tue Apr 28 10:21:42 PM AEST 2026
 ============================================================
 AUTO-PUSH: Committing and pushing results
 ============================================================
+[main ef15c4d] p29_02_behav job 55009115 results
+ 63 files changed, 135633 insertions(+), 112895 deletions(-)
+ create mode 100644 logs/00_preflight_54947076.err
+ create mode 100644 logs/00_preflight_54947076.out
+ create mode 100644 logs/00_preflight_54957188.err
+ create mode 100644 logs/00_preflight_54957188.out
+ create mode 100644 logs/00_preflight_54957770.err
+ create mode 100644 logs/00_preflight_54957770.out
+ create mode 100644 logs/00_preflight_55004789.err
+ create mode 100644 logs/00_preflight_55004789.out
+ create mode 100644 logs/01_data_processing_54964819.err
+ create mode 100644 logs/01_data_processing_54964819.out
+ create mode 100644 logs/01_data_processing_55004790.err
+ create mode 100644 logs/01_data_processing_55004790.out
+ create mode 100644 logs/02_behav_analyses_55004791.err
+ create mode 100644 logs/02_behav_analyses_55004791.out
+ create mode 100644 logs/02_behav_analyses_55009115.err
+ create mode 100644 logs/02_behav_analyses_55009115.out
+ create mode 100644 logs/03_check_canary_54964440.err
+ create mode 100644 logs/03_check_canary_54964440.out
+ create mode 100644 logs/03_check_canary_54964726.err
+ create mode 100644 logs/03_check_canary_54964726.out
+ create mode 100644 logs/03_prefitting_gpu_54957193.err
+ create mode 100644 logs/03_prefitting_gpu_54957193.out
+ create mode 100644 logs/03_prefitting_gpu_54957194.err
+ create mode 100644 logs/03_prefitting_gpu_54957194.out
+ create mode 100644 logs/03_prefitting_gpu_54957195.err
+ create mode 100644 logs/03_prefitting_gpu_54957195.out
+ create mode 100644 logs/03_prefitting_gpu_54957196.err
+ create mode 100644 logs/03_prefitting_gpu_54957196.out
+ create mode 100644 logs/03_prefitting_gpu_54957197.err
+ create mode 100644 logs/03_prefitting_gpu_54957197.out
+ create mode 100644 logs/03_prefitting_gpu_54957198.err
+ create mode 100644 logs/03_prefitting_gpu_54957198.out
+ create mode 100644 logs/03_prefitting_gpu_54957781.err
+ create mode 100644 logs/03_prefitting_gpu_54957781.out
+ create mode 100644 logs/04b_bayesian_gpu_54973164.err
+ create mode 100644 logs/04b_bayesian_gpu_54973164.out
+ create mode 100644 logs/04b_bayesian_gpu_54973165.err
+ create mode 100644 logs/04b_bayesian_gpu_54973165.out
+ create mode 100644 logs/04b_bayesian_gpu_54973166.err
+ create mode 100644 logs/04b_bayesian_gpu_54973166.out
+ create mode 100644 logs/04b_bayesian_gpu_54973167.err
+ create mode 100644 logs/04b_bayesian_gpu_54973167.out
+ create mode 100644 logs/04b_bayesian_gpu_54973168.err
+ create mode 100644 logs/04b_bayesian_gpu_54973168.out
+ create mode 100644 logs/04b_bayesian_gpu_54973169.err
+ create mode 100644 logs/04b_bayesian_gpu_54973169.out
+ create mode 100644 logs/05_post_checks_54973170.err
+ create mode 100644 logs/05_post_checks_54973170.out
+To github.com:adammanoogian/rlwm_trauma_analysis
+   7153aae..ef15c4d  main -> main
+  Auto-push complete
