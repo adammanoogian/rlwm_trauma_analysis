@@ -35,11 +35,11 @@
 # CLUSTER_GPU_LESSONS.md §5):
 #   sbatch --export=GPU_TYPE=a100 cluster/04b_bayesian_gpu.slurm
 #
-# Outputs saved to:
-#   - models/bayesian/${MODEL}_individual_fits.csv
-#   - models/bayesian/${MODEL}_posterior.nc
-#   - models/bayesian/${MODEL}_shrinkage_report.md
-#   - models/bayesian/${MODEL}_ppc_results.csv
+# Outputs saved to (Phase-21 pipeline subdir, read by stage 05 baseline_audit):
+#   - models/bayesian/21_baseline/${MODEL}_individual_fits.csv
+#   - models/bayesian/21_baseline/${MODEL}_posterior.nc
+#   - models/bayesian/21_baseline/${MODEL}_shrinkage_report.md
+#   - models/bayesian/21_baseline/${MODEL}_ppc_results.csv
 # =============================================================================
 
 #SBATCH --job-name=rlwm-bayesian-gpu-mgpu
@@ -144,7 +144,21 @@ echo ""
 
 # Create output + log directories
 mkdir -p logs
-mkdir -p models/bayesian
+mkdir -p models/bayesian/21_baseline
+
+# Clear any stale per-model artefacts from a previous run (different cohort N,
+# aborted fit, etc.). Without this, a fit failure mid-rerun would leave the
+# previous run's posterior in place and stage 05 would silently audit it.
+echo "[$(date)] Clearing stale ${MODEL} artefacts from models/bayesian/21_baseline/"
+for stale in "models/bayesian/21_baseline/${MODEL}_individual_fits.csv" \
+             "models/bayesian/21_baseline/${MODEL}_posterior.nc" \
+             "models/bayesian/21_baseline/${MODEL}_shrinkage_report.md" \
+             "models/bayesian/21_baseline/${MODEL}_ppc_results.csv"; do
+    if [[ -f "$stale" ]]; then
+        echo "  removing $stale"
+        rm -f "$stale"
+    fi
+done
 
 # =============================================================================
 # Verify required input files
@@ -170,13 +184,23 @@ if [ "$SUBSCALE" = "1" ]; then
 fi
 
 # =============================================================================
-# Build fit_bayesian.py command
+# Build fit_baseline.py command (Phase-21 pipeline entry)
 # =============================================================================
+# IMPORTANT: This invokes `fit_baseline.py` (NOT `fit_bayesian.py`). The
+# pipeline entry forces --output-subdir=21_baseline so artefacts land in
+# models/bayesian/21_baseline/ where stage 05 baseline_audit reads them,
+# AND adds a load-bearing expected.exists() check that converts silent
+# convergence-gate failures into a non-zero SLURM exit. fit_bayesian.py is
+# the ad-hoc CLI and writes to bare models/bayesian/, which would silently
+# orphan the afterok chain.
+#
+# fit_baseline.py does NOT accept --subscale or --limit (subscale runs
+# through cluster/04c_level2_gpu.slurm, not 04b). If you set those env
+# vars they will be ignored here.
+#
 # NO --use-gpu flag: pmap selection is automatic via
-# numpyro_models._select_chain_method when n_devices >= n_chains. The
-# --use-gpu flag was the single-GPU-mode convention (now obsolete for
-# Template C).
-CMD=(python scripts/04_model_fitting/b_bayesian/fit_bayesian.py
+# numpyro_models._select_chain_method when n_devices >= n_chains.
+CMD=(python scripts/04_model_fitting/b_bayesian/fit_baseline.py
      --model "$MODEL"
      --data "$DATA_FILE"
      --chains "$CHAINS"
@@ -185,12 +209,10 @@ CMD=(python scripts/04_model_fitting/b_bayesian/fit_bayesian.py
      --seed "$SEED"
      --max-tree-depth "$MAX_TREE_DEPTH")
 
-if [ "$SUBSCALE" = "1" ]; then
-    CMD+=(--subscale)
-fi
-
-if [[ -n "$LIMIT" ]]; then
-    CMD+=(--limit "$LIMIT")
+if [ "$SUBSCALE" = "1" ] || [[ -n "$LIMIT" ]]; then
+    echo "WARNING: SUBSCALE/LIMIT env vars are ignored under fit_baseline.py."
+    echo "         Subscale fits use cluster/04c_level2_gpu.slurm; for ad-hoc"
+    echo "         single-model fits with --limit, invoke fit_bayesian.py directly."
 fi
 
 # =============================================================================
@@ -228,17 +250,25 @@ echo "[$(date)] ${MODEL} hierarchical fit finished (exit code: $EXIT_CODE)"
 # Post-fit expected-artifacts audit (mirror of 04b_bayesian_cpu.slurm)
 # =============================================================================
 if [ $EXIT_CODE -eq 0 ]; then
-    echo "Expected outputs:"
-    for f in "models/bayesian/${MODEL}_individual_fits.csv" \
-             "models/bayesian/${MODEL}_posterior.nc" \
-             "models/bayesian/${MODEL}_shrinkage_report.md" \
-             "models/bayesian/${MODEL}_ppc_results.csv"; do
+    echo "Expected outputs (under models/bayesian/21_baseline/):"
+    MISSING_ARTIFACTS=0
+    for f in "models/bayesian/21_baseline/${MODEL}_individual_fits.csv" \
+             "models/bayesian/21_baseline/${MODEL}_posterior.nc" \
+             "models/bayesian/21_baseline/${MODEL}_shrinkage_report.md" \
+             "models/bayesian/21_baseline/${MODEL}_ppc_results.csv"; do
         if [ -f "$f" ]; then
             echo "  [OK] $f ($(du -h "$f" | cut -f1))"
         else
-            echo "  [MISSING] $f (convergence gate may have blocked writes)"
+            echo "  [MISSING] $f"
+            MISSING_ARTIFACTS=$((MISSING_ARTIFACTS + 1))
         fi
     done
+    if [ $MISSING_ARTIFACTS -gt 0 ]; then
+        echo ""
+        echo "*** ERROR: ${MODEL} fit returned exit=0 but $MISSING_ARTIFACTS expected artefact(s) MISSING ***"
+        echo "*** Treating as failure for afterok chain integrity (stage 05 reads from 21_baseline/). ***"
+        EXIT_CODE=1
+    fi
 else
     echo "*** ERROR: Model $MODEL FAILED with exit code $EXIT_CODE ***"
     echo "*** Check stderr log: logs/04b_bayesian_gpu_${SLURM_JOB_ID}.err ***"
@@ -273,5 +303,9 @@ sacct -j "$SLURM_JOB_ID" \
     --noheader 2>/dev/null | head -5 || echo "  (not yet available)"
 echo "============================================================"
 
-# Auto-push logs and results when job completes
+# Auto-push logs and results when job completes (autopush exit code is
+# isolated from fit exit code so a transient network failure does not
+# mark the SLURM job as failed and orphan the afterok chain).
 source cluster/autopush.sh
+
+exit $EXIT_CODE

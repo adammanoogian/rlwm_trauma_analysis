@@ -274,17 +274,25 @@ def main():
         # Fail-fast with non-zero exit so SLURM afterok chains halt instead of
         # cascading into 02-04 (which then error-and-exit-1 on missing interim
         # files, masking the real cause). Raw data is PII / gitignored and must
-        # be synced manually to the cluster.
+        # NEVER be copied to the cluster (quick-010 OSF-publication policy).
         print(
             f"ERROR: No participant CSV files found in {DATA_RAW_DIR}",
             file=sys.stderr,
         )
         print(
             "       Expected pattern: rlwm_trauma_*.csv (+ participant_id_mapping.json)\n"
-            "       Raw data is PII and gitignored — sync from local via:\n"
-            "         rsync -av --include='rlwm_trauma_*.csv' \\\n"
-            "               --include='participant_id_mapping.json' --exclude='*' \\\n"
-            "               <local>/data/raw/ <cluster>:<project>/data/raw/",
+            "\n"
+            "       This parser reads PII raw data and is intended for the LOCAL\n"
+            "       workstation only. Per quick-010 (OSF-publication policy), raw\n"
+            "       data must never be on the cluster.\n"
+            "\n"
+            "       If you're on a local workstation:\n"
+            "         drop rlwm_trauma_*.csv files into data/raw/, then re-run.\n"
+            "\n"
+            "       If you're on the cluster:\n"
+            "         do not invoke this script directly. Instead, `git pull` to\n"
+            "         receive the published data/processed/*.csv files and run\n"
+            "         downstream stages from there.",
             file=sys.stderr,
         )
         sys.exit(1)

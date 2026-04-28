@@ -63,38 +63,60 @@ mkdir -p logs data/processed data/interim
 
 export PYTHONUNBUFFERED=1
 
-# Pre-flight: data sourcing strategy.
-#   - If data/raw/ contains rlwm_trauma_*.csv: parse fresh (full stage 01).
-#   - Else if data/processed/task_trials_long.csv exists: skip stage 01 entirely
-#     (cluster pulled processed CSVs from git; raw PII stays on the local
-#     workstation per .gitignore data/raw/* rule).
-#   - Else: hard fail — neither raw input nor processed output is available.
+# Pre-flight: data sourcing strategy (quick-010 OSF-publication semantics).
+#
+# `data/processed/*.csv` is the PUBLISHED artefact (git-tracked, OSF-shared).
+# `data/raw/*` is local-only (PII, .gitignored). The cluster pulls processed/
+# from git; raw is never copied. Therefore:
+#
+#   1. If data/processed/ has the canonical CSVs → SKIP stage 01 entirely
+#      (use the published cohort, regardless of whether raw is also present).
+#   2. Else if data/raw/ has rlwm_trauma_*.csv → regenerate processed from
+#      raw (local-workstation cold-start, before processed has been committed).
+#   3. Else → hard fail.
+#
+# Adding new subjects: regenerate processed/ LOCALLY where raw lives, commit
+# the updated CSVs (no PII in processed/, only the included_in_analysis flag
+# from quick-010), push, then `git pull` on the cluster. The cluster never
+# re-parses raw — it always uses the version-controlled processed CSVs.
+PROCESSED_CSVS_PRESENT=0
+if [[ -f data/processed/task_trials_long.csv \
+   && -f data/processed/task_trials_long_all.csv \
+   && -f data/processed/summary_participant_metrics.csv ]]; then
+    PROCESSED_CSVS_PRESENT=1
+fi
+
 shopt -s nullglob
 RAW_CSVS=(data/raw/rlwm_trauma_*.csv)
 shopt -u nullglob
-if [[ ${#RAW_CSVS[@]} -eq 0 ]]; then
-    if [[ -f data/processed/task_trials_long.csv \
-       && -f data/processed/task_trials_long_all.csv \
-       && -f data/processed/summary_participant_metrics.csv ]]; then
-        echo "Pre-flight: data/raw/ empty AND data/processed/ populated — skipping stage 01"
-        echo "  task_trials_long.csv:           $(wc -l < data/processed/task_trials_long.csv) lines"
-        echo "  task_trials_long_all.csv:       $(wc -l < data/processed/task_trials_long_all.csv) lines"
-        echo "  summary_participant_metrics.csv: $(wc -l < data/processed/summary_participant_metrics.csv) lines"
-        echo "Stage 01 skipped — downstream stages will read committed processed/ CSVs"
-        if [[ -f cluster/autopush.sh ]]; then
-            source cluster/autopush.sh
-        fi
-        exit 0
+
+if [[ "$PROCESSED_CSVS_PRESENT" -eq 1 ]]; then
+    echo "Pre-flight: data/processed/ populated — skipping stage 01 (published-cohort path)"
+    echo "  task_trials_long.csv:            $(wc -l < data/processed/task_trials_long.csv) lines"
+    echo "  task_trials_long_all.csv:        $(wc -l < data/processed/task_trials_long_all.csv) lines"
+    echo "  summary_participant_metrics.csv: $(wc -l < data/processed/summary_participant_metrics.csv) lines"
+    if [[ ${#RAW_CSVS[@]} -gt 0 ]]; then
+        echo "Note: data/raw/ contains ${#RAW_CSVS[@]} file(s) but is NOT used here."
+        echo "      Regenerate processed/ explicitly by running scripts/01_data_preprocessing/01..04 locally."
     fi
-    echo "ERROR: neither data/raw/ nor data/processed/ has data" >&2
-    echo "       Expected EITHER: rlwm_trauma_*.csv files in data/raw/" >&2
-    echo "       OR:              task_trials_long.csv + task_trials_long_all.csv" >&2
-    echo "                        + summary_participant_metrics.csv in data/processed/" >&2
-    echo "       For OSF/cluster cold-start workflow:" >&2
-    echo "         git pull (processed/ CSVs are tracked since v5.0)" >&2
+    echo "Stage 01 skipped — downstream stages will read committed processed/ CSVs"
+    if [[ -f cluster/autopush.sh ]]; then
+        source cluster/autopush.sh
+    fi
+    exit 0
+fi
+
+if [[ ${#RAW_CSVS[@]} -gt 0 ]]; then
+    echo "Pre-flight: data/processed/ missing — regenerating from ${#RAW_CSVS[@]} file(s) in data/raw/"
+    echo "         (local-workstation cold-start path; published cohort not yet committed)"
+else
+    echo "ERROR: neither data/processed/ nor data/raw/ has data" >&2
+    echo "       Expected EITHER: task_trials_long.csv + task_trials_long_all.csv" >&2
+    echo "                        + summary_participant_metrics.csv in data/processed/ (preferred)" >&2
+    echo "       OR:              rlwm_trauma_*.csv files in data/raw/ (local cold-start only)" >&2
+    echo "       For cluster: \`git pull\` brings in the published processed/ CSVs (v5.0+)." >&2
     exit 1
 fi
-echo "Pre-flight: found ${#RAW_CSVS[@]} raw participant CSV files in data/raw/ — running full stage 01"
 
 run_step() {
     local desc="$1"

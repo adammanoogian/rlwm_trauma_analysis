@@ -108,7 +108,21 @@ echo "JAX cache: ${JAX_COMPILATION_CACHE_DIR:-disabled}"
 
 # --- Create output directories ---
 mkdir -p logs
-mkdir -p models/bayesian
+mkdir -p models/bayesian/21_baseline
+
+# Clear any stale per-model artefacts from a previous run (different cohort N,
+# aborted fit, etc.). Without this, a fit failure mid-rerun would leave the
+# previous run's posterior in place and stage 05 would silently audit it.
+echo "[$(date)] Clearing stale ${MODEL} artefacts from models/bayesian/21_baseline/"
+for stale in "models/bayesian/21_baseline/${MODEL}_individual_fits.csv" \
+             "models/bayesian/21_baseline/${MODEL}_posterior.nc" \
+             "models/bayesian/21_baseline/${MODEL}_shrinkage_report.md" \
+             "models/bayesian/21_baseline/${MODEL}_ppc_results.csv"; do
+    if [[ -f "$stale" ]]; then
+        echo "  removing $stale"
+        rm -f "$stale"
+    fi
+done
 
 # --- Verify required input files ---
 if [ "$SUBSCALE" = "1" ]; then
@@ -124,8 +138,19 @@ if [ "$SUBSCALE" = "1" ]; then
     done
 fi
 
-# --- Build fit_bayesian.py command ---
-CMD=(python scripts/04_model_fitting/b_bayesian/fit_bayesian.py
+# --- Build fit_baseline.py command (Phase-21 pipeline entry) ---
+# IMPORTANT: This invokes `fit_baseline.py` (NOT `fit_bayesian.py`). The
+# pipeline entry forces --output-subdir=21_baseline so artefacts land in
+# models/bayesian/21_baseline/ where stage 05 baseline_audit reads them,
+# AND adds a load-bearing expected.exists() check that converts silent
+# convergence-gate failures into a non-zero SLURM exit. fit_bayesian.py is
+# the ad-hoc CLI and writes to bare models/bayesian/, which would silently
+# orphan the afterok chain.
+#
+# fit_baseline.py does NOT accept --subscale (subscale runs through
+# cluster/04c_level2.slurm, not 04b). If SUBSCALE=1 is set it will be
+# logged and ignored here.
+CMD=(python scripts/04_model_fitting/b_bayesian/fit_baseline.py
      --model "$MODEL"
      --data data/processed/task_trials_long.csv
      --chains "$CHAINS"
@@ -135,7 +160,8 @@ CMD=(python scripts/04_model_fitting/b_bayesian/fit_bayesian.py
      --max-tree-depth "$MAX_TREE_DEPTH")
 
 if [ "$SUBSCALE" = "1" ]; then
-    CMD+=(--subscale)
+    echo "WARNING: SUBSCALE=1 ignored under fit_baseline.py."
+    echo "         Subscale fits run through cluster/04c_level2.slurm."
 fi
 
 # --- Run hierarchical fit ---
@@ -151,20 +177,32 @@ echo ""
 echo "[$(date)] ${MODEL} hierarchical fit finished (exit code: $EXIT_CODE)"
 
 if [ $EXIT_CODE -eq 0 ]; then
-    echo "Expected outputs:"
-    for f in "models/bayesian/${MODEL}_individual_fits.csv" \
-             "models/bayesian/${MODEL}_posterior.nc" \
-             "models/bayesian/${MODEL}_shrinkage_report.md" \
-             "models/bayesian/${MODEL}_ppc_results.csv"; do
+    echo "Expected outputs (under models/bayesian/21_baseline/):"
+    MISSING_ARTIFACTS=0
+    for f in "models/bayesian/21_baseline/${MODEL}_individual_fits.csv" \
+             "models/bayesian/21_baseline/${MODEL}_posterior.nc" \
+             "models/bayesian/21_baseline/${MODEL}_shrinkage_report.md" \
+             "models/bayesian/21_baseline/${MODEL}_ppc_results.csv"; do
         if [ -f "$f" ]; then
             echo "  [OK] $f ($(du -h "$f" | cut -f1))"
         else
-            echo "  [MISSING] $f (convergence gate may have blocked writes)"
+            echo "  [MISSING] $f"
+            MISSING_ARTIFACTS=$((MISSING_ARTIFACTS + 1))
         fi
     done
+    if [ $MISSING_ARTIFACTS -gt 0 ]; then
+        echo ""
+        echo "*** ERROR: ${MODEL} fit returned exit=0 but $MISSING_ARTIFACTS expected artefact(s) MISSING ***"
+        echo "*** Treating as failure for afterok chain integrity (stage 05 reads from 21_baseline/). ***"
+        EXIT_CODE=1
+    fi
 else
-    echo "ERROR: fit_bayesian.py exited with code $EXIT_CODE"
+    echo "ERROR: fit_baseline.py exited with code $EXIT_CODE"
 fi
 
-# Auto-push logs and results when job completes
+# Auto-push logs and results when job completes (autopush exit code is
+# isolated from fit exit code so a transient network failure does not
+# mark the SLURM job as failed and orphan the afterok chain).
 source cluster/autopush.sh
+
+exit $EXIT_CODE

@@ -17,10 +17,12 @@
 #
 # Usage:
 #   bash cluster/submit_all.sh                          # full chain, real submission
-#                                                      #   stage 01 auto-skips if data/raw/ empty AND data/processed/ tracked
+#                                                      #   stage 01 auto-skips when data/processed/ is populated
+#                                                      #   (the OSF-published cohort takes precedence over data/raw/);
+#                                                      #   raw is parsed only when processed/ is absent (local cold-start).
 #   bash cluster/submit_all.sh --dry-run                # path-check only (no sbatch)
-#   bash cluster/submit_all.sh --from-stage 2          # canonical cluster cold-start entry
-#                                                      #   (use after git pull delivers processed/ CSVs; bypasses stage 01 SLURM cost)
+#   bash cluster/submit_all.sh --from-stage 2          # cluster cold-start entry that bypasses the stage 01 SLURM cost
+#                                                      #   entirely; equivalent to relying on the auto-skip above.
 #   bash cluster/submit_all.sh --from-stage 4           # start mid-pipeline
 #   bash cluster/submit_all.sh --models "wmrl_m3 wmrl_m5"  # subset of choice-only models
 #
@@ -141,7 +143,23 @@ submit() {
     echo "DRY ok: sbatch $* $script (FAKEJID=$DRY_FAKE_JID tag=$tag)" >&2
     echo "$DRY_FAKE_JID"
   else
-    sbatch --parsable "$@" "$script"
+    # Validate JID is numeric. Empty / non-numeric stdout from sbatch
+    # (transient scheduler hiccup, partition reject without non-zero exit,
+    # malformed --parsable response) would silently propagate as
+    # `--dependency=afterok:` (empty value) downstream, which SLURM marks
+    # `DependencyNeverSatisfied` immediately. Abort the orchestrator here
+    # rather than orphan the chain.
+    local jid
+    jid=$(sbatch --parsable "$@" "$script") || {
+      echo "ERROR: sbatch failed for $script (args: $*)" >&2
+      return 1
+    }
+    if [[ ! "$jid" =~ ^[0-9]+$ ]]; then
+      echo "ERROR: sbatch returned non-numeric JID '$jid' for $script (args: $*)" >&2
+      echo "       Refusing to chain afterok on a bogus JID — orchestrator aborted." >&2
+      return 1
+    fi
+    echo "$jid"
   fi
 }
 
