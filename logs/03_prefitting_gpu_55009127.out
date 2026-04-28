@@ -1,0 +1,10 @@
+============================================================
+Stage 03 (GPU) — Model Prefitting: STEP=bayesian_recovery MODEL=wmrl_m6a
+============================================================
+Job ID:     55009127
+Node:       m3g107
+GPU(s):     0
+Project:    /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis
+Start time: Tue Apr 28 10:25:23 PM AEST 2026
+============================================================
+Activated rlwm_gpu by name
