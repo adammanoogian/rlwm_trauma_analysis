@@ -247,3 +247,6 @@ AUTO-PUSH: Committing and pushing results
 ============================================================
 [main d08b449] p29_03_prefit_gpu job 55009118 results
  8 files changed, 1080 insertions(+), 1012 deletions(-)
+To github.com:adammanoogian/rlwm_trauma_analysis
+   c9cefad..d08b449  main -> main
+  Auto-push complete

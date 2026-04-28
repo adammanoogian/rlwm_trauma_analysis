@@ -1,0 +1,43 @@
+/scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/site-packages/jaxlib/plugin_support.py:71: RuntimeWarning: JAX plugin jax_cuda12_plugin version 0.9.2 is installed, but it is not compatible with the installed jaxlib version 0.9.0, so it will not be used.
+  warnings.warn(
+E0428 22:24:21.941854 1154144 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0428 22:24:21.941935 1154145 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0428 22:24:21.941971 1154146 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+/scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/site-packages/jaxlib/plugin_support.py:71: RuntimeWarning: JAX plugin jax_cuda12_plugin version 0.9.2 is installed, but it is not compatible with the installed jaxlib version 0.9.0, so it will not be used.
+  warnings.warn(
+E0428 22:24:28.117461 1154286 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0428 22:24:28.117546 1154287 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0428 22:24:28.117580 1154288 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/src/rlwm/fitting/bayesian.py:244: RuntimeWarning: Mean of empty slice
+  lec_mean = float(np.nanmean(lec_raw))
+/scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/site-packages/numpy/lib/_nanfunctions_impl.py:1997: RuntimeWarning: Degrees of freedom <= 0 for slice.
+  var = nanvar(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
+Traceback (most recent call last):
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/03_model_prefitting/05_run_bayesian_recovery.py", line 959, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/03_model_prefitting/05_run_bayesian_recovery.py", line 931, in main
+    run_single_subject(
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/scripts/03_model_prefitting/05_run_bayesian_recovery.py", line 437, in run_single_subject
+    mcmc, _ = _fit_stacked_model(
+              ^^^^^^^^^^^^^^^^^^^
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/src/rlwm/fitting/bayesian.py", line 438, in _fit_stacked_model
+    mcmc = run_inference_with_bump(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/src/rlwm/fitting/sampling.py", line 427, in run_inference_with_bump
+    mcmc.run(rng_key, **model_args)
+  File "/scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/site-packages/numpyro/infer/mcmc.py", line 720, in run
+    states, last_state = partial_map_fn(map_args)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/site-packages/numpyro/infer/mcmc.py", line 469, in _single_chain_mcmc
+    new_init_state = self.sampler.init(
+                     ^^^^^^^^^^^^^^^^^^
+  File "/scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/site-packages/numpyro/infer/hmc.py", line 751, in init
+    init_params = self._init_state(
+                  ^^^^^^^^^^^^^^^^^
+  File "/scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/site-packages/numpyro/infer/hmc.py", line 695, in _init_state
+    ) = initialize_model(
+        ^^^^^^^^^^^^^^^^^
+  File "/scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/site-packages/numpyro/infer/util.py", line 796, in initialize_model
+    raise RuntimeError(
+RuntimeError: Cannot find valid initial parameters. Please check your model again.

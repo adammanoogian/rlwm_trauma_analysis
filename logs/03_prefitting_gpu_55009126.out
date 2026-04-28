@@ -1,20 +1,20 @@
 ============================================================
-Stage 03 (GPU) — Model Prefitting: STEP=prior_predictive MODEL=wmrl_m3
+Stage 03 (GPU) — Model Prefitting: STEP=prior_predictive MODEL=wmrl_m6a
 ============================================================
-Job ID:     55009122
+Job ID:     55009126
 Node:       m3g107
 GPU(s):     0
 Project:    /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis
-Start time: Tue Apr 28 10:22:14 PM AEST 2026
+Start time: Tue Apr 28 10:24:20 PM AEST 2026
 ============================================================
 Activated rlwm_gpu by name
 JAX devices: [CudaDevice(id=0)]
 GPU count: 1
-JAX cache: /scratch/fc37/aman0087/.jax_cache_03_prefit_gpu_prior_predictive_wmrl_m3
+JAX cache: /scratch/fc37/aman0087/.jax_cache_03_prefit_gpu_prior_predictive_wmrl_m6a
 
-[Tue Apr 28 10:22:30 PM AEST 2026] Running: python scripts/03_model_prefitting/04_run_prior_predictive.py --model wmrl_m3 --data data/processed/task_trials_long.csv --num-draws 500 --seed 42 --output-dir models/bayesian/21_prior_predictive/
+[Tue Apr 28 10:24:22 PM AEST 2026] Running: python scripts/03_model_prefitting/04_run_prior_predictive.py --model wmrl_m6a --data data/processed/task_trials_long.csv --num-draws 500 --seed 42 --output-dir models/bayesian/21_prior_predictive/
 ========================================================================
-Prior-predictive gate: wmrl_m3
+Prior-predictive gate: wmrl_m6a
 ========================================================================
 Priors in use (PARAM_PRIOR_DEFAULTS):
   alpha_neg: {'lower': 0.0, 'upper': 1.0, 'mu_prior_loc': 0.0}
@@ -216,42 +216,32 @@ Analysis cohort breakdown (total observed N=178):
 
 >> Building trial-sequence template per participant...
 >> Simulating 500 (draw x participant) pairs...
-   50/500 draws, running median acc = 0.589
-   100/500 draws, running median acc = 0.581
-   150/500 draws, running median acc = 0.575
-   200/500 draws, running median acc = 0.575
-   250/500 draws, running median acc = 0.573
-   300/500 draws, running median acc = 0.570
-   350/500 draws, running median acc = 0.571
-   400/500 draws, running median acc = 0.561
-   450/500 draws, running median acc = 0.563
-   500/500 draws, running median acc = 0.566
+   50/500 draws, running median acc = 0.710
+   100/500 draws, running median acc = 0.704
+   150/500 draws, running median acc = 0.702
+   200/500 draws, running median acc = 0.705
+   250/500 draws, running median acc = 0.701
+   300/500 draws, running median acc = 0.692
+   350/500 draws, running median acc = 0.694
+   400/500 draws, running median acc = 0.689
+   450/500 draws, running median acc = 0.692
+   500/500 draws, running median acc = 0.693
 
 >> Gate metrics:
-   median: 0.5655266046524048
+   median: 0.6926829814910889
    frac_below_chance: 0.02
    frac_at_ceiling: 0.0
    n_draws: 500
 >> Verdict: HARD_PASS
 
 >> Wrote:
-   models/bayesian/21_prior_predictive/wmrl_m3_prior_sim.nc
-   models/bayesian/21_prior_predictive/wmrl_m3_prior_accuracy.csv
-   models/bayesian/21_prior_predictive/wmrl_m3_gate.md
->> Total wall-clock: 28.6s
+   models/bayesian/21_prior_predictive/wmrl_m6a_prior_sim.nc
+   models/bayesian/21_prior_predictive/wmrl_m6a_prior_accuracy.csv
+   models/bayesian/21_prior_predictive/wmrl_m6a_gate.md
+>> Total wall-clock: 27.5s
 
-[Tue Apr 28 10:23:52 PM AEST 2026] Stage 03 (GPU) STEP=prior_predictive MODEL=wmrl_m3 finished (exit code: 0)
+[Tue Apr 28 10:24:52 PM AEST 2026] Stage 03 (GPU) STEP=prior_predictive MODEL=wmrl_m6a finished (exit code: 0)
 
 ============================================================
 AUTO-PUSH: Committing and pushing results
 ============================================================
-[main 83e4d9e] p29_03_prefit_gpu job 55009122 results
- 2 files changed, 8 insertions(+)
-To github.com:adammanoogian/rlwm_trauma_analysis
- ! [remote rejected] main -> main (cannot lock ref 'refs/heads/main': is at d08b44947b450578946a68785518cda5122ce618 but expected c9cefad016de849076f6102d09d17989ef156c83)
-error: failed to push some refs to 'github.com:adammanoogian/rlwm_trauma_analysis'
-  push attempt 1 failed (likely concurrent autopush race); pulling --rebase and retrying...
-error: cannot pull with rebase: You have unstaged changes.
-error: Please commit or stash them.
-  WARNING: git pull --rebase failed — aborting retry loop
-  WARNING: git push failed after 3 attempts (network, auth, or persistent rebase conflict)

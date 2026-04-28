@@ -245,3 +245,8 @@ Analysis cohort breakdown (total observed N=178):
 ============================================================
 AUTO-PUSH: Committing and pushing results
 ============================================================
+[main 6c4ec87] p29_03_prefit_gpu job 55009124 results
+ 4 files changed, 530 insertions(+), 506 deletions(-)
+To github.com:adammanoogian/rlwm_trauma_analysis
+   d08b449..6c4ec87  main -> main
+  Auto-push complete

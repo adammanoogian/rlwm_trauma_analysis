@@ -1,0 +1,10 @@
+============================================================
+Stage 03 (GPU) — Model Prefitting: STEP=prior_predictive MODEL=wmrl_m6b
+============================================================
+Job ID:     55009128
+Node:       m3g107
+GPU(s):     0
+Project:    /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis
+Start time: Tue Apr 28 10:24:51 PM AEST 2026
+============================================================
+Activated rlwm_gpu by name

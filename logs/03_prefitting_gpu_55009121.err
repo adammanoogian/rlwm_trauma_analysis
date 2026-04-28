@@ -1,0 +1,11 @@
+/scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/site-packages/jaxlib/plugin_support.py:71: RuntimeWarning: JAX plugin jax_cuda12_plugin version 0.9.2 is installed, but it is not compatible with the installed jaxlib version 0.9.0, so it will not be used.
+  warnings.warn(
+E0428 22:24:21.908101 2991379 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0428 22:24:21.908210 2991381 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0428 22:24:21.908175 2991380 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+/scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/site-packages/jaxlib/plugin_support.py:71: RuntimeWarning: JAX plugin jax_cuda12_plugin version 0.9.2 is installed, but it is not compatible with the installed jaxlib version 0.9.0, so it will not be used.
+  warnings.warn(
+E0428 22:24:28.030600 2991411 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0428 22:24:28.030672 2991412 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0428 22:24:28.030707 2991413 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+  0%|          | 0/1500 [00:00<?, ?it/s]
