@@ -220,3 +220,22 @@ Analysis cohort breakdown (total observed N=178):
    100/500 draws, running median acc = 0.581
    150/500 draws, running median acc = 0.575
    200/500 draws, running median acc = 0.575
+   250/500 draws, running median acc = 0.573
+   300/500 draws, running median acc = 0.570
+   350/500 draws, running median acc = 0.571
+   400/500 draws, running median acc = 0.561
+   450/500 draws, running median acc = 0.563
+   500/500 draws, running median acc = 0.566
+
+>> Gate metrics:
+   median: 0.5655266046524048
+   frac_below_chance: 0.02
+   frac_at_ceiling: 0.0
+   n_draws: 500
+>> Verdict: HARD_PASS
+
+>> Wrote:
+   models/bayesian/21_prior_predictive/wmrl_m3_prior_sim.nc
+   models/bayesian/21_prior_predictive/wmrl_m3_prior_accuracy.csv
+   models/bayesian/21_prior_predictive/wmrl_m3_gate.md
+>> Total wall-clock: 28.6s

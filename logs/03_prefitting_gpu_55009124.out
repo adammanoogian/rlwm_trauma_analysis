@@ -218,3 +218,10 @@ Analysis cohort breakdown (total observed N=178):
 >> Simulating 500 (draw x participant) pairs...
    50/500 draws, running median acc = 0.461
    100/500 draws, running median acc = 0.440
+   150/500 draws, running median acc = 0.427
+   200/500 draws, running median acc = 0.427
+   250/500 draws, running median acc = 0.430
+   300/500 draws, running median acc = 0.432
+   350/500 draws, running median acc = 0.434
+   400/500 draws, running median acc = 0.430
+   450/500 draws, running median acc = 0.435

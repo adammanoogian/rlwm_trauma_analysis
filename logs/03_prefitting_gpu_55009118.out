@@ -220,3 +220,28 @@ Analysis cohort breakdown (total observed N=178):
    100/500 draws, running median acc = 0.831
    150/500 draws, running median acc = 0.825
    200/500 draws, running median acc = 0.829
+   250/500 draws, running median acc = 0.816
+   300/500 draws, running median acc = 0.810
+   350/500 draws, running median acc = 0.810
+   400/500 draws, running median acc = 0.806
+   450/500 draws, running median acc = 0.804
+   500/500 draws, running median acc = 0.804
+
+>> Gate metrics:
+   median: 0.8041954040527344
+   frac_below_chance: 0.0
+   frac_at_ceiling: 0.002
+   n_draws: 500
+>> Verdict: HARD_PASS
+
+>> Wrote:
+   models/bayesian/21_prior_predictive/wmrl_prior_sim.nc
+   models/bayesian/21_prior_predictive/wmrl_prior_accuracy.csv
+   models/bayesian/21_prior_predictive/wmrl_gate.md
+>> Total wall-clock: 27.7s
+
+[Tue Apr 28 10:23:51 PM AEST 2026] Stage 03 (GPU) STEP=prior_predictive MODEL=wmrl finished (exit code: 0)
+
+============================================================
+AUTO-PUSH: Committing and pushing results
+============================================================
