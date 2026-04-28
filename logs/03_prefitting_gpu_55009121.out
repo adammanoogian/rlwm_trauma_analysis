@@ -65,3 +65,32 @@ STEP 21.2 SINGLE-SUBJECT RECOVERY: model=wmrl, subject=1
 ============================================================
 
    Backend: gpu | chain_method: vectorized
+[timing] target_accept_prob=0.80 wall=529.8s
+[convergence-gate] target_accept_prob=0.80 divergences=1
+[convergence-gate] 1 divergences remain — bumping target_accept_prob.
+   Backend: gpu | chain_method: vectorized
+[timing] target_accept_prob=0.95 wall=619.1s
+[convergence-gate] target_accept_prob=0.95 divergences=0
+[convergence-gate] Zero divergences — accepting this run.
+
+================================================================================
+WMRL POSTERIOR ESTIMATES — GROUP LEVEL
+================================================================================
+  alpha_neg_mu_pr: 0.281 +/- 0.239
+  alpha_pos_mu_pr: 0.158 +/- 0.275
+  capacity_mu_pr: 0.456 +/- 0.581
+  epsilon_mu_pr: -2.561 +/- 0.390
+  phi_mu_pr: 0.071 +/- 0.191
+  rho_mu_pr: 0.233 +/- 0.228
+
+>> Extracting posterior summaries and HDIs...
+
+  Wrote: models/bayesian/21_recovery/wmrl_subject_001.json
+  Elapsed: 1162.4 s
+================================================================================
+
+[Tue Apr 28 10:44:03 PM AEST 2026] Stage 03 (GPU) STEP=bayesian_recovery MODEL=wmrl finished (exit code: 0)
+
+============================================================
+AUTO-PUSH: Committing and pushing results
+============================================================

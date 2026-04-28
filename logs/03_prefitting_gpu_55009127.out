@@ -8,3 +8,61 @@ Project:    /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis
 Start time: Tue Apr 28 10:25:23 PM AEST 2026
 ============================================================
 Activated rlwm_gpu by name
+JAX devices: [CudaDevice(id=0)]
+GPU count: 1
+JAX cache: /scratch/fc37/aman0087/.jax_cache_03_prefit_gpu_bayesian_recovery_wmrl_m6a
+
+[Tue Apr 28 10:25:25 PM AEST 2026] Running: python scripts/03_model_prefitting/05_run_bayesian_recovery.py --mode single-subject --model wmrl_m6a --subject-idx 1 --seed 42 --output-dir models/bayesian/21_recovery/
+================================================================================
+STEP 21.2 SINGLE-SUBJECT RECOVERY: model=wmrl_m6a, subject=1
+================================================================================
+  Seed: 42
+  MCMC budget: warmup=500, samples=1000, chains=2, max_tree_depth=8
+  Synthetic task: n_blocks=17, n_trials_per_block=100
+
+>> Sampling true parameters from prior...
+  alpha_neg      = 0.5394
+  alpha_pos      = 0.4175
+  capacity       = 4.0159
+  epsilon        = 0.0140
+  kappa_s        = 0.2968
+  phi            = 0.4897
+  rho            = 0.6571
+
+>> Generating synthetic trial data...
+  Generated 909 trials across 17 blocks
+  Mean reward (proxy accuracy): 0.540
+
+>> Fitting synthetic data via hierarchical MCMC...
+
+>> Preparing stacked participant data...
+  Prepared 1 participants (sorted by ID)
+  LEC covariate loaded: mean=nan, std=nan, n=1
+
+>> Running MCMC inference (NUTS + convergence auto-bump)...
+>> Starting MCMC sampling with convergence auto-bump...
+   Chains: 2
+   Host devices: 1
+   Warmup: 500
+   Samples: 1000
+   Max tree depth: 8
+   Total iterations per chain: 1500
+   Acceptance probability schedule: (0.8, 0.95, 0.99)
+
+============================================================
+>> JAX / NumPyro configuration
+   backend            : gpu
+   devices            : [CudaDevice(id=0)]
+   local_device_count : 1
+   x64 enabled        : False
+   chain_method       : vectorized
+   num_chains         : 2
+   NUMPYRO_HOST_DEVICE_COUNT        = <unset>
+   XLA_PYTHON_CLIENT_PREALLOCATE    = <unset>
+   XLA_PYTHON_CLIENT_MEM_FRACTION   = <unset>
+   JAX_COMPILATION_CACHE_DIR        = /scratch/fc37/aman0087/.jax_cache_03_prefit_gpu_bayesian_recovery_wmrl_m6a
+   JAX_PERSISTENT_CACHE_MIN_ENTRY_SIZE_BYTES = 0
+   CUDA_VISIBLE_DEVICES             = 0
+============================================================
+
+   Backend: gpu | chain_method: vectorized

@@ -1,13 +1,13 @@
 /scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/site-packages/jaxlib/plugin_support.py:71: RuntimeWarning: JAX plugin jax_cuda12_plugin version 0.9.2 is installed, but it is not compatible with the installed jaxlib version 0.9.0, so it will not be used.
   warnings.warn(
-E0428 22:25:25.126000 1156086 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
-E0428 22:25:25.126106 1156087 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
-E0428 22:25:25.126150 1156088 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0428 22:26:07.302808 1575869 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0428 22:26:07.303238 1575871 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0428 22:26:07.302887 1575870 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
 /scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/site-packages/jaxlib/plugin_support.py:71: RuntimeWarning: JAX plugin jax_cuda12_plugin version 0.9.2 is installed, but it is not compatible with the installed jaxlib version 0.9.0, so it will not be used.
   warnings.warn(
-E0428 22:25:28.435366 1156149 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
-E0428 22:25:28.435477 1156150 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
-E0428 22:25:28.435523 1156151 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0428 22:26:41.924524 1575907 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0428 22:26:41.924587 1575908 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0428 22:26:41.924630 1575909 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
 /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/src/rlwm/fitting/bayesian.py:244: RuntimeWarning: Mean of empty slice
   lec_mean = float(np.nanmean(lec_raw))
 /scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/site-packages/numpy/lib/_nanfunctions_impl.py:1997: RuntimeWarning: Degrees of freedom <= 0 for slice.

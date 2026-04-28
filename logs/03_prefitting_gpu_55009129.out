@@ -1,20 +1,20 @@
 ============================================================
-Stage 03 (GPU) — Model Prefitting: STEP=bayesian_recovery MODEL=qlearning
+Stage 03 (GPU) — Model Prefitting: STEP=bayesian_recovery MODEL=wmrl_m6b
 ============================================================
-Job ID:     55009117
-Node:       m3g117
+Job ID:     55009129
+Node:       m3g115
 GPU(s):     0
 Project:    /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis
-Start time: Tue Apr 28 10:24:20 PM AEST 2026
+Start time: Tue Apr 28 10:25:56 PM AEST 2026
 ============================================================
 Activated rlwm_gpu by name
 JAX devices: [CudaDevice(id=0)]
 GPU count: 1
-JAX cache: /scratch/fc37/aman0087/.jax_cache_03_prefit_gpu_bayesian_recovery_qlearning
+JAX cache: /scratch/fc37/aman0087/.jax_cache_03_prefit_gpu_bayesian_recovery_wmrl_m6b
 
-[Tue Apr 28 10:24:22 PM AEST 2026] Running: python scripts/03_model_prefitting/05_run_bayesian_recovery.py --mode single-subject --model qlearning --subject-idx 1 --seed 42 --output-dir models/bayesian/21_recovery/
+[Tue Apr 28 10:26:08 PM AEST 2026] Running: python scripts/03_model_prefitting/05_run_bayesian_recovery.py --mode single-subject --model wmrl_m6b --subject-idx 1 --seed 42 --output-dir models/bayesian/21_recovery/
 ================================================================================
-STEP 21.2 SINGLE-SUBJECT RECOVERY: model=qlearning, subject=1
+STEP 21.2 SINGLE-SUBJECT RECOVERY: model=wmrl_m6b, subject=1
 ================================================================================
   Seed: 42
   MCMC budget: warmup=500, samples=1000, chains=2, max_tree_depth=8
@@ -23,17 +23,22 @@ STEP 21.2 SINGLE-SUBJECT RECOVERY: model=qlearning, subject=1
 >> Sampling true parameters from prior...
   alpha_neg      = 0.5394
   alpha_pos      = 0.4175
-  epsilon        = 0.0214
+  capacity       = 4.0159
+  epsilon        = 0.0216
+  kappa_share    = 0.4223
+  kappa_total    = 0.2968
+  phi            = 0.4897
+  rho            = 0.6571
 
 >> Generating synthetic trial data...
   Generated 909 trials across 17 blocks
-  Mean reward (proxy accuracy): 0.575
+  Mean reward (proxy accuracy): 0.531
 
 >> Fitting synthetic data via hierarchical MCMC...
 
 >> Preparing stacked participant data...
   Prepared 1 participants (sorted by ID)
-  Skipping LEC covariate: model 'qlearning' does not support Level-2 regression (no natural L2 target parameter).
+  LEC covariate loaded: mean=nan, std=nan, n=1
 
 >> Running MCMC inference (NUTS + convergence auto-bump)...
 >> Starting MCMC sampling with convergence auto-bump...
@@ -56,17 +61,9 @@ STEP 21.2 SINGLE-SUBJECT RECOVERY: model=qlearning, subject=1
    NUMPYRO_HOST_DEVICE_COUNT        = <unset>
    XLA_PYTHON_CLIENT_PREALLOCATE    = <unset>
    XLA_PYTHON_CLIENT_MEM_FRACTION   = <unset>
-   JAX_COMPILATION_CACHE_DIR        = /scratch/fc37/aman0087/.jax_cache_03_prefit_gpu_bayesian_recovery_qlearning
+   JAX_COMPILATION_CACHE_DIR        = /scratch/fc37/aman0087/.jax_cache_03_prefit_gpu_bayesian_recovery_wmrl_m6b
    JAX_PERSISTENT_CACHE_MIN_ENTRY_SIZE_BYTES = 0
    CUDA_VISIBLE_DEVICES             = 0
 ============================================================
 
-   Backend: gpu | chain_method: vectorized
-[timing] target_accept_prob=0.80 wall=272.1s
-[convergence-gate] target_accept_prob=0.80 divergences=33
-[convergence-gate] 33 divergences remain — bumping target_accept_prob.
-   Backend: gpu | chain_method: vectorized
-[timing] target_accept_prob=0.95 wall=451.3s
-[convergence-gate] target_accept_prob=0.95 divergences=3
-[convergence-gate] 3 divergences remain — bumping target_accept_prob.
    Backend: gpu | chain_method: vectorized
