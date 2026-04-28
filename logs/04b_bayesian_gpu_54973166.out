@@ -1,0 +1,370 @@
+============================================================
+Stage 04b (GPU, Template C) — Hierarchical Bayesian Fit
+============================================================
+Job ID:         54973166
+Node:           m3g117
+Partition:      gpu
+GPU(s):         0,1,2,3
+Project:        /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis
+Model:          wmrl_m3
+Chains:         4
+Warmup:         1000
+Samples:        2000
+Seed:           42
+Max tree depth: 8
+Subscale:       0
+Limit:          <all participants>
+Start time:     Tue Apr 28 02:25:02 AM AEST 2026
+============================================================
+Activated rlwm_gpu by name
+JAX 0.9.0 devices: [CudaDevice(id=0), CudaDevice(id=1), CudaDevice(id=2), CudaDevice(id=3)]
+GPU count: 4
+
+JAX cache: /scratch/fc37/aman0087/.jax_cache_04b_bayesian_gpu_wmrl_m3
+
+============================================================
+Fitting Bayesian model: wmrl_m3 (Template C, 4 GPUs + pmap)
+Started: Tue Apr 28 02:25:13 AM AEST 2026
+============================================================
+[Tue Apr 28 02:25:13 AM AEST 2026] Starting wmrl_m3 hierarchical Bayesian fit (subscale=0)
+  Command: python scripts/04_model_fitting/b_bayesian/fit_bayesian.py --model wmrl_m3 --data data/processed/task_trials_long.csv --chains 4 --warmup 1000 --samples 2000 --seed 42 --max-tree-depth 8
+
+[GPU 02:25:13] util=0% mem=0/46068MB temp=42Cutil=0% mem=0/46068MB temp=44Cutil=0% mem=0/46068MB temp=42Cutil=0% mem=0/46068MB temp=43C
+================================================================================
+BAYESIAN WMRL_M3 FIT WITH JAX/NUMPYRO
+================================================================================
+
+Settings:
+  Model: wmrl_m3
+  Data: data/processed/task_trials_long.csv
+  Min block: 3 (excludes practice)
+  Chains: 4
+  Warmup: 1000
+  Samples: 2000
+  Max tree depth: 8
+  Output: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/models/bayesian
+  Seed: 42
+  JAX devices: 4
+
+>> Loading data from: data/processed/task_trials_long.csv
+Analysis cohort breakdown (total observed N=178):
+  Task-complete (>= 400 trials, >= 8 blocks): 178
+  Overall accuracy >= 0.4: 176
+  Late-block accuracy >= 0.5 (last 5): 158
+  Both performance gates: 158
+  Scale-complete (5 cols): 186
+  Final cohort (intersection − manual exclusions): 158
+  Analysis cohort (v4.0): task-complete + performance-check + scale-complete
+  Loaded 114872 trials from 178 participants
+  Excluded 20 participants outside cohort
+  Final sample: 158 participants
+  Filtered to blocks >= 3: 114872 trials remain
+  Dropped NaN values in critical columns: 114872 trials remain
+
+>> Data summary:
+  Participants: 158
+  Blocks: 21
+  Total trials: 114872
+  Trials per participant: 727
+    Participant 9187: 990 trials, 17 blocks
+    Participant 10000: 988 trials, 17 blocks
+    Participant 10002: 986 trials, 17 blocks
+    Participant 10003: 973 trials, 17 blocks
+    Participant 10004: 990 trials, 17 blocks
+    Participant 10005: 985 trials, 17 blocks
+    Participant 10006: 987 trials, 17 blocks
+    Participant 10016: 987 trials, 17 blocks
+    Participant 10017: 986 trials, 17 blocks
+    Participant 10018: 986 trials, 17 blocks
+    Participant 10024: 718 trials, 12 blocks
+    Participant 10025: 414 trials, 8 blocks
+    Participant 10027: 718 trials, 12 blocks
+    Participant 10029: 720 trials, 12 blocks
+    Participant 10030: 716 trials, 12 blocks
+    Participant 10031: 719 trials, 12 blocks
+    Participant 10035: 717 trials, 12 blocks
+    Participant 10036: 713 trials, 12 blocks
+    Participant 10039: 711 trials, 12 blocks
+    Participant 10041: 696 trials, 12 blocks
+    Participant 10043: 716 trials, 12 blocks
+    Participant 10044: 716 trials, 12 blocks
+    Participant 10047: 717 trials, 12 blocks
+    Participant 10050: 717 trials, 12 blocks
+    Participant 10051: 709 trials, 12 blocks
+    Participant 10052: 709 trials, 12 blocks
+    Participant 10055: 719 trials, 12 blocks
+    Participant 10057: 712 trials, 12 blocks
+    Participant 10058: 697 trials, 12 blocks
+    Participant 10059: 718 trials, 12 blocks
+    Participant 10062: 718 trials, 12 blocks
+    Participant 10063: 713 trials, 12 blocks
+    Participant 10064: 712 trials, 12 blocks
+    Participant 10065: 719 trials, 12 blocks
+    Participant 10066: 706 trials, 12 blocks
+    Participant 10067: 716 trials, 12 blocks
+    Participant 10071: 720 trials, 12 blocks
+    Participant 10072: 718 trials, 12 blocks
+    Participant 10073: 718 trials, 12 blocks
+    Participant 10074: 717 trials, 12 blocks
+    Participant 10075: 717 trials, 12 blocks
+    Participant 10076: 710 trials, 12 blocks
+    Participant 10077: 719 trials, 12 blocks
+    Participant 10078: 719 trials, 12 blocks
+    Participant 10079: 719 trials, 12 blocks
+    Participant 10081: 716 trials, 12 blocks
+    Participant 10083: 703 trials, 12 blocks
+    Participant 10084: 717 trials, 12 blocks
+    Participant 10086: 630 trials, 12 blocks
+    Participant 10087: 714 trials, 12 blocks
+    Participant 10088: 720 trials, 12 blocks
+    Participant 10089: 716 trials, 12 blocks
+    Participant 10092: 714 trials, 12 blocks
+    Participant 10093: 712 trials, 12 blocks
+    Participant 10094: 709 trials, 12 blocks
+    Participant 10095: 712 trials, 12 blocks
+    Participant 10097: 717 trials, 12 blocks
+    Participant 10098: 712 trials, 12 blocks
+    Participant 10099: 714 trials, 12 blocks
+    Participant 10101: 715 trials, 12 blocks
+    Participant 10102: 716 trials, 12 blocks
+    Participant 10103: 719 trials, 12 blocks
+    Participant 10104: 715 trials, 12 blocks
+    Participant 10106: 719 trials, 12 blocks
+    Participant 10107: 714 trials, 12 blocks
+    Participant 10109: 719 trials, 12 blocks
+    Participant 10110: 719 trials, 12 blocks
+    Participant 10111: 713 trials, 12 blocks
+    Participant 10112: 707 trials, 12 blocks
+    Participant 10114: 709 trials, 12 blocks
+    Participant 10115: 711 trials, 12 blocks
+    Participant 10116: 718 trials, 12 blocks
+    Participant 10117: 715 trials, 12 blocks
+    Participant 10120: 715 trials, 12 blocks
+    Participant 10121: 711 trials, 12 blocks
+    Participant 10125: 717 trials, 12 blocks
+    Participant 10126: 719 trials, 12 blocks
+    Participant 10128: 705 trials, 12 blocks
+    Participant 10130: 713 trials, 12 blocks
+    Participant 10135: 704 trials, 12 blocks
+    Participant 10137: 718 trials, 12 blocks
+    Participant 10140: 715 trials, 12 blocks
+    Participant 10141: 716 trials, 12 blocks
+    Participant 10142: 719 trials, 12 blocks
+    Participant 10143: 719 trials, 12 blocks
+    Participant 10145: 713 trials, 12 blocks
+    Participant 10147: 716 trials, 12 blocks
+    Participant 10148: 705 trials, 12 blocks
+    Participant 10149: 713 trials, 12 blocks
+    Participant 10150: 715 trials, 12 blocks
+    Participant 10151: 717 trials, 12 blocks
+    Participant 10152: 719 trials, 12 blocks
+    Participant 10154: 717 trials, 12 blocks
+    Participant 10155: 713 trials, 12 blocks
+    Participant 10156: 712 trials, 12 blocks
+    Participant 10157: 719 trials, 12 blocks
+    Participant 10158: 716 trials, 12 blocks
+    Participant 10159: 716 trials, 12 blocks
+    Participant 10160: 717 trials, 12 blocks
+    Participant 10162: 714 trials, 12 blocks
+    Participant 10163: 719 trials, 12 blocks
+    Participant 10164: 719 trials, 12 blocks
+    Participant 10165: 713 trials, 12 blocks
+    Participant 10166: 714 trials, 12 blocks
+    Participant 10168: 718 trials, 12 blocks
+    Participant 10169: 713 trials, 12 blocks
+    Participant 10170: 718 trials, 12 blocks
+    Participant 10171: 718 trials, 12 blocks
+    Participant 10172: 719 trials, 12 blocks
+    Participant 10174: 714 trials, 12 blocks
+    Participant 10175: 717 trials, 12 blocks
+    Participant 10177: 715 trials, 12 blocks
+    Participant 10178: 718 trials, 12 blocks
+    Participant 10179: 716 trials, 12 blocks
+    Participant 10180: 708 trials, 12 blocks
+    Participant 10181: 719 trials, 12 blocks
+    Participant 10182: 696 trials, 12 blocks
+    Participant 10183: 719 trials, 12 blocks
+    Participant 10185: 710 trials, 12 blocks
+    Participant 10186: 718 trials, 12 blocks
+    Participant 10190: 600 trials, 12 blocks
+    Participant 10191: 708 trials, 12 blocks
+    Participant 10192: 709 trials, 12 blocks
+    Participant 10196: 718 trials, 12 blocks
+    Participant 10197: 716 trials, 12 blocks
+    Participant 10198: 479 trials, 11 blocks
+    Participant 10199: 710 trials, 12 blocks
+    Participant 10200: 719 trials, 12 blocks
+    Participant 10201: 719 trials, 12 blocks
+    Participant 10202: 718 trials, 12 blocks
+    Participant 10203: 716 trials, 12 blocks
+    Participant 10204: 718 trials, 12 blocks
+    Participant 10208: 694 trials, 12 blocks
+    Participant 10209: 715 trials, 12 blocks
+    Participant 10212: 716 trials, 12 blocks
+    Participant 10215: 719 trials, 12 blocks
+    Participant 10216: 717 trials, 12 blocks
+    Participant 10217: 719 trials, 12 blocks
+    Participant 10218: 694 trials, 12 blocks
+    Participant 10220: 718 trials, 12 blocks
+    Participant 10221: 707 trials, 12 blocks
+    Participant 10222: 710 trials, 12 blocks
+    Participant 10225: 713 trials, 12 blocks
+    Participant 10226: 718 trials, 12 blocks
+    Participant 10227: 717 trials, 12 blocks
+    Participant 10228: 712 trials, 12 blocks
+    Participant 10229: 707 trials, 12 blocks
+    Participant 10234: 708 trials, 12 blocks
+    Participant 10235: 720 trials, 12 blocks
+    Participant 10236: 718 trials, 12 blocks
+    Participant 10239: 718 trials, 12 blocks
+    Participant 10240: 720 trials, 12 blocks
+    Participant 10241: 720 trials, 12 blocks
+    Participant 10242: 719 trials, 12 blocks
+    Participant 10243: 711 trials, 12 blocks
+    Participant 10245: 719 trials, 12 blocks
+    Participant 10246: 715 trials, 12 blocks
+    Participant 10248: 718 trials, 12 blocks
+
+================================================================================
+FITTING WMRL-M3 HIERARCHICAL MODEL
+================================================================================
+
+>> Preparing stacked participant data...
+  Prepared 158 participants (sorted by ID)
+  LEC covariate loaded: mean=9.87, std=3.44, n=158
+
+>> Running MCMC inference (NUTS + convergence auto-bump)...
+>> Starting MCMC sampling with convergence auto-bump...
+   Chains: 4
+   Host devices: 4
+   Warmup: 1000
+   Samples: 2000
+   Max tree depth: 8
+   Total iterations per chain: 3000
+   Acceptance probability schedule: (0.8, 0.95, 0.99)
+
+============================================================
+>> JAX / NumPyro configuration
+   backend            : gpu
+   devices            : [CudaDevice(id=0), CudaDevice(id=1), CudaDevice(id=2), CudaDevice(id=3)]
+   local_device_count : 4
+   x64 enabled        : False
+   chain_method       : parallel
+   num_chains         : 4
+   NUMPYRO_HOST_DEVICE_COUNT        = 4
+   XLA_PYTHON_CLIENT_PREALLOCATE    = <unset>
+   XLA_PYTHON_CLIENT_MEM_FRACTION   = <unset>
+   JAX_COMPILATION_CACHE_DIR        = /scratch/fc37/aman0087/.jax_cache_04b_bayesian_gpu_wmrl_m3
+   JAX_PERSISTENT_CACHE_MIN_ENTRY_SIZE_BYTES = 0
+   CUDA_VISIBLE_DEVICES             = 0,1,2,3
+============================================================
+
+   Backend: gpu | chain_method: parallel
+[GPU 02:30:13] util=99% mem=34585/46068MB temp=51Cutil=99% mem=34579/46068MB temp=51Cutil=99% mem=34579/46068MB temp=52Cutil=99% mem=34579/46068MB temp=52C
+[GPU 02:35:13] util=99% mem=34585/46068MB temp=52Cutil=99% mem=34579/46068MB temp=53Cutil=99% mem=34579/46068MB temp=54Cutil=99% mem=34579/46068MB temp=54C
+[GPU 02:40:14] util=99% mem=34585/46068MB temp=52Cutil=99% mem=34579/46068MB temp=53Cutil=99% mem=34579/46068MB temp=55Cutil=99% mem=34579/46068MB temp=54C
+[GPU 02:45:14] util=99% mem=34585/46068MB temp=51Cutil=99% mem=34579/46068MB temp=52Cutil=99% mem=34579/46068MB temp=54Cutil=99% mem=34579/46068MB temp=53C
+[GPU 02:50:14] util=99% mem=34585/46068MB temp=51Cutil=99% mem=34579/46068MB temp=52Cutil=99% mem=34579/46068MB temp=53Cutil=99% mem=34579/46068MB temp=53C
+[GPU 02:55:14] util=99% mem=34585/46068MB temp=51Cutil=99% mem=34579/46068MB temp=52Cutil=99% mem=34579/46068MB temp=53Cutil=99% mem=34579/46068MB temp=53C
+[GPU 03:00:14] util=0% mem=34585/46068MB temp=47Cutil=0% mem=34579/46068MB temp=44Cutil=99% mem=34579/46068MB temp=54Cutil=0% mem=34579/46068MB temp=49C
+[GPU 03:05:14] util=0% mem=34585/46068MB temp=44Cutil=0% mem=34579/46068MB temp=44Cutil=99% mem=34579/46068MB temp=54Cutil=0% mem=34579/46068MB temp=46C
+[GPU 03:10:14] util=0% mem=34585/46068MB temp=44Cutil=0% mem=34579/46068MB temp=44Cutil=99% mem=34579/46068MB temp=55Cutil=0% mem=34579/46068MB temp=46C
+[GPU 03:15:14] util=0% mem=34585/46068MB temp=44Cutil=0% mem=34579/46068MB temp=44Cutil=99% mem=34579/46068MB temp=55Cutil=0% mem=34579/46068MB temp=46C
+[GPU 03:20:14] util=0% mem=34585/46068MB temp=43Cutil=0% mem=34579/46068MB temp=44Cutil=99% mem=34579/46068MB temp=55Cutil=0% mem=34579/46068MB temp=45C
+[GPU 03:25:14] util=0% mem=34585/46068MB temp=43Cutil=0% mem=34579/46068MB temp=44Cutil=99% mem=34579/46068MB temp=55Cutil=0% mem=34579/46068MB temp=45C
+[GPU 03:30:14] util=0% mem=34585/46068MB temp=43Cutil=0% mem=34579/46068MB temp=44Cutil=99% mem=34579/46068MB temp=55Cutil=0% mem=34579/46068MB temp=46C
+[GPU 03:35:14] util=0% mem=34585/46068MB temp=43Cutil=0% mem=34579/46068MB temp=44Cutil=99% mem=34579/46068MB temp=55Cutil=0% mem=34579/46068MB temp=46C
+[GPU 03:40:14] util=0% mem=34585/46068MB temp=44Cutil=0% mem=34579/46068MB temp=44Cutil=99% mem=34579/46068MB temp=55Cutil=0% mem=34579/46068MB temp=46C
+[GPU 03:45:14] util=0% mem=34585/46068MB temp=43Cutil=0% mem=34579/46068MB temp=44Cutil=99% mem=34579/46068MB temp=55Cutil=0% mem=34579/46068MB temp=46C
+[GPU 03:50:14] util=0% mem=34585/46068MB temp=43Cutil=0% mem=34579/46068MB temp=44Cutil=99% mem=34579/46068MB temp=55Cutil=0% mem=34579/46068MB temp=46C
+[GPU 03:55:14] util=0% mem=34585/46068MB temp=43Cutil=0% mem=34579/46068MB temp=43Cutil=99% mem=34579/46068MB temp=54Cutil=0% mem=34579/46068MB temp=45C
+[GPU 04:00:15] util=0% mem=34585/46068MB temp=43Cutil=0% mem=34579/46068MB temp=44Cutil=99% mem=34579/46068MB temp=55Cutil=0% mem=34579/46068MB temp=46C
+[GPU 04:05:15] util=0% mem=34585/46068MB temp=44Cutil=0% mem=34579/46068MB temp=44Cutil=99% mem=34579/46068MB temp=55Cutil=0% mem=34579/46068MB temp=46C
+[GPU 04:10:15] util=0% mem=34585/46068MB temp=44Cutil=0% mem=34579/46068MB temp=44Cutil=99% mem=34579/46068MB temp=55Cutil=0% mem=34579/46068MB temp=46C
+[GPU 04:15:15] util=0% mem=34585/46068MB temp=44Cutil=0% mem=34579/46068MB temp=44Cutil=99% mem=34579/46068MB temp=55Cutil=0% mem=34579/46068MB temp=46C
+[GPU 04:20:15] util=0% mem=34585/46068MB temp=44Cutil=0% mem=34579/46068MB temp=44Cutil=99% mem=34579/46068MB temp=55Cutil=0% mem=34579/46068MB temp=46C
+[GPU 04:25:15] util=0% mem=34585/46068MB temp=43Cutil=0% mem=34579/46068MB temp=44Cutil=99% mem=34579/46068MB temp=55Cutil=0% mem=34579/46068MB temp=45C
+[GPU 04:30:15] util=0% mem=34585/46068MB temp=44Cutil=0% mem=34579/46068MB temp=44Cutil=99% mem=34579/46068MB temp=55Cutil=0% mem=34579/46068MB temp=46C
+[timing] target_accept_prob=0.80 wall=7508.4s
+[convergence-gate] target_accept_prob=0.80 divergences=0
+[convergence-gate] Zero divergences — accepting this run.
+
+================================================================================
+WMRL-M3 POSTERIOR ESTIMATES — GROUP LEVEL
+================================================================================
+  alpha_neg_mu_pr: -2.976 +/- 2.583
+  alpha_pos_mu_pr: -1.806 +/- 0.197
+  capacity_mu_pr: -0.545 +/- 0.759
+  epsilon_mu_pr: -1.779 +/- 0.079
+  kappa_mu_pr: -1.726 +/- 0.684
+  phi_mu_pr: -0.943 +/- 0.275
+  rho_mu_pr: 0.211 +/- 1.187
+  beta_lec_kappa: mean=0.1055 +/- 0.0785, 95% HDI=[0.0023, 0.2331]
+    HDI excludes zero (positive direction)
+
+================================================================================
+SAVING RESULTS
+================================================================================
+
+>> Computing pointwise log-likelihoods...
+  Pointwise log-lik shape: (4, 2000, 158, 1700)
+  Padding positions set to NaN for WAIC/LOO.
+
+>> Building ArviZ InferenceData...
+
+>> Checking convergence gate...
+
+[CONVERGENCE GATE FAILED] max_rhat=1.6000, min_ess_bulk=7, divergences=0
+Refusing to write output files. Fix convergence issues and re-run.
+
+================================================================================
+FITTING COMPLETE!
+================================================================================
+
+[Tue Apr 28 04:33:32 AM AEST 2026] wmrl_m3 hierarchical fit finished (exit code: 0)
+Expected outputs:
+  [MISSING] models/bayesian/wmrl_m3_individual_fits.csv (convergence gate may have blocked writes)
+  [MISSING] models/bayesian/wmrl_m3_posterior.nc (convergence gate may have blocked writes)
+  [MISSING] models/bayesian/wmrl_m3_shrinkage_report.md (convergence gate may have blocked writes)
+  [MISSING] models/bayesian/wmrl_m3_ppc_results.csv (convergence gate may have blocked writes)
+
+============================================================
+JOB RESOURCE REPORT
+============================================================
+Job ID: 54973166
+Node: m3g117
+GPU Info:
+  Model:       NVIDIA L40S
+  VRAM Total:   46068 MiB
+  VRAM Used:    0 MiB
+  VRAM Free:    45458 MiB
+  Utilization:  0 %
+  Temperature:  45
+  Model:       NVIDIA L40S
+  VRAM Total:   46068 MiB
+  VRAM Used:    0 MiB
+  VRAM Free:    45458 MiB
+  Utilization:  80 %
+  Temperature:  45
+  Model:       NVIDIA L40S
+  VRAM Total:   46068 MiB
+  VRAM Used:    0 MiB
+  VRAM Free:    45458 MiB
+  Utilization:  0 %
+  Temperature:  50
+  Model:       NVIDIA L40S
+  VRAM Total:   46068 MiB
+  VRAM Used:    0 MiB
+  VRAM Free:    45458 MiB
+  Utilization:  61 %
+  Temperature:  47
+SLURM Accounting:
+            54973166   02:08:35                              64G          8      RUNNING 
+      54973166.batch   02:08:35                                           8      RUNNING 
+     54973166.extern   02:08:35                                           8      RUNNING 
+============================================================
+
+============================================================
+AUTO-PUSH: Committing and pushing results
+============================================================
+  No new files to commit — skipping push

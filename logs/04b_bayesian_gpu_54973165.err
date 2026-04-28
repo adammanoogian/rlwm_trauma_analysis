@@ -1,0 +1,175 @@
+/scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/site-packages/jaxlib/plugin_support.py:71: RuntimeWarning: JAX plugin jax_cuda12_plugin version 0.9.2 is installed, but it is not compatible with the installed jaxlib version 0.9.0, so it will not be used.
+  warnings.warn(
+E0428 00:39:14.393183 2888711 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0428 00:39:14.393241 2888716 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0428 00:39:14.393239 2888715 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0428 00:39:14.393219 2888714 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0428 00:39:14.393210 2888713 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0428 00:39:14.393244 2888712 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0428 00:39:14.393316 2888717 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0428 00:39:14.393758 2888720 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0428 00:39:14.393404 2888719 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0428 00:39:14.393372 2888718 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0428 00:39:14.393807 2888721 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0428 00:39:14.393853 2888722 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+/scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/site-packages/jaxlib/plugin_support.py:71: RuntimeWarning: JAX plugin jax_cuda12_plugin version 0.9.2 is installed, but it is not compatible with the installed jaxlib version 0.9.0, so it will not be used.
+  warnings.warn(
+/scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/site-packages/arviz/__init__.py:50: FutureWarning: 
+ArviZ is undergoing a major refactor to improve flexibility and extensibility while maintaining a user-friendly interface.
+Some upcoming changes may be backward incompatible.
+For details and migration guidance, visit: https://python.arviz.org/en/latest/user_guide/migration_guide.html
+  warn(
+E0428 00:40:12.385558 2888805 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0428 00:40:12.385621 2888806 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0428 00:40:12.385645 2888807 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0428 00:40:12.385857 2888808 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0428 00:40:12.385949 2888809 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0428 00:40:12.386011 2888810 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0428 00:40:12.386238 2888811 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0428 00:40:12.386293 2888812 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0428 00:40:12.386330 2888813 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0428 00:40:12.386558 2888814 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0428 00:40:12.386614 2888815 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+E0428 00:40:12.386658 2888816 numa_hwloc.cc:121] Call to hwloc_set_cpubind() failed: Invalid argument [22]
+  0%|          | 0/3000 [00:00<?, ?it/s]Compiling.. :   0%|          | 0/3000 [00:00<?, ?it/s]
+  0%|          | 0/3000 [00:00<?, ?it/s][A
+Compiling.. :   0%|          | 0/3000 [00:00<?, ?it/s][A
+
+  0%|          | 0/3000 [00:00<?, ?it/s][A[A
+
+Compiling.. :   0%|          | 0/3000 [00:00<?, ?it/s][A[A
+
+
+  0%|          | 0/3000 [00:00<?, ?it/s][A[A[A
+
+
+Compiling.. :   0%|          | 0/3000 [00:00<?, ?it/s][A[A[ARunning chain 0:   0%|          | 0/3000 [00:18<?, ?it/s]
+Running chain 1:   0%|          | 0/3000 [00:18<?, ?it/s][A
+
+Running chain 2:   0%|          | 0/3000 [00:18<?, ?it/s][A[A
+
+
+Running chain 3:   0%|          | 0/3000 [00:18<?, ?it/s][A[A[ARunning chain 0:   5%|▌         | 150/3000 [03:39<1:03:50,  1.34s/it]
+Running chain 1:   5%|▌         | 150/3000 [04:02<1:11:08,  1.50s/it][A
+
+
+Running chain 3:   5%|▌         | 150/3000 [04:20<1:16:47,  1.62s/it][A[A[A
+
+Running chain 2:   5%|▌         | 150/3000 [04:28<1:19:24,  1.67s/it][A[ARunning chain 0:  10%|█         | 300/3000 [04:59<39:00,  1.15it/s]  
+Running chain 1:  10%|█         | 300/3000 [05:17<40:56,  1.10it/s]  [A
+
+
+Running chain 3:  10%|█         | 300/3000 [05:43<44:40,  1.01it/s]  [A[A[A
+
+Running chain 2:  10%|█         | 300/3000 [05:51<45:36,  1.01s/it]  [A[ARunning chain 0:  15%|█▌        | 450/3000 [06:06<28:41,  1.48it/s]
+Running chain 1:  15%|█▌        | 450/3000 [06:14<28:19,  1.50it/s][A
+
+
+Running chain 3:  15%|█▌        | 450/3000 [06:58<32:37,  1.30it/s][A[A[A
+
+Running chain 2:  15%|█▌        | 450/3000 [07:06<33:06,  1.28it/s][A[A
+Running chain 1:  20%|██        | 600/3000 [07:17<22:49,  1.75it/s][A
+
+Running chain 2:  20%|██        | 600/3000 [08:21<26:46,  1.49it/s][A[A
+Running chain 1:  25%|██▌       | 750/3000 [08:22<19:34,  1.92it/s][A
+
+
+Running chain 3:  20%|██        | 600/3000 [08:25<27:39,  1.45it/s][A[A[A
+
+Running chain 2:  25%|██▌       | 750/3000 [09:24<21:42,  1.73it/s][A[A
+
+
+Running chain 3:  25%|██▌       | 750/3000 [09:35<22:54,  1.64it/s][A[A[ARunning chain 0:  20%|██        | 600/3000 [10:00<40:57,  1.02s/it]
+
+Running chain 2:  30%|███       | 900/3000 [10:39<19:16,  1.82it/s][A[A
+
+
+Running chain 3:  30%|███       | 900/3000 [10:48<19:55,  1.76it/s][A[A[A
+Running chain 1:  30%|███       | 900/3000 [12:02<29:30,  1.19it/s][A
+
+Running chain 2:  35%|███▌      | 1050/3000 [12:03<18:02,  1.80it/s][A[A
+
+
+Running chain 3:  35%|███▌      | 1050/3000 [12:14<18:30,  1.76it/s][A[A[A
+
+Running chain 2:  40%|████      | 1200/3000 [13:29<16:50,  1.78it/s][A[A
+
+
+Running chain 3:  40%|████      | 1200/3000 [13:40<17:07,  1.75it/s][A[A[A
+
+Running chain 2:  45%|████▌     | 1350/3000 [14:56<15:32,  1.77it/s][A[A
+
+
+Running chain 3:  45%|████▌     | 1350/3000 [15:06<15:43,  1.75it/s][A[A[ARunning chain 0:  25%|██▌       | 750/3000 [15:37<54:55,  1.46s/it]
+
+Running chain 2:  50%|█████     | 1500/3000 [16:22<14:12,  1.76it/s][A[A
+
+
+Running chain 3:  50%|█████     | 1500/3000 [16:32<14:18,  1.75it/s][A[A[A
+Running chain 1:  35%|███▌      | 1050/3000 [17:28<41:30,  1.28s/it][A
+
+Running chain 2:  55%|█████▌    | 1650/3000 [17:48<12:49,  1.75it/s][A[A
+
+
+Running chain 3:  55%|█████▌    | 1650/3000 [17:58<12:53,  1.75it/s][A[A[A
+
+Running chain 2:  60%|██████    | 1800/3000 [19:14<11:25,  1.75it/s][A[A
+
+
+Running chain 3:  60%|██████    | 1800/3000 [19:24<11:27,  1.74it/s][A[A[A
+
+Running chain 2:  65%|██████▌   | 1950/3000 [20:40<10:01,  1.75it/s][A[A
+
+
+Running chain 3:  65%|██████▌   | 1950/3000 [20:50<10:02,  1.74it/s][A[A[ARunning chain 0:  30%|███       | 900/3000 [21:20<1:01:05,  1.75s/it]
+
+Running chain 2:  70%|███████   | 2100/3000 [22:07<08:35,  1.74it/s][A[A
+
+
+Running chain 3:  70%|███████   | 2100/3000 [22:16<08:36,  1.74it/s][A[A[A
+Running chain 1:  40%|████      | 1200/3000 [23:17<48:18,  1.61s/it][A
+
+Running chain 2:  75%|███████▌  | 2250/3000 [23:33<07:10,  1.74it/s][A[A
+
+
+Running chain 3:  75%|███████▌  | 2250/3000 [23:42<07:10,  1.74it/s][A[A[A
+
+Running chain 2:  80%|████████  | 2400/3000 [24:59<05:44,  1.74it/s][A[A
+
+
+Running chain 3:  80%|████████  | 2400/3000 [25:08<05:44,  1.74it/s][A[A[A
+
+Running chain 2:  85%|████████▌ | 2550/3000 [26:25<04:18,  1.74it/s][A[A
+
+
+Running chain 3:  85%|████████▌ | 2550/3000 [26:34<04:18,  1.74it/s][A[A[ARunning chain 0:  35%|███▌      | 1050/3000 [26:51<1:01:35,  1.90s/it]
+
+Running chain 2:  90%|█████████ | 2700/3000 [27:51<02:52,  1.74it/s][A[A
+
+
+Running chain 3:  90%|█████████ | 2700/3000 [28:00<02:52,  1.74it/s][A[A[A
+Running chain 1:  45%|████▌     | 1350/3000 [29:05<50:24,  1.83s/it][A
+
+Running chain 2:  95%|█████████▌| 2850/3000 [29:18<01:26,  1.74it/s][A[A
+
+
+Running chain 3:  95%|█████████▌| 2850/3000 [29:27<01:26,  1.74it/s][A[A[A
+
+Running chain 2: 100%|██████████| 3000/3000 [30:44<00:00,  1.74it/s][A[ARunning chain 2: 100%|██████████| 3000/3000 [30:44<00:00,  1.63it/s]
+
+
+
+Running chain 3: 100%|██████████| 3000/3000 [30:53<00:00,  1.74it/s][A[A[ARunning chain 3: 100%|██████████| 3000/3000 [30:53<00:00,  1.62it/s]
+Running chain 0:  40%|████      | 1200/3000 [32:39<1:00:55,  2.03s/it]
+Running chain 1:  50%|█████     | 1500/3000 [34:53<49:36,  1.98s/it][ARunning chain 0:  45%|████▌     | 1350/3000 [38:27<58:20,  2.12s/it]  
+Running chain 1:  55%|█████▌    | 1650/3000 [40:42<46:59,  2.09s/it][ARunning chain 0:  50%|█████     | 1500/3000 [44:15<54:34,  2.18s/it]
+Running chain 1:  60%|██████    | 1800/3000 [46:31<43:11,  2.16s/it][ARunning chain 0:  55%|█████▌    | 1650/3000 [50:04<50:04,  2.23s/it]
+Running chain 1:  65%|██████▌   | 1950/3000 [52:19<38:40,  2.21s/it][ARunning chain 0:  60%|██████    | 1800/3000 [55:52<45:05,  2.25s/it]
+Running chain 1:  70%|███████   | 2100/3000 [58:08<33:39,  2.24s/it][ARunning chain 0:  65%|██████▌   | 1950/3000 [1:01:40<39:48,  2.27s/it]
+Running chain 1:  75%|███████▌  | 2250/3000 [1:03:56<28:21,  2.27s/it][ARunning chain 0:  70%|███████   | 2100/3000 [1:07:28<34:19,  2.29s/it]
+Running chain 1:  80%|████████  | 2400/3000 [1:09:45<22:50,  2.28s/it][ARunning chain 0:  75%|███████▌  | 2250/3000 [1:13:16<28:43,  2.30s/it]
+Running chain 1:  85%|████████▌ | 2550/3000 [1:15:33<17:13,  2.30s/it][ARunning chain 0:  80%|████████  | 2400/3000 [1:19:05<23:03,  2.31s/it]
+Running chain 1:  90%|█████████ | 2700/3000 [1:21:22<11:31,  2.30s/it][ARunning chain 0:  85%|████████▌ | 2550/3000 [1:24:53<17:19,  2.31s/it]
+Running chain 1:  95%|█████████▌| 2850/3000 [1:27:10<05:46,  2.31s/it][ARunning chain 0:  90%|█████████ | 2700/3000 [1:30:41<11:34,  2.31s/it]
+Running chain 1: 100%|██████████| 3000/3000 [1:32:59<00:00,  2.31s/it][ARunning chain 1: 100%|██████████| 3000/3000 [1:32:59<00:00,  1.86s/it]
+Running chain 0:  95%|█████████▌| 2850/3000 [1:36:29<05:47,  2.32s/it]Running chain 0: 100%|██████████| 3000/3000 [1:42:17<00:00,  2.32s/it]Running chain 0: 100%|██████████| 3000/3000 [1:42:17<00:00,  2.05s/it]

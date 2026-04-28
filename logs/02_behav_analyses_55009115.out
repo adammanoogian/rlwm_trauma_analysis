@@ -1,0 +1,361 @@
+============================================================
+Stage 02 — Behavioral Analyses (01..04)
+============================================================
+Job ID:     55009115
+Node:       m3k038
+Project:    /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis
+Start time: Tue Apr 28 10:19:01 PM AEST 2026
+============================================================
+Activated ds_env by name
+
+--- 01 — Summarize behavioral data ---
+  python scripts/02_behav_analyses/01_summarize_behavioral_data.py
+================================================================================
+BEHAVIORAL DATA SUMMARY AND VALIDATION
+================================================================================
+
+Loading processed data files...
+  [WARN] Collated data not found: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/data/interim/collated_participant_data.csv
+  [OK] Loaded summary metrics: 196 participants
+  [OK] Loaded task trials: 129104 trials
+  [WARN] Demographics not found: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/data/interim/parsed_demographics.csv
+  [WARN] Survey 1 not found: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/data/interim/parsed_survey1.csv
+  [WARN] Survey 2 not found: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/data/interim/parsed_survey2.csv
+
+Checking for deviations from expected structure...
+
+================================================================================
+DEVIATION REPORT
+================================================================================
+
+WARNINGS:
+  [WARN] Some blocks have < 30 trials
+
+INFO:
+  [INFO] Number of participants: 178
+  [INFO] Set sizes match expected: {2, 3, 5, 6}
+  [INFO] Blocks found: [np.int64(3), np.int64(4), np.int64(5), np.int64(6), np.int64(7), np.int64(8), np.int64(9), np.int64(10), np.int64(11), np.int64(12), np.int64(13), np.int64(14), np.int64(15), np.int64(16), np.int64(17), np.int64(18), np.int64(19), np.int64(20), np.int64(21), np.int64(22), np.int64(23)]
+  [INFO] Practice blocks properly excluded
+  [INFO] Trials per block - Mean: 59.1, Median: 45, Range: [2, 90]
+  [INFO] Stimuli: [np.int64(0), np.int64(1), np.int64(2), np.int64(3), np.int64(4), np.int64(5)]
+  [INFO] Overall accuracy: 0.633
+================================================================================
+
+Generating summary report...
+================================================================================
+BEHAVIORAL DATA SUMMARY REPORT
+================================================================================
+
+PARTICIPANTS: 178
+TOTAL TRIALS: 129104
+
+TASK PERFORMANCE:
+  Overall Accuracy              : 0.6326
+  Low Load Accuracy             : 0.7222
+  High Load Accuracy            : 0.5788
+  Set Size 2 Accuracy           : 0.5893
+  Set Size 3 Accuracy           : 0.8222
+  Set Size 5 Accuracy           : 0.6233
+  Set Size 6 Accuracy           : 0.5417
+  Mean RT (ms)                  : 494.1670
+  Learning Slope                : 0.0130
+  Learning Improvement          : 0.1677
+
+SCALE METRICS:
+  IES-R Total                   : 22.0
+  IES-R Intrusion               : 7.0
+  IES-R Avoidance               : 9.0
+  IES-R Hyperarousal            : 6.0
+
+================================================================================
+
+[OK] Saved report: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/reports/tables/behavioral_summary/data_summary_report.txt
+
+================================================================================
+SUMMARY COMPLETE
+================================================================================
+
+Output saved to: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/reports/tables/behavioral_summary
+
+Next steps:
+  - Run 02_visualize_task_performance.py to create stimulus-based learning curves
+  - Run 03_analyze_trauma_groups.py for trauma grouping analysis
+================================================================================
+
+--- 02 — Visualize task performance ---
+  python scripts/02_behav_analyses/02_visualize_task_performance.py
+================================================================================
+HUMAN PERFORMANCE VISUALIZATION (STIMULUS-BASED)
+================================================================================
+
+Loading task trials: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/data/processed/task_trials_long.csv
+  Loaded 129104 trials
+  Participants: 178
+  After filtering to main task blocks (>=3): 129104 trials
+
+Processing stimulus-based encounter tracking...
+  Overall accuracy: 0.736
+
+  Performance by set size:
+    Set Size 2: 0.833
+    Set Size 3: 0.807
+    Set Size 5: 0.716
+    Set Size 6: 0.683
+
+  [OK] Saved processed data: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/reports/tables/behavioral_summary/human_stimulus_based_data.csv
+
+Creating visualizations...
+  [OK] Saved: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/reports/figures/behavioral_summary/human_stimulus_performance_analysis.png
+  [OK] Saved: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/reports/figures/behavioral_summary/human_stimulus_learning_curve.png
+  [OK] Saved: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/reports/figures/behavioral_summary/human_stimulus_encounter_performance.png
+
+  Performance by stimulus encounter position:
+    Early Stimulus Experience     : 0.496 (n=26139)
+    Late Stimulus Experience      : 0.798 (n=96788)
+    Post-Reversal                 : 0.775 (n=6177)
+
+================================================================================
+VISUALIZATION COMPLETE
+================================================================================
+
+Figures saved to: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/reports/figures/behavioral_summary
+Processed data saved to: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/reports/tables/behavioral_summary
+================================================================================
+
+--- 03 — Analyze trauma groups ---
+  python scripts/02_behav_analyses/03_analyze_trauma_groups.py
+================================================================================
+TRAUMA GROUP ANALYSIS
+================================================================================
+
+This script performs:
+  1. Hypothesis-driven grouping (LESS + IES-R cutoff)
+  2. Hierarchical clustering analysis
+  3. Behavioral validation of groups
+Loaded 178 participants with complete trauma data
+(excluded 0 participants with missing data)
+
+================================================================================
+HYPOTHESIS-DRIVEN GROUPING (LESS ENDORSEMENT + IES-R CUTOFF)
+================================================================================
+
+Criteria:
+  - No Trauma Exposure: LESS = 0
+  - Trauma - No Ongoing Impact: LESS ≥ 1 AND IES-R < 24
+  - Trauma - Ongoing Impact: LESS ≥ 1 AND IES-R ≥ 24
+
+Group Sizes:
+  No Trauma: n=1
+  Trauma - No Ongoing Impact: n=63
+  Trauma - Ongoing Impact: n=114
+
+Group Characteristics (Mean ± SD):
+
+  No Trauma:
+    LEC: 0.00 ± nan
+    IES-R: 54.00 ± nan
+
+  Trauma - No Ongoing Impact:
+    LEC: 9.94 ± 3.39
+    IES-R: 10.89 ± 7.34
+
+  Trauma - Ongoing Impact:
+    LEC: 10.17 ± 3.44
+    IES-R: 43.81 ± 14.23
+
+================================================================================
+HIERARCHICAL CLUSTERING ANALYSIS
+================================================================================
+
+Features: LEC Total Events, IES-R Total Score
+N participants: 178
+
+Standardizing features (z-scores)...
+  LEC mean=10.03, std=3.48
+  IES-R mean=32.21, std=19.93
+
+Computing hierarchical clustering with Ward linkage...
+
+--------------------------------------------------------------------------------
+Testing cluster solutions:
+--------------------------------------------------------------------------------
+
+k=2 clusters:
+  Silhouette score: 0.311
+  Cluster sizes: {np.int32(1): np.int64(90), np.int32(2): np.int64(88)}
+
+k=3 clusters:
+  Silhouette score: 0.320
+  Cluster sizes: {np.int32(1): np.int64(90), np.int32(2): np.int64(25), np.int32(3): np.int64(63)}
+
+k=4 clusters:
+  Silhouette score: 0.327
+  Cluster sizes: {np.int32(1): np.int64(45), np.int32(2): np.int64(45), np.int32(3): np.int64(25), np.int32(4): np.int64(63)}
+
+>>> Optimal k=4 (highest silhouette: 0.327)
+
+================================================================================
+GENERATING VISUALIZATIONS
+================================================================================
+
+[SAVED] /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/reports/figures/trauma_groups/hypothesis_groups_scatter.png
+[SAVED] /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/reports/figures/trauma_groups/hierarchical_dendrogram.png
+
+================================================================================
+SAVING GROUPING RESULTS
+================================================================================
+
+[SAVED] /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/reports/tables/trauma_groups/group_assignments.csv
+[SAVED] /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/reports/tables/trauma_groups/clustering_metrics.csv
+
+================================================================================
+HYPOTHESIS-DRIVEN GROUPS: BEHAVIORAL VALIDATION
+================================================================================
+
+--------------------------------------------------------------------------------
+Outcome: Overall Accuracy
+--------------------------------------------------------------------------------
+
+Descriptive Statistics:
+  No Trauma: M=0.674, SD=nan, n=1
+  Trauma - No Ongoing Impact: M=0.743, SD=0.103, n=63
+  Trauma - Ongoing Impact: M=0.730, SD=0.110, n=114
+
+Kruskal-Wallis H Test:
+  H=1.445, p=0.4856
+  >>> No significant group difference (p ≥ 0.05)
+
+--------------------------------------------------------------------------------
+Outcome: Mean RT (ms)
+--------------------------------------------------------------------------------
+
+Descriptive Statistics:
+  No Trauma: M=574.394, SD=nan, n=1
+  Trauma - No Ongoing Impact: M=601.572, SD=109.283, n=63
+  Trauma - Ongoing Impact: M=591.652, SD=139.043, n=114
+
+Kruskal-Wallis H Test:
+  H=0.387, p=0.8241
+  >>> No significant group difference (p ≥ 0.05)
+
+[SAVED] /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/reports/tables/trauma_groups/validation_report.txt
+
+================================================================================
+ANALYSIS COMPLETE
+================================================================================
+
+Outputs:
+  - /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/reports/tables/trauma_groups/
+  - /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/reports/figures/trauma_groups/
+
+Next steps:
+  - Run 04_run_statistical_analyses.py for ANOVAs and regressions
+  - Use group_assignments.csv for downstream analysis
+
+--- 04 — Run statistical analyses ---
+  python scripts/02_behav_analyses/04_run_statistical_analyses.py
+================================================================================
+STATISTICAL ANALYSES AND DESCRIPTIVE TABLES
+================================================================================
+
+================================================================================
+GENERATING DESCRIPTIVE STATISTICS TABLES
+================================================================================
+
+Loaded 178 participants
+Loaded 129104 trials
+
+--------------------------------------------------------------------------------
+Table 1: Demographics by Trauma Group
+--------------------------------------------------------------------------------
+Group    No Trauma Trauma - No Ongoing Impact Trauma - Ongoing Impact
+Variable                                                             
+N                1                         63                     114
+
+[SAVED] /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/reports/tables/descriptives/table1_demographics.csv
+
+--------------------------------------------------------------------------------
+Table 2: Trauma Scores by Group
+--------------------------------------------------------------------------------
+Group                 No Trauma  ... Trauma - Ongoing Impact
+Variable                         ...                        
+IES-R Avoidance     16.00 ± nan  ...            17.43 ± 5.84
+IES-R Hyperarousal  22.00 ± nan  ...            11.93 ± 5.68
+IES-R Intrusion     16.00 ± nan  ...            14.45 ± 5.47
+IES-R Total         54.00 ± nan  ...           43.81 ± 14.23
+LEC-5 Total Events   0.00 ± nan  ...            10.17 ± 3.44
+
+[5 rows x 3 columns]
+
+[SAVED] /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/reports/tables/descriptives/table2_trauma_scores.csv
+
+--------------------------------------------------------------------------------
+Table 3: Task Performance by Group and Load
+--------------------------------------------------------------------------------
+Group                       No Trauma  ... Trauma - Ongoing Impact
+Metric         Load                    ...                        
+Accuracy (%)   High Load  62.37 ± nan  ...           68.95 ± 14.29
+               Low Load   79.46 ± nan  ...           81.31 ± 10.02
+Median RT (ms) High Load    635 ± nan  ...               592 ± 182
+               Low Load     432 ± nan  ...               474 ± 124
+
+[4 rows x 3 columns]
+
+[SAVED] /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/reports/tables/descriptives/table3_task_performance.csv
+
+================================================================================
+STATISTICAL ANALYSES
+================================================================================
+
+Participant filtering:
+  Total in summary: 178
+  After trauma grouping: 178
+  Final sample: 178
+
+================================================================================
+MIXED ANOVAs: Load × Trauma Group
+================================================================================
+
+--------------------------------------------------------------------------------
+DV: accuracy
+--------------------------------------------------------------------------------
+
+Assumption Checks:
+                        group    n         W             p  normal
+0  Trauma - No Ongoing Impact  126  0.853745  8.067410e-10   False
+1     Trauma - Ongoing Impact  228  0.857083  9.808240e-14   False
+
+Levene's test: F=0.706, p=0.4945
+Error running ANOVA for accuracy: 'p-unc'
+
+--------------------------------------------------------------------------------
+DV: rt
+--------------------------------------------------------------------------------
+
+Assumption Checks:
+                        group    n         W             p  normal
+0  Trauma - No Ongoing Impact  126  0.963479  1.772822e-03   False
+1     Trauma - Ongoing Impact  228  0.946266  1.830238e-07   False
+
+Levene's test: F=1.285, p=0.2781
+Error running ANOVA for rt: 'p-unc'
+
+================================================================================
+COMPLETE
+================================================================================
+
+Descriptive tables saved to: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/reports/tables/descriptives/
+Statistical results saved to: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/reports/tables/statistical_analyses/
+
+Next steps:
+  - Review assumption check results
+  - Examine ANOVA tables for main effects and interactions
+  - Use tables for thesis/publication
+
+============================================================
+Stage 02 complete — Tue Apr 28 10:21:42 PM AEST 2026
+============================================================
+
+============================================================
+AUTO-PUSH: Committing and pushing results
+============================================================

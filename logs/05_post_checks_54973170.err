@@ -1,0 +1,2 @@
+
+[PIPELINE BLOCK] Only 0 models passed convergence gate; step 21.5 requires >= 2 (stacking over a singleton is not meaningful). Fix the excluded models and re-run step 21.3 before proceeding.

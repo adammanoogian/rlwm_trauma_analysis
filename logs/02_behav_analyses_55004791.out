@@ -1,0 +1,91 @@
+============================================================
+Stage 02 — Behavioral Analyses (01..04)
+============================================================
+Job ID:     55004791
+Node:       m3s110
+Project:    /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis
+Start time: Tue Apr 28 07:16:17 PM AEST 2026
+============================================================
+Activated ds_env by name
+
+--- 01 — Summarize behavioral data ---
+  python scripts/02_behav_analyses/01_summarize_behavioral_data.py
+================================================================================
+BEHAVIORAL DATA SUMMARY AND VALIDATION
+================================================================================
+
+Loading processed data files...
+  [WARN] Collated data not found: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/data/interim/collated_participant_data.csv
+  [OK] Loaded summary metrics: 196 participants
+  [OK] Loaded task trials: 129104 trials
+  [WARN] Demographics not found: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/data/interim/parsed_demographics.csv
+  [WARN] Survey 1 not found: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/data/interim/parsed_survey1.csv
+  [WARN] Survey 2 not found: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/data/interim/parsed_survey2.csv
+
+Checking for deviations from expected structure...
+
+================================================================================
+DEVIATION REPORT
+================================================================================
+
+WARNINGS:
+  [WARN] Some blocks have < 30 trials
+
+INFO:
+  [INFO] Number of participants: 178
+  [INFO] Set sizes match expected: {2, 3, 5, 6}
+  [INFO] Blocks found: [np.int64(3), np.int64(4), np.int64(5), np.int64(6), np.int64(7), np.int64(8), np.int64(9), np.int64(10), np.int64(11), np.int64(12), np.int64(13), np.int64(14), np.int64(15), np.int64(16), np.int64(17), np.int64(18), np.int64(19), np.int64(20), np.int64(21), np.int64(22), np.int64(23)]
+  [INFO] Practice blocks properly excluded
+  [INFO] Trials per block - Mean: 59.1, Median: 45, Range: [2, 90]
+  [INFO] Stimuli: [np.int64(0), np.int64(1), np.int64(2), np.int64(3), np.int64(4), np.int64(5)]
+  [INFO] Overall accuracy: 0.633
+================================================================================
+
+Generating summary report...
+================================================================================
+BEHAVIORAL DATA SUMMARY REPORT
+================================================================================
+
+PARTICIPANTS: 178
+TOTAL TRIALS: 129104
+
+TASK PERFORMANCE:
+  Overall Accuracy              : 0.6326
+  Low Load Accuracy             : 0.7222
+  High Load Accuracy            : 0.5788
+  Set Size 2 Accuracy           : 0.5893
+  Set Size 3 Accuracy           : 0.8222
+  Set Size 5 Accuracy           : 0.6233
+  Set Size 6 Accuracy           : 0.5417
+  Mean RT (ms)                  : 494.1670
+  Learning Slope                : 0.0130
+  Learning Improvement          : 0.1677
+
+SCALE METRICS:
+  IES-R Total                   : 22.0
+  IES-R Intrusion               : 7.0
+  IES-R Avoidance               : 9.0
+  IES-R Hyperarousal            : 6.0
+
+================================================================================
+
+[OK] Saved report: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/reports/tables/behavioral_summary/data_summary_report.txt
+
+================================================================================
+SUMMARY COMPLETE
+================================================================================
+
+Output saved to: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/reports/tables/behavioral_summary
+
+Next steps:
+  - Run 02_visualize_task_performance.py to create stimulus-based learning curves
+  - Run 03_analyze_trauma_groups.py for trauma grouping analysis
+================================================================================
+
+--- 02 — Visualize task performance ---
+  python scripts/02_behav_analyses/02_visualize_task_performance.py
+================================================================================
+HUMAN PERFORMANCE VISUALIZATION (STIMULUS-BASED)
+================================================================================
+
+Loading task trials: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/data/processed/task_trials_long_all_participants.csv

@@ -1,0 +1,29 @@
+============================================================
+Stage 01 — Data Preprocessing (01..04)
+============================================================
+Job ID:     54964819
+Node:       m3j003
+Project:    /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis
+Start time: Sun Apr 26 07:35:46 PM AEST 2026
+============================================================
+Activated ds_env by name
+
+--- 01 — Parse raw jsPsych data ---
+  python scripts/01_data_preprocessing/01_parse_raw_data.py
+================================================================================
+STEP 1: Parsing Raw jsPsych Data (Consolidated)
+================================================================================
+
+Warning: No ID mapping file found at /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/data/raw/participant_id_mapping.json
+Will use sona_id from data files directly.
+Found 0 CSV files in /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/data/raw
+ERROR: No participant files found!
+
+--- 02 — Create collated CSV ---
+  python scripts/01_data_preprocessing/02_create_collated_csv.py
+============================================================
+STEP 2: Creating Collated Participant Dataset
+============================================================
+
+ERROR: Required file not found: /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis/data/interim/parsed_demographics.csv
+Please run 01_parse_raw_data.py first

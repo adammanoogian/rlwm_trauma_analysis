@@ -1,0 +1,51 @@
+============================================================
+Phase 24 Canary Acceptance Gate (SLURM-automated)
+============================================================
+Job ID:     54964440
+Node:       m3k021
+Project:    /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis
+Git HEAD:   0966b76
+Start time: Sun Apr 26 06:43:24 PM AEST 2026
+============================================================
+Activated rlwm env
+  python: /usr/bin/python
+
+[Sun Apr 26 06:43:24 PM AEST 2026] Pulling latest from origin/main before evaluation...
+Already up to date.
+
+[Sun Apr 26 06:43:27 PM AEST 2026] Running tests/scientific/check_canary.py...
+============================================================
+Phase 24 Canary Acceptance Gate
+============================================================
+  [FAIL] (a) SLURM exit 0 + 6 .nc files: 1 parent jobs not COMPLETED 0:0: [['54957193', 'p29_03_prefit_gpu', 'FAILED', '1:0']]
+  [FAIL] (b) ArviZ load + dim check: arviz not installed in current env
+  [PASS] (c) Autopush commit on main: 6 commit(s) since 2026-04-25 19:37:56
+  [PASS] (d) CCDS-canonical path landing: CCDS populated; legacy output/bayesian/21_prior_predictive absent or empty
+
+  [SOFT_PASS ] qlearning  jid=54957193 median=0.901
+  [HARD_PASS ] wmrl       jid=54957194 median=0.808
+  [HARD_PASS ] wmrl_m3    jid=54957195 median=0.573
+  [HARD_PASS ] wmrl_m5    jid=54957196 median=0.437
+  [HARD_PASS ] wmrl_m6a   jid=54957197 median=0.697
+  [HARD_PASS ] wmrl_m6b   jid=54957198 median=0.614
+------------------------------------------------------------
+OVERALL: REJECTED
+Report:  models/bayesian/21_canary_acceptance_report.md
+============================================================
+
+[Sun Apr 26 06:43:28 PM AEST 2026] check_canary.py exit code: 1
+
+============================================================
+AUTO-PUSH: Committing and pushing results
+============================================================
+[main b24382d] p24_check_canary job 54964440 results
+ 1 file changed, 42 insertions(+)
+ create mode 100644 models/bayesian/21_canary_acceptance_report.md
+To github.com:adammanoogian/rlwm_trauma_analysis
+   0966b76..b24382d  main -> main
+  Auto-push complete
+
+============================================================
+End time:   Sun Apr 26 06:43:31 PM AEST 2026
+Exit code:  1
+============================================================

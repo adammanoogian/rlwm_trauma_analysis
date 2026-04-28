@@ -1,0 +1,23 @@
+============================================================
+Stage 01 — Data Preprocessing (01..04)
+============================================================
+Job ID:     55004790
+Node:       m3s110
+Project:    /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis
+Start time: Tue Apr 28 07:15:47 PM AEST 2026
+============================================================
+Activated ds_env by name
+Pre-flight: data/processed/ populated — skipping stage 01 (published-cohort path)
+  task_trials_long.csv:            129105 lines
+  task_trials_long_all.csv:        144239 lines
+  summary_participant_metrics.csv: 197 lines
+Stage 01 skipped — downstream stages will read committed processed/ CSVs
+
+============================================================
+AUTO-PUSH: Committing and pushing results
+============================================================
+[main 13b133a] p29_01_data job 55004790 results
+ 1 file changed, 6 insertions(+)
+To github.com:adammanoogian/rlwm_trauma_analysis
+   70722bc..13b133a  main -> main
+  Auto-push complete

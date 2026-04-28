@@ -5,7 +5,17 @@ TRAUMA GROUP VALIDATION REPORT
 HYPOTHESIS-DRIVEN GROUPS
 --------------------------------------------------------------------------------
 
-No results available
+Outcome: Overall Accuracy
+  Test: Kruskal-Wallis H
+  Statistic: 1.445
+  p-value: 0.4856
+  Significant: No
+
+Outcome: Mean RT (ms)
+  Test: Kruskal-Wallis H
+  Statistic: 0.387
+  p-value: 0.8241
+  Significant: No
 
 ================================================================================
 INTERPRETATION NOTES

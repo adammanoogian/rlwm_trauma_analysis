@@ -1,0 +1,50 @@
+============================================================
+Phase 24 Canary Acceptance Gate (SLURM-automated)
+============================================================
+Job ID:     54964726
+Node:       m3k037
+Project:    /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis
+Git HEAD:   2468d27
+Start time: Sun Apr 26 07:10:46 PM AEST 2026
+============================================================
+Activated env rlwm_gpu (arviz importable)
+  python: /scratch/fc37/aman0087/conda/envs/rlwm_gpu/bin/python
+
+[Sun Apr 26 07:11:39 PM AEST 2026] Pulling latest from origin/main before evaluation...
+Already up to date.
+
+[Sun Apr 26 07:11:42 PM AEST 2026] Running tests/scientific/check_canary.py...
+============================================================
+Phase 24 Canary Acceptance Gate
+============================================================
+  [PASS] (a) SLURM exit 0 + 6 .nc files: 6 jobs COMPLETED 0:0; all 6 prior_sim.nc files present
+  [PASS] (b) ArviZ load + dim check: all 6 loaded — qlearning(2), wmrl(2), wmrl_m3(2), wmrl_m5(2), wmrl_m6a(2), wmrl_m6b(2)
+  [PASS] (c) Autopush commit on main: 6 commit(s) since 2026-04-25 19:37:56
+  [PASS] (d) CCDS-canonical path landing: CCDS populated; legacy output/bayesian/21_prior_predictive absent or empty
+
+  [SOFT_PASS ] qlearning  jid=54957781 median=0.901
+  [HARD_PASS ] wmrl       jid=54957194 median=0.808
+  [HARD_PASS ] wmrl_m3    jid=54957195 median=0.573
+  [HARD_PASS ] wmrl_m5    jid=54957196 median=0.437
+  [HARD_PASS ] wmrl_m6a   jid=54957197 median=0.697
+  [HARD_PASS ] wmrl_m6b   jid=54957198 median=0.614
+------------------------------------------------------------
+OVERALL: APPROVED
+Report:  models/bayesian/21_canary_acceptance_report.md
+============================================================
+
+[Sun Apr 26 07:11:48 PM AEST 2026] check_canary.py exit code: 0
+
+============================================================
+AUTO-PUSH: Committing and pushing results
+============================================================
+[main e054576] p24_check_canary job 54964726 results
+ 1 file changed, 12 insertions(+), 8 deletions(-)
+To github.com:adammanoogian/rlwm_trauma_analysis
+   2468d27..e054576  main -> main
+  Auto-push complete
+
+============================================================
+End time:   Sun Apr 26 07:11:51 PM AEST 2026
+Exit code:  0
+============================================================

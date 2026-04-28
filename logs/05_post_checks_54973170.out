@@ -1,0 +1,48 @@
+============================================================
+Stage 05 — Post-Fitting Checks: STEP=baseline_audit
+============================================================
+Job ID:     54973170
+Node:       m3j002
+Project:    /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis
+Start time: Tue Apr 28 09:47:01 AM AEST 2026
+============================================================
+Activated ds_env by name
+
+[Tue Apr 28 09:47:02 AM AEST 2026] Running: python scripts/05_post_fitting_checks/01_baseline_audit.py --baseline-dir models/bayesian/21_baseline/ --output-dir models/bayesian/21_baseline/ --rhat-threshold 1.05 --ess-threshold 400 --bfmi-threshold 0.2
+================================================================================
+STEP 21.4 — BASELINE CONVERGENCE AUDIT
+================================================================================
+  Baseline dir: models/bayesian/21_baseline
+  Output dir: models/bayesian/21_baseline
+  R-hat threshold: <= 1.05
+  ESS_bulk threshold: >= 400.0
+  BFMI threshold: >= 0.2
+  Divergence threshold: == 0
+================================================================================
+
+[audit] qlearning ...
+[audit] qlearning: FAIL (action=EXCLUDED_MISSING_FILE, R-hat=nan, ESS=nan, div=0, BFMI=nan)
+
+[audit] wmrl ...
+[audit] wmrl: FAIL (action=EXCLUDED_MISSING_FILE, R-hat=nan, ESS=nan, div=0, BFMI=nan)
+
+[audit] wmrl_m3 ...
+[audit] wmrl_m3: FAIL (action=EXCLUDED_MISSING_FILE, R-hat=nan, ESS=nan, div=0, BFMI=nan)
+
+[audit] wmrl_m5 ...
+[audit] wmrl_m5: FAIL (action=EXCLUDED_MISSING_FILE, R-hat=nan, ESS=nan, div=0, BFMI=nan)
+
+[audit] wmrl_m6a ...
+[audit] wmrl_m6a: FAIL (action=EXCLUDED_MISSING_FILE, R-hat=nan, ESS=nan, div=0, BFMI=nan)
+
+[audit] wmrl_m6b ...
+[audit] wmrl_m6b: FAIL (action=EXCLUDED_MISSING_FILE, R-hat=nan, ESS=nan, div=0, BFMI=nan)
+
+[audit] Wrote models/bayesian/21_baseline/convergence_table.csv
+[audit] Wrote models/bayesian/21_baseline/convergence_report.md
+
+================================================================================
+  n_passing = 0
+  n_excluded = 6
+  WARNING: missing NetCDFs (not counted as failures for gate logic, but logged): ['qlearning', 'wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b']
+================================================================================
