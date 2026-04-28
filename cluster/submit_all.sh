@@ -25,6 +25,9 @@
 #                                                      #   entirely; equivalent to relying on the auto-skip above.
 #   bash cluster/submit_all.sh --from-stage 4           # start mid-pipeline
 #   bash cluster/submit_all.sh --models "wmrl_m3 wmrl_m5"  # subset of choice-only models
+#   bash cluster/submit_all.sh --preflight              # prepend SLURM-automated 2-cov L2 hook gate
+#                                                      #   (cluster/00_preflight.slurm runs on a compute node
+#                                                      #    with rlwm_gpu activated, then chains stage 01 via afterok)
 #
 # --dry-run semantics:
 #   - For each stage SLURM: runs `bash -n` syntax check
@@ -42,6 +45,7 @@ cd "$(dirname "$0")/.."
 
 DRY_RUN=""
 FROM_STAGE=1
+DO_PREFLIGHT=""
 MODELS="qlearning wmrl wmrl_m3 wmrl_m5 wmrl_m6a wmrl_m6b"
 
 while [[ $# -gt 0 ]]; do
@@ -49,6 +53,7 @@ while [[ $# -gt 0 ]]; do
     --dry-run) DRY_RUN=1; shift ;;
     --from-stage) FROM_STAGE="$2"; shift 2 ;;
     --models) MODELS="$2"; shift 2 ;;
+    --preflight) DO_PREFLIGHT=1; shift ;;
     -h|--help)
       grep "^#" "$0" | head -50
       exit 0
@@ -164,13 +169,35 @@ submit() {
 }
 
 # ---------------------------------------------------------------------------
+# Stage 00 — Preflight (SLURM-automated env + 2-cov L2 hook gate)
+# ---------------------------------------------------------------------------
+# When --preflight is set, submit cluster/00_preflight.slurm as the chain
+# root and wire stage 01's --dependency=afterok onto its JID. The preflight
+# job activates rlwm_gpu, smoke-tests imports, probes JAX devices, and runs
+# tests/integration/test_numpyro_models_2cov.py on a compute node — which
+# is the right place for it (the login node lacks pytest and conda).
+JPRE=""
+if [[ -n "$DO_PREFLIGHT" ]]; then
+  if [[ "$FROM_STAGE" -gt 1 ]]; then
+    echo "WARNING: --preflight ignored with --from-stage > 1 (preflight wires only to stage 01)"
+  else
+    echo ""
+    echo "[00] Submitting cluster/00_preflight.slurm (env + 2-cov L2 hook gate)"
+    JPRE=$(submit cluster/00_preflight.slurm)
+    echo "[00] Job: $JPRE"
+  fi
+fi
+
+# ---------------------------------------------------------------------------
 # Stage 01 — Data preprocessing
 # ---------------------------------------------------------------------------
 J01=""
 if [[ "$FROM_STAGE" -le 1 ]]; then
   echo ""
   echo "[01] Submitting cluster/01_data_processing.slurm"
-  J01=$(submit cluster/01_data_processing.slurm)
+  DEP_STAGE01=()
+  [[ -n "$JPRE" ]] && DEP_STAGE01=(--dependency=afterok:"$JPRE")
+  J01=$(submit cluster/01_data_processing.slurm "${DEP_STAGE01[@]}")
   echo "[01] Job: $J01"
 fi
 
@@ -327,6 +354,7 @@ echo "============================================================"
 echo "[submit_all.sh] done — $(date)"
 echo "============================================================"
 echo "Mode:     $DISPATCH_MODE"
+echo "Stage 00 preflight: ${JPRE:-<not requested>}"
 echo "Stage 01: $J01"
 echo "Stage 02: $J02"
 echo "Stage 03: ${J03_ALL[*]}"

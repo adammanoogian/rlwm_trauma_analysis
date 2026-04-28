@@ -20,17 +20,13 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-# Pre-flight gate (preserved from v4.0): the 2-covariate L2 hook for M3/M5/M6a
-# is load-bearing for stage 04c. Fail fast LOCALLY before burning cluster cycles.
-echo "[$(date)] Pre-flight: verifying 2-covariate L2 hook (plan 21-11)..."
-if ! pytest tests/integration/test_numpyro_models_2cov.py -v -k "not slow" --tb=short; then
-  echo "[ABORT] plan 21-11 tests failed — 2-covariate L2 hook for M3/M5/M6a is not wired correctly." >&2
-  echo "[ABORT] No cluster jobs submitted. Fix src/rlwm/fitting/numpyro_models.py and retry." >&2
-  exit 1
-fi
-echo "[$(date)] Pre-flight OK — 2-covariate L2 hook ready."
+# Pre-flight gate is now a SLURM job (cluster/00_preflight.slurm), submitted
+# as stage 00 by `cluster/submit_all.sh --preflight` and chained to stage 01
+# via afterok. The earlier login-node `pytest` invocation was removed because
+# the login node has neither conda nor pytest available; running the same
+# 2-cov L2 hook test on a compute node with rlwm_gpu activated is the
+# canonical SLURM-automated path (see CLUSTER_GPU_LESSONS.md / user feedback
+# memory feedback_cluster_automation.md).
+echo "[21_submit_pipeline.sh] Delegating to cluster/submit_all.sh --preflight (post-29-05 canonical master)"
 echo ""
-
-echo "[21_submit_pipeline.sh] Delegating to cluster/submit_all.sh (post-29-05 canonical master)"
-echo ""
-exec bash cluster/submit_all.sh "$@"
+exec bash cluster/submit_all.sh --preflight "$@"
