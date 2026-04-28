@@ -1,0 +1,7 @@
+model,max_rhat,min_ess_bulk,n_divergences,min_bfmi,ppc_coverage,gate_status,pipeline_action
+qlearning,,,0,,not_available,FAIL,EXCLUDED_MISSING_FILE
+wmrl,,,0,,not_available,FAIL,EXCLUDED_MISSING_FILE
+wmrl_m3,,,0,,not_available,FAIL,EXCLUDED_MISSING_FILE
+wmrl_m5,,,0,,not_available,FAIL,EXCLUDED_MISSING_FILE
+wmrl_m6a,,,0,,not_available,FAIL,EXCLUDED_MISSING_FILE
+wmrl_m6b,,,0,,not_available,FAIL,EXCLUDED_MISSING_FILE
