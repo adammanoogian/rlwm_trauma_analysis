@@ -1,12 +1,12 @@
 ============================================================
 Stage 04b (GPU, Template C) — Hierarchical Bayesian Fit
 ============================================================
-Job ID:         55009130
+Job ID:         55009131
 Node:           m3t100
 Partition:      gpu
 GPU(s):         0,1,2,3
 Project:        /fs04/fc37/adam/projects/rlwm_trauma_analysis/rlwm_trauma_analysis
-Model:          qlearning
+Model:          wmrl
 Chains:         4
 Warmup:         1000
 Samples:        2000
@@ -14,27 +14,27 @@ Seed:           42
 Max tree depth: 8
 Subscale:       0
 Limit:          <all participants>
-Start time:     Tue Apr 28 10:49:06 PM AEST 2026
+Start time:     Wed Apr 29 12:54:16 AM AEST 2026
 ============================================================
 Activated rlwm_gpu by name
 JAX 0.9.0 devices: [CudaDevice(id=0), CudaDevice(id=1), CudaDevice(id=2), CudaDevice(id=3)]
 GPU count: 4
 
-JAX cache: /scratch/fc37/aman0087/.jax_cache_04b_bayesian_gpu_qlearning
+JAX cache: /scratch/fc37/aman0087/.jax_cache_04b_bayesian_gpu_wmrl
 
-[Tue Apr 28 10:49:26 PM AEST 2026] Clearing stale qlearning artefacts from models/bayesian/21_baseline/
+[Wed Apr 29 12:54:29 AM AEST 2026] Clearing stale wmrl artefacts from models/bayesian/21_baseline/
 ============================================================
-Fitting Bayesian model: qlearning (Template C, 4 GPUs + pmap)
-Started: Tue Apr 28 10:49:26 PM AEST 2026
+Fitting Bayesian model: wmrl (Template C, 4 GPUs + pmap)
+Started: Wed Apr 29 12:54:29 AM AEST 2026
 ============================================================
-[Tue Apr 28 10:49:26 PM AEST 2026] Starting qlearning hierarchical Bayesian fit (subscale=0)
-  Command: python scripts/04_model_fitting/b_bayesian/fit_baseline.py --model qlearning --data data/processed/task_trials_long.csv --chains 4 --warmup 1000 --samples 2000 --seed 42 --max-tree-depth 8
+[Wed Apr 29 12:54:29 AM AEST 2026] Starting wmrl hierarchical Bayesian fit (subscale=0)
+  Command: python scripts/04_model_fitting/b_bayesian/fit_baseline.py --model wmrl --data data/processed/task_trials_long.csv --chains 4 --warmup 1000 --samples 2000 --seed 42 --max-tree-depth 8
 
-[GPU 22:49:26] util=0% mem=0/15360MB temp=30Cutil=2% mem=0/15360MB temp=32Cutil=0% mem=0/15360MB temp=28Cutil=2% mem=0/15360MB temp=30C
+[GPU 00:54:29] util=0% mem=0/15360MB temp=31Cutil=2% mem=0/15360MB temp=32Cutil=2% mem=0/15360MB temp=30Cutil=2% mem=0/15360MB temp=32C
 ================================================================================
 STEP 21.3 — BASELINE HIERARCHICAL FIT (NO L2)
 ================================================================================
-  Model: qlearning
+  Model: wmrl
   Data: data/processed/task_trials_long.csv
   Chains: 4
   Warmup: 1000
@@ -45,11 +45,11 @@ STEP 21.3 — BASELINE HIERARCHICAL FIT (NO L2)
   Output subdir: bayesian/21_baseline/ (forced)
 ================================================================================
 ================================================================================
-BAYESIAN QLEARNING FIT WITH JAX/NUMPYRO
+BAYESIAN WMRL FIT WITH JAX/NUMPYRO
 ================================================================================
 
 Settings:
-  Model: qlearning
+  Model: wmrl
   Data: data/processed/task_trials_long.csv
   Min block: 3 (excludes practice)
   Chains: 4
@@ -241,12 +241,12 @@ Analysis cohort breakdown (total observed N=178):
     Participant 10248: 718 trials, 12 blocks
 
 ================================================================================
-FITTING QLEARNING HIERARCHICAL MODEL
+FITTING WMRL HIERARCHICAL MODEL
 ================================================================================
 
 >> Preparing stacked participant data...
   Prepared 158 participants (sorted by ID)
-  Skipping LEC covariate: model 'qlearning' does not support Level-2 regression (no natural L2 target parameter).
+  Skipping LEC covariate: model 'wmrl' does not support Level-2 regression (no natural L2 target parameter).
 
 >> Running MCMC inference (NUTS + convergence auto-bump)...
 >> Starting MCMC sampling with convergence auto-bump...
@@ -269,50 +269,52 @@ FITTING QLEARNING HIERARCHICAL MODEL
    NUMPYRO_HOST_DEVICE_COUNT        = 4
    XLA_PYTHON_CLIENT_PREALLOCATE    = <unset>
    XLA_PYTHON_CLIENT_MEM_FRACTION   = <unset>
-   JAX_COMPILATION_CACHE_DIR        = /scratch/fc37/aman0087/.jax_cache_04b_bayesian_gpu_qlearning
+   JAX_COMPILATION_CACHE_DIR        = /scratch/fc37/aman0087/.jax_cache_04b_bayesian_gpu_wmrl
    JAX_PERSISTENT_CACHE_MIN_ENTRY_SIZE_BYTES = 0
    CUDA_VISIBLE_DEVICES             = 0,1,2,3
 ============================================================
 
    Backend: gpu | chain_method: parallel
-[GPU 22:54:26] util=98% mem=11329/15360MB temp=39Cutil=98% mem=11323/15360MB temp=40Cutil=98% mem=11323/15360MB temp=39Cutil=98% mem=11323/15360MB temp=40C
-[GPU 22:59:26] util=98% mem=11329/15360MB temp=39Cutil=98% mem=11323/15360MB temp=40Cutil=96% mem=11323/15360MB temp=39Cutil=98% mem=11323/15360MB temp=41C
-[GPU 23:04:26] util=0% mem=11329/15360MB temp=32Cutil=98% mem=11323/15360MB temp=40Cutil=0% mem=11323/15360MB temp=31Cutil=98% mem=11323/15360MB temp=41C
-[GPU 23:09:26] util=0% mem=11329/15360MB temp=32Cutil=98% mem=11323/15360MB temp=40Cutil=0% mem=11323/15360MB temp=31Cutil=98% mem=11323/15360MB temp=41C
-[GPU 23:14:26] util=0% mem=11329/15360MB temp=32Cutil=0% mem=11323/15360MB temp=33Cutil=0% mem=11323/15360MB temp=31Cutil=98% mem=11323/15360MB temp=41C
-[GPU 23:19:26] util=0% mem=11329/15360MB temp=32Cutil=0% mem=11323/15360MB temp=33Cutil=0% mem=11323/15360MB temp=31Cutil=98% mem=11323/15360MB temp=41C
-[GPU 23:24:26] util=0% mem=11329/15360MB temp=32Cutil=0% mem=11323/15360MB temp=32Cutil=0% mem=11323/15360MB temp=31Cutil=98% mem=11323/15360MB temp=41C
-[GPU 23:29:26] util=0% mem=11329/15360MB temp=32Cutil=0% mem=11323/15360MB temp=32Cutil=0% mem=11323/15360MB temp=31Cutil=98% mem=11323/15360MB temp=41C
-[GPU 23:34:26] util=0% mem=11329/15360MB temp=32Cutil=0% mem=11323/15360MB temp=33Cutil=0% mem=11323/15360MB temp=31Cutil=98% mem=11323/15360MB temp=41C
-[GPU 23:39:27] util=0% mem=11329/15360MB temp=32Cutil=0% mem=11323/15360MB temp=32Cutil=0% mem=11323/15360MB temp=31Cutil=98% mem=11323/15360MB temp=41C
-[GPU 23:44:27] util=0% mem=11329/15360MB temp=32Cutil=0% mem=11323/15360MB temp=33Cutil=0% mem=11323/15360MB temp=31Cutil=98% mem=11323/15360MB temp=41C
-[GPU 23:49:27] util=0% mem=11329/15360MB temp=32Cutil=0% mem=11323/15360MB temp=32Cutil=0% mem=11323/15360MB temp=31Cutil=98% mem=11323/15360MB temp=41C
-[timing] target_accept_prob=0.80 wall=3608.6s
-[convergence-gate] target_accept_prob=0.80 divergences=2108
-[convergence-gate] 2108 divergences remain — bumping target_accept_prob.
-   Backend: gpu | chain_method: parallel
-[GPU 23:54:27] util=98% mem=11427/15360MB temp=39Cutil=98% mem=11421/15360MB temp=40Cutil=98% mem=11421/15360MB temp=39Cutil=98% mem=11421/15360MB temp=41C
-[GPU 23:59:27] util=98% mem=11427/15360MB temp=40Cutil=98% mem=11421/15360MB temp=40Cutil=98% mem=11421/15360MB temp=40Cutil=98% mem=11421/15360MB temp=41C
-[GPU 00:04:27] util=98% mem=11427/15360MB temp=39Cutil=98% mem=11421/15360MB temp=40Cutil=98% mem=11421/15360MB temp=40Cutil=98% mem=11421/15360MB temp=41C
-[GPU 00:09:27] util=98% mem=11427/15360MB temp=39Cutil=98% mem=11421/15360MB temp=40Cutil=98% mem=11421/15360MB temp=40Cutil=98% mem=11421/15360MB temp=41C
-[GPU 00:14:27] util=98% mem=11427/15360MB temp=40Cutil=98% mem=11421/15360MB temp=40Cutil=98% mem=11421/15360MB temp=40Cutil=98% mem=11421/15360MB temp=41C
-[GPU 00:19:27] util=98% mem=11427/15360MB temp=40Cutil=98% mem=11421/15360MB temp=40Cutil=98% mem=11421/15360MB temp=40Cutil=0% mem=11421/15360MB temp=32C
-[GPU 00:24:27] util=98% mem=11427/15360MB temp=39Cutil=98% mem=11421/15360MB temp=40Cutil=98% mem=11421/15360MB temp=40Cutil=0% mem=11421/15360MB temp=32C
-[GPU 00:29:27] util=98% mem=11427/15360MB temp=40Cutil=0% mem=11421/15360MB temp=33Cutil=98% mem=11421/15360MB temp=40Cutil=0% mem=11421/15360MB temp=32C
-[GPU 00:34:27] util=98% mem=11427/15360MB temp=39Cutil=0% mem=11421/15360MB temp=32Cutil=98% mem=11421/15360MB temp=40Cutil=0% mem=11421/15360MB temp=32C
-[GPU 00:39:27] util=0% mem=11427/15360MB temp=32Cutil=0% mem=11421/15360MB temp=33Cutil=98% mem=11421/15360MB temp=40Cutil=0% mem=11421/15360MB temp=32C
-[GPU 00:44:27] util=0% mem=11427/15360MB temp=32Cutil=0% mem=11421/15360MB temp=33Cutil=98% mem=11421/15360MB temp=39Cutil=0% mem=11421/15360MB temp=32C
-[GPU 00:49:27] util=0% mem=11427/15360MB temp=32Cutil=0% mem=11421/15360MB temp=33Cutil=98% mem=11421/15360MB temp=39Cutil=0% mem=11421/15360MB temp=32C
-[timing] target_accept_prob=0.95 wall=3642.0s
-[convergence-gate] target_accept_prob=0.95 divergences=0
+[GPU 00:59:29] util=99% mem=11343/15360MB temp=40Cutil=99% mem=11337/15360MB temp=41Cutil=99% mem=11337/15360MB temp=40Cutil=99% mem=11337/15360MB temp=41C
+[GPU 01:04:29] util=99% mem=11343/15360MB temp=40Cutil=99% mem=11337/15360MB temp=41Cutil=99% mem=11337/15360MB temp=40Cutil=99% mem=11337/15360MB temp=41C
+[GPU 01:09:29] util=99% mem=11343/15360MB temp=40Cutil=99% mem=11337/15360MB temp=41Cutil=99% mem=11337/15360MB temp=40Cutil=99% mem=11337/15360MB temp=42C
+[GPU 01:14:29] util=99% mem=11343/15360MB temp=40Cutil=99% mem=11337/15360MB temp=41Cutil=99% mem=11337/15360MB temp=40Cutil=99% mem=11337/15360MB temp=41C
+[GPU 01:19:29] util=99% mem=11343/15360MB temp=40Cutil=99% mem=11337/15360MB temp=41Cutil=99% mem=11337/15360MB temp=40Cutil=99% mem=11337/15360MB temp=41C
+[GPU 01:24:29] util=99% mem=11343/15360MB temp=40Cutil=99% mem=11337/15360MB temp=41Cutil=99% mem=11337/15360MB temp=40Cutil=99% mem=11337/15360MB temp=41C
+[GPU 01:29:29] util=99% mem=11343/15360MB temp=40Cutil=99% mem=11337/15360MB temp=41Cutil=99% mem=11337/15360MB temp=40Cutil=99% mem=11337/15360MB temp=41C
+[GPU 01:34:29] util=99% mem=11343/15360MB temp=40Cutil=99% mem=11337/15360MB temp=41Cutil=99% mem=11337/15360MB temp=40Cutil=99% mem=11337/15360MB temp=42C
+[GPU 01:39:30] util=0% mem=11343/15360MB temp=32Cutil=99% mem=11337/15360MB temp=41Cutil=0% mem=11337/15360MB temp=31Cutil=99% mem=11337/15360MB temp=41C
+[GPU 01:44:30] util=0% mem=11343/15360MB temp=32Cutil=99% mem=11337/15360MB temp=41Cutil=0% mem=11337/15360MB temp=31Cutil=99% mem=11337/15360MB temp=41C
+[GPU 01:49:30] util=0% mem=11343/15360MB temp=32Cutil=99% mem=11337/15360MB temp=41Cutil=0% mem=11337/15360MB temp=31Cutil=99% mem=11337/15360MB temp=41C
+[GPU 01:54:30] util=0% mem=11343/15360MB temp=32Cutil=99% mem=11337/15360MB temp=41Cutil=0% mem=11337/15360MB temp=31Cutil=99% mem=11337/15360MB temp=41C
+[GPU 01:59:30] util=0% mem=11343/15360MB temp=32Cutil=99% mem=11337/15360MB temp=41Cutil=0% mem=11337/15360MB temp=31Cutil=99% mem=11337/15360MB temp=41C
+[GPU 02:04:30] util=0% mem=11343/15360MB temp=32Cutil=99% mem=11337/15360MB temp=41Cutil=0% mem=11337/15360MB temp=31Cutil=99% mem=11337/15360MB temp=41C
+[GPU 02:09:30] util=0% mem=11343/15360MB temp=32Cutil=99% mem=11337/15360MB temp=41Cutil=0% mem=11337/15360MB temp=31Cutil=99% mem=11337/15360MB temp=41C
+[GPU 02:14:30] util=0% mem=11343/15360MB temp=32Cutil=99% mem=11337/15360MB temp=41Cutil=0% mem=11337/15360MB temp=31Cutil=99% mem=11337/15360MB temp=42C
+[GPU 02:19:30] util=0% mem=11343/15360MB temp=32Cutil=99% mem=11337/15360MB temp=41Cutil=0% mem=11337/15360MB temp=31Cutil=99% mem=11337/15360MB temp=42C
+[GPU 02:24:30] util=0% mem=11343/15360MB temp=32Cutil=99% mem=11337/15360MB temp=41Cutil=0% mem=11337/15360MB temp=31Cutil=99% mem=11337/15360MB temp=41C
+[GPU 02:29:30] util=0% mem=11343/15360MB temp=32Cutil=99% mem=11337/15360MB temp=41Cutil=0% mem=11337/15360MB temp=31Cutil=99% mem=11337/15360MB temp=41C
+[GPU 02:34:30] util=0% mem=11343/15360MB temp=32Cutil=99% mem=11337/15360MB temp=41Cutil=0% mem=11337/15360MB temp=31Cutil=99% mem=11337/15360MB temp=41C
+[GPU 02:39:31] util=0% mem=11343/15360MB temp=32Cutil=99% mem=11337/15360MB temp=41Cutil=0% mem=11337/15360MB temp=31Cutil=99% mem=11337/15360MB temp=42C
+[GPU 02:44:31] util=0% mem=11343/15360MB temp=32Cutil=99% mem=11337/15360MB temp=41Cutil=0% mem=11337/15360MB temp=31Cutil=99% mem=11337/15360MB temp=42C
+[GPU 02:49:31] util=0% mem=11343/15360MB temp=32Cutil=99% mem=11337/15360MB temp=41Cutil=0% mem=11337/15360MB temp=31Cutil=99% mem=11337/15360MB temp=41C
+[GPU 02:54:31] util=0% mem=11343/15360MB temp=32Cutil=99% mem=11337/15360MB temp=41Cutil=0% mem=11337/15360MB temp=31Cutil=99% mem=11337/15360MB temp=42C
+[GPU 02:59:31] util=0% mem=11343/15360MB temp=32Cutil=99% mem=11337/15360MB temp=41Cutil=0% mem=11337/15360MB temp=31Cutil=99% mem=11337/15360MB temp=42C
+[GPU 03:04:31] util=0% mem=11343/15360MB temp=32Cutil=99% mem=11337/15360MB temp=41Cutil=0% mem=11337/15360MB temp=31Cutil=0% mem=11337/15360MB temp=32C
+[GPU 03:09:31] util=0% mem=11343/15360MB temp=32Cutil=99% mem=11337/15360MB temp=41Cutil=0% mem=11337/15360MB temp=31Cutil=0% mem=11337/15360MB temp=32C
+[timing] target_accept_prob=0.80 wall=8218.0s
+[convergence-gate] target_accept_prob=0.80 divergences=0
 [convergence-gate] Zero divergences — accepting this run.
 
 ================================================================================
-QLEARNING POSTERIOR ESTIMATES — GROUP LEVEL
+WMRL POSTERIOR ESTIMATES — GROUP LEVEL
 ================================================================================
-  alpha_neg_mu_pr: -2.668 +/- 0.486
-  alpha_pos_mu_pr: 0.567 +/- 2.207
-  epsilon_mu_pr: -1.017 +/- 0.210
+  alpha_neg_mu_pr: -4.512 +/- 0.269
+  alpha_pos_mu_pr: -1.935 +/- 0.023
+  capacity_mu_pr: -1.044 +/- 0.100
+  epsilon_mu_pr: -1.573 +/- 0.026
+  phi_mu_pr: -0.776 +/- 0.030
+  rho_mu_pr: 0.944 +/- 0.075
 
 ================================================================================
 SAVING RESULTS
@@ -323,63 +325,57 @@ SAVING RESULTS
   Padding positions set to NaN for WAIC/LOO.
 
 >> Building ArviZ InferenceData...
+[GPU 03:14:31] util=100% mem=11423/15360MB temp=36Cutil=100% mem=11417/15360MB temp=36Cutil=100% mem=11417/15360MB temp=36Cutil=100% mem=11417/15360MB temp=37C
 
 >> Checking convergence gate...
 
-[CONVERGENCE GATE FAILED] max_rhat=2.3800, min_ess_bulk=5, divergences=0
+[CONVERGENCE GATE FAILED] max_rhat=1.1200, min_ess_bulk=23, divergences=0
 Refusing to write output files. Fix convergence issues and re-run.
 
 ================================================================================
 FITTING COMPLETE!
 ================================================================================
 
-[Wed Apr 29 12:54:08 AM AEST 2026] qlearning hierarchical fit finished (exit code: 1)
-*** ERROR: Model qlearning FAILED with exit code 1 ***
-*** Check stderr log: logs/04b_bayesian_gpu_55009130.err ***
+[Wed Apr 29 03:15:10 AM AEST 2026] wmrl hierarchical fit finished (exit code: 1)
+*** ERROR: Model wmrl FAILED with exit code 1 ***
+*** Check stderr log: logs/04b_bayesian_gpu_55009131.err ***
 
 ============================================================
 JOB RESOURCE REPORT
 ============================================================
-Job ID: 55009130
+Job ID: 55009131
 Node: m3t100
 GPU Info:
   Model:       Tesla T4
   VRAM Total:   15360 MiB
   VRAM Used:    0 MiB
   VRAM Free:    14912 MiB
-  Utilization:  35 %
-  Temperature:  33
+  Utilization:  0 %
+  Temperature:  35
   Model:       Tesla T4
   VRAM Total:   15360 MiB
   VRAM Used:    0 MiB
   VRAM Free:    14912 MiB
-  Utilization:  0 %
+  Utilization:  39 %
+  Temperature:  35
+  Model:       Tesla T4
+  VRAM Total:   15360 MiB
+  VRAM Used:    0 MiB
+  VRAM Free:    14912 MiB
+  Utilization:  37 %
   Temperature:  34
   Model:       Tesla T4
   VRAM Total:   15360 MiB
   VRAM Used:    0 MiB
   VRAM Free:    14912 MiB
-  Utilization:  0 %
-  Temperature:  33
-  Model:       Tesla T4
-  VRAM Total:   15360 MiB
-  VRAM Used:    0 MiB
-  VRAM Free:    14912 MiB
-  Utilization:  7 %
-  Temperature:  34
+  Utilization:  13 %
+  Temperature:  35
 SLURM Accounting:
-            55009130   02:05:04                              64G          8      RUNNING 
-      55009130.batch   02:05:04                                           8      RUNNING 
-     55009130.extern   02:05:04                                           8      RUNNING 
+            55009131   02:20:55                              64G          8      RUNNING 
+      55009131.batch   02:20:55                                           8      RUNNING 
+     55009131.extern   02:20:55                                           8      RUNNING 
 ============================================================
 
 ============================================================
 AUTO-PUSH: Committing and pushing results
 ============================================================
-[main f5d9c56] rlwm-bayesian-gpu-mgpu job 55009130 results
- 3 files changed, 686 insertions(+)
- create mode 100644 logs/04b_bayesian_gpu_55009130.err
- create mode 100644 logs/04b_bayesian_gpu_55009130.out
-To github.com:adammanoogian/rlwm_trauma_analysis
-   f027afd..f5d9c56  main -> main
-  Auto-push complete
