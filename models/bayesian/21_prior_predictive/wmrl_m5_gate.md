@@ -1,17 +1,19 @@
 # Prior predictive gate: wmrl_m5
 
-- **Verdict:** **PASS**
+- **Verdict:** **HARD_PASS**
 - Draws: 500
 - Seed: 42
 - Real draws simulated: 500
 
-## Gate checks (Baribault & Collins 2023)
+## Gate checks (Baribault & Collins 2023; three-tier policy)
 
-| Check | Threshold | Value | Pass |
-|---|---|---|---|
-| Median accuracy | [0.40, 0.90] | 0.437 | yes |
-| Sub-chance fraction | < 10% | 3.6% | yes |
-| At-ceiling fraction | < 5% | 0.0% | yes |
+Per-metric band: `hard` = within original B&C hard band; `soft` = within documented soft margin (advisory); `no` = outside both bands.
+
+| Check | Hard threshold | Soft threshold | Value | Band |
+|---|---|---|---|---|
+| Median accuracy | [0.40, 0.90] | [0.40, 0.92] | 0.432 | hard |
+| Sub-chance fraction | < 10% | < 12% | 5.0% | hard |
+| At-ceiling fraction | < 5% | < 7% | 0.0% | hard |
 
 ## Priors used
 
