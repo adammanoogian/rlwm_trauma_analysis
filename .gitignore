@@ -88,7 +88,11 @@ models/mle/*_checkpoint.csv
 !reports/figures/.gitkeep
 !reports/tables/.gitkeep
 
-# Logs — always gitignored (dev + SLURM job logs merged here in Wave E)
+# Logs — dev + SLURM job logs merged here in Wave E. SLURM .err/.out are
+# whitelisted so cluster autopush surfaces job failures locally (root only;
+# SLURM writes flat: logs/<jobname>_%j.{out,err}).
 logs/*
 !logs/.gitkeep
+!logs/*.err
+!logs/*.out
 

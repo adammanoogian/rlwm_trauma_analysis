@@ -635,7 +635,7 @@ def main():
     parser.add_argument(
         '--data',
         type=str,
-        default=str(PROCESSED_DIR / 'task_trials_long_all_participants.csv'),
+        default=str(DataParams.TASK_TRIALS_LONG),
         help='Path to task trials data'
     )
     parser.add_argument(

@@ -99,6 +99,7 @@ from config import (
     REPORTS_FIGURES_DIR,
     REPORTS_TABLES_REGRESSIONS,
     REPORTS_TABLES_TRAUMA_GROUPS,
+    DataParams,
     load_fits_with_validation,
 )
 
@@ -235,7 +236,7 @@ def load_integrated_data(params_path: Path, model_type: str = 'qlearning',
 
     # Load accuracy data separately (from task_trials to compute per-participant accuracy)
     accuracy_data = None
-    trials_path = PROCESSED_DIR / 'task_trials_long_all_participants.csv'
+    trials_path = DataParams.TASK_TRIALS_LONG
     if trials_path.exists():
         trials_df = pd.read_csv(trials_path)
         trials_df['sona_id'] = trials_df['sona_id'].astype(str)
