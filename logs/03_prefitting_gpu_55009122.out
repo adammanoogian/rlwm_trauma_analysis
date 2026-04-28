@@ -239,3 +239,9 @@ Analysis cohort breakdown (total observed N=178):
    models/bayesian/21_prior_predictive/wmrl_m3_prior_accuracy.csv
    models/bayesian/21_prior_predictive/wmrl_m3_gate.md
 >> Total wall-clock: 28.6s
+
+[Tue Apr 28 10:23:52 PM AEST 2026] Stage 03 (GPU) STEP=prior_predictive MODEL=wmrl_m3 finished (exit code: 0)
+
+============================================================
+AUTO-PUSH: Committing and pushing results
+============================================================
