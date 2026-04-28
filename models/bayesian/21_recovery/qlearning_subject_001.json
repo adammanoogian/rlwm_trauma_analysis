@@ -1,0 +1,47 @@
+{
+  "model": "qlearning",
+  "subject_idx": 1,
+  "seed": 42,
+  "sim_seed": 332599,
+  "mcmc_seed": 5561,
+  "mcmc_budget": {
+    "num_warmup": 500,
+    "num_samples": 1000,
+    "num_chains": 2,
+    "max_tree_depth": 8
+  },
+  "synthetic_task": {
+    "n_blocks": 17,
+    "n_trials": 909
+  },
+  "params": {
+    "alpha_pos": {
+      "true": 0.4175107181072235,
+      "posterior_mean": 0.4100620448589325,
+      "hdi_low": 0.34033873677253723,
+      "hdi_high": 0.48112952709198,
+      "in_hdi": 1
+    },
+    "alpha_neg": {
+      "true": 0.5394173264503479,
+      "posterior_mean": 0.5480250120162964,
+      "hdi_low": 0.49748295545578003,
+      "hdi_high": 0.6105322241783142,
+      "in_hdi": 1
+    },
+    "epsilon": {
+      "true": 0.02139381505548954,
+      "posterior_mean": 0.022529752925038338,
+      "hdi_low": 0.01036726776510477,
+      "hdi_high": 0.037201665341854095,
+      "in_hdi": 1
+    }
+  },
+  "diagnostics": {
+    "max_rhat": 1.0,
+    "min_ess": 1701.0,
+    "num_divergences": 0
+  },
+  "elapsed_sec": 1397.4155109759886,
+  "hdi_prob": 0.95
+}

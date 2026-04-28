@@ -70,3 +70,25 @@ STEP 21.2 SINGLE-SUBJECT RECOVERY: model=qlearning, subject=1
 [convergence-gate] target_accept_prob=0.95 divergences=3
 [convergence-gate] 3 divergences remain — bumping target_accept_prob.
    Backend: gpu | chain_method: vectorized
+[timing] target_accept_prob=0.99 wall=662.0s
+[convergence-gate] target_accept_prob=0.99 divergences=0
+[convergence-gate] Zero divergences — accepting this run.
+
+================================================================================
+QLEARNING POSTERIOR ESTIMATES — GROUP LEVEL
+================================================================================
+  alpha_neg_mu_pr: 0.122 +/- 0.223
+  alpha_pos_mu_pr: -0.222 +/- 0.205
+  epsilon_mu_pr: -2.022 +/- 0.222
+
+>> Extracting posterior summaries and HDIs...
+
+  Wrote: models/bayesian/21_recovery/qlearning_subject_001.json
+  Elapsed: 1397.4 s
+================================================================================
+
+[Tue Apr 28 10:47:59 PM AEST 2026] Stage 03 (GPU) STEP=bayesian_recovery MODEL=qlearning finished (exit code: 0)
+
+============================================================
+AUTO-PUSH: Committing and pushing results
+============================================================
