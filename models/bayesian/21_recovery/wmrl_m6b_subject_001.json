@@ -1,0 +1,82 @@
+{
+  "model": "wmrl_m6b",
+  "subject_idx": 1,
+  "seed": 42,
+  "sim_seed": 332599,
+  "mcmc_seed": 5561,
+  "mcmc_budget": {
+    "num_warmup": 500,
+    "num_samples": 1000,
+    "num_chains": 2,
+    "max_tree_depth": 8
+  },
+  "synthetic_task": {
+    "n_blocks": 17,
+    "n_trials": 909
+  },
+  "params": {
+    "alpha_pos": {
+      "true": 0.4175107181072235,
+      "posterior_mean": 0.6438274383544922,
+      "hdi_low": 0.40277761220932007,
+      "hdi_high": 0.926670253276825,
+      "in_hdi": 1
+    },
+    "alpha_neg": {
+      "true": 0.5394173264503479,
+      "posterior_mean": 0.7588540315628052,
+      "hdi_low": 0.501585841178894,
+      "hdi_high": 0.9495894908905029,
+      "in_hdi": 1
+    },
+    "phi": {
+      "true": 0.489717572927475,
+      "posterior_mean": 0.5324724912643433,
+      "hdi_low": 0.44527870416641235,
+      "hdi_high": 0.6257566213607788,
+      "in_hdi": 1
+    },
+    "rho": {
+      "true": 0.6570780277252197,
+      "posterior_mean": 0.5696274638175964,
+      "hdi_low": 0.47033175826072693,
+      "hdi_high": 0.6839293241500854,
+      "in_hdi": 1
+    },
+    "capacity": {
+      "true": 4.015875339508057,
+      "posterior_mean": 5.1956329345703125,
+      "hdi_low": 4.11385440826416,
+      "hdi_high": 5.999758720397949,
+      "in_hdi": 0
+    },
+    "kappa_total": {
+      "true": 0.2967894673347473,
+      "posterior_mean": 0.2527143061161041,
+      "hdi_low": 0.20374608039855957,
+      "hdi_high": 0.3097881078720093,
+      "in_hdi": 1
+    },
+    "kappa_share": {
+      "true": 0.4222540855407715,
+      "posterior_mean": 0.503634512424469,
+      "hdi_low": 0.36066514253616333,
+      "hdi_high": 0.6630047559738159,
+      "in_hdi": 1
+    },
+    "epsilon": {
+      "true": 0.021595600992441177,
+      "posterior_mean": 0.019375616684556007,
+      "hdi_low": 1.0094217941514216e-06,
+      "hdi_high": 0.047807034105062485,
+      "in_hdi": 1
+    }
+  },
+  "diagnostics": {
+    "max_rhat": 1.0,
+    "min_ess": 1354.0,
+    "num_divergences": 0
+  },
+  "elapsed_sec": 1164.4104769960977,
+  "hdi_prob": 0.95
+}

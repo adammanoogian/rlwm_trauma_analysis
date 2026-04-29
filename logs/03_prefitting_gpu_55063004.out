@@ -67,3 +67,7 @@ STEP 21.2 SINGLE-SUBJECT RECOVERY: model=wmrl_m5, subject=1
 ============================================================
 
    Backend: gpu | chain_method: vectorized
+[timing] target_accept_prob=0.80 wall=622.4s
+[convergence-gate] target_accept_prob=0.80 divergences=1
+[convergence-gate] 1 divergences remain — bumping target_accept_prob.
+   Backend: gpu | chain_method: vectorized
