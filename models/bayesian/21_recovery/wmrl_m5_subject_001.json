@@ -1,0 +1,82 @@
+{
+  "model": "wmrl_m5",
+  "subject_idx": 1,
+  "seed": 42,
+  "sim_seed": 332599,
+  "mcmc_seed": 5561,
+  "mcmc_budget": {
+    "num_warmup": 500,
+    "num_samples": 1000,
+    "num_chains": 2,
+    "max_tree_depth": 8
+  },
+  "synthetic_task": {
+    "n_blocks": 17,
+    "n_trials": 909
+  },
+  "params": {
+    "alpha_pos": {
+      "true": 0.4175107181072235,
+      "posterior_mean": 0.5664753317832947,
+      "hdi_low": 0.2719573974609375,
+      "hdi_high": 0.9982571005821228,
+      "in_hdi": 1
+    },
+    "alpha_neg": {
+      "true": 0.5394173264503479,
+      "posterior_mean": 0.650381326675415,
+      "hdi_low": 0.37668684124946594,
+      "hdi_high": 0.990079939365387,
+      "in_hdi": 1
+    },
+    "phi": {
+      "true": 0.489717572927475,
+      "posterior_mean": 0.5670376420021057,
+      "hdi_low": 0.2853623628616333,
+      "hdi_high": 0.8685862421989441,
+      "in_hdi": 1
+    },
+    "rho": {
+      "true": 0.6570780277252197,
+      "posterior_mean": 0.33102676272392273,
+      "hdi_low": 0.00010680691775633022,
+      "hdi_high": 0.8432701826095581,
+      "in_hdi": 1
+    },
+    "capacity": {
+      "true": 4.015875339508057,
+      "posterior_mean": 4.05404806137085,
+      "hdi_low": 2.1913890838623047,
+      "hdi_high": 5.999038219451904,
+      "in_hdi": 1
+    },
+    "kappa": {
+      "true": 0.2967894673347473,
+      "posterior_mean": 0.292662650346756,
+      "hdi_low": 0.2480190396308899,
+      "hdi_high": 0.33630725741386414,
+      "in_hdi": 1
+    },
+    "phi_rl": {
+      "true": 0.4222540855407715,
+      "posterior_mean": 0.44525063037872314,
+      "hdi_low": 0.30483829975128174,
+      "hdi_high": 0.6047961115837097,
+      "in_hdi": 1
+    },
+    "epsilon": {
+      "true": 0.021595600992441177,
+      "posterior_mean": 0.0054892427287995815,
+      "hdi_low": 6.820262576923142e-09,
+      "hdi_high": 0.021694505587220192,
+      "in_hdi": 1
+    }
+  },
+  "diagnostics": {
+    "max_rhat": 1.01,
+    "min_ess": 968.0,
+    "num_divergences": 0
+  },
+  "elapsed_sec": 1484.0970270270482,
+  "hdi_prob": 0.95
+}

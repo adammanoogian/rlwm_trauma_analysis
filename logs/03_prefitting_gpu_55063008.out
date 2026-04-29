@@ -98,3 +98,9 @@ WMRL-M6B POSTERIOR ESTIMATES — GROUP LEVEL
 ============================================================
 AUTO-PUSH: Committing and pushing results
 ============================================================
+[main 6d4e17b] p29_03_prefit_gpu job 55063008 results
+ 6 files changed, 129 insertions(+), 2 deletions(-)
+ create mode 100644 models/bayesian/21_recovery/wmrl_m6b_subject_001.json
+To github.com:adammanoogian/rlwm_trauma_analysis
+   32384dd..6d4e17b  main -> main
+  Auto-push complete
