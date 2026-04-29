@@ -1,19 +1,26 @@
-# Conda environment for RLWM Trauma Analysis (GPU-accelerated)
-# MINIMAL env for GPU MLE fitting only — no analysis/visualization packages.
+# Conda environment for RLWM Trauma Analysis (single env for the whole pipeline)
+#
+# Supersedes the previous ds_env / rlwm_gpu split. Contains both the GPU
+# MCMC fitting stack (JAX/CUDA/NumPyro/ArviZ) AND the analysis/viz stack
+# (matplotlib/seaborn/statsmodels/scikit-learn/tqdm) so every pipeline
+# stage can run under a single conda activation.
 #
 # Usage:
-#   # On M3 cluster:
+#   # Fresh install on M3 cluster:
 #   module load miniforge3
 #   mamba env create -f environment_gpu.yml
 #   conda activate rlwm_gpu
+#
+#   # Updating an existing rlwm_gpu env (adds missing analysis packages):
+#   mamba env update -n rlwm_gpu -f environment_gpu.yml
 #
 # Or use the setup script:
 #   bash cluster/00_setup_env_gpu.sh
 #
 # Note: CUDA module is NOT required. JAX pip packages bundle their own CUDA
 # runtime libraries. GPU access works via the cluster's NVIDIA kernel driver.
-#
-# For analysis/visualization, use the CPU environment (environment.yml).
+# CPU stages (01/02/05/06) don't import jax, so no CUDA libs are loaded
+# for those — the GPU stack costs nothing when it isn't used.
 
 name: rlwm_gpu
 channels:
@@ -23,16 +30,23 @@ channels:
 dependencies:
   - python=3.11
 
-  # Data loading (fit_mle.py reads CSV via pandas)
+  # Data loading
   - pandas>=2.0.0
   - numpy>=2.0.0
 
-  # Required by mle_utils.py (scipy.stats.qmc for LHS sampling)
+  # Numerical / stats (scipy.stats.qmc for LHS sampling, scipy.stats for tests)
   - scipy>=1.0.0
+  - statsmodels>=0.14.0
+  - scikit-learn>=1.0.0
+
+  # Visualization (stages 02/05/06 use matplotlib + seaborn)
+  - matplotlib>=3.0.0
+  - seaborn>=0.13.0
 
   # Utilities
   - psutil
   - joblib>=1.3.0
+  - tqdm
 
   # netcdf4 required for InferenceData.to_netcdf() (v4.0 INFRA-07)
   - netcdf4

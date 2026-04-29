@@ -81,16 +81,14 @@ echo "============================================================"
 
 # Activate conda environment
 # Try ds_env first (CPU Bayesian), then rlwm_gpu as fallback
-if conda activate ds_env 2>/dev/null; then
-    echo "Activated ds_env by name"
-elif conda activate /scratch/fc37/$USER/conda/envs/ds_env 2>/dev/null; then
-    echo "Activated ds_env from /scratch/fc37/$USER/"
-elif conda activate /scratch/${PROJECT:-fc37}/$USER/conda/envs/ds_env 2>/dev/null; then
-    echo "Activated ds_env from /scratch/${PROJECT:-fc37}/$USER/"
-elif conda activate rlwm_gpu 2>/dev/null; then
-    echo "Activated rlwm_gpu (fallback)"
+if conda activate rlwm_gpu 2>/dev/null; then
+    echo "Activated rlwm_gpu by name"
+elif conda activate /scratch/fc37/$USER/conda/envs/rlwm_gpu 2>/dev/null; then
+    echo "Activated rlwm_gpu from /scratch/fc37/$USER/"
+elif conda activate /scratch/${PROJECT:-fc37}/$USER/conda/envs/rlwm_gpu 2>/dev/null; then
+    echo "Activated rlwm_gpu from /scratch/${PROJECT:-fc37}/$USER/"
 else
-    echo "ERROR: Failed to activate conda environment (tried ds_env, rlwm_gpu)"
+    echo "ERROR: Failed to activate rlwm_gpu — see cluster/00_setup_env_gpu.sh"
     exit 1
 fi
 

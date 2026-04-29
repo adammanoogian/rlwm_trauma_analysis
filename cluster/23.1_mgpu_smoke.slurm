@@ -95,12 +95,14 @@ if conda activate rlwm_gpu 2>/dev/null; then
     echo "Activated rlwm_gpu by name"
 elif conda activate /scratch/fc37/$USER/conda/envs/rlwm_gpu 2>/dev/null; then
     echo "Activated rlwm_gpu from /scratch/fc37/$USER/"
-elif conda activate ds_env 2>/dev/null; then
-    echo "WARNING: Activated ds_env fallback (no GPU). pmap path will silently"
-    echo "         degrade to chain_method=vectorized — the smoke test result"
-    echo "         will NOT validate Template C. Audit script will flag this."
+elif conda activate rlwm_gpu 2>/dev/null; then
+    echo "Activated rlwm_gpu by name"
+elif conda activate /scratch/fc37/$USER/conda/envs/rlwm_gpu 2>/dev/null; then
+    echo "Activated rlwm_gpu from /scratch/fc37/$USER/"
+elif conda activate /scratch/${PROJECT:-fc37}/$USER/conda/envs/rlwm_gpu 2>/dev/null; then
+    echo "Activated rlwm_gpu from /scratch/${PROJECT:-fc37}/$USER/"
 else
-    echo "ERROR: Failed to activate any conda environment (rlwm_gpu or ds_env)"
+    echo "ERROR: Failed to activate rlwm_gpu — see cluster/00_setup_env_gpu.sh"
     exit 1
 fi
 
