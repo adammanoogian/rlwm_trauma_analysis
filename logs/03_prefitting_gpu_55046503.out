@@ -1,0 +1,15 @@
+============================================================
+Stage 03 (GPU) — Model Prefitting: STEP=prior_predictive MODEL=wmrl_m6b
+============================================================
+Job ID:     55046503
+Node:       m3g107
+GPU(s):     0
+Project:    /fs04/fc37/adam/projects/rlwm_trauma_analysis
+Start time: Wed Apr 29 06:33:45 PM AEST 2026
+============================================================
+Activated rlwm_gpu by name
+JAX devices: [CudaDevice(id=0)]
+GPU count: 1
+JAX cache: /scratch/fc37/aman0087/.jax_cache_03_prefit_gpu_prior_predictive_wmrl_m6b
+
+[Wed Apr 29 06:33:46 PM AEST 2026] Running: python scripts/03_model_prefitting/04_run_prior_predictive.py --model wmrl_m6b --data data/processed/task_trials_long.csv --num-draws 500 --seed 42 --output-dir models/bayesian/21_prior_predictive/
