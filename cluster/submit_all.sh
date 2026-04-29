@@ -291,34 +291,35 @@ fi
 L2_DISPATCH_JID=""
 
 # ---------------------------------------------------------------------------
-# Stage 05 — Post-fitting checks (baseline_audit -> scale_audit)
+# Stage 05.1 — baseline_audit (post-fitting checks on stage 04b posteriors)
 # ---------------------------------------------------------------------------
+# Note: scale_audit (stage 05.2) is NOT submitted here. It reads winners.txt
+# (produced by stage 06 loo_stacking) AND models/bayesian/21_l2/<winner>_
+# posterior.nc (produced by stage 04c L2 dispatch). Both producers run inside
+# the stage-06 loop below, so scale_audit is submitted there with a dependency
+# on L2_DISPATCH and chained ahead of model_averaging.
 J05_BASELINE=""
 J05_SCALE=""
 if [[ "$FROM_STAGE" -le 5 ]]; then
   echo ""
-  echo "[05] Post-fitting checks (baseline_audit -> scale_audit)"
+  echo "[05.1] baseline_audit (post-fitting baseline checks)"
   DEP=()
   [[ -n "$BAYES_DEP" ]] && DEP=(--dependency="$BAYES_DEP")
   J05_BASELINE=$(submit cluster/05_post_checks.slurm "${DEP[@]}" \
                   --export=ALL,STEP=baseline_audit)
   echo "  [05.baseline_audit] -> $J05_BASELINE"
-  J05_SCALE=$(submit cluster/05_post_checks.slurm \
-                --dependency=afterok:"$J05_BASELINE" \
-                --export=ALL,STEP=scale_audit)
-  echo "  [05.scale_audit] -> $J05_SCALE"
 fi
 
 # ---------------------------------------------------------------------------
-# Stage 06 — Fit analyses (compare -> loo -> average -> tables)
+# Stage 06 — Fit analyses (compare -> loo -> L2 -> scale_audit -> average -> tables)
 # ---------------------------------------------------------------------------
 J06_ALL=()
 if [[ "$FROM_STAGE" -le 6 ]]; then
   echo ""
-  echo "[06] Fit analyses (compare_models -> loo_stacking -> model_averaging -> manuscript_tables)"
+  echo "[06] Fit analyses (compare_models -> loo_stacking -> L2 -> scale_audit -> model_averaging -> manuscript_tables)"
   DEP=()
-  if [[ -n "$J05_SCALE" ]]; then
-    DEP=(--dependency=afterok:"$J05_SCALE")
+  if [[ -n "$J05_BASELINE" ]]; then
+    DEP=(--dependency=afterok:"$J05_BASELINE")
   elif [[ -n "$BAYES_DEP" ]]; then
     DEP=(--dependency="$BAYES_DEP")
   fi
@@ -335,16 +336,26 @@ if [[ "$FROM_STAGE" -le 6 ]]; then
     J06_ALL+=("$JID")
     PREV="$JID"
 
-    # After loo_stacking, insert L2 winner dispatcher (reads winners.txt
-    # produced by loo_stacking, submits one $L2_SCRIPT per winner via
-    # sbatch --wait inside cluster/21_dispatch_l2_winners.sh).
+    # After loo_stacking, insert (a) L2 winner dispatcher and (b) scale_audit.
+    # L2 dispatcher reads winners.txt from loo_stacking, submits one
+    # $L2_SCRIPT per winner via sbatch --wait inside
+    # cluster/21_dispatch_l2_winners.sh. scale_audit reads winners.txt AND
+    # models/bayesian/21_l2/<winner>_posterior.nc (the L2 dispatcher's
+    # output), so it MUST run AFTER L2_DISPATCH — wiring it here keeps the
+    # afterok chain monotone.
     if [[ "$step" == "loo_stacking" ]]; then
       L2_DISPATCH_JID=$(submit cluster/21_6_dispatch_l2.slurm \
         --dependency=afterok:"$PREV" \
         --export=ALL,L2_FIT_SCRIPT="$L2_SCRIPT")
       echo "  [04c.l2_dispatch] -> $L2_DISPATCH_JID (L2_FIT_SCRIPT=$L2_SCRIPT)"
       J06_ALL+=("$L2_DISPATCH_JID")
-      PREV="$L2_DISPATCH_JID"   # model_averaging + manuscript_tables wait on L2 dispatcher
+      PREV="$L2_DISPATCH_JID"
+
+      J05_SCALE=$(submit cluster/05_post_checks.slurm \
+                    --dependency=afterok:"$PREV" \
+                    --export=ALL,STEP=scale_audit)
+      echo "  [05.scale_audit] -> $J05_SCALE (after L2_DISPATCH)"
+      PREV="$J05_SCALE"   # model_averaging + manuscript_tables wait on scale_audit
     fi
   done
 fi
