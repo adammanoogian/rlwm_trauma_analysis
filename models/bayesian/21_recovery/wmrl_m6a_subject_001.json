@@ -1,0 +1,75 @@
+{
+  "model": "wmrl_m6a",
+  "subject_idx": 1,
+  "seed": 42,
+  "sim_seed": 332599,
+  "mcmc_seed": 5561,
+  "mcmc_budget": {
+    "num_warmup": 500,
+    "num_samples": 1000,
+    "num_chains": 2,
+    "max_tree_depth": 8
+  },
+  "synthetic_task": {
+    "n_blocks": 17,
+    "n_trials": 909
+  },
+  "params": {
+    "alpha_pos": {
+      "true": 0.4175107181072235,
+      "posterior_mean": 0.5838809609413147,
+      "hdi_low": 0.363444447517395,
+      "hdi_high": 0.8633780479431152,
+      "in_hdi": 1
+    },
+    "alpha_neg": {
+      "true": 0.5394173264503479,
+      "posterior_mean": 0.6929015517234802,
+      "hdi_low": 0.509198009967804,
+      "hdi_high": 0.8691778182983398,
+      "in_hdi": 1
+    },
+    "phi": {
+      "true": 0.489717572927475,
+      "posterior_mean": 0.52999347448349,
+      "hdi_low": 0.47381865978240967,
+      "hdi_high": 0.5901488065719604,
+      "in_hdi": 1
+    },
+    "rho": {
+      "true": 0.6570780277252197,
+      "posterior_mean": 0.6214970946311951,
+      "hdi_low": 0.517113983631134,
+      "hdi_high": 0.7403172254562378,
+      "in_hdi": 1
+    },
+    "capacity": {
+      "true": 4.015875339508057,
+      "posterior_mean": 4.715038299560547,
+      "hdi_low": 3.527557373046875,
+      "hdi_high": 5.999411582946777,
+      "in_hdi": 1
+    },
+    "kappa_s": {
+      "true": 0.2967894673347473,
+      "posterior_mean": 0.23203901946544647,
+      "hdi_low": 0.18716025352478027,
+      "hdi_high": 0.28668326139450073,
+      "in_hdi": 0
+    },
+    "epsilon": {
+      "true": 0.014041316695511341,
+      "posterior_mean": 0.010926973074674606,
+      "hdi_low": 2.9351011107792147e-05,
+      "hdi_high": 0.028810637071728706,
+      "in_hdi": 1
+    }
+  },
+  "diagnostics": {
+    "max_rhat": 1.0,
+    "min_ess": 920.0,
+    "num_divergences": 0
+  },
+  "elapsed_sec": 529.3304694760591,
+  "hdi_prob": 0.95
+}
