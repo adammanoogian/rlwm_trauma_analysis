@@ -17,3 +17,11 @@ JAX cache: /scratch/fc37/aman0087/.jax_cache_03_prefit_gpu_prior_predictive_wmrl
 ============================================================
 AUTO-PUSH: Committing and pushing results
 ============================================================
+[main 7ab0535] p29_03_prefit_gpu job 55062611 results
+ 7 files changed, 93 insertions(+)
+ create mode 100644 logs/03_prefitting_gpu_55062609.err
+ create mode 100644 logs/03_prefitting_gpu_55062609.out
+ create mode 100644 logs/03_prefitting_gpu_55062611.err
+ create mode 100644 logs/03_prefitting_gpu_55062611.out
+ create mode 100644 logs/03_prefitting_gpu_55062613.err
+ create mode 100644 logs/03_prefitting_gpu_55062613.out
