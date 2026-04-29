@@ -73,4 +73,11 @@ _autopush() {
     echo "  Auto-push complete"
 }
 
-_autopush
+# Never let an autopush failure (transient network, push race, missing
+# credential) propagate as a non-zero exit code. The science work that
+# preceded the source has already completed and `set -e` in the calling
+# SLURM script would otherwise mark the whole job FAILED, taking out
+# every afterok-dependent child via DependencyNeverSatisfied. Autopush
+# is a best-effort transport step — its failures must NOT invalidate
+# the science chain (cf. job 55009122 → 55009123 cascade, 2026-04-28).
+_autopush || true

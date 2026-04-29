@@ -241,6 +241,20 @@ def _load_lec_covariate(
         sorted_pids = sorted(participant_data_stacked.keys())
         metrics_df = metrics_df.set_index("sona_id").reindex(sorted_pids)
         lec_raw = metrics_df[lec_col].values.astype(np.float32)
+        # Synthetic recovery subjects (e.g. parameter-recovery runs in
+        # 03_run_bayesian_recovery.py) use sona_ids like "001" that don't
+        # match real participant rows in summary_participant_metrics.csv.
+        # reindex returns all-NaN; np.nanmean on all-NaN returns NaN +
+        # RuntimeWarning("Mean of empty slice"); that NaN propagates into
+        # the prior centering and HMC init then fails with "Cannot find
+        # valid initial parameters." Skip the L2 regression in that case.
+        if np.all(np.isnan(lec_raw)):
+            print(
+                f"  Skipping LEC covariate: no matching sona_ids in "
+                f"{metrics_path} ({len(sorted_pids)} participant(s) — "
+                "likely synthetic recovery; Level-2 regression not applicable)."
+            )
+            return None
         lec_mean = float(np.nanmean(lec_raw))
         lec_std = float(np.nanstd(lec_raw))
         lec_z = (lec_raw - lec_mean) / (lec_std + 1e-8)
