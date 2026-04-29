@@ -246,3 +246,13 @@ Analysis cohort breakdown (total observed N=178):
 ============================================================
 AUTO-PUSH: Committing and pushing results
 ============================================================
+[main b847f33] p29_03_prefit_gpu job 55063001 results
+ 2 files changed, 8 insertions(+)
+To github.com:adammanoogian/rlwm_trauma_analysis
+ ! [remote rejected] main -> main (cannot lock ref 'refs/heads/main': is at 9ed46b31f002cf549e7ea0f15853d98e5f94efe2 but expected 989aebca2c04101118e6b66d434ad0d349136407)
+error: failed to push some refs to 'github.com:adammanoogian/rlwm_trauma_analysis'
+  push attempt 1 failed (likely concurrent autopush race); pulling --rebase and retrying...
+error: cannot pull with rebase: You have unstaged changes.
+error: Please commit or stash them.
+  WARNING: git pull --rebase failed — aborting retry loop
+  WARNING: git push failed after 3 attempts (network, auth, or persistent rebase conflict)
