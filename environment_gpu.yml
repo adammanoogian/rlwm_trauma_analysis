@@ -58,9 +58,21 @@ dependencies:
   # pip dependencies
   - pip
   - pip:
-    # JAX with CUDA 12 support
-    # Installs jaxlib + CUDA runtime libs (~2-3GB total, unavoidable)
-    - jax[cuda12]>=0.5.0
+    # JAX with CUDA 12 support — PINNED to 0.9.0 to match numpyro 0.20.1.
+    # NumPyro 0.20.1 imports `xla_pmap_p` from `jax.extend.core.primitives`
+    # eagerly (numpyro/ops/provenance.py:7). JAX >= 0.10.x removed that
+    # symbol entirely (pmap was reorganized into shard_map), causing every
+    # `import numpyro` to ImportError. The previous open-bound spec
+    # `jax[cuda12]>=0.5.0` let `mamba env update` pull a too-new jax that
+    # broke compat (cf. JID 55062603-55062613 cascade, 2026-04-29 — every
+    # stage 03 prior_predictive crashed at `import numpyro`).
+    # Bumping numpyro to >=0.21 would also fix it but introduces an
+    # untested newer numpyro into the pipeline. Pinning jax to 0.9.0 is
+    # the conservative choice — matches the env spec at the time of the
+    # last successful Bayesian fits (jobs 55009130, 55009131).
+    # Installs jaxlib + CUDA runtime libs (~2-3GB total, unavoidable).
+    - "jax[cuda12]==0.9.0"
+    - jaxlib==0.9.0
     - jaxopt>=0.8.0
     # Bayesian deps (pinned for reproducibility — v4.0 INFRA-07)
     - numpyro==0.20.1
