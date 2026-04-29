@@ -17,3 +17,8 @@ JAX cache: /scratch/fc37/aman0087/.jax_cache_03_prefit_gpu_prior_predictive_wmrl
 ============================================================
 AUTO-PUSH: Committing and pushing results
 ============================================================
+[main 8613b7e] p29_03_prefit_gpu job 55062609 results
+ 5 files changed, 49 insertions(+)
+To github.com:adammanoogian/rlwm_trauma_analysis
+   7ab0535..8613b7e  main -> main
+  Auto-push complete
