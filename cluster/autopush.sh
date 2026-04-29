@@ -73,11 +73,26 @@ _autopush() {
     echo "  Auto-push complete"
 }
 
-# Never let an autopush failure (transient network, push race, missing
-# credential) propagate as a non-zero exit code. The science work that
-# preceded the source has already completed and `set -e` in the calling
-# SLURM script would otherwise mark the whole job FAILED, taking out
-# every afterok-dependent child via DependencyNeverSatisfied. Autopush
-# is a best-effort transport step — its failures must NOT invalidate
-# the science chain (cf. job 55009122 → 55009123 cascade, 2026-04-28).
-_autopush || true
+# Install an EXIT trap instead of calling _autopush immediately. Two
+# reasons:
+#
+# 1) Run on FAILURE too. Calling SLURMs use `set -euo pipefail`. If any
+#    earlier command fails (e.g. ModuleNotFoundError, missing data
+#    file), bash exits before reaching the trailing `source
+#    cluster/autopush.sh` line — leaving .err/.out logs stranded on
+#    /scratch with no copy on origin (cf. JID 55046494-55046528 cascade,
+#    2026-04-29). EXIT traps fire on every exit path including
+#    set -e-induced exits, so autopush runs whether the science
+#    succeeded or failed.
+#
+# 2) Decouple transport failures from the SLURM exit code. The `|| true`
+#    suffix prevents a failed `git push` (race, network, credentials)
+#    from invalidating the SLURM exit code, preserving science-layer
+#    semantics for afterok dependency chains (cf. job 55009122 →
+#    55009123 cascade, 2026-04-28).
+#
+# This file is intended to be sourced near the TOP of every SLURM
+# script, right after PROJECT_ROOT is set. Leaving a trailing
+# `source cluster/autopush.sh` at the END of the SLURM is harmless —
+# it just re-registers the same trap.
+trap '_autopush || true' EXIT

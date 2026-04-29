@@ -56,6 +56,13 @@ module load miniforge3
 cd "${SLURM_SUBMIT_DIR:-$(dirname "$0")/..}"
 PROJECT_ROOT="$(pwd)"
 
+# Install autopush trap (must come BEFORE any failure-prone command).
+# autopush.sh registers an EXIT trap that fires on success or failure,
+# so SLURM .err/.out logs land in git regardless of outcome — see
+# cluster/autopush.sh for rationale.
+[ -f cluster/autopush.sh ] && source cluster/autopush.sh
+
+
 echo "============================================================"
 echo "Stage 04b — Choice-Only Hierarchical Bayesian Fit (CPU)"
 echo "============================================================"
@@ -86,6 +93,12 @@ else
     echo "ERROR: Failed to activate conda environment (tried ds_env, rlwm_gpu)"
     exit 1
 fi
+
+# Re-register editable rlwm install (idempotent; protects against stale
+# egg-link after folder moves / fresh compute-node caches). Mirrors
+# cluster/00_preflight.slurm step [2/5].
+pip install -e . --quiet --no-deps 2>/dev/null || \
+    echo "WARNING: pip install -e . --no-deps failed; 'import rlwm' may fail downstream"
 
 # Verify jax is importable
 python -c "import jax; print(f'JAX version: {jax.__version__}, platforms: {jax.devices()}')" || {

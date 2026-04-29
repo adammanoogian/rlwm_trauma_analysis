@@ -52,6 +52,13 @@ module load miniforge3
 cd "${SLURM_SUBMIT_DIR:-$(dirname "$0")/..}"
 PROJECT_ROOT="$(pwd)"
 
+# Install autopush trap (must come BEFORE any failure-prone command).
+# autopush.sh registers an EXIT trap that fires on success or failure,
+# so SLURM .err/.out logs land in git regardless of outcome — see
+# cluster/autopush.sh for rationale.
+[ -f cluster/autopush.sh ] && source cluster/autopush.sh
+
+
 echo "============================================================"
 echo "Stage 03 (GPU) — Model Prefitting: STEP=$STEP MODEL=$MODEL"
 echo "============================================================"
@@ -72,6 +79,16 @@ else
     echo "ERROR: Failed to activate 'rlwm_gpu' conda environment"
     exit 1
 fi
+
+# Re-register editable rlwm install. The egg-link in site-packages records an
+# absolute path, so it goes stale if the repo was moved (e.g. folder flatten)
+# or if this is a fresh compute-node-cache that lost its installed pointer.
+# Idempotent (~3-5s on hot install). Mirrors cluster/00_preflight.slurm
+# step [2/5]; without this, `import rlwm` raises ModuleNotFoundError on every
+# job and silently breaks the afterok chain via DependencyNeverSatisfied
+# (cf. JID batch 55046494-55046528 cascade, 2026-04-29).
+pip install -e . --quiet --no-deps 2>/dev/null || \
+    echo "WARNING: pip install -e . --no-deps failed; 'import rlwm' may fail downstream"
 
 python -c "
 import jax

@@ -51,6 +51,13 @@ module load miniforge3
 
 cd "${SLURM_SUBMIT_DIR:-$(dirname "$0")/..}"
 PROJECT_ROOT="$(pwd)"
+
+# Install autopush trap (must come BEFORE any failure-prone command).
+# autopush.sh registers an EXIT trap that fires on success or failure,
+# so SLURM .err/.out logs land in git regardless of outcome — see
+# cluster/autopush.sh for rationale.
+[ -f cluster/autopush.sh ] && source cluster/autopush.sh
+
 export PROJECT_ROOT
 
 mkdir -p logs models/bayesian

@@ -84,6 +84,13 @@ module load miniforge3
 cd "${SLURM_SUBMIT_DIR:-$(dirname "$0")/..}"
 PROJECT_ROOT="$(pwd)"
 
+# Install autopush trap (must come BEFORE any failure-prone command).
+# autopush.sh registers an EXIT trap that fires on success or failure,
+# so SLURM .err/.out logs land in git regardless of outcome — see
+# cluster/autopush.sh for rationale.
+[ -f cluster/autopush.sh ] && source cluster/autopush.sh
+
+
 echo "============================================================"
 echo "Stage 04c (GPU, Template C) — Winner Refit WITH L2 Scales"
 echo "============================================================"
@@ -116,6 +123,16 @@ else
     echo "       Or use USE_CPU=1 with cluster/submit_all.sh for the CPU path."
     exit 1
 fi
+
+# Re-register editable rlwm install. The egg-link in site-packages records an
+# absolute path, so it goes stale if the repo was moved (e.g. folder flatten)
+# or if this is a fresh compute-node-cache that lost its installed pointer.
+# Idempotent (~3-5s on hot install). Mirrors cluster/00_preflight.slurm
+# step [2/5]; without this, `import rlwm` raises ModuleNotFoundError on every
+# job and silently breaks the afterok chain via DependencyNeverSatisfied
+# (cf. JID batch 55046494-55046528 cascade, 2026-04-29).
+pip install -e . --quiet --no-deps 2>/dev/null || \
+    echo "WARNING: pip install -e . --no-deps failed; 'import rlwm' may fail downstream"
 
 # Verify GPU allocation matches chain count. If n_gpu < CHAINS, NumPyro's
 # _select_chain_method falls back to 'vectorized' which defeats Template C.
