@@ -41,6 +41,5 @@ if str(_PROJECT_ROOT) not in sys.path:
 
 from rlwm.fitting.mle import main
 
-
 if __name__ == "__main__":
     main()

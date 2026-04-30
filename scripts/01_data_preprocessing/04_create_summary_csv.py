@@ -31,7 +31,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from config import EXCLUDED_PARTICIPANTS, INTERIM_DIR, PROCESSED_DIR, DataParams
 
 # Add utils to path
-sys.path.append(str(Path(__file__).resolve().parents[1] / 'utils'))
+sys.path.append(str(Path(__file__).resolve().parents[1] / "utils"))
 
 from scoring import calculate_all_task_metrics, score_ies_r, score_less
 
@@ -84,17 +84,19 @@ def main():
     print()
 
     # Get participant block counts (main task only, blocks >= 3)
-    main_task_trials = task_trials[task_trials['block'] >= DataParams.MAIN_TASK_START_BLOCK]
-    block_counts = main_task_trials.groupby('sona_id')['block'].nunique()
-    trial_counts = main_task_trials.groupby('sona_id').size()
+    main_task_trials = task_trials[
+        task_trials["block"] >= DataParams.MAIN_TASK_START_BLOCK
+    ]
+    block_counts = main_task_trials.groupby("sona_id")["block"].nunique()
+    trial_counts = main_task_trials.groupby("sona_id").size()
 
     # Load corrupted participants surfaced by 01_parse_raw_data.py (if any)
     # File is gitignored (data/interim/*); absence means no parse failures.
-    corrupted_path = INTERIM_DIR / 'corrupted_participants.csv'
+    corrupted_path = INTERIM_DIR / "corrupted_participants.csv"
     corrupted_ids: set = set()
     if corrupted_path.exists():
         corrupted_df = pd.read_csv(corrupted_path)
-        corrupted_ids = set(corrupted_df['sona_id'].tolist())
+        corrupted_ids = set(corrupted_df["sona_id"].tolist())
         print(f"  Corrupted CSVs detected: {len(corrupted_ids)} participant(s)")
 
     # Build inclusion flag + reason string for every participant that was parsed
@@ -102,8 +104,8 @@ def main():
     # covers the full parseable cohort; task_trials may add a few extra if their
     # demographics extraction failed but their task data was usable.
     all_parsed_ids = (
-        set(demographics['sona_id'].unique())
-        | set(task_trials['sona_id'].unique())
+        set(demographics["sona_id"].unique())
+        | set(task_trials["sona_id"].unique())
         | corrupted_ids
     )
 
@@ -111,25 +113,27 @@ def main():
     for sona_id in all_parsed_ids:
         reasons: list[str] = []
         if sona_id in corrupted_ids:
-            reasons.append('corrupted_csv')
+            reasons.append("corrupted_csv")
         else:
             n_trials = trial_counts.get(sona_id, 0)
             n_blocks = block_counts.get(sona_id, 0)
             if n_trials < DataParams.MIN_TRIALS:
-                reasons.append(f'low_trial_count_{DataParams.MIN_TRIALS}')
+                reasons.append(f"low_trial_count_{DataParams.MIN_TRIALS}")
             if n_blocks < DataParams.MIN_BLOCKS:
-                reasons.append(f'low_block_count_{DataParams.MIN_BLOCKS}')
+                reasons.append(f"low_block_count_{DataParams.MIN_BLOCKS}")
             if sona_id in EXCLUDED_PARTICIPANTS:
-                reasons.append('manual_excluded_list')
-        inclusion_rows.append({
-            'sona_id': sona_id,
-            'included_in_analysis': len(reasons) == 0,
-            'exclusion_reason': '|'.join(reasons),
-        })
+                reasons.append("manual_excluded_list")
+        inclusion_rows.append(
+            {
+                "sona_id": sona_id,
+                "included_in_analysis": len(reasons) == 0,
+                "exclusion_reason": "|".join(reasons),
+            }
+        )
 
     inclusion_df = pd.DataFrame(inclusion_rows)
-    n_included = inclusion_df['included_in_analysis'].sum()
-    n_excluded = (~inclusion_df['included_in_analysis'].astype(bool)).sum()
+    n_included = inclusion_df["included_in_analysis"].sum()
+    n_excluded = (~inclusion_df["included_in_analysis"].astype(bool)).sum()
     print(f"  Included in analysis: {n_included}")
     print(f"  Excluded with reason: {n_excluded}")
     print()
@@ -138,7 +142,9 @@ def main():
     print("-" * 60)
     print("Calculating LESS (Survey 1) summary scores...")
     survey1_scored = score_less(survey1)
-    less_summary = survey1_scored[['sona_id', 'less_total_events', 'less_personal_events']]
+    less_summary = survey1_scored[
+        ["sona_id", "less_total_events", "less_personal_events"]
+    ]
     print(f"[OK] Calculated LESS scores for {len(less_summary)} participants")
     print(f"  Mean total events: {less_summary['less_total_events'].mean():.2f}")
     print(f"  Mean personal events: {less_summary['less_personal_events'].mean():.2f}")
@@ -148,7 +154,9 @@ def main():
     print("-" * 60)
     print("Calculating IES-R (Survey 2) subscale scores...")
     survey2_scored = score_ies_r(survey2)
-    ies_summary = survey2_scored[['sona_id', 'ies_total', 'ies_intrusion', 'ies_avoidance', 'ies_hyperarousal']]
+    ies_summary = survey2_scored[
+        ["sona_id", "ies_total", "ies_intrusion", "ies_avoidance", "ies_hyperarousal"]
+    ]
     print(f"[OK] Calculated IES-R scores for {len(ies_summary)} participants")
     print(f"  Mean total score: {ies_summary['ies_total'].mean():.2f}")
     print(f"  Mean intrusion: {ies_summary['ies_intrusion'].mean():.2f}")
@@ -164,10 +172,10 @@ def main():
 
     task_metrics_list = []
 
-    for sona_id in task_trials['sona_id'].unique():
-        participant_trials = task_trials[task_trials['sona_id'] == sona_id]
+    for sona_id in task_trials["sona_id"].unique():
+        participant_trials = task_trials[task_trials["sona_id"] == sona_id]
         metrics = calculate_all_task_metrics(participant_trials)
-        metrics['sona_id'] = sona_id
+        metrics["sona_id"] = sona_id
         task_metrics_list.append(metrics)
 
     task_metrics = pd.DataFrame(task_metrics_list)
@@ -177,17 +185,23 @@ def main():
 
     # Display key task metrics
     print("  Key task performance statistics:")
-    if 'accuracy_overall' in task_metrics.columns:
-        print(f"    Mean overall accuracy: {task_metrics['accuracy_overall'].mean():.3f}")
-    if 'mean_rt_overall' in task_metrics.columns:
+    if "accuracy_overall" in task_metrics.columns:
+        print(
+            f"    Mean overall accuracy: {task_metrics['accuracy_overall'].mean():.3f}"
+        )
+    if "mean_rt_overall" in task_metrics.columns:
         print(f"    Mean RT: {task_metrics['mean_rt_overall'].mean():.0f} ms")
-    if 'accuracy_low_load' in task_metrics.columns:
-        print(f"    Mean accuracy (low load): {task_metrics['accuracy_low_load'].mean():.3f}")
-    if 'accuracy_high_load' in task_metrics.columns:
-        print(f"    Mean accuracy (high load): {task_metrics['accuracy_high_load'].mean():.3f}")
-    if 'learning_slope' in task_metrics.columns:
+    if "accuracy_low_load" in task_metrics.columns:
+        print(
+            f"    Mean accuracy (low load): {task_metrics['accuracy_low_load'].mean():.3f}"
+        )
+    if "accuracy_high_load" in task_metrics.columns:
+        print(
+            f"    Mean accuracy (high load): {task_metrics['accuracy_high_load'].mean():.3f}"
+        )
+    if "learning_slope" in task_metrics.columns:
         print(f"    Mean learning slope: {task_metrics['learning_slope'].mean():.4f}")
-    if 'n_reversals' in task_metrics.columns:
+    if "n_reversals" in task_metrics.columns:
         print(f"    Mean reversals detected: {task_metrics['n_reversals'].mean():.1f}")
     print()
 
@@ -202,27 +216,37 @@ def main():
     print(f"Starting with demographics: {len(summary)} rows")
 
     # Merge LESS scores
-    summary = summary.merge(less_summary, on='sona_id', how='left')
-    print(f"After merging LESS scores: {len(summary)} rows, {len(summary.columns)} columns")
+    summary = summary.merge(less_summary, on="sona_id", how="left")
+    print(
+        f"After merging LESS scores: {len(summary)} rows, {len(summary.columns)} columns"
+    )
 
     # Merge IES-R scores
-    summary = summary.merge(ies_summary, on='sona_id', how='left')
-    print(f"After merging IES-R scores: {len(summary)} rows, {len(summary.columns)} columns")
+    summary = summary.merge(ies_summary, on="sona_id", how="left")
+    print(
+        f"After merging IES-R scores: {len(summary)} rows, {len(summary.columns)} columns"
+    )
 
     # Merge task metrics
-    summary = summary.merge(task_metrics, on='sona_id', how='left')
-    print(f"After merging task metrics: {len(summary)} rows, {len(summary.columns)} columns")
+    summary = summary.merge(task_metrics, on="sona_id", how="left")
+    print(
+        f"After merging task metrics: {len(summary)} rows, {len(summary.columns)} columns"
+    )
 
     # Merge inclusion flag + exclusion_reason (outer so corrupted participants
     # that have no demographics row still appear in the summary).
-    summary = summary.merge(inclusion_df, on='sona_id', how='outer')
+    summary = summary.merge(inclusion_df, on="sona_id", how="outer")
     # Fill NaN inclusion values (e.g. participants in demographics but not yet
     # seen in task_trials — shouldn't occur with demographics-seeded all_parsed_ids,
     # but guard for robustness).
-    if summary['included_in_analysis'].isna().any():
-        summary['included_in_analysis'] = summary['included_in_analysis'].fillna(False)
-        summary['exclusion_reason'] = summary['exclusion_reason'].fillna('low_trial_count_0')
-    print(f"After merging inclusion flag: {len(summary)} rows, {len(summary.columns)} columns")
+    if summary["included_in_analysis"].isna().any():
+        summary["included_in_analysis"] = summary["included_in_analysis"].fillna(False)
+        summary["exclusion_reason"] = summary["exclusion_reason"].fillna(
+            "low_trial_count_0"
+        )
+    print(
+        f"After merging inclusion flag: {len(summary)} rows, {len(summary.columns)} columns"
+    )
     print()
 
     # Organize columns
@@ -230,24 +254,42 @@ def main():
     print("Organizing columns...")
 
     # Define column order groups
-    id_cols = ['sona_id']
+    id_cols = ["sona_id"]
     # Inclusion gate — immediately after ID for discoverability
-    inclusion_cols = ['included_in_analysis', 'exclusion_reason']
+    inclusion_cols = ["included_in_analysis", "exclusion_reason"]
 
-    demographic_cols = [col for col in summary.columns if col in [
-        'age_years', 'country', 'primary_language', 'gender', 'education',
-        'relationship_status', 'living_arrangement', 'screen_time'
-    ]]
+    demographic_cols = [
+        col
+        for col in summary.columns
+        if col
+        in [
+            "age_years",
+            "country",
+            "primary_language",
+            "gender",
+            "education",
+            "relationship_status",
+            "living_arrangement",
+            "screen_time",
+        ]
+    ]
 
-    lec_cols = [col for col in summary.columns if col.startswith('lec_')]
-    ies_cols = [col for col in summary.columns if col.startswith('ies_')]
+    lec_cols = [col for col in summary.columns if col.startswith("lec_")]
+    ies_cols = [col for col in summary.columns if col.startswith("ies_")]
 
     # Task metrics (all remaining columns, exclusion columns already placed)
     reserved = set(id_cols + inclusion_cols + demographic_cols + lec_cols + ies_cols)
     task_metric_cols = [col for col in summary.columns if col not in reserved]
 
     # Reorder columns
-    ordered_cols = id_cols + inclusion_cols + demographic_cols + lec_cols + ies_cols + task_metric_cols
+    ordered_cols = (
+        id_cols
+        + inclusion_cols
+        + demographic_cols
+        + lec_cols
+        + ies_cols
+        + task_metric_cols
+    )
     summary = summary[ordered_cols]
 
     print("Column organization:")
@@ -263,14 +305,18 @@ def main():
     # Data quality summary
     print("-" * 60)
     print("Data Quality Summary:")
-    incl_flag = summary['included_in_analysis'].astype(bool)
+    incl_flag = summary["included_in_analysis"].astype(bool)
     print(f"  Total participants: {len(summary)}")
     print(f"  Included in analysis: {incl_flag.sum()}")
     print(f"  Excluded with reason: {(~incl_flag).sum()}")
 
     # Check completeness
-    participants_with_all_data = summary.dropna(subset=lec_cols + ies_cols + ['accuracy_overall']).shape[0]
-    print(f"  Participants with complete survey & task data: {participants_with_all_data}")
+    participants_with_all_data = summary.dropna(
+        subset=lec_cols + ies_cols + ["accuracy_overall"]
+    ).shape[0]
+    print(
+        f"  Participants with complete survey & task data: {participants_with_all_data}"
+    )
 
     # Missing data by section
     if len(lec_cols) > 0:
@@ -281,8 +327,8 @@ def main():
         missing_ies = summary[ies_cols].isna().any(axis=1).sum()
         print(f"  Missing IES-R data: {missing_ies} participants")
 
-    if 'accuracy_overall' in summary.columns:
-        missing_task = summary['accuracy_overall'].isna().sum()
+    if "accuracy_overall" in summary.columns:
+        missing_task = summary["accuracy_overall"].isna().sum()
         print(f"  Missing task data: {missing_task} participants")
 
     print()
@@ -299,12 +345,21 @@ def main():
     # Display sample
     print("-" * 60)
     print("Sample of summary data (first 3 participants, key columns):")
-    display_cols = [col for col in [
-        'sona_id', 'age_years', 'gender',
-        'less_total_events', 'ies_total',
-        'accuracy_overall', 'mean_rt_overall',
-        'accuracy_low_load', 'accuracy_high_load'
-    ] if col in summary.columns]
+    display_cols = [
+        col
+        for col in [
+            "sona_id",
+            "age_years",
+            "gender",
+            "less_total_events",
+            "ies_total",
+            "accuracy_overall",
+            "mean_rt_overall",
+            "accuracy_low_load",
+            "accuracy_high_load",
+        ]
+        if col in summary.columns
+    ]
 
     print(summary[display_cols].head(3).to_string())
     print()
@@ -320,5 +375,5 @@ def main():
     print()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

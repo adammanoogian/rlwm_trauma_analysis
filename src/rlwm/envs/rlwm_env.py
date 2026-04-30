@@ -148,7 +148,10 @@ class RLWMEnv(gym.Env):
 
         if self.set_size is not None:
             self.current_set_size = self.set_size
-        elif self.block_sequence is not None and len(self.block_sequence) > self.current_block:
+        elif (
+            self.block_sequence is not None
+            and len(self.block_sequence) > self.current_block
+        ):
             self.current_set_size = self.block_sequence[self.current_block]
         else:
             self.current_set_size = self.rng.choice(TaskParams.SET_SIZES)
@@ -182,7 +185,9 @@ class RLWMEnv(gym.Env):
         """Execute one trial: agent responds to stimulus, receives feedback."""
         correct_action = self.correct_responses[self.current_stimulus]
         is_correct = action == correct_action
-        reward = TaskParams.REWARD_CORRECT if is_correct else TaskParams.REWARD_INCORRECT
+        reward = (
+            TaskParams.REWARD_CORRECT if is_correct else TaskParams.REWARD_INCORRECT
+        )
 
         if is_correct:
             self.correct_counters[self.current_stimulus] += 1

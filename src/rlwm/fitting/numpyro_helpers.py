@@ -25,7 +25,6 @@ import numpyro.distributions as dist
 
 from config import MODEL_REGISTRY
 
-
 # ---------------------------------------------------------------------------
 # Core transform
 # ---------------------------------------------------------------------------

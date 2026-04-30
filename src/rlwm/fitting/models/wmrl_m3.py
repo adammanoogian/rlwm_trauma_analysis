@@ -871,6 +871,8 @@ def test_wmrl_m3_single_block():
 
 def test_wmrl_m3_backward_compatibility():
     """Verify M3 with kappa=0 matches M2 exactly."""
+    from .wmrl import wmrl_block_likelihood  # local — avoid circular import
+
     print("\nTesting WM-RL M3 backward compatibility (kappa=0 == M2)...")
 
     key = jax.random.PRNGKey(123)

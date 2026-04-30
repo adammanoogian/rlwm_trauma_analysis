@@ -11,7 +11,10 @@ asymmetric Q-learning with ``alpha_pos`` / ``alpha_neg``.
 """
 from __future__ import annotations
 
-from typing import Any  # noqa: F401 — kept for downstream signatures
+from typing import TYPE_CHECKING, Any  # noqa: F401 — kept for downstream signatures
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 import jax
 import jax.numpy as jnp

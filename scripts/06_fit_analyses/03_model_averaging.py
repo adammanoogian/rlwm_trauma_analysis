@@ -472,11 +472,7 @@ def _extract_weighted_samples(
         Sampling is WITHOUT replacement — if ``n_sub`` exceeds the
         available sample count, returns the full posterior.
     """
-    samples = (
-        idata.posterior[site_name]
-        .stack(sample=("chain", "draw"))
-        .values
-    )
+    samples = idata.posterior[site_name].stack(sample=("chain", "draw")).values
     samples = np.asarray(samples).ravel()
 
     n_available = samples.size
@@ -561,9 +557,9 @@ def _build_key_contributions(
                 site_name=site_name,
                 samples=samples,
             )
-            key_contributions.setdefault(
-                (canonical_cov, target), []
-            ).append(contribution)
+            key_contributions.setdefault((canonical_cov, target), []).append(
+                contribution
+            )
 
     return key_contributions
 
@@ -757,19 +753,14 @@ def _write_averaging_summary(
     lines.append("")
     lines.append("| winner | display | weight |")
     lines.append("|--------|---------|--------|")
-    for winner, w in sorted(
-        winners_weights.items(), key=lambda kv: -kv[1]
-    ):
+    for winner, w in sorted(winners_weights.items(), key=lambda kv: -kv[1]):
         display = INTERNAL_TO_DISPLAY.get(winner, winner)
         lines.append(f"| `{winner}` | {display} | {w:.4f} |")
     lines.append("")
 
     lines.append("## Canonical key counts")
     lines.append("")
-    lines.append(
-        f"- **Overlapping keys** (averaged across >= 2 winners): "
-        f"{n_overlap}"
-    )
+    lines.append(f"- **Overlapping keys** (averaged across >= 2 winners): {n_overlap}")
     lines.append(
         f"- **Subscale-exclusive keys** (reported from a single "
         f"winner alone): {n_single}"
@@ -980,10 +971,7 @@ def main() -> int:
 
     # ----- Short-circuit path 2: single winner -----
     winners_internal = _parse_winners_file(winners_file)
-    print(
-        f"[AVG] Winners: "
-        f"{[(w, INTERNAL_TO_DISPLAY[w]) for w in winners_internal]}"
-    )
+    print(f"[AVG] Winners: {[(w, INTERNAL_TO_DISPLAY[w]) for w in winners_internal]}")
     if len(winners_internal) == 1:
         sole = winners_internal[0]
         print(
@@ -1092,8 +1080,7 @@ if __name__ == "__main__":
         sys.exit(main())
     except (FileNotFoundError, ValueError, KeyError, RuntimeError) as exc:
         print(
-            f"\n[FATAL] Model averaging failed with "
-            f"{type(exc).__name__}: {exc}",
+            f"\n[FATAL] Model averaging failed with {type(exc).__name__}: {exc}",
             file=sys.stderr,
         )
         sys.exit(1)

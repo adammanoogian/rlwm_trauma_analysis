@@ -357,9 +357,7 @@ def _min_ess_on_non_beta(idata: az.InferenceData) -> float:
 
     Used for the L2 vs. baseline shared-parameter ESS degradation check.
     """
-    non_beta_vars = [
-        v for v in idata.posterior.data_vars if not v.startswith("beta_")
-    ]
+    non_beta_vars = [v for v in idata.posterior.data_vars if not v.startswith("beta_")]
     if not non_beta_vars:
         return float("nan")
     # Suppress ArviZ warning about "not enough samples" that can occur
@@ -428,9 +426,7 @@ def _audit_one_winner(
     # beta_iesr_* for M3/M5/M6a, all 32 beta_{cov}_{param} for M6b
     # subscale, empty list for M1/M2 copy-through. Log explicitly so the
     # IES-R family inclusion is observable in SLURM stdout.
-    beta_site_names = [
-        v for v in l2_idata.posterior.data_vars if v.startswith("beta_")
-    ]
+    beta_site_names = [v for v in l2_idata.posterior.data_vars if v.startswith("beta_")]
     print(
         f"[AUDIT] {winner} ({display_name}): "
         f"{len(beta_site_names)} beta sites: {beta_site_names}"
@@ -604,12 +600,8 @@ def _format_yaml_header(
     """Build the YAML-front-matter header the SLURM awk parser reads."""
     n_winners = len(audits)
     n_beta_total = sum(len(a.beta_sites) for a in audits)
-    n_hdi_excl = sum(
-        1 for a in audits for bs in a.beta_sites if bs.excludes_zero_hdi
-    )
-    n_fdr_excl = sum(
-        1 for a in audits for bs in a.beta_sites if bs.excludes_zero_fdr
-    )
+    n_hdi_excl = sum(1 for a in audits for bs in a.beta_sites if bs.excludes_zero_hdi)
+    n_fdr_excl = sum(1 for a in audits for bs in a.beta_sites if bs.excludes_zero_fdr)
     degraded = [a.winner for a in audits if a.ess_degraded]
 
     lines = [
@@ -696,9 +688,7 @@ def _format_report_body(
         lines.append("")
 
         notable = [
-            bs
-            for bs in a.beta_sites
-            if bs.excludes_zero_hdi or bs.tail_p < fdr_alpha
+            bs for bs in a.beta_sites if bs.excludes_zero_hdi or bs.tail_p < fdr_alpha
         ]
         if notable:
             lines.append("**Notable effects (tail_p < alpha OR HDI excludes 0):**")
@@ -851,12 +841,8 @@ def main() -> int:
     # Decision rule: PROCEED_TO_AVERAGING iff at least one beta site
     # across all winners survived FDR-BH correction; else NULL_RESULT.
     # Both paths exit 0 per plan-checker Issue #4 unified exit-0 semantics.
-    n_fdr_excl = sum(
-        1 for a in audits for bs in a.beta_sites if bs.excludes_zero_fdr
-    )
-    pipeline_action = (
-        "PROCEED_TO_AVERAGING" if n_fdr_excl > 0 else "NULL_RESULT"
-    )
+    n_fdr_excl = sum(1 for a in audits for bs in a.beta_sites if bs.excludes_zero_fdr)
+    pipeline_action = "PROCEED_TO_AVERAGING" if n_fdr_excl > 0 else "NULL_RESULT"
 
     # Assemble the report.
     yaml_header = _format_yaml_header(audits, pipeline_action)

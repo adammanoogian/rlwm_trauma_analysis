@@ -53,15 +53,15 @@ def main():
     print(f"  Total trials: {len(task_trials)}")
     print(f"  Participants: {task_trials['sona_id'].nunique()}")
 
-    if 'block' in task_trials.columns:
+    if "block" in task_trials.columns:
         print(f"  Blocks: {sorted(task_trials['block'].unique())}")
-        trials_per_participant = len(task_trials) / task_trials['sona_id'].nunique()
+        trials_per_participant = len(task_trials) / task_trials["sona_id"].nunique()
         print(f"  Average trials per participant: {trials_per_participant:.1f}")
 
-    if 'set_size' in task_trials.columns:
+    if "set_size" in task_trials.columns:
         print(f"  Set sizes: {sorted(task_trials['set_size'].unique())}")
 
-    if 'load_condition' in task_trials.columns:
+    if "load_condition" in task_trials.columns:
         print(f"  Load conditions: {sorted(task_trials['load_condition'].unique())}")
 
     print()
@@ -71,37 +71,41 @@ def main():
     print("Adding derived columns...")
 
     # Sort by participant and trial order
-    task_trials = task_trials.sort_values(['sona_id', 'trial_index']).reset_index(drop=True)
+    task_trials = task_trials.sort_values(["sona_id", "trial_index"]).reset_index(
+        drop=True
+    )
 
     # Add trial number within experiment (across all blocks)
-    task_trials['trial_in_experiment'] = task_trials.groupby('sona_id').cumcount() + 1
+    task_trials["trial_in_experiment"] = task_trials.groupby("sona_id").cumcount() + 1
 
     # Add trial number within block
-    if 'block' in task_trials.columns and 'trial' not in task_trials.columns:
-        task_trials['trial_in_block'] = task_trials.groupby(['sona_id', 'block']).cumcount() + 1
-    elif 'trial' in task_trials.columns:
-        task_trials['trial_in_block'] = task_trials['trial']
+    if "block" in task_trials.columns and "trial" not in task_trials.columns:
+        task_trials["trial_in_block"] = (
+            task_trials.groupby(["sona_id", "block"]).cumcount() + 1
+        )
+    elif "trial" in task_trials.columns:
+        task_trials["trial_in_block"] = task_trials["trial"]
 
     # Add binary timeout indicator
-    if 'key_press' in task_trials.columns:
-        task_trials['timeout'] = task_trials['key_press'].isna().astype(int)
+    if "key_press" in task_trials.columns:
+        task_trials["timeout"] = task_trials["key_press"].isna().astype(int)
 
     # Add response time bins for analysis
-    if 'rt' in task_trials.columns:
+    if "rt" in task_trials.columns:
         # Categorize RT into fast/medium/slow
-        task_trials['rt_category'] = pd.cut(
-            task_trials['rt'],
+        task_trials["rt_category"] = pd.cut(
+            task_trials["rt"],
             bins=[0, 500, 1000, np.inf],
-            labels=['fast', 'medium', 'slow'],
-            include_lowest=True
+            labels=["fast", "medium", "slow"],
+            include_lowest=True,
         )
 
     print("[OK] Added derived columns:")
     print("  - trial_in_experiment (cumulative trial number)")
     print("  - trial_in_block (trial within current block)")
-    if 'key_press' in task_trials.columns:
+    if "key_press" in task_trials.columns:
         print("  - timeout (1 if no response, 0 if responded)")
-    if 'rt' in task_trials.columns:
+    if "rt" in task_trials.columns:
         print("  - rt_category (fast/medium/slow)")
     print()
 
@@ -111,25 +115,25 @@ def main():
 
     # Define preferred column order
     priority_cols = [
-        'sona_id',
-        'trial_in_experiment',
-        'block',
-        'trial_in_block',
-        'set_size',
-        'load_condition',
-        'stimulus',
-        'key_press',
-        'key_answer',
-        'correct',
-        'rt',
-        'rt_category',
-        'timeout',
-        'time_elapsed',
-        'trial_index',
-        'phase_type',
-        'set',
-        'reversal_crit',
-        'counter'
+        "sona_id",
+        "trial_in_experiment",
+        "block",
+        "trial_in_block",
+        "set_size",
+        "load_condition",
+        "stimulus",
+        "key_press",
+        "key_answer",
+        "correct",
+        "rt",
+        "rt_category",
+        "timeout",
+        "time_elapsed",
+        "trial_index",
+        "phase_type",
+        "set",
+        "reversal_crit",
+        "counter",
     ]
 
     # Order columns (keep priority ones first, then others)
@@ -144,31 +148,34 @@ def main():
     print("-" * 60)
     print("Performance Statistics:")
 
-    if 'correct' in task_trials.columns:
-        overall_acc = task_trials['correct'].mean() * 100
+    if "correct" in task_trials.columns:
+        overall_acc = task_trials["correct"].mean() * 100
         print(f"  Overall accuracy: {overall_acc:.1f}%")
 
-    if 'timeout' in task_trials.columns:
-        timeout_rate = task_trials['timeout'].mean() * 100
+    if "timeout" in task_trials.columns:
+        timeout_rate = task_trials["timeout"].mean() * 100
         print(f"  Timeout rate: {timeout_rate:.1f}%")
 
-    if 'rt' in task_trials.columns:
-        completed_trials = task_trials[task_trials['key_press'].notna()]
-        mean_rt = completed_trials['rt'].mean()
-        median_rt = completed_trials['rt'].median()
+    if "rt" in task_trials.columns:
+        completed_trials = task_trials[task_trials["key_press"].notna()]
+        mean_rt = completed_trials["rt"].mean()
+        median_rt = completed_trials["rt"].median()
         print(f"  Mean RT (completed trials): {mean_rt:.0f} ms")
         print(f"  Median RT (completed trials): {median_rt:.0f} ms")
 
-    if 'load_condition' in task_trials.columns and 'correct' in task_trials.columns:
+    if "load_condition" in task_trials.columns and "correct" in task_trials.columns:
         print("\n  Accuracy by load condition:")
-        for load in sorted(task_trials['load_condition'].unique()):
-            load_acc = task_trials[task_trials['load_condition'] == load]['correct'].mean() * 100
+        for load in sorted(task_trials["load_condition"].unique()):
+            load_acc = (
+                task_trials[task_trials["load_condition"] == load]["correct"].mean()
+                * 100
+            )
             print(f"    {load}: {load_acc:.1f}%")
 
-    if 'set_size' in task_trials.columns and 'correct' in task_trials.columns:
+    if "set_size" in task_trials.columns and "correct" in task_trials.columns:
         print("\n  Accuracy by set size:")
-        for ss in sorted(task_trials['set_size'].unique()):
-            ss_acc = task_trials[task_trials['set_size'] == ss]['correct'].mean() * 100
+        for ss in sorted(task_trials["set_size"].unique()):
+            ss_acc = task_trials[task_trials["set_size"] == ss]["correct"].mean() * 100
             print(f"    Set size {ss}: {ss_acc:.1f}%")
 
     print()
@@ -185,8 +192,20 @@ def main():
     # Display sample
     print("-" * 60)
     print("Sample of task trials data (first 5 trials, key columns):")
-    display_cols = [col for col in ['sona_id', 'trial_in_experiment', 'block', 'trial_in_block',
-                                     'set_size', 'correct', 'rt', 'timeout'] if col in task_trials.columns]
+    display_cols = [
+        col
+        for col in [
+            "sona_id",
+            "trial_in_experiment",
+            "block",
+            "trial_in_block",
+            "set_size",
+            "correct",
+            "rt",
+            "timeout",
+        ]
+        if col in task_trials.columns
+    ]
     print(task_trials[display_cols].head().to_string())
     print()
 
@@ -198,5 +217,5 @@ def main():
     print()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

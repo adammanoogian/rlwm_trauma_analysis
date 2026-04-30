@@ -22,7 +22,7 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 # Add utils to path
-sys.path.append(str(Path(__file__).resolve().parents[1] / 'utils'))
+sys.path.append(str(Path(__file__).resolve().parents[1] / "utils"))
 
 from scoring import calculate_all_task_metrics
 
@@ -72,10 +72,10 @@ def main():
 
     task_metrics_list = []
 
-    for sona_id in task_trials['sona_id'].unique():
-        participant_trials = task_trials[task_trials['sona_id'] == sona_id]
+    for sona_id in task_trials["sona_id"].unique():
+        participant_trials = task_trials[task_trials["sona_id"] == sona_id]
         metrics = calculate_all_task_metrics(participant_trials)
-        metrics['sona_id'] = sona_id
+        metrics["sona_id"] = sona_id
         task_metrics_list.append(metrics)
 
     task_metrics = pd.DataFrame(task_metrics_list)
@@ -92,16 +92,22 @@ def main():
     print(f"Starting with demographics: {len(collated)} rows")
 
     # Merge Survey 1
-    collated = collated.merge(survey1, on='sona_id', how='outer')
-    print(f"After merging Survey 1: {len(collated)} rows, {len(collated.columns)} columns")
+    collated = collated.merge(survey1, on="sona_id", how="outer")
+    print(
+        f"After merging Survey 1: {len(collated)} rows, {len(collated.columns)} columns"
+    )
 
     # Merge Survey 2
-    collated = collated.merge(survey2, on='sona_id', how='outer')
-    print(f"After merging Survey 2: {len(collated)} rows, {len(collated.columns)} columns")
+    collated = collated.merge(survey2, on="sona_id", how="outer")
+    print(
+        f"After merging Survey 2: {len(collated)} rows, {len(collated.columns)} columns"
+    )
 
     # Merge task metrics
-    collated = collated.merge(task_metrics, on='sona_id', how='left')
-    print(f"After merging task metrics: {len(collated)} rows, {len(collated.columns)} columns")
+    collated = collated.merge(task_metrics, on="sona_id", how="left")
+    print(
+        f"After merging task metrics: {len(collated)} rows, {len(collated.columns)} columns"
+    )
     print()
 
     # Organize column order
@@ -109,25 +115,45 @@ def main():
     print("Organizing columns...")
 
     # Define column order groups
-    id_cols = ['sona_id']
+    id_cols = ["sona_id"]
 
-    demographic_cols = [col for col in collated.columns if col in [
-        'age_years', 'country', 'primary_language', 'gender', 'education',
-        'relationship_status', 'living_arrangement', 'screen_time'
-    ]]
+    demographic_cols = [
+        col
+        for col in collated.columns
+        if col
+        in [
+            "age_years",
+            "country",
+            "primary_language",
+            "gender",
+            "education",
+            "relationship_status",
+            "living_arrangement",
+            "screen_time",
+        ]
+    ]
 
-    survey1_cols = [col for col in collated.columns if col.startswith('s1_item')]
+    survey1_cols = [col for col in collated.columns if col.startswith("s1_item")]
 
-    survey2_cols = [col for col in collated.columns if col.startswith('s2_item') and not col.endswith(('_any_exposure', '_personal'))]
+    survey2_cols = [
+        col
+        for col in collated.columns
+        if col.startswith("s2_item")
+        and not col.endswith(("_any_exposure", "_personal"))
+    ]
 
-    task_cols = [col for col in collated.columns if col not in id_cols + demographic_cols + survey1_cols + survey2_cols]
+    task_cols = [
+        col
+        for col in collated.columns
+        if col not in id_cols + demographic_cols + survey1_cols + survey2_cols
+    ]
 
     # Reorder columns
     ordered_cols = id_cols + demographic_cols + survey1_cols + survey2_cols + task_cols
     collated = collated[ordered_cols]
 
-    print(f"Column organization:")
-    print(f"  - ID: 1 column")
+    print("Column organization:")
+    print("  - ID: 1 column")
     print(f"  - Demographics: {len(demographic_cols)} columns")
     print(f"  - Survey 1 (LEC-5): {len(survey1_cols)} columns")
     print(f"  - Survey 2 (IES-R): {len(survey2_cols)} columns")
@@ -140,7 +166,9 @@ def main():
     print("Data Summary:")
     print(f"  Total participants: {len(collated)}")
     print(f"  Complete cases (no missing data): {collated.dropna().shape[0]}")
-    print(f"  Missing data percentage: {collated.isna().sum().sum() / (collated.shape[0] * collated.shape[1]) * 100:.1f}%")
+    print(
+        f"  Missing data percentage: {collated.isna().sum().sum() / (collated.shape[0] * collated.shape[1]) * 100:.1f}%"
+    )
     print()
 
     # Save collated data — CCDS interim tier (gitignored PII)
@@ -161,9 +189,11 @@ def main():
     print("STEP 2 COMPLETE: Collated dataset created successfully")
     print("=" * 60)
     print()
-    print("Next step: Run 03_create_task_trials_csv.py to create the task trials dataset")
+    print(
+        "Next step: Run 03_create_task_trials_csv.py to create the task trials dataset"
+    )
     print()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -303,9 +303,7 @@ def rfx_bms(
             "(NaN or inf). Check for failed LOO estimates before calling."
         )
     if alpha0 <= 0.0:
-        raise ValueError(
-            f"alpha0 must be strictly positive; got {alpha0}"
-        )
+        raise ValueError(f"alpha0 must be strictly positive; got {alpha0}")
 
     _, n_models = log_evidence.shape
     alpha0_vec = np.full(n_models, float(alpha0))

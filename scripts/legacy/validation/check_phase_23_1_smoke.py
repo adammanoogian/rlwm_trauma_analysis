@@ -274,22 +274,18 @@ def check_inv_02_convergence(
         global_max = max(per_model_max.values())
         n = len(per_model_max)
         summary = (
-            f"max_rhat across {n} model(s) = {global_max:.4f} "
-            f"(gate <= {rhat_gate:.2f})"
+            f"max_rhat across {n} model(s) = {global_max:.4f} (gate <= {rhat_gate:.2f})"
         )
     else:
-        summary = (
-            f"no smoke posteriors found to gate (gate <= {rhat_gate:.2f})"
-        )
+        summary = f"no smoke posteriors found to gate (gate <= {rhat_gate:.2f})"
 
     # Always emit per-model values for transparency.
     for model in sorted(per_model_max):
         details.append(f"{model}: max_rhat={per_model_max[model]:.4f}")
 
     # Failure when any per-model gate violation OR when no posteriors at all.
-    passed = (
-        len(per_model_max) > 0
-        and all(np.isfinite(v) and v <= rhat_gate for v in per_model_max.values())
+    passed = len(per_model_max) > 0 and all(
+        np.isfinite(v) and v <= rhat_gate for v in per_model_max.values()
     )
     message = f"PASS — {summary}" if passed else f"FAIL — {summary}"
     return CheckResult(name=name, passed=passed, message=message, details=details)
@@ -348,8 +344,7 @@ def check_inv_03_no_float64_leak(
 
         if bad_vars:
             details.append(
-                f"{model}: float64 variables detected — "
-                + ", ".join(bad_vars)
+                f"{model}: float64 variables detected — " + ", ".join(bad_vars)
             )
         else:
             n_clean += 1
@@ -588,8 +583,7 @@ def main(argv: list[str] | None = None) -> int:
         "--smoke-dir",
         default="output/bayesian/23.1_smoke",
         help=(
-            "Phase 23.1 smoke output directory "
-            "(default: output/bayesian/23.1_smoke)"
+            "Phase 23.1 smoke output directory (default: output/bayesian/23.1_smoke)"
         ),
     )
     parser.add_argument(

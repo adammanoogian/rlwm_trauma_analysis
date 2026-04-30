@@ -339,7 +339,7 @@ def simulate_wm_rl_on_env(
     set_sizes = []
     omegas = []
 
-    for trial in range(num_trials):
+    for _trial in range(num_trials):
         stimulus = obs["stimulus"]
         set_size = (
             obs["set_size"].item()
@@ -350,9 +350,7 @@ def simulate_wm_rl_on_env(
         stimuli.append(stimulus)
         set_sizes.append(set_size)
 
-        action, hybrid_info = agent.choose_action(
-            stimulus, set_size, return_info=True
-        )
+        action, hybrid_info = agent.choose_action(stimulus, set_size, return_info=True)
         actions.append(action)
 
         obs, reward, terminated, truncated, info = env.step(action)
