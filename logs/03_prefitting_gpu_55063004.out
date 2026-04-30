@@ -98,3 +98,9 @@ WMRL-M5 POSTERIOR ESTIMATES — GROUP LEVEL
 ============================================================
 AUTO-PUSH: Committing and pushing results
 ============================================================
+[main e48fd7b] p29_03_prefit_gpu job 55063004 results
+ 4 files changed, 116 insertions(+), 1 deletion(-)
+ create mode 100644 models/bayesian/21_recovery/wmrl_m5_subject_001.json
+To github.com:adammanoogian/rlwm_trauma_analysis
+   6d4e17b..e48fd7b  main -> main
+  Auto-push complete
