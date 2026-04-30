@@ -107,11 +107,7 @@ def main() -> None:
         "--model",
         required=True,
         choices=list(BASELINE_MODELS),
-        help=(
-            "Choice-only model to fit. One of: "
-            + ", ".join(BASELINE_MODELS)
-            + "."
-        ),
+        help=("Choice-only model to fit. One of: " + ", ".join(BASELINE_MODELS) + "."),
     )
     parser.add_argument(
         "--data",
@@ -178,15 +174,24 @@ def main() -> None:
     # re-implement data loading or MCMC — reuse the Phase 16 pipeline.
     sys.argv = [
         "fit_bayesian.py",
-        "--model", args.model,
-        "--data", args.data,
-        "--chains", str(args.chains),
-        "--warmup", str(args.warmup),
-        "--samples", str(args.samples),
-        "--seed", str(args.seed),
-        "--max-tree-depth", str(args.max_tree_depth),
-        "--output", args.output,
-        "--output-subdir", BASELINE_SUBDIR,
+        "--model",
+        args.model,
+        "--data",
+        args.data,
+        "--chains",
+        str(args.chains),
+        "--warmup",
+        str(args.warmup),
+        "--samples",
+        str(args.samples),
+        "--seed",
+        str(args.seed),
+        "--max-tree-depth",
+        str(args.max_tree_depth),
+        "--output",
+        args.output,
+        "--output-subdir",
+        BASELINE_SUBDIR,
     ]
     fit_main()
 
@@ -207,8 +212,7 @@ def main() -> None:
     # orchestrator (plan 21-10).
     # ------------------------------------------------------------------
     expected = (
-        Path(args.output) / "bayesian" / BASELINE_SUBDIR
-        / f"{args.model}_posterior.nc"
+        Path(args.output) / "bayesian" / BASELINE_SUBDIR / f"{args.model}_posterior.nc"
     )
     if not expected.exists():
         print(

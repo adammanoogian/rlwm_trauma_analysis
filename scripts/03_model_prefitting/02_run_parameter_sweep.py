@@ -56,5 +56,5 @@ if src_root.exists():
 # Import the main function from the library module
 from scripts.legacy.simulations.parameter_sweep import main
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

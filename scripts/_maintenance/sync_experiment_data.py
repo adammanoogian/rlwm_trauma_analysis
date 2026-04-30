@@ -11,44 +11,55 @@ Usage:
 
 import shutil
 import sys
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 # Resolve to project root so `from config import ...` works regardless of cwd
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from config import DATA_RAW_DIR, LOGS_DIR
 
 # Configuration
-EXPERIMENT_DATA_DIR = Path('../rlwm_trauma/data')  # Experiment folder (Pavlovia clone)
-ANALYSIS_DATA_DIR = DATA_RAW_DIR  # CCDS tier (Phase 31-02; was Path('data') flat pre-migration)
-FILE_PATTERN = 'rlwm_trauma_PARTICIPANT_SESSION_*.csv'
-LOG_FILE = LOGS_DIR / 'sync_log.txt'  # Phase 31-05 consolidated logs/
+EXPERIMENT_DATA_DIR = Path("../rlwm_trauma/data")  # Experiment folder (Pavlovia clone)
+ANALYSIS_DATA_DIR = (
+    DATA_RAW_DIR  # CCDS tier (Phase 31-02; was Path('data') flat pre-migration)
+)
+FILE_PATTERN = "rlwm_trauma_PARTICIPANT_SESSION_*.csv"
+LOG_FILE = LOGS_DIR / "sync_log.txt"  # Phase 31-05 consolidated logs/
+
 
 def log_message(message, print_to_console=True):
     """Write message to log file and optionally print to console."""
-    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     log_entry = f"[{timestamp}] {message}"
 
     if print_to_console:
         print(message)
 
     # Append to log file
-    with open(LOG_FILE, 'a', encoding='utf-8') as f:
-        f.write(log_entry + '\n')
+    with open(LOG_FILE, "a", encoding="utf-8") as f:
+        f.write(log_entry + "\n")
+
 
 def validate_experiment_folder():
     """Check if experiment data folder exists and is accessible."""
     if not EXPERIMENT_DATA_DIR.exists():
-        print(f"ERROR: Experiment data folder not found: {EXPERIMENT_DATA_DIR.absolute()}")
+        print(
+            f"ERROR: Experiment data folder not found: {EXPERIMENT_DATA_DIR.absolute()}"
+        )
         print(f"\nExpected location: {EXPERIMENT_DATA_DIR.absolute()}")
-        print("\nPlease ensure the experiment folder exists or update EXPERIMENT_DATA_DIR in this script.")
+        print(
+            "\nPlease ensure the experiment folder exists or update EXPERIMENT_DATA_DIR in this script."
+        )
         return False
 
     if not EXPERIMENT_DATA_DIR.is_dir():
-        print(f"ERROR: Path exists but is not a directory: {EXPERIMENT_DATA_DIR.absolute()}")
+        print(
+            f"ERROR: Path exists but is not a directory: {EXPERIMENT_DATA_DIR.absolute()}"
+        )
         return False
 
     return True
+
 
 def sync_data():
     """Sync new data files from experiment folder to analysis folder."""
@@ -127,13 +138,18 @@ def sync_data():
     print(f"Errors: {len(errors)}")
 
     # Log summary
-    log_message(f"SYNC COMPLETE: {len(new_files)} new, {len(updated_files)} updated, {len(existing_files)} unchanged, {len(errors)} errors", print_to_console=False)
+    log_message(
+        f"SYNC COMPLETE: {len(new_files)} new, {len(updated_files)} updated, {len(existing_files)} unchanged, {len(errors)} errors",
+        print_to_console=False,
+    )
 
     if new_files:
         log_message(f"New files: {', '.join(new_files)}", print_to_console=False)
 
     if updated_files:
-        log_message(f"Updated files: {', '.join(updated_files)}", print_to_console=False)
+        log_message(
+            f"Updated files: {', '.join(updated_files)}", print_to_console=False
+        )
 
     if errors:
         print("\nErrors encountered:")
@@ -147,6 +163,7 @@ def sync_data():
 
     return len(errors) == 0
 
+
 def main():
     """Main entry point."""
     success = sync_data()
@@ -159,5 +176,6 @@ def main():
     print("  2. Run: python run_data_pipeline.py --no-sync")
     print()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

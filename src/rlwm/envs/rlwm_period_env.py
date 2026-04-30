@@ -251,7 +251,9 @@ class RLWMPeriodEnv(gym.Env):
 
         # Feedback period: stimulus HIDDEN (show_stim_with_feedback=false in jsPsych)
         # obs[7] (feedback signal) is filled dynamically in step() once reward is known
-        self.gt[self._feedback_start : self._feedback_start + feed_steps] = 0  # fixation
+        self.gt[self._feedback_start : self._feedback_start + feed_steps] = (
+            0  # fixation
+        )
 
     def _current_period(self) -> str:
         """Return which period the current step belongs to."""

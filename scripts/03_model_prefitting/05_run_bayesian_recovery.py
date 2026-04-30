@@ -83,10 +83,12 @@ import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 
 from config import MODEL_REGISTRY, MODELS_BAYESIAN_RECOVERY  # noqa: E402
-from rlwm.fitting.bayesian import STACKED_MODEL_DISPATCH, _fit_stacked_model  # noqa: E402
-from scripts.fitting.model_recovery import generate_synthetic_participant  # noqa: E402
+from rlwm.fitting.bayesian import (  # noqa: E402
+    STACKED_MODEL_DISPATCH,
+    _fit_stacked_model,
+)
 from rlwm.fitting.numpyro_helpers import PARAM_PRIOR_DEFAULTS, phi_approx  # noqa: E402
-
+from scripts.fitting.model_recovery import generate_synthetic_participant  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -256,8 +258,7 @@ def _extract_hdi_per_param(
             arr = arr[:, 0]
         elif arr.ndim != 1:
             raise ValueError(
-                f"Expected 1-D or 2-D posterior for {pname!r}, "
-                f"got shape {arr.shape}"
+                f"Expected 1-D or 2-D posterior for {pname!r}, got shape {arr.shape}"
             )
 
         posterior_mean = float(arr.mean())
@@ -376,10 +377,14 @@ def run_single_subject(
     print(f"STEP 21.2 SINGLE-SUBJECT RECOVERY: model={model}, subject={subject_idx}")
     print("=" * 80)
     print(f"  Seed: {seed}")
-    print(f"  MCMC budget: warmup={num_warmup}, samples={num_samples}, "
-          f"chains={num_chains}, max_tree_depth={max_tree_depth}")
-    print(f"  Synthetic task: n_blocks={n_blocks}, "
-          f"n_trials_per_block={n_trials_per_block}")
+    print(
+        f"  MCMC budget: warmup={num_warmup}, samples={num_samples}, "
+        f"chains={num_chains}, max_tree_depth={max_tree_depth}"
+    )
+    print(
+        f"  Synthetic task: n_blocks={n_blocks}, "
+        f"n_trials_per_block={n_trials_per_block}"
+    )
 
     # ------------------------------------------------------------------
     # 1. Sample true parameters from the prior
@@ -423,8 +428,10 @@ def run_single_subject(
     synth_df["key_press"] = synth_df["key_press"].astype(int)
     synth_df["reward"] = synth_df["reward"].astype(float)
 
-    print(f"  Generated {len(synth_df)} trials across "
-          f"{synth_df['block'].nunique()} blocks")
+    print(
+        f"  Generated {len(synth_df)} trials across "
+        f"{synth_df['block'].nunique()} blocks"
+    )
     print(f"  Mean reward (proxy accuracy): {synth_df['reward'].mean():.3f}")
 
     # ------------------------------------------------------------------
@@ -534,8 +541,7 @@ def _safe_pearson_r(true_vals: np.ndarray, post_means: np.ndarray) -> float:
     """
     if len(true_vals) != len(post_means):
         raise ValueError(
-            f"Length mismatch: true={len(true_vals)}, "
-            f"post={len(post_means)}"
+            f"Length mismatch: true={len(true_vals)}, post={len(post_means)}"
         )
     if len(true_vals) < 2:
         warnings.warn("Need >= 2 samples for Pearson r; returning NaN.")
@@ -589,9 +595,7 @@ def aggregate_recovery_results(
     # Glob per-subject JSONs
     json_paths = sorted(output_dir.glob(f"{model}_subject_*.json"))
     if not json_paths:
-        warnings.warn(
-            f"No per-subject JSONs found in {output_dir} for model={model!r}"
-        )
+        warnings.warn(f"No per-subject JSONs found in {output_dir} for model={model!r}")
 
     # Load and collate
     per_param_data: dict[str, dict[str, list[float]]] = {}
@@ -699,8 +703,7 @@ def aggregate_recovery_results(
         "n_subjects_loaded": n_loaded,
         "n_subjects_expected": int(n_subjects),
         "subjects_missing": [
-            idx for idx in range(1, int(n_subjects) + 1)
-            if idx not in subjects_loaded
+            idx for idx in range(1, int(n_subjects) + 1) if idx not in subjects_loaded
         ],
         "rows": rows,
         "verdict": verdict,
@@ -849,7 +852,7 @@ def _build_parser() -> argparse.ArgumentParser:
         type=int,
         default=None,
         help="1-indexed subject number (SLURM_ARRAY_TASK_ID). "
-             "Required for --mode single-subject.",
+        "Required for --mode single-subject.",
     )
     parser.add_argument(
         "--seed",
@@ -891,8 +894,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--n-trials-per-block",
         type=int,
         default=DEFAULT_TRIALS_PER_BLOCK,
-        help=f"Max synthetic trials per block. Default "
-             f"{DEFAULT_TRIALS_PER_BLOCK}.",
+        help=f"Max synthetic trials per block. Default {DEFAULT_TRIALS_PER_BLOCK}.",
     )
 
     # aggregate args
@@ -900,8 +902,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--n-subjects",
         type=int,
         default=50,
-        help="Expected number of per-subject JSONs (aggregate mode). "
-             "Default 50.",
+        help="Expected number of per-subject JSONs (aggregate mode). Default 50.",
     )
 
     return parser

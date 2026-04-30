@@ -52,7 +52,15 @@ _MODEL_PARAMS: dict[str, list[str]] = {
         "phi_rl",
         "epsilon",
     ],
-    "wmrl_m6a": ["alpha_pos", "alpha_neg", "phi", "rho", "capacity", "kappa_s", "epsilon"],
+    "wmrl_m6a": [
+        "alpha_pos",
+        "alpha_neg",
+        "phi",
+        "rho",
+        "capacity",
+        "kappa_s",
+        "epsilon",
+    ],
     "wmrl_m6b": [
         "alpha_pos",
         "alpha_neg",
@@ -108,6 +116,7 @@ def _get_param_names(model_name: str) -> list[str]:
 # Column schema helpers
 # ---------------------------------------------------------------------------
 
+
 def _build_column_order(param_names: list[str]) -> list[str]:
     """Build the ordered column list for the output CSV.
 
@@ -142,8 +151,9 @@ def _build_column_order(param_names: list[str]) -> list[str]:
 # Main writer
 # ---------------------------------------------------------------------------
 
+
 def write_bayesian_summary(
-    idata: "az.InferenceData",
+    idata: az.InferenceData,
     model_name: str,
     output_dir: Path,
     *,
@@ -224,7 +234,9 @@ def write_bayesian_summary(
     # summary_df index like "alpha_pos[0]", "alpha_pos[1]", ...
     # We need: max_rhat, min_ess_bulk per participant
     rhat_per_participant: dict[int, float] = {i: 0.0 for i in range(n_participants)}
-    ess_per_participant: dict[int, float] = {i: float("inf") for i in range(n_participants)}
+    ess_per_participant: dict[int, float] = {
+        i: float("inf") for i in range(n_participants)
+    }
 
     for row_idx_label, row in summary_df.iterrows():
         row_label = str(row_idx_label)
@@ -256,7 +268,9 @@ def write_bayesian_summary(
     # Posterior draws: collapse chains*samples → (draws, n_participants)
     def _get_draws(param: str) -> np.ndarray:
         """Return draws array of shape (draws, n_participants) or (draws,) for group params."""
-        arr = posterior[param].values  # (chains, draws, n_participants) or (chains, draws)
+        arr = posterior[
+            param
+        ].values  # (chains, draws, n_participants) or (chains, draws)
         flat = arr.reshape(-1, *arr.shape[2:])  # (chains*draws, ...) → squeeze below
         return flat
 
@@ -281,7 +295,9 @@ def write_bayesian_summary(
             sd_val = float(participant_draws.std())
 
             # HDI
-            hdi_result = az.hdi(participant_draws[np.newaxis, np.newaxis, :], hdi_prob=hdi_prob)
+            hdi_result = az.hdi(
+                participant_draws[np.newaxis, np.newaxis, :], hdi_prob=hdi_prob
+            )
             hdi_low = float(hdi_result[0])
             hdi_high = float(hdi_result[1])
 
@@ -295,7 +311,11 @@ def write_bayesian_summary(
         # Downstream scripts should recompute from the mean parameter vector.
         # Set to NaN; callers who need NLL should pass n_trials and compute separately.
         nll = float("nan")
-        n_trials = n_trials_per_participant[i] if n_trials_per_participant is not None else float("nan")
+        n_trials = (
+            n_trials_per_participant[i]
+            if n_trials_per_participant is not None
+            else float("nan")
+        )
         k = len(param_names)
 
         if not np.isnan(nll) and not np.isnan(n_trials):
@@ -318,7 +338,9 @@ def write_bayesian_summary(
 
         row["max_rhat"] = max_rhat
         row["min_ess_bulk"] = min_ess
-        row["num_divergences"] = num_divergences_total  # global; per-participant not available
+        row["num_divergences"] = (
+            num_divergences_total  # global; per-participant not available
+        )
 
         # converged: max_rhat < 1.01 AND min_ess_bulk > 400 AND num_divergences == 0
         converged = (
@@ -328,7 +350,9 @@ def write_bayesian_summary(
         )
         row["n_trials"] = n_trials
         row["converged"] = converged
-        row["at_bounds"] = ""  # not applicable for Bayesian — posterior can explore whole space
+        row["at_bounds"] = (
+            ""  # not applicable for Bayesian — posterior can explore whole space
+        )
         row["parameterization_version"] = parameterization_version
 
         rows.append(row)

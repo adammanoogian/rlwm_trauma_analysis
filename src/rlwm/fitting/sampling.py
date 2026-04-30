@@ -26,7 +26,11 @@ import pandas as pd
 from numpyro.infer import MCMC, NUTS
 
 from .core import MAX_TRIALS_PER_BLOCK, pad_block_to_max
-from .models.qlearning import prepare_block_data, q_learning_multiblock_likelihood
+from .models.qlearning import (
+    prepare_block_data,
+    q_learning_multiblock_likelihood,
+    qlearning_hierarchical_model,
+)
 
 __all__ = [
     "_select_chain_method",

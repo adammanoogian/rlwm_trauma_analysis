@@ -61,7 +61,6 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-
 # Senta et al. (2025) canonical constants
 FIXED_BETA: float = 50.0
 NUM_ACTIONS: int = 3
@@ -752,11 +751,11 @@ def run_prior_ppc(
         STACKED_MODEL_DISPATCH,
         load_and_prepare_data,
     )
-    from rlwm.fitting.numpyro_helpers import PARAM_PRIOR_DEFAULTS
     from rlwm.fitting.core import (
         prepare_stacked_participant_data,
         stack_across_participants,
     )
+    from rlwm.fitting.numpyro_helpers import PARAM_PRIOR_DEFAULTS
 
     t0 = time.monotonic()
     output_dir.mkdir(parents=True, exist_ok=True)

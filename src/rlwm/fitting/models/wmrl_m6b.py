@@ -791,6 +791,8 @@ def test_wmrl_m6b_single_block():
 
 def test_wmrl_m6b_kappa_share_one_matches_m3():
     """Verify M6b with kappa_share=1.0 reduces exactly to M3 (all budget to global)."""
+    from .wmrl_m3 import wmrl_m3_block_likelihood  # local — avoid circular import
+
     print("\nTesting WM-RL M6b kappa_share=1.0 matches M3...")
 
     key = jax.random.PRNGKey(123)
@@ -840,6 +842,8 @@ def test_wmrl_m6b_kappa_share_one_matches_m3():
 
 def test_wmrl_m6b_kappa_share_zero_matches_m6a():
     """Verify M6b with kappa_share=0.0 reduces exactly to M6a (all budget to stim-specific)."""
+    from .wmrl_m6a import wmrl_m6a_block_likelihood  # local — avoid circular import
+
     print("\nTesting WM-RL M6b kappa_share=0.0 matches M6a...")
 
     key = jax.random.PRNGKey(456)

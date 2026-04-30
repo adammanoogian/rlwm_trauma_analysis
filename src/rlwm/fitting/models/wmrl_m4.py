@@ -10,18 +10,20 @@ to choice-only models (M1, M2, M3, M5, M6a, M6b).  There is no JAX likelihood
 function for M4 — the LBA log-density is computed directly inside the NumPyro
 hierarchical model.
 """
+
 from __future__ import annotations
 
 from typing import Any
 
-import jax
 import jax.numpy as jnp
-import numpy as np
 import numpyro
 import numpyro.distributions as dist
 import pandas as pd
 
-from ..core import MAX_TRIALS_PER_BLOCK, pad_block_to_max, prepare_stacked_participant_data
+from ..core import (
+    MAX_TRIALS_PER_BLOCK,
+    pad_block_to_max,
+)
 
 __all__ = [
     "prepare_stacked_participant_data_m4",
@@ -167,6 +169,7 @@ def prepare_stacked_participant_data_m4(
 
     return participant_data
 
+
 def wmrl_m4_hierarchical_model(
     participant_data_stacked: dict,
     num_stimuli: int = 6,
@@ -227,12 +230,12 @@ def wmrl_m4_hierarchical_model(
       by name.
     """
     # Lazy imports to avoid float64 contamination in choice-only import paths
-    from scripts.fitting.lba_likelihood import wmrl_m4_multiblock_likelihood_stacked
     from rlwm.fitting.numpyro_helpers import (
         PARAM_PRIOR_DEFAULTS,
         phi_approx,
         sample_bounded_param,
     )
+    from scripts.fitting.lba_likelihood import wmrl_m4_multiblock_likelihood_stacked
 
     n_participants = len(participant_data_stacked)
     participant_ids = sorted(participant_data_stacked.keys())
@@ -258,9 +261,7 @@ def wmrl_m4_hierarchical_model(
     # ------------------------------------------------------------------
     log_v_mu_pr = numpyro.sample("log_v_mu_pr", dist.Normal(jnp.log(3.0), 0.5))
     log_v_sigma_pr = numpyro.sample("log_v_sigma_pr", dist.HalfNormal(0.2))
-    log_v_z = numpyro.sample(
-        "log_v_z", dist.Normal(0, 1).expand([n_participants])
-    )
+    log_v_z = numpyro.sample("log_v_z", dist.Normal(0, 1).expand([n_participants]))
     sampled["v_scale"] = numpyro.deterministic(
         "v_scale", jnp.exp(log_v_mu_pr + log_v_sigma_pr * log_v_z)
     )
@@ -271,9 +272,7 @@ def wmrl_m4_hierarchical_model(
     # ------------------------------------------------------------------
     log_A_mu_pr = numpyro.sample("log_A_mu_pr", dist.Normal(jnp.log(0.3), 0.5))
     log_A_sigma_pr = numpyro.sample("log_A_sigma_pr", dist.HalfNormal(0.2))
-    log_A_z = numpyro.sample(
-        "log_A_z", dist.Normal(0, 1).expand([n_participants])
-    )
+    log_A_z = numpyro.sample("log_A_z", dist.Normal(0, 1).expand([n_participants]))
     sampled["A"] = numpyro.deterministic(
         "A", jnp.exp(log_A_mu_pr + log_A_sigma_pr * log_A_z)
     )
@@ -298,9 +297,7 @@ def wmrl_m4_hierarchical_model(
     # ------------------------------------------------------------------
     t0_mu_pr = numpyro.sample("t0_mu_pr", dist.Normal(0.0, 1.0))
     t0_sigma_pr = numpyro.sample("t0_sigma_pr", dist.HalfNormal(0.2))
-    t0_z = numpyro.sample(
-        "t0_z", dist.Normal(0, 1).expand([n_participants])
-    )
+    t0_z = numpyro.sample("t0_z", dist.Normal(0, 1).expand([n_participants]))
     sampled["t0"] = numpyro.deterministic(
         "t0", 0.05 + 0.25 * phi_approx(t0_mu_pr + t0_sigma_pr * t0_z)
     )

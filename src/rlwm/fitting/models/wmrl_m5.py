@@ -848,6 +848,8 @@ def test_wmrl_m5_single_block():
 
 def test_wmrl_m5_backward_compatibility():
     """Verify M5 with phi_rl=0 matches M3 exactly."""
+    from .wmrl_m3 import wmrl_m3_block_likelihood  # local — avoid circular import
+
     print("\nTesting WM-RL M5 backward compatibility (phi_rl=0 == M3)...")
 
     key = jax.random.PRNGKey(123)

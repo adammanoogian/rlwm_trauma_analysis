@@ -755,6 +755,8 @@ def test_wmrl_m6a_per_stimulus_tracking():
     In M6a (per-stimulus): stimulus 1 has never been seen, so no kernel applied.
     Therefore M6a and M3 should produce DIFFERENT NLLs for this sequence.
     """
+    from .wmrl_m3 import wmrl_m3_block_likelihood  # local — avoid circular import
+
     print("\nTesting WM-RL M6a per-stimulus tracking (vs M3 global tracking)...")
 
     # Construct minimal 2-stimulus sequence:

@@ -72,9 +72,7 @@ class TaskSequenceLoader:
         self.sequences[sequence_id] = sequence
         return sequence
 
-    def get_block_trials(
-        self, sequence_id: int, block: int
-    ) -> dict[str, np.ndarray]:
+    def get_block_trials(self, sequence_id: int, block: int) -> dict[str, np.ndarray]:
         sequence = self.load_sequence(sequence_id)
         block_mask = sequence["blocks"] == block
         return {

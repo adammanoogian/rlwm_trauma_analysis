@@ -209,7 +209,7 @@ def simulate_agent_on_env(
     correct = []
     stimuli = []
 
-    for trial in range(num_trials):
+    for _trial in range(num_trials):
         stimulus = obs["stimulus"]
         stimuli.append(stimulus)
 

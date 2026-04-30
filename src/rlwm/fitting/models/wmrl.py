@@ -866,9 +866,9 @@ def test_padding_equivalence_wmrl():
     return match
 
 def test_multiblock_padding_equivalence():
-    """
-    Verify padding equivalence works across multiple blocks (full participant).
-    """
+    """Verify padding equivalence works across multiple blocks (full participant)."""
+    from .qlearning import q_learning_multiblock_likelihood  # local — avoid circular import
+
     print("\nTesting multiblock padding equivalence...")
 
     key = jax.random.PRNGKey(789)

@@ -59,9 +59,9 @@ project_root = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(project_root))
 
 from config import (
+    MODEL_REGISTRY,
     MODELS_BAYESIAN_DIR,
     MODELS_MLE_DIR,
-    MODEL_REGISTRY,
     REPORTS_FIGURES_DIR,
     REPORTS_TABLES_MODEL_COMPARISON,
     load_fits_with_validation,
@@ -131,29 +131,32 @@ def load_per_participant_aic(mle_dir: Path) -> pd.DataFrame:
             )
         fits = load_fits_with_validation(path, model)
         short = SHORT_NAME_BY_MODEL[model]
-        subset = fits[["participant_id", "aic"]].rename(
-            columns={"aic": f"aic_{short}"}
+        subset = fits[["participant_id", "aic"]].rename(columns={"aic": f"aic_{short}"})
+        merged = (
+            subset
+            if merged is None
+            else merged.merge(subset, on="participant_id", how="inner")
         )
-        merged = subset if merged is None else merged.merge(subset, on="participant_id", how="inner")
 
     assert merged is not None  # for type-checker
     aic_columns = [c for c in merged.columns if c.startswith("aic_")]
     merged = merged.dropna(subset=aic_columns).copy()
     merged["winning_model"] = (
-        merged[aic_columns]
-        .idxmin(axis=1)
-        .str.replace("aic_", "", regex=False)
+        merged[aic_columns].idxmin(axis=1).str.replace("aic_", "", regex=False)
     )
     return merged
 
 
-def attach_m6b_parameters(
-    winners: pd.DataFrame, mle_dir: Path
-) -> pd.DataFrame:
+def attach_m6b_parameters(winners: pd.DataFrame, mle_dir: Path) -> pd.DataFrame:
     """Merge per-participant M6b parameter estimates onto the winners table."""
     m6b_path = mle_dir / MODEL_REGISTRY["wmrl_m6b"]["csv_filename"]
     m6b_fits = load_fits_with_validation(m6b_path, "wmrl_m6b")
-    columns_to_keep = ["participant_id", "nll", "aic", "n_trials"] + M6B_PARAMETER_COLUMNS
+    columns_to_keep = [
+        "participant_id",
+        "nll",
+        "aic",
+        "n_trials",
+    ] + M6B_PARAMETER_COLUMNS
     m6b_subset = m6b_fits[columns_to_keep].rename(
         columns={col: f"m6b_{col}" for col in M6B_PARAMETER_COLUMNS}
         | {"nll": "m6b_nll", "aic": "m6b_aic", "n_trials": "m6b_n_trials"}
@@ -188,7 +191,9 @@ def summarize_by_winner_group(
         column = f"m6b_{param}"
         samples: list[np.ndarray] = []
         for group in groups:
-            values = combined.loc[combined["winning_model"] == group, column].dropna().values
+            values = (
+                combined.loc[combined["winning_model"] == group, column].dropna().values
+            )
             samples.append(values)
             group_rows.append(
                 {
@@ -196,8 +201,12 @@ def summarize_by_winner_group(
                     "m6b_parameter": param,
                     "n": len(values),
                     "median": float(np.median(values)) if len(values) > 0 else np.nan,
-                    "q25": float(np.percentile(values, 25)) if len(values) > 0 else np.nan,
-                    "q75": float(np.percentile(values, 75)) if len(values) > 0 else np.nan,
+                    "q25": float(np.percentile(values, 25))
+                    if len(values) > 0
+                    else np.nan,
+                    "q75": float(np.percentile(values, 75))
+                    if len(values) > 0
+                    else np.nan,
                     "mean": float(np.mean(values)) if len(values) > 0 else np.nan,
                     "sd": float(np.std(values, ddof=1)) if len(values) > 1 else np.nan,
                 }
@@ -209,7 +218,11 @@ def summarize_by_winner_group(
             # Effect size: eta-squared_H = (H - k + 1) / (N - k)
             n_total = int(sum(len(s) for s in usable_samples))
             k_groups = len(usable_samples)
-            eta_squared_h = (h_stat - k_groups + 1) / (n_total - k_groups) if n_total > k_groups else np.nan
+            eta_squared_h = (
+                (h_stat - k_groups + 1) / (n_total - k_groups)
+                if n_total > k_groups
+                else np.nan
+            )
         else:
             h_stat, p_value, eta_squared_h = np.nan, np.nan, np.nan
 
@@ -231,17 +244,19 @@ def summarize_by_winner_group(
 # ---------------------------------------------------------------------------
 
 
-def plot_winner_heterogeneity(
-    combined: pd.DataFrame, output_path: Path
-) -> None:
+def plot_winner_heterogeneity(combined: pd.DataFrame, output_path: Path) -> None:
     """Create a 2x4 grid of boxplots: M6b params split by winning model."""
     parameters_to_plot = M6B_PARAMETER_COLUMNS
     fig, axes = plt.subplots(2, 4, figsize=(16, 8))
     axes_flat = axes.flatten()
 
     group_order = ["M6b", "M5", "M6a", "M3", "M2", "M1"]
-    observed_groups = [g for g in group_order if g in combined["winning_model"].unique()]
-    palette = dict(zip(observed_groups, sns.color_palette("husl", len(observed_groups))))
+    observed_groups = [
+        g for g in group_order if g in combined["winning_model"].unique()
+    ]
+    palette = dict(
+        zip(observed_groups, sns.color_palette("husl", len(observed_groups)))
+    )
 
     for ax, param in zip(axes_flat, parameters_to_plot):
         column = f"m6b_{param}"
@@ -290,14 +305,18 @@ def plot_winner_heterogeneity(
 def main() -> None:
     """Run the heterogeneity analysis end-to-end."""
     parser = argparse.ArgumentParser(
-        description='Per-participant winning model heterogeneity analysis'
+        description="Per-participant winning model heterogeneity analysis"
     )
-    parser.add_argument('--source', type=str, default='mle',
-                        choices=['mle', 'bayesian'],
-                        help='Fit source: mle (default) or bayesian')
+    parser.add_argument(
+        "--source",
+        type=str,
+        default="mle",
+        choices=["mle", "bayesian"],
+        help="Fit source: mle (default) or bayesian",
+    )
     args = parser.parse_args()
 
-    if args.source == 'bayesian':
+    if args.source == "bayesian":
         fits_dir = MODELS_BAYESIAN_DIR
         output_dir = MODELS_BAYESIAN_DIR / "model_comparison"
         figures_dir = REPORTS_FIGURES_DIR / "bayesian" / "model_comparison"
@@ -335,7 +354,9 @@ def main() -> None:
     print(omnibus.to_string(index=False))
 
     print("\nPer-group medians (M6b parameters by winning model):")
-    pivot = per_group.pivot(index="m6b_parameter", columns="winning_model", values="median")
+    pivot = per_group.pivot(
+        index="m6b_parameter", columns="winning_model", values="median"
+    )
     print(pivot.to_string())
 
     print("\n[4/4] Writing outputs...")

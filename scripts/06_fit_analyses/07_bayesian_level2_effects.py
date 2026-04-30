@@ -72,7 +72,6 @@ project_root = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(project_root))
 
 from config import (  # noqa: E402
-    MODELS_BAYESIAN_DIR,
     REPORTS_FIGURES_BAYESIAN,
     load_netcdf_with_validation,
 )
@@ -100,7 +99,7 @@ def _require_arviz() -> None:
         )
 
 
-def discover_beta_vars(idata: "az.InferenceData") -> list[str]:
+def discover_beta_vars(idata: az.InferenceData) -> list[str]:
     """Discover all beta_ variable names in the posterior.
 
     Parameters
@@ -113,9 +112,7 @@ def discover_beta_vars(idata: "az.InferenceData") -> list[str]:
     list[str]
         Sorted list of variable names starting with ``beta_``.
     """
-    return sorted(
-        v for v in idata.posterior.data_vars if str(v).startswith("beta_")
-    )
+    return sorted(v for v in idata.posterior.data_vars if str(v).startswith("beta_"))
 
 
 def group_beta_vars(
@@ -152,7 +149,7 @@ def group_beta_vars(
 
 
 def compute_coefficient_summary(
-    idata: "az.InferenceData",
+    idata: az.InferenceData,
     beta_vars: list[str],
     hdi_prob: float,
 ) -> pd.DataFrame:
@@ -202,7 +199,7 @@ def compute_coefficient_summary(
 
 
 def make_forest_plot(
-    idata: "az.InferenceData",
+    idata: az.InferenceData,
     var_names: list[str],
     hdi_prob: float,
     title: str,
@@ -244,7 +241,7 @@ def make_forest_plot(
     fig.suptitle(title, fontsize=13, fontweight="bold", y=1.01)
 
     # Add vertical line at zero on all axes
-    for a in (ax if hasattr(ax, "__len__") else [ax]):
+    for a in ax if hasattr(ax, "__len__") else [ax]:
         a.axvline(x=0, color="gray", linestyle="--", alpha=0.5)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -299,7 +296,9 @@ def main() -> None:
 
     # Resolve paths relative to project root
     if args.posterior_path is None:
-        posterior_path = project_root / "output" / "bayesian" / f"{args.model}_posterior.nc"
+        posterior_path = (
+            project_root / "output" / "bayesian" / f"{args.model}_posterior.nc"
+        )
     else:
         posterior_path = Path(args.posterior_path)
         if not posterior_path.is_absolute():
@@ -381,7 +380,7 @@ def main() -> None:
         idata=idata,
         var_names=groups["all"],
         hdi_prob=args.hdi_prob,
-        title=f"{args.model}: All Level-2 Regression Coefficients ({args.hdi_prob*100:.0f}% HDI)",
+        title=f"{args.model}: All Level-2 Regression Coefficients ({args.hdi_prob * 100:.0f}% HDI)",
         output_path=output_dir / f"{args.model}_forest_all_l2.png",
     )
 
@@ -408,7 +407,7 @@ def main() -> None:
     n_sig = summary_df["hdi_excludes_zero"].sum()
     print(
         f"\n  {n_sig}/{len(summary_df)} coefficients have "
-        f"{args.hdi_prob*100:.0f}% HDI excluding zero."
+        f"{args.hdi_prob * 100:.0f}% HDI excluding zero."
     )
 
     # ------------------------------------------------------------------ #
@@ -421,56 +420,24 @@ def main() -> None:
     print("#")
     print("# STATUS: DEFERRED")
     print("#")
-    print(
-        "# Rationale: The subscale model (wmrl_m6b with 32 beta sites) has "
-    )
-    print(
-        "# not yet been run on the cluster. Normal(0,1) priors on beta "
-    )
-    print(
-        "# coefficients have not been tested; it would be premature to add "
-    )
-    print(
-        "# regularized horseshoe priors before observing whether the flat "
-    )
-    print(
-        "# priors produce convergence issues (divergences, Rhat > 1.01) or "
-    )
-    print(
-        "# implausibly diffuse posterior estimates."
-    )
+    print("# Rationale: The subscale model (wmrl_m6b with 32 beta sites) has ")
+    print("# not yet been run on the cluster. Normal(0,1) priors on beta ")
+    print("# coefficients have not been tested; it would be premature to add ")
+    print("# regularized horseshoe priors before observing whether the flat ")
+    print("# priors produce convergence issues (divergences, Rhat > 1.01) or ")
+    print("# implausibly diffuse posterior estimates.")
     print("#")
-    print(
-        "# Decision gate: After the cluster job completes and this script "
-    )
-    print(
-        "# is re-run with the actual posterior, inspect:"
-    )
-    print(
-        "#   1. max_rhat — if > 1.01 for beta_ sites, consider horseshoe."
-    )
-    print(
-        "#   2. Posterior SD of beta_ sites — if >> 1 on the probit scale,"
-    )
-    print(
-        "#      the flat prior is not regularizing enough."
-    )
-    print(
-        "#   3. Number of 95% HDI excluions — if all 32 exclude zero, "
-    )
-    print(
-        "#      horseshoe may be more appropriate as a skeptical prior."
-    )
+    print("# Decision gate: After the cluster job completes and this script ")
+    print("# is re-run with the actual posterior, inspect:")
+    print("#   1. max_rhat — if > 1.01 for beta_ sites, consider horseshoe.")
+    print("#   2. Posterior SD of beta_ sites — if >> 1 on the probit scale,")
+    print("#      the flat prior is not regularizing enough.")
+    print("#   3. Number of 95% HDI excluions — if all 32 exclude zero, ")
+    print("#      horseshoe may be more appropriate as a skeptical prior.")
     print("#")
-    print(
-        "# This decision is documented in:"
-    )
-    print(
-        "#   .planning/phases/16-choice-only-family-extension-subscale-level-2/"
-    )
-    print(
-        "#   16-07-SUMMARY.md"
-    )
+    print("# This decision is documented in:")
+    print("#   .planning/phases/16-choice-only-family-extension-subscale-level-2/")
+    print("#   16-07-SUMMARY.md")
     print("# " + "-" * 65)
 
 
