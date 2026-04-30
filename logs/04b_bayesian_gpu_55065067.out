@@ -1,12 +1,12 @@
 ============================================================
 Stage 04b (GPU, Template C) — Hierarchical Bayesian Fit
 ============================================================
-Job ID:         55065066
+Job ID:         55065067
 Node:           m3g103
 Partition:      gpu
 GPU(s):         0,1,2,3
 Project:        /fs04/fc37/adam/projects/rlwm_trauma_analysis
-Model:          wmrl_m5
+Model:          wmrl_m6a
 Chains:         4
 Warmup:         1000
 Samples:        2000
@@ -14,28 +14,28 @@ Seed:           42
 Max tree depth: 8
 Subscale:       0
 Limit:          <all participants>
-Start time:     Thu Apr 30 10:35:27 PM AEST 2026
+Start time:     Fri May  1 01:00:23 AM AEST 2026
 ============================================================
 Activated rlwm_gpu by name
 WARNING: pip install -e . --no-deps failed; 'import rlwm' may fail downstream
 JAX 0.9.0 devices: [CudaDevice(id=0), CudaDevice(id=1), CudaDevice(id=2), CudaDevice(id=3)]
 GPU count: 4
 
-JAX cache: /scratch/fc37/aman0087/.jax_cache_04b_bayesian_gpu_wmrl_m5
+JAX cache: /scratch/fc37/aman0087/.jax_cache_04b_bayesian_gpu_wmrl_m6a
 
-[Thu Apr 30 10:39:53 PM AEST 2026] Clearing stale wmrl_m5 artefacts from models/bayesian/21_baseline/
+[Fri May  1 01:05:05 AM AEST 2026] Clearing stale wmrl_m6a artefacts from models/bayesian/21_baseline/
 ============================================================
-Fitting Bayesian model: wmrl_m5 (Template C, 4 GPUs + pmap)
-Started: Thu Apr 30 10:39:53 PM AEST 2026
+Fitting Bayesian model: wmrl_m6a (Template C, 4 GPUs + pmap)
+Started: Fri May  1 01:05:05 AM AEST 2026
 ============================================================
-[Thu Apr 30 10:39:53 PM AEST 2026] Starting wmrl_m5 hierarchical Bayesian fit (subscale=0)
-  Command: python scripts/04_model_fitting/b_bayesian/fit_baseline.py --model wmrl_m5 --data data/processed/task_trials_long.csv --chains 4 --warmup 1000 --samples 2000 --seed 42 --max-tree-depth 8
+[Fri May  1 01:05:05 AM AEST 2026] Starting wmrl_m6a hierarchical Bayesian fit (subscale=0)
+  Command: python scripts/04_model_fitting/b_bayesian/fit_baseline.py --model wmrl_m6a --data data/processed/task_trials_long.csv --chains 4 --warmup 1000 --samples 2000 --seed 42 --max-tree-depth 8
 
-[GPU 22:39:53] util=9% mem=0/46068MB temp=33Cutil=0% mem=0/46068MB temp=34Cutil=0% mem=0/46068MB temp=34Cutil=0% mem=0/46068MB temp=33C
+[GPU 01:05:05] util=0% mem=0/46068MB temp=32Cutil=0% mem=0/46068MB temp=33Cutil=0% mem=0/46068MB temp=33Cutil=0% mem=0/46068MB temp=33C
 ================================================================================
 STEP 21.3 — BASELINE HIERARCHICAL FIT (NO L2)
 ================================================================================
-  Model: wmrl_m5
+  Model: wmrl_m6a
   Data: data/processed/task_trials_long.csv
   Chains: 4
   Warmup: 1000
@@ -46,11 +46,11 @@ STEP 21.3 — BASELINE HIERARCHICAL FIT (NO L2)
   Output subdir: bayesian/21_baseline/ (forced)
 ================================================================================
 ================================================================================
-BAYESIAN WMRL_M5 FIT WITH JAX/NUMPYRO
+BAYESIAN WMRL_M6A FIT WITH JAX/NUMPYRO
 ================================================================================
 
 Settings:
-  Model: wmrl_m5
+  Model: wmrl_m6a
   Data: data/processed/task_trials_long.csv
   Min block: 3 (excludes practice)
   Chains: 4
@@ -242,7 +242,7 @@ Analysis cohort breakdown (total observed N=178):
     Participant 10248: 718 trials, 12 blocks
 
 ================================================================================
-FITTING WMRL-M5 HIERARCHICAL MODEL
+FITTING WMRL-M6A HIERARCHICAL MODEL
 ================================================================================
 
 >> Preparing stacked participant data...
@@ -270,56 +270,53 @@ FITTING WMRL-M5 HIERARCHICAL MODEL
    NUMPYRO_HOST_DEVICE_COUNT        = 4
    XLA_PYTHON_CLIENT_PREALLOCATE    = <unset>
    XLA_PYTHON_CLIENT_MEM_FRACTION   = <unset>
-   JAX_COMPILATION_CACHE_DIR        = /scratch/fc37/aman0087/.jax_cache_04b_bayesian_gpu_wmrl_m5
+   JAX_COMPILATION_CACHE_DIR        = /scratch/fc37/aman0087/.jax_cache_04b_bayesian_gpu_wmrl_m6a
    JAX_PERSISTENT_CACHE_MIN_ENTRY_SIZE_BYTES = 0
    CUDA_VISIBLE_DEVICES             = 0,1,2,3
 ============================================================
 
    Backend: gpu | chain_method: parallel
-[GPU 22:44:53] util=99% mem=34569/46068MB temp=51Cutil=99% mem=34565/46068MB temp=53Cutil=99% mem=34565/46068MB temp=51Cutil=99% mem=34565/46068MB temp=52C
-[GPU 22:49:53] util=99% mem=34569/46068MB temp=53Cutil=99% mem=34565/46068MB temp=56Cutil=99% mem=34565/46068MB temp=54Cutil=99% mem=34565/46068MB temp=55C
-[GPU 22:54:54] util=99% mem=34569/46068MB temp=52Cutil=99% mem=34565/46068MB temp=55Cutil=99% mem=34565/46068MB temp=53Cutil=99% mem=34565/46068MB temp=54C
-[GPU 22:59:54] util=99% mem=34569/46068MB temp=52Cutil=99% mem=34565/46068MB temp=55Cutil=99% mem=34565/46068MB temp=52Cutil=99% mem=34565/46068MB temp=54C
-[GPU 23:04:54] util=99% mem=34569/46068MB temp=52Cutil=99% mem=34565/46068MB temp=55Cutil=99% mem=34565/46068MB temp=53Cutil=99% mem=34565/46068MB temp=54C
-[GPU 23:09:54] util=99% mem=34569/46068MB temp=52Cutil=99% mem=34565/46068MB temp=55Cutil=99% mem=34565/46068MB temp=53Cutil=99% mem=34565/46068MB temp=54C
-[GPU 23:14:54] util=99% mem=34569/46068MB temp=51Cutil=99% mem=34565/46068MB temp=54Cutil=99% mem=34565/46068MB temp=52Cutil=99% mem=34565/46068MB temp=53C
-[GPU 23:19:54] util=0% mem=34569/46068MB temp=45Cutil=0% mem=34565/46068MB temp=51Cutil=0% mem=34565/46068MB temp=46Cutil=99% mem=34565/46068MB temp=53C
-[GPU 23:24:54] util=0% mem=34569/46068MB temp=43Cutil=0% mem=34565/46068MB temp=45Cutil=0% mem=34565/46068MB temp=44Cutil=99% mem=34565/46068MB temp=53C
-[GPU 23:29:54] util=0% mem=34569/46068MB temp=43Cutil=0% mem=34565/46068MB temp=45Cutil=0% mem=34565/46068MB temp=43Cutil=99% mem=34565/46068MB temp=54C
-[GPU 23:34:54] util=0% mem=34569/46068MB temp=43Cutil=0% mem=34565/46068MB temp=45Cutil=0% mem=34565/46068MB temp=44Cutil=99% mem=34565/46068MB temp=54C
-[GPU 23:39:54] util=0% mem=34569/46068MB temp=43Cutil=0% mem=34565/46068MB temp=45Cutil=0% mem=34565/46068MB temp=44Cutil=99% mem=34565/46068MB temp=55C
-[GPU 23:44:54] util=0% mem=34569/46068MB temp=43Cutil=0% mem=34565/46068MB temp=45Cutil=0% mem=34565/46068MB temp=44Cutil=99% mem=34565/46068MB temp=54C
-[GPU 23:49:54] util=0% mem=34569/46068MB temp=43Cutil=0% mem=34565/46068MB temp=45Cutil=0% mem=34565/46068MB temp=44Cutil=99% mem=34565/46068MB temp=54C
-[GPU 23:54:54] util=0% mem=34569/46068MB temp=43Cutil=0% mem=34565/46068MB temp=45Cutil=0% mem=34565/46068MB temp=44Cutil=99% mem=34565/46068MB temp=54C
-[GPU 23:59:54] util=0% mem=34569/46068MB temp=43Cutil=0% mem=34565/46068MB temp=45Cutil=0% mem=34565/46068MB temp=44Cutil=99% mem=34565/46068MB temp=54C
-[GPU 00:04:54] util=0% mem=34569/46068MB temp=43Cutil=0% mem=34565/46068MB temp=45Cutil=0% mem=34565/46068MB temp=44Cutil=99% mem=34565/46068MB temp=55C
-[GPU 00:09:54] util=0% mem=34569/46068MB temp=43Cutil=0% mem=34565/46068MB temp=45Cutil=0% mem=34565/46068MB temp=44Cutil=99% mem=34565/46068MB temp=54C
-[GPU 00:14:54] util=0% mem=34569/46068MB temp=43Cutil=0% mem=34565/46068MB temp=45Cutil=0% mem=34565/46068MB temp=44Cutil=99% mem=34565/46068MB temp=54C
-[GPU 00:19:54] util=0% mem=34569/46068MB temp=43Cutil=0% mem=34565/46068MB temp=45Cutil=0% mem=34565/46068MB temp=44Cutil=99% mem=34565/46068MB temp=55C
-[GPU 00:24:55] util=0% mem=34569/46068MB temp=43Cutil=0% mem=34565/46068MB temp=44Cutil=0% mem=34565/46068MB temp=44Cutil=99% mem=34565/46068MB temp=54C
-[GPU 00:29:55] util=0% mem=34569/46068MB temp=43Cutil=0% mem=34565/46068MB temp=44Cutil=0% mem=34565/46068MB temp=44Cutil=99% mem=34565/46068MB temp=54C
-[GPU 00:34:55] util=0% mem=34569/46068MB temp=43Cutil=0% mem=34565/46068MB temp=45Cutil=0% mem=34565/46068MB temp=44Cutil=99% mem=34565/46068MB temp=54C
-[GPU 00:39:55] util=0% mem=34569/46068MB temp=43Cutil=0% mem=34565/46068MB temp=44Cutil=0% mem=34565/46068MB temp=44Cutil=99% mem=34565/46068MB temp=54C
-[GPU 00:44:55] util=0% mem=34569/46068MB temp=43Cutil=0% mem=34565/46068MB temp=45Cutil=0% mem=34565/46068MB temp=44Cutil=99% mem=34565/46068MB temp=54C
-[GPU 00:49:55] util=0% mem=34569/46068MB temp=43Cutil=0% mem=34565/46068MB temp=44Cutil=0% mem=34565/46068MB temp=44Cutil=99% mem=34565/46068MB temp=54C
-[GPU 00:54:55] util=0% mem=34569/46068MB temp=43Cutil=0% mem=34565/46068MB temp=44Cutil=0% mem=34565/46068MB temp=44Cutil=99% mem=34565/46068MB temp=54C
-[timing] target_accept_prob=0.80 wall=8184.3s
+[GPU 01:10:06] util=99% mem=34567/46068MB temp=50Cutil=99% mem=34563/46068MB temp=52Cutil=99% mem=34563/46068MB temp=51Cutil=99% mem=34563/46068MB temp=52C
+[GPU 01:15:06] util=99% mem=34567/46068MB temp=52Cutil=99% mem=34563/46068MB temp=56Cutil=99% mem=34563/46068MB temp=53Cutil=99% mem=34563/46068MB temp=54C
+[GPU 01:20:06] util=99% mem=34567/46068MB temp=51Cutil=99% mem=34563/46068MB temp=55Cutil=99% mem=34563/46068MB temp=52Cutil=99% mem=34563/46068MB temp=53C
+[GPU 01:25:06] util=99% mem=34567/46068MB temp=51Cutil=99% mem=34563/46068MB temp=54Cutil=99% mem=34563/46068MB temp=52Cutil=99% mem=34563/46068MB temp=53C
+[GPU 01:30:06] util=99% mem=34567/46068MB temp=51Cutil=99% mem=34563/46068MB temp=54Cutil=99% mem=34563/46068MB temp=52Cutil=99% mem=34563/46068MB temp=53C
+[GPU 01:35:06] util=99% mem=34567/46068MB temp=51Cutil=99% mem=34563/46068MB temp=54Cutil=99% mem=34563/46068MB temp=52Cutil=99% mem=34563/46068MB temp=53C
+[GPU 01:40:06] util=0% mem=34567/46068MB temp=46Cutil=0% mem=34563/46068MB temp=47Cutil=99% mem=34563/46068MB temp=52Cutil=0% mem=34563/46068MB temp=49C
+[GPU 01:45:06] util=0% mem=34567/46068MB temp=43Cutil=0% mem=34563/46068MB temp=45Cutil=99% mem=34563/46068MB temp=52Cutil=0% mem=34563/46068MB temp=44C
+[GPU 01:50:06] util=0% mem=34567/46068MB temp=43Cutil=0% mem=34563/46068MB temp=44Cutil=99% mem=34563/46068MB temp=52Cutil=0% mem=34563/46068MB temp=44C
+[GPU 01:55:06] util=0% mem=34567/46068MB temp=43Cutil=0% mem=34563/46068MB temp=44Cutil=99% mem=34563/46068MB temp=53Cutil=0% mem=34563/46068MB temp=44C
+[GPU 02:00:06] util=0% mem=34567/46068MB temp=43Cutil=0% mem=34563/46068MB temp=45Cutil=99% mem=34563/46068MB temp=53Cutil=0% mem=34563/46068MB temp=44C
+[GPU 02:05:06] util=0% mem=34567/46068MB temp=43Cutil=0% mem=34563/46068MB temp=45Cutil=99% mem=34563/46068MB temp=53Cutil=0% mem=34563/46068MB temp=44C
+[GPU 02:10:06] util=0% mem=34567/46068MB temp=43Cutil=0% mem=34563/46068MB temp=45Cutil=99% mem=34563/46068MB temp=53Cutil=0% mem=34563/46068MB temp=44C
+[GPU 02:15:06] util=0% mem=34567/46068MB temp=43Cutil=0% mem=34563/46068MB temp=45Cutil=99% mem=34563/46068MB temp=53Cutil=0% mem=34563/46068MB temp=44C
+[GPU 02:20:06] util=0% mem=34567/46068MB temp=43Cutil=0% mem=34563/46068MB temp=45Cutil=99% mem=34563/46068MB temp=53Cutil=0% mem=34563/46068MB temp=44C
+[GPU 02:25:06] util=0% mem=34567/46068MB temp=43Cutil=0% mem=34563/46068MB temp=45Cutil=99% mem=34563/46068MB temp=53Cutil=0% mem=34563/46068MB temp=44C
+[GPU 02:30:07] util=0% mem=34567/46068MB temp=43Cutil=0% mem=34563/46068MB temp=45Cutil=99% mem=34563/46068MB temp=53Cutil=0% mem=34563/46068MB temp=44C
+[GPU 02:35:07] util=0% mem=34567/46068MB temp=43Cutil=0% mem=34563/46068MB temp=45Cutil=99% mem=34563/46068MB temp=53Cutil=0% mem=34563/46068MB temp=44C
+[GPU 02:40:07] util=0% mem=34567/46068MB temp=43Cutil=0% mem=34563/46068MB temp=45Cutil=99% mem=34563/46068MB temp=53Cutil=0% mem=34563/46068MB temp=44C
+[GPU 02:45:07] util=0% mem=34567/46068MB temp=43Cutil=0% mem=34563/46068MB temp=45Cutil=99% mem=34563/46068MB temp=53Cutil=0% mem=34563/46068MB temp=44C
+[GPU 02:50:07] util=0% mem=34567/46068MB temp=43Cutil=0% mem=34563/46068MB temp=45Cutil=99% mem=34563/46068MB temp=53Cutil=0% mem=34563/46068MB temp=44C
+[GPU 02:55:07] util=0% mem=34567/46068MB temp=43Cutil=0% mem=34563/46068MB temp=45Cutil=99% mem=34563/46068MB temp=53Cutil=0% mem=34563/46068MB temp=44C
+[GPU 03:00:07] util=0% mem=34567/46068MB temp=43Cutil=0% mem=34563/46068MB temp=45Cutil=99% mem=34563/46068MB temp=53Cutil=0% mem=34563/46068MB temp=44C
+[GPU 03:05:07] util=0% mem=34567/46068MB temp=43Cutil=0% mem=34563/46068MB temp=45Cutil=99% mem=34563/46068MB temp=53Cutil=0% mem=34563/46068MB temp=44C
+[GPU 03:10:07] util=0% mem=34567/46068MB temp=43Cutil=0% mem=34563/46068MB temp=45Cutil=99% mem=34563/46068MB temp=53Cutil=0% mem=34563/46068MB temp=44C
+[timing] target_accept_prob=0.80 wall=7496.8s
 [convergence-gate] target_accept_prob=0.80 divergences=0
 [convergence-gate] Zero divergences — accepting this run.
 
 ================================================================================
-WMRL-M5 POSTERIOR ESTIMATES — GROUP LEVEL
+WMRL-M6A POSTERIOR ESTIMATES — GROUP LEVEL
 ================================================================================
-  alpha_neg_mu_pr: -3.237 +/- 1.481
-  alpha_pos_mu_pr: -0.872 +/- 1.144
-  capacity_mu_pr: -1.399 +/- 0.167
-  epsilon_mu_pr: -1.432 +/- 0.463
-  kappa_mu_pr: -1.477 +/- 1.228
-  phi_mu_pr: -0.733 +/- 0.566
-  phi_rl_mu_pr: -1.223 +/- 0.551
-  rho_mu_pr: 0.624 +/- 0.430
-  beta_lec_kappa: mean=0.4579 +/- 0.5666, 95% HDI=[0.0414, 1.4352]
-    HDI excludes zero (positive direction)
+  alpha_neg_mu_pr: -2.911 +/- 2.546
+  alpha_pos_mu_pr: -1.853 +/- 0.225
+  capacity_mu_pr: -0.373 +/- 0.660
+  epsilon_mu_pr: -1.644 +/- 0.159
+  kappa_s_mu_pr: -1.183 +/- 0.385
+  phi_mu_pr: -0.965 +/- 0.262
+  rho_mu_pr: 0.409 +/- 1.303
+  beta_lec_kappa_s: mean=0.0476 +/- 0.0400, 95% HDI=[-0.0027, 0.1264]
+    HDI includes zero
 
 ================================================================================
 SAVING RESULTS
@@ -340,14 +337,14 @@ Refusing to write output files. Fix convergence issues and re-run.
 FITTING COMPLETE!
 ================================================================================
 
-[Fri May  1 12:59:09 AM AEST 2026] wmrl_m5 hierarchical fit finished (exit code: 1)
-*** ERROR: Model wmrl_m5 FAILED with exit code 1 ***
-*** Check stderr log: logs/04b_bayesian_gpu_55065066.err ***
+[Fri May  1 03:12:52 AM AEST 2026] wmrl_m6a hierarchical fit finished (exit code: 1)
+*** ERROR: Model wmrl_m6a FAILED with exit code 1 ***
+*** Check stderr log: logs/04b_bayesian_gpu_55065067.err ***
 
 ============================================================
 JOB RESOURCE REPORT
 ============================================================
-Job ID: 55065066
+Job ID: 55065067
 Node: m3g103
 GPU Info:
   Model:       NVIDIA L40S
@@ -360,40 +357,26 @@ GPU Info:
   VRAM Total:   46068 MiB
   VRAM Used:    0 MiB
   VRAM Free:    45458 MiB
-  Utilization:  0 %
+  Utilization:  12 %
   Temperature:  46
   Model:       NVIDIA L40S
   VRAM Total:   46068 MiB
   VRAM Used:    0 MiB
   VRAM Free:    45458 MiB
-  Utilization:  6 %
-  Temperature:  45
+  Utilization:  0 %
+  Temperature:  48
   Model:       NVIDIA L40S
   VRAM Total:   46068 MiB
   VRAM Used:    0 MiB
   VRAM Free:    45458 MiB
-  Utilization:  11 %
-  Temperature:  48
+  Utilization:  0 %
+  Temperature:  45
 SLURM Accounting:
-            55065066   02:23:45                              64G          8      RUNNING 
-      55065066.batch   02:23:45                                           8      RUNNING 
-     55065066.extern   02:23:45                                           8      RUNNING 
+            55065067   02:12:31                              64G          8      RUNNING 
+      55065067.batch   02:12:31                                           8      RUNNING 
+     55065067.extern   02:12:31                                           8      RUNNING 
 ============================================================
 
 ============================================================
 AUTO-PUSH: Committing and pushing results
 ============================================================
-[main c2a2d3d] rlwm-bayesian-gpu-mgpu job 55065066 results
- 3 files changed, 542 insertions(+)
- create mode 100644 logs/04b_bayesian_gpu_55065066.err
- create mode 100644 logs/04b_bayesian_gpu_55065066.out
-ssh: Could not resolve hostname github.com: Temporary failure in name resolution
-fatal: Could not read from remote repository.
-
-Please make sure you have the correct access rights
-and the repository exists.
-  push attempt 1 failed (likely concurrent autopush race); pulling --rebase and retrying...
-error: cannot pull with rebase: You have unstaged changes.
-error: Please commit or stash them.
-  WARNING: git pull --rebase failed — aborting retry loop
-  WARNING: git push failed after 3 attempts (network, auth, or persistent rebase conflict)
