@@ -1,12 +1,12 @@
 ============================================================
 Stage 04b (GPU, Template C) — Hierarchical Bayesian Fit
 ============================================================
-Job ID:         55065063
+Job ID:         55065064
 Node:           m3g103
 Partition:      gpu
 GPU(s):         0,1,2,3
 Project:        /fs04/fc37/adam/projects/rlwm_trauma_analysis
-Model:          qlearning
+Model:          wmrl
 Chains:         4
 Warmup:         1000
 Samples:        2000
@@ -14,28 +14,28 @@ Seed:           42
 Max tree depth: 8
 Subscale:       0
 Limit:          <all participants>
-Start time:     Thu Apr 30 05:05:02 PM AEST 2026
+Start time:     Thu Apr 30 06:34:24 PM AEST 2026
 ============================================================
 Activated rlwm_gpu by name
 WARNING: pip install -e . --no-deps failed; 'import rlwm' may fail downstream
 JAX 0.9.0 devices: [CudaDevice(id=0), CudaDevice(id=1), CudaDevice(id=2), CudaDevice(id=3)]
 GPU count: 4
 
-JAX cache: /scratch/fc37/aman0087/.jax_cache_04b_bayesian_gpu_qlearning
+JAX cache: /scratch/fc37/aman0087/.jax_cache_04b_bayesian_gpu_wmrl
 
-[Thu Apr 30 05:09:34 PM AEST 2026] Clearing stale qlearning artefacts from models/bayesian/21_baseline/
+[Thu Apr 30 06:38:46 PM AEST 2026] Clearing stale wmrl artefacts from models/bayesian/21_baseline/
 ============================================================
-Fitting Bayesian model: qlearning (Template C, 4 GPUs + pmap)
-Started: Thu Apr 30 05:09:34 PM AEST 2026
+Fitting Bayesian model: wmrl (Template C, 4 GPUs + pmap)
+Started: Thu Apr 30 06:38:46 PM AEST 2026
 ============================================================
-[Thu Apr 30 05:09:34 PM AEST 2026] Starting qlearning hierarchical Bayesian fit (subscale=0)
-  Command: python scripts/04_model_fitting/b_bayesian/fit_baseline.py --model qlearning --data data/processed/task_trials_long.csv --chains 4 --warmup 1000 --samples 2000 --seed 42 --max-tree-depth 8
+[Thu Apr 30 06:38:46 PM AEST 2026] Starting wmrl hierarchical Bayesian fit (subscale=0)
+  Command: python scripts/04_model_fitting/b_bayesian/fit_baseline.py --model wmrl --data data/processed/task_trials_long.csv --chains 4 --warmup 1000 --samples 2000 --seed 42 --max-tree-depth 8
 
-[GPU 17:09:34] util=0% mem=0/46068MB temp=30Cutil=0% mem=0/46068MB temp=30Cutil=0% mem=0/46068MB temp=33Cutil=0% mem=0/46068MB temp=30C
+[GPU 18:38:46] util=0% mem=0/46068MB temp=33Cutil=0% mem=0/46068MB temp=34Cutil=0% mem=0/46068MB temp=34Cutil=0% mem=0/46068MB temp=31C
 ================================================================================
 STEP 21.3 — BASELINE HIERARCHICAL FIT (NO L2)
 ================================================================================
-  Model: qlearning
+  Model: wmrl
   Data: data/processed/task_trials_long.csv
   Chains: 4
   Warmup: 1000
@@ -46,11 +46,11 @@ STEP 21.3 — BASELINE HIERARCHICAL FIT (NO L2)
   Output subdir: bayesian/21_baseline/ (forced)
 ================================================================================
 ================================================================================
-BAYESIAN QLEARNING FIT WITH JAX/NUMPYRO
+BAYESIAN WMRL FIT WITH JAX/NUMPYRO
 ================================================================================
 
 Settings:
-  Model: qlearning
+  Model: wmrl
   Data: data/processed/task_trials_long.csv
   Min block: 3 (excludes practice)
   Chains: 4
@@ -242,12 +242,12 @@ Analysis cohort breakdown (total observed N=178):
     Participant 10248: 718 trials, 12 blocks
 
 ================================================================================
-FITTING QLEARNING HIERARCHICAL MODEL
+FITTING WMRL HIERARCHICAL MODEL
 ================================================================================
 
 >> Preparing stacked participant data...
   Prepared 158 participants (sorted by ID)
-  Skipping LEC covariate: model 'qlearning' does not support Level-2 regression (no natural L2 target parameter).
+  Skipping LEC covariate: model 'wmrl' does not support Level-2 regression (no natural L2 target parameter).
 
 >> Running MCMC inference (NUTS + convergence auto-bump)...
 >> Starting MCMC sampling with convergence auto-bump...
@@ -270,42 +270,45 @@ FITTING QLEARNING HIERARCHICAL MODEL
    NUMPYRO_HOST_DEVICE_COUNT        = 4
    XLA_PYTHON_CLIENT_PREALLOCATE    = <unset>
    XLA_PYTHON_CLIENT_MEM_FRACTION   = <unset>
-   JAX_COMPILATION_CACHE_DIR        = /scratch/fc37/aman0087/.jax_cache_04b_bayesian_gpu_qlearning
+   JAX_COMPILATION_CACHE_DIR        = /scratch/fc37/aman0087/.jax_cache_04b_bayesian_gpu_wmrl
    JAX_PERSISTENT_CACHE_MIN_ENTRY_SIZE_BYTES = 0
    CUDA_VISIBLE_DEVICES             = 0,1,2,3
 ============================================================
 
    Backend: gpu | chain_method: parallel
-[GPU 17:14:34] util=98% mem=34557/46068MB temp=49Cutil=98% mem=34553/46068MB temp=51Cutil=98% mem=34553/46068MB temp=51Cutil=98% mem=34553/46068MB temp=51C
-[GPU 17:19:34] util=0% mem=34557/46068MB temp=46Cutil=98% mem=34553/46068MB temp=55Cutil=0% mem=34553/46068MB temp=47Cutil=98% mem=34553/46068MB temp=54C
-[GPU 17:24:34] util=0% mem=34557/46068MB temp=44Cutil=98% mem=34553/46068MB temp=55Cutil=0% mem=34553/46068MB temp=45Cutil=98% mem=34553/46068MB temp=53C
-[GPU 17:29:34] util=0% mem=34557/46068MB temp=44Cutil=0% mem=34553/46068MB temp=47Cutil=0% mem=34553/46068MB temp=45Cutil=98% mem=34553/46068MB temp=53C
-[GPU 17:34:34] util=0% mem=34557/46068MB temp=44Cutil=0% mem=34553/46068MB temp=46Cutil=0% mem=34553/46068MB temp=44Cutil=99% mem=34553/46068MB temp=53C
-[GPU 17:39:34] util=0% mem=34557/46068MB temp=44Cutil=0% mem=34553/46068MB temp=46Cutil=0% mem=34553/46068MB temp=44Cutil=98% mem=34553/46068MB temp=53C
-[GPU 17:44:34] util=0% mem=34557/46068MB temp=44Cutil=0% mem=34553/46068MB temp=46Cutil=0% mem=34553/46068MB temp=44Cutil=98% mem=34553/46068MB temp=53C
-[GPU 17:49:34] util=0% mem=34557/46068MB temp=44Cutil=0% mem=34553/46068MB temp=46Cutil=0% mem=34553/46068MB temp=44Cutil=98% mem=34553/46068MB temp=53C
-[timing] target_accept_prob=0.80 wall=2459.5s
-[convergence-gate] target_accept_prob=0.80 divergences=2108
-[convergence-gate] 2108 divergences remain — bumping target_accept_prob.
-   Backend: gpu | chain_method: parallel
-[GPU 17:54:34] util=98% mem=34737/46068MB temp=49Cutil=98% mem=34735/46068MB temp=52Cutil=98% mem=34735/46068MB temp=50Cutil=98% mem=34735/46068MB temp=53C
-[GPU 17:59:34] util=98% mem=34737/46068MB temp=50Cutil=98% mem=34735/46068MB temp=53Cutil=98% mem=34735/46068MB temp=51Cutil=98% mem=34735/46068MB temp=53C
-[GPU 18:04:34] util=98% mem=34737/46068MB temp=50Cutil=98% mem=34735/46068MB temp=53Cutil=98% mem=34735/46068MB temp=51Cutil=98% mem=34735/46068MB temp=52C
-[GPU 18:09:34] util=98% mem=34737/46068MB temp=50Cutil=98% mem=34735/46068MB temp=53Cutil=98% mem=34735/46068MB temp=51Cutil=0% mem=34735/46068MB temp=47C
-[GPU 18:14:34] util=98% mem=34737/46068MB temp=50Cutil=0% mem=34735/46068MB temp=51Cutil=98% mem=34735/46068MB temp=51Cutil=0% mem=34735/46068MB temp=44C
-[GPU 18:19:34] util=98% mem=34737/46068MB temp=50Cutil=0% mem=34735/46068MB temp=46Cutil=98% mem=34735/46068MB temp=51Cutil=0% mem=34735/46068MB temp=44C
-[GPU 18:24:35] util=0% mem=34737/46068MB temp=45Cutil=0% mem=34735/46068MB temp=45Cutil=98% mem=34735/46068MB temp=51Cutil=0% mem=34735/46068MB temp=44C
-[GPU 18:29:35] util=0% mem=34737/46068MB temp=44Cutil=0% mem=34735/46068MB temp=45Cutil=98% mem=34735/46068MB temp=51Cutil=0% mem=34735/46068MB temp=44C
-[timing] target_accept_prob=0.95 wall=2452.2s
-[convergence-gate] target_accept_prob=0.95 divergences=0
+[GPU 18:43:46] util=99% mem=34565/46068MB temp=51Cutil=99% mem=34561/46068MB temp=53Cutil=99% mem=34561/46068MB temp=51Cutil=99% mem=34561/46068MB temp=52C
+[GPU 18:48:46] util=99% mem=34565/46068MB temp=53Cutil=99% mem=34561/46068MB temp=56Cutil=99% mem=34561/46068MB temp=53Cutil=99% mem=34561/46068MB temp=54C
+[GPU 18:53:46] util=99% mem=34565/46068MB temp=52Cutil=99% mem=34561/46068MB temp=55Cutil=99% mem=34561/46068MB temp=53Cutil=99% mem=34561/46068MB temp=54C
+[GPU 18:58:46] util=99% mem=34565/46068MB temp=52Cutil=99% mem=34561/46068MB temp=55Cutil=99% mem=34561/46068MB temp=53Cutil=99% mem=34561/46068MB temp=54C
+[GPU 19:03:46] util=99% mem=34565/46068MB temp=51Cutil=99% mem=34561/46068MB temp=54Cutil=99% mem=34561/46068MB temp=52Cutil=99% mem=34561/46068MB temp=53C
+[GPU 19:08:46] util=99% mem=34565/46068MB temp=51Cutil=99% mem=34561/46068MB temp=54Cutil=99% mem=34561/46068MB temp=51Cutil=99% mem=34561/46068MB temp=53C
+[GPU 19:13:46] util=0% mem=34565/46068MB temp=44Cutil=99% mem=34561/46068MB temp=54Cutil=0% mem=34561/46068MB temp=44Cutil=99% mem=34561/46068MB temp=53C
+[GPU 19:18:46] util=0% mem=34565/46068MB temp=44Cutil=99% mem=34561/46068MB temp=55Cutil=0% mem=34561/46068MB temp=44Cutil=99% mem=34561/46068MB temp=54C
+[GPU 19:23:46] util=0% mem=34565/46068MB temp=43Cutil=99% mem=34561/46068MB temp=54Cutil=0% mem=34561/46068MB temp=44Cutil=99% mem=34561/46068MB temp=53C
+[GPU 19:28:46] util=0% mem=34565/46068MB temp=43Cutil=99% mem=34561/46068MB temp=55Cutil=0% mem=34561/46068MB temp=44Cutil=99% mem=34561/46068MB temp=54C
+[GPU 19:33:46] util=0% mem=34565/46068MB temp=43Cutil=99% mem=34561/46068MB temp=54Cutil=0% mem=34561/46068MB temp=43Cutil=99% mem=34561/46068MB temp=53C
+[GPU 19:38:46] util=0% mem=34565/46068MB temp=43Cutil=99% mem=34561/46068MB temp=55Cutil=0% mem=34561/46068MB temp=44Cutil=99% mem=34561/46068MB temp=54C
+[GPU 19:43:46] util=0% mem=34565/46068MB temp=43Cutil=99% mem=34561/46068MB temp=54Cutil=0% mem=34561/46068MB temp=44Cutil=99% mem=34561/46068MB temp=53C
+[GPU 19:48:46] util=0% mem=34565/46068MB temp=43Cutil=99% mem=34561/46068MB temp=55Cutil=0% mem=34561/46068MB temp=44Cutil=99% mem=34561/46068MB temp=54C
+[GPU 19:53:47] util=0% mem=34565/46068MB temp=43Cutil=99% mem=34561/46068MB temp=54Cutil=0% mem=34561/46068MB temp=43Cutil=99% mem=34561/46068MB temp=53C
+[GPU 19:58:47] util=0% mem=34565/46068MB temp=43Cutil=99% mem=34561/46068MB temp=55Cutil=0% mem=34561/46068MB temp=44Cutil=99% mem=34561/46068MB temp=54C
+[GPU 20:03:47] util=0% mem=34565/46068MB temp=43Cutil=99% mem=34561/46068MB temp=55Cutil=0% mem=34561/46068MB temp=44Cutil=99% mem=34561/46068MB temp=53C
+[GPU 20:08:47] util=0% mem=34565/46068MB temp=43Cutil=99% mem=34561/46068MB temp=55Cutil=0% mem=34561/46068MB temp=44Cutil=99% mem=34561/46068MB temp=54C
+[GPU 20:13:47] util=0% mem=34565/46068MB temp=44Cutil=99% mem=34561/46068MB temp=55Cutil=0% mem=34561/46068MB temp=44Cutil=0% mem=34561/46068MB temp=47C
+[GPU 20:18:47] util=0% mem=34565/46068MB temp=43Cutil=99% mem=34561/46068MB temp=55Cutil=0% mem=34561/46068MB temp=44Cutil=0% mem=34561/46068MB temp=44C
+[timing] target_accept_prob=0.80 wall=6082.4s
+[convergence-gate] target_accept_prob=0.80 divergences=0
 [convergence-gate] Zero divergences — accepting this run.
 
 ================================================================================
-QLEARNING POSTERIOR ESTIMATES — GROUP LEVEL
+WMRL POSTERIOR ESTIMATES — GROUP LEVEL
 ================================================================================
-  alpha_neg_mu_pr: -2.668 +/- 0.486
-  alpha_pos_mu_pr: 0.567 +/- 2.207
-  epsilon_mu_pr: -1.017 +/- 0.210
+  alpha_neg_mu_pr: -4.512 +/- 0.269
+  alpha_pos_mu_pr: -1.935 +/- 0.023
+  capacity_mu_pr: -1.044 +/- 0.100
+  epsilon_mu_pr: -1.573 +/- 0.026
+  phi_mu_pr: -0.776 +/- 0.030
+  rho_mu_pr: 0.944 +/- 0.075
 
 ================================================================================
 SAVING RESULTS
@@ -319,21 +322,21 @@ SAVING RESULTS
 
 >> Checking convergence gate...
 
-[CONVERGENCE GATE FAILED] max_rhat=2.3800, min_ess_bulk=5, divergences=0
+[CONVERGENCE GATE FAILED] max_rhat=1.1200, min_ess_bulk=23, divergences=0
 Refusing to write output files. Fix convergence issues and re-run.
 
 ================================================================================
 FITTING COMPLETE!
 ================================================================================
 
-[Thu Apr 30 06:33:12 PM AEST 2026] qlearning hierarchical fit finished (exit code: 1)
-*** ERROR: Model qlearning FAILED with exit code 1 ***
-*** Check stderr log: logs/04b_bayesian_gpu_55065063.err ***
+[Thu Apr 30 08:22:13 PM AEST 2026] wmrl hierarchical fit finished (exit code: 1)
+*** ERROR: Model wmrl FAILED with exit code 1 ***
+*** Check stderr log: logs/04b_bayesian_gpu_55065064.err ***
 
 ============================================================
 JOB RESOURCE REPORT
 ============================================================
-Job ID: 55065063
+Job ID: 55065064
 Node: m3g103
 GPU Info:
   Model:       NVIDIA L40S
@@ -341,7 +344,13 @@ GPU Info:
   VRAM Used:    0 MiB
   VRAM Free:    45458 MiB
   Utilization:  0 %
-  Temperature:  44
+  Temperature:  45
+  Model:       NVIDIA L40S
+  VRAM Total:   46068 MiB
+  VRAM Used:    0 MiB
+  VRAM Free:    45458 MiB
+  Utilization:  0 %
+  Temperature:  51
   Model:       NVIDIA L40S
   VRAM Total:   46068 MiB
   VRAM Used:    0 MiB
@@ -352,34 +361,14 @@ GPU Info:
   VRAM Total:   46068 MiB
   VRAM Used:    0 MiB
   VRAM Free:    45458 MiB
-  Utilization:  29 %
-  Temperature:  49
-  Model:       NVIDIA L40S
-  VRAM Total:   46068 MiB
-  VRAM Used:    0 MiB
-  VRAM Free:    45458 MiB
-  Utilization:  70 %
-  Temperature:  45
+  Utilization:  0 %
+  Temperature:  46
 SLURM Accounting:
-            55065063   01:28:12                              64G          8      RUNNING 
-      55065063.batch   01:28:12                                           8      RUNNING 
-     55065063.extern   01:28:12                                           8      RUNNING 
+            55065064   01:47:51                              64G          8      RUNNING 
+      55065064.batch   01:47:51                                           8      RUNNING 
+     55065064.extern   01:47:51                                           8      RUNNING 
 ============================================================
 
 ============================================================
 AUTO-PUSH: Committing and pushing results
 ============================================================
-[main 20d09e0] rlwm-bayesian-gpu-mgpu job 55065063 results
- 3 files changed, 662 insertions(+)
- create mode 100644 logs/04b_bayesian_gpu_55065063.err
- create mode 100644 logs/04b_bayesian_gpu_55065063.out
-ssh: Could not resolve hostname github.com: Temporary failure in name resolution
-fatal: Could not read from remote repository.
-
-Please make sure you have the correct access rights
-and the repository exists.
-  push attempt 1 failed (likely concurrent autopush race); pulling --rebase and retrying...
-error: cannot pull with rebase: You have unstaged changes.
-error: Please commit or stash them.
-  WARNING: git pull --rebase failed — aborting retry loop
-  WARNING: git push failed after 3 attempts (network, auth, or persistent rebase conflict)
