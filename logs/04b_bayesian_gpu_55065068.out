@@ -363,3 +363,17 @@ SLURM Accounting:
 ============================================================
 AUTO-PUSH: Committing and pushing results
 ============================================================
+[main 6195b06] rlwm-bayesian-gpu-mgpu job 55065068 results
+ 3 files changed, 535 insertions(+)
+ create mode 100644 logs/04b_bayesian_gpu_55065068.err
+ create mode 100644 logs/04b_bayesian_gpu_55065068.out
+ssh: Could not resolve hostname github.com: Temporary failure in name resolution
+fatal: Could not read from remote repository.
+
+Please make sure you have the correct access rights
+and the repository exists.
+  push attempt 1 failed (likely concurrent autopush race); pulling --rebase and retrying...
+error: cannot pull with rebase: You have unstaged changes.
+error: Please commit or stash them.
+  WARNING: git pull --rebase failed — aborting retry loop
+  WARNING: git push failed after 3 attempts (network, auth, or persistent rebase conflict)
