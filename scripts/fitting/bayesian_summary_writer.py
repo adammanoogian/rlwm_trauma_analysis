@@ -295,9 +295,14 @@ def write_bayesian_summary(
             sd_val = float(participant_draws.std())
 
             # HDI
-            hdi_result = az.hdi(
-                participant_draws[np.newaxis, np.newaxis, :], hdi_prob=hdi_prob
-            )
+            # ArviZ 0.22+ treats a 1-D ndarray as samples and returns
+            # [lower, upper] of shape (2,). Adding extra newaxes makes
+            # ArviZ interpret each draw as its own parameter (returning
+            # shape (n_draws, 2)) and float(hdi_result[0]) then raises
+            # `only 0-dimensional arrays can be converted to Python scalars`.
+            hdi_result = np.asarray(
+                az.hdi(participant_draws, hdi_prob=hdi_prob)
+            ).ravel()
             hdi_low = float(hdi_result[0])
             hdi_high = float(hdi_result[1])
 
