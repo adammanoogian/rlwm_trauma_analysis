@@ -124,6 +124,80 @@ def sample_bounded_param(
     return theta
 
 
+def sample_unbounded_normal_param(
+    name: str,
+    *,
+    n_participants: int,
+    mu_prior_loc: float = 0.0,
+    mu_prior_scale: float = 0.5,
+    sigma_prior_scale: float = 0.5,
+    clip_lower: float | None = None,
+    clip_upper: float | None = None,
+) -> jnp.ndarray:
+    """Sample a non-centered unbounded parameter on the real line.
+
+    Used for softmax-bias kappa (Collins 2025) where kappa lives on the
+    real line (or clipped to [-1, 1] for paper conformance). No
+    Phi_approx transform is applied — the sampled value IS the raw
+    parameter value.
+
+    Implements::
+
+        mu_pr   ~ Normal(mu_prior_loc, mu_prior_scale)
+        sigma_pr ~ HalfNormal(sigma_prior_scale)
+        z_i    ~ Normal(0, 1)  for i = 1 .. n_participants
+        theta_i = mu_pr + sigma_pr * z_i
+        (optionally clipped to [clip_lower, clip_upper])
+
+    Parameters
+    ----------
+    name : str
+        Base name for NumPyro sites: ``{name}_mu_pr``,
+        ``{name}_sigma_pr``, ``{name}_z``, ``{name}``.
+    n_participants : int
+        Number of participants.
+    mu_prior_loc : float
+        Location of the Normal prior on the group mean. Default 0.0.
+    mu_prior_scale : float
+        Scale of the Normal prior on the group mean. Default 0.5
+        (tighter than the bounded helper's default of 1.0 because
+        unbounded kappa in [-1, 1] needs less group-level wiggle).
+    sigma_prior_scale : float
+        Scale of HalfNormal on inter-individual SD. Default 0.5.
+    clip_lower, clip_upper : float | None
+        Optional hard bounds applied via :func:`jnp.clip`. Use for paper
+        conformance to Collins 2025 kappa in [-1, 1]. Default None
+        (no clip applied; sample lives on the unconstrained real line).
+
+    Returns
+    -------
+    jnp.ndarray
+        Array of shape ``(n_participants,)`` on the real line (or
+        clipped to ``[clip_lower, clip_upper]``).
+    """
+    mu_pr = numpyro.sample(
+        f"{name}_mu_pr",
+        dist.Normal(mu_prior_loc, mu_prior_scale),
+    )
+    sigma_pr = numpyro.sample(
+        f"{name}_sigma_pr",
+        dist.HalfNormal(sigma_prior_scale),
+    )
+    z = numpyro.sample(
+        f"{name}_z",
+        dist.Normal(0, 1).expand([n_participants]),
+    )
+    theta = mu_pr + sigma_pr * z
+    if clip_lower is not None or clip_upper is not None:
+        theta = jnp.clip(
+            theta,
+            min=clip_lower if clip_lower is not None else -jnp.inf,
+            max=clip_upper if clip_upper is not None else jnp.inf,
+        )
+    numpyro.deterministic(name, theta)
+    return theta
+
+
 def sample_capacity(
     name: str = "capacity",
     *,
@@ -250,6 +324,16 @@ because they require log-scale or non-standard transforms handled
 separately in the M4 hierarchical model.
 """
 
+# Phase 32-04: kappa-family parameter names. These params receive
+# softmax-bias treatment (sample_unbounded_normal_param, kappa in
+# [-1, 1]) when kappa_parameterization == "softmax", and convex-mixture
+# treatment (sample_bounded_param, kappa in [0, 1]) when "convex".
+# kappa_share is intentionally EXCLUDED — it is a channel-share weight
+# (mixture mass) not a softmax additive bias, so it stays bounded
+# [0, 1] under both parameterizations.
+KAPPA_FAMILY_PARAMS: set[str] = {"kappa", "kappa_s", "kappa_total"}
+
+
 # Legacy MLE-calibrated defaults (kept for sensitivity analysis).
 # Use via `sample_bounded_param(..., mu_prior_loc=_PRIOR_LEGACY_MLE_CALIBRATED[p])`
 # when reproducing pre-v4.0-refactor fits.
@@ -276,13 +360,27 @@ _PRIOR_LEGACY_MLE_CALIBRATED: dict[str, float] = {
 def sample_model_params(
     model_name: str,
     n_participants: int,
+    *,
+    kappa_parameterization: str = "softmax",
 ) -> dict[str, jnp.ndarray]:
-    """Sample all bounded parameters for a given model.
+    """Sample all parameters for a given model.
 
     Iterates over the parameter list for ``model_name`` from
     ``MODEL_REGISTRY``, looks up each parameter's prior defaults from
-    :data:`PARAM_PRIOR_DEFAULTS`, and calls :func:`sample_bounded_param`
-    (or :func:`sample_capacity` for ``"capacity"``).
+    :data:`PARAM_PRIOR_DEFAULTS`, and dispatches to the appropriate
+    sampler:
+
+    - kappa-family parameters (:data:`KAPPA_FAMILY_PARAMS`) under
+      ``kappa_parameterization="softmax"``: sampled via
+      :func:`sample_unbounded_normal_param` clipped to ``[-1, 1]``
+      (Collins 2025 softmax-bias formulation).
+    - kappa-family parameters under ``kappa_parameterization="convex"``:
+      sampled via :func:`sample_bounded_param` in ``[0, 1]``
+      (Senta 2025 convex-mixture formulation, legacy v5.0 behavior).
+    - ``"capacity"``: dispatched to :func:`sample_capacity` (K in
+      ``[2, 6]``).
+    - All other bounded params: :func:`sample_bounded_param` with
+      defaults from :data:`PARAM_PRIOR_DEFAULTS`.
 
     Parameters not in ``PARAM_PRIOR_DEFAULTS`` (e.g., LBA parameters)
     are skipped with a warning and must be sampled manually.
@@ -293,13 +391,28 @@ def sample_model_params(
         Key into ``config.MODEL_REGISTRY`` (e.g. ``"wmrl_m3"``).
     n_participants : int
         Number of participants.
+    kappa_parameterization : str, optional
+        One of ``{"softmax", "convex"}``. Default ``"softmax"`` per
+        Phase 32-04 user decision (Collins 2025 alignment).
+        ``"convex"`` reproduces v5.0 pre-Phase-32 behavior.
 
     Returns
     -------
     dict[str, jnp.ndarray]
         Mapping from parameter name to sampled array of shape
         ``(n_participants,)``.
+
+    Raises
+    ------
+    ValueError
+        If ``kappa_parameterization`` is not in ``{"softmax", "convex"}``.
     """
+    if kappa_parameterization not in {"softmax", "convex"}:
+        raise ValueError(
+            f"kappa_parameterization must be 'softmax' or 'convex', "
+            f"got {kappa_parameterization!r}"
+        )
+
     params_list: list[str] = MODEL_REGISTRY[model_name]["params"]
     sampled: dict[str, jnp.ndarray] = {}
 
@@ -309,6 +422,23 @@ def sample_model_params(
             continue
 
         defaults = PARAM_PRIOR_DEFAULTS[param_name]
+
+        # Phase 32-04: dispatch kappa-family params on parameterization.
+        if (
+            kappa_parameterization == "softmax"
+            and param_name in KAPPA_FAMILY_PARAMS
+        ):
+            sampled[param_name] = sample_unbounded_normal_param(
+                param_name,
+                n_participants=n_participants,
+                mu_prior_loc=0.0,
+                mu_prior_scale=0.5,
+                sigma_prior_scale=0.5,
+                clip_lower=-1.0,
+                clip_upper=1.0,
+            )
+            continue
+
         sampled[param_name] = sample_bounded_param(
             param_name,
             lower=defaults["lower"],

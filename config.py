@@ -306,6 +306,95 @@ CHOICE_ONLY_MODELS: list[str] = [k for k, v in MODEL_REGISTRY.items() if v['is_c
 BAYESIAN_FANOUT_MODELS: list[str] = ["qlearning", "wmrl", "wmrl_m6b"]
 
 # ============================================================================
+# PHASE 32-04: KAPPA PARAMETERIZATION-AWARE PARAMETER BOUNDS
+# ============================================================================
+# kappa bounds depend on parameterization mode (Phase 32-04 user decision):
+#   - "convex"  (Senta 2025):  kappa in [0, 1]   (mixture weight)
+#   - "softmax" (Collins 2025): kappa in [-1, 1]  (softmax additive bias)
+# kappa_share is always [0, 1] under both modes (channel-share, not a
+# softmax bias).
+
+_KAPPA_FAMILY_BOUNDS: dict[str, dict[str, tuple[float, float]]] = {
+    "convex": {
+        "kappa": (0.0, 1.0),
+        "kappa_s": (0.0, 1.0),
+        "kappa_total": (0.0, 1.0),
+    },
+    "softmax": {
+        "kappa": (-1.0, 1.0),
+        "kappa_s": (-1.0, 1.0),
+        "kappa_total": (-1.0, 1.0),
+    },
+}
+
+_STATIC_PARAM_BOUNDS: dict[str, tuple[float, float]] = {
+    "alpha_pos": (0.0, 1.0),
+    "alpha_neg": (0.0, 1.0),
+    "epsilon": (0.0, 1.0),
+    "phi": (0.0, 1.0),
+    "rho": (0.0, 1.0),
+    "capacity": (2.0, 6.0),
+    "kappa_share": (0.0, 1.0),
+    "phi_rl": (0.0, 1.0),
+    # LBA params (M4) — bounds defined in src/rlwm/fitting/mle.py
+}
+
+
+def get_param_bounds(
+    model_name: str,
+    kappa_parameterization: str = "softmax",
+) -> dict[str, tuple[float, float]]:
+    """Return per-parameter (lower, upper) bounds for a model.
+
+    Single source of truth for kappa-aware parameter bounds. kappa-family
+    bounds depend on ``kappa_parameterization``: ``"convex"`` returns the
+    Senta 2025 bounds (0, 1); ``"softmax"`` returns the Collins 2025
+    bounds (-1, 1). All other parameter bounds are taken from
+    :data:`_STATIC_PARAM_BOUNDS`.
+
+    LBA parameters (M4-only: v_scale, A, delta, t0) are not handled here;
+    M4 retains its own bound definitions in
+    :mod:`src.rlwm.fitting.mle`.
+
+    Parameters
+    ----------
+    model_name : str
+        Key into :data:`MODEL_REGISTRY`.
+    kappa_parameterization : str, optional
+        One of ``{"softmax", "convex"}``. Default ``"softmax"`` per
+        Phase 32-04 user decision (Collins 2025 alignment).
+
+    Returns
+    -------
+    dict[str, tuple[float, float]]
+        Maps each in-registry parameter name to its ``(lower, upper)``
+        bounds. LBA params are skipped (not in either lookup table).
+
+    Raises
+    ------
+    ValueError
+        If ``kappa_parameterization`` is not in ``{"softmax", "convex"}``.
+    KeyError
+        If ``model_name`` is not in :data:`MODEL_REGISTRY`.
+    """
+    if kappa_parameterization not in _KAPPA_FAMILY_BOUNDS:
+        raise ValueError(
+            f"kappa_parameterization must be 'softmax' or 'convex', "
+            f"got {kappa_parameterization!r}"
+        )
+    params = MODEL_REGISTRY[model_name]["params"]
+    kappa_bounds = _KAPPA_FAMILY_BOUNDS[kappa_parameterization]
+    result: dict[str, tuple[float, float]] = {}
+    for p in params:
+        if p in kappa_bounds:
+            result[p] = kappa_bounds[p]
+        elif p in _STATIC_PARAM_BOUNDS:
+            result[p] = _STATIC_PARAM_BOUNDS[p]
+        # LBA params skipped intentionally; M4 bounds live in mle.py.
+    return result
+
+
+# ============================================================================
 # PYMC SAMPLING PARAMETERS
 # ============================================================================
 
