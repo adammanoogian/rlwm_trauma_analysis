@@ -163,6 +163,19 @@ def main() -> None:
             "kappa in [0, 1] (legacy revert path)."
         ),
     )
+    parser.add_argument(
+        "--output-subdir",
+        default=BASELINE_SUBDIR,
+        help=(
+            "Subdirectory under {output}/bayesian/ for artefacts (default: "
+            f"{BASELINE_SUBDIR!r}). Phase 32-05 cluster smoke overrides this "
+            "to '32_smoke_softmax' / '32_smoke_convex' so smoke artefacts do "
+            "NOT overwrite the canonical 21_baseline/ posteriors. The "
+            "post-fit expected.exists() convergence-gate check follows the "
+            "override path so that gate remains load-bearing under either "
+            "subdir."
+        ),
+    )
     args = parser.parse_args()
 
     print("=" * 80)
@@ -176,7 +189,10 @@ def main() -> None:
     print(f"  Seed: {args.seed}")
     print(f"  Max tree depth: {args.max_tree_depth}")
     print(f"  Output: {args.output}")
-    print(f"  Output subdir: bayesian/{BASELINE_SUBDIR}/ (forced)")
+    print(
+        f"  Output subdir: bayesian/{args.output_subdir}/"
+        f"{' (forced)' if args.output_subdir == BASELINE_SUBDIR else ' (override)'}"
+    )
     print(f"  Kappa parameterization: {args.kappa_parameterization}")
     print("=" * 80)
 
@@ -203,7 +219,7 @@ def main() -> None:
         "--output",
         args.output,
         "--output-subdir",
-        BASELINE_SUBDIR,
+        args.output_subdir,
         "--kappa-parameterization",
         args.kappa_parameterization,
     ]
@@ -226,7 +242,10 @@ def main() -> None:
     # orchestrator (plan 21-10).
     # ------------------------------------------------------------------
     expected = (
-        Path(args.output) / "bayesian" / BASELINE_SUBDIR / f"{args.model}_posterior.nc"
+        Path(args.output)
+        / "bayesian"
+        / args.output_subdir
+        / f"{args.model}_posterior.nc"
     )
     if not expected.exists():
         print(

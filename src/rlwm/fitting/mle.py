@@ -3346,6 +3346,19 @@ def main():
         "--output", type=str, default="models/mle/", help="Output directory"
     )
     parser.add_argument(
+        "--output-subdir",
+        type=str,
+        default=None,
+        help=(
+            "Optional subdirectory under --output where artefacts land. "
+            "Mirrors fit_baseline.py / fit_bayesian.py conventions so the "
+            "Phase 32-05 smoke template can route per-mode artefacts to "
+            "models/mle/32_smoke_${KAPPA_MODE}/ without overwriting the "
+            "canonical models/mle/ baseline. Default: None (write directly "
+            "under --output)."
+        ),
+    )
+    parser.add_argument(
         "--n-starts",
         type=int,
         default=50,
@@ -3406,8 +3419,12 @@ def main():
             preprocess_rt_block,  # noqa: F401 (triggers float64)
         )
 
-    # Create output directory
+    # Create output directory. Phase 32-05 adds --output-subdir to mirror the
+    # fit_baseline.py / fit_bayesian.py convention; when set, artefacts land
+    # under {output}/{output_subdir}/ instead of {output}/ directly.
     output_dir = Path(args.output)
+    if args.output_subdir:
+        output_dir = output_dir / args.output_subdir
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # GPU detection
@@ -3434,7 +3451,9 @@ def main():
     print(f"Data: {args.data}")
     print(f"Random starts: {args.n_starts}")
     print(f"Seed: {args.seed}")
-    print(f"Output: {args.output}")
+    print(f"Output: {output_dir}")
+    if args.output_subdir:
+        print(f"  (root={args.output}, subdir={args.output_subdir})")
     print(f"Kappa parameterization: {args.kappa_parameterization}")
     print(f"Include practice: {args.include_practice}")
     print(
