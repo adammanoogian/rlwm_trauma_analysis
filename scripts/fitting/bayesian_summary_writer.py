@@ -145,8 +145,10 @@ def _build_column_order(param_names: list[str]) -> list[str]:
     cols += ["min_bfmi", "per_chain_ess_bulk"]
     # Standard outcome columns
     cols += ["n_trials", "converged", "at_bounds"]
-    # Parameterisation metadata
-    cols += ["parameterization_version"]
+    # Parameterisation metadata. Phase 32-04 adds kappa_parameterization
+    # immediately after parameterization_version so legacy readers tolerate
+    # additive change.
+    cols += ["parameterization_version", "kappa_parameterization"]
     return cols
 
 
@@ -166,6 +168,7 @@ def write_bayesian_summary(
     n_trials_per_participant: list[int] | None = None,
     hdi_prob: float = 0.95,
     output_subdir: str | None = None,
+    kappa_parameterization: str,
 ) -> Path:
     """Write schema-parity CSV for a Bayesian hierarchical fit.
 
@@ -205,12 +208,24 @@ def write_bayesian_summary(
         When set, writes to ``output_dir/bayesian/<output_subdir>/`` so Phase
         21 outputs never overwrite Phase 16 artefacts. Default None preserves
         backward compatibility.
+    kappa_parameterization : str
+        Required. One of ``{"softmax", "convex"}``. Written verbatim to the
+        ``kappa_parameterization`` CSV column for every row. Phase 32-04
+        addition (Collins 2025 vs Senta 2025 formulation tag). Callers
+        re-summarising legacy pre-Phase-32 .nc artefacts should pass
+        ``"convex"`` (those fits were all under convex mode).
 
     Returns
     -------
     Path
         Path to the written CSV file.
     """
+    if kappa_parameterization not in {"softmax", "convex"}:
+        raise ValueError(
+            f"kappa_parameterization must be 'softmax' or 'convex', "
+            f"got {kappa_parameterization!r}"
+        )
+
     import arviz as az
 
     if param_names is None:
@@ -401,6 +416,7 @@ def write_bayesian_summary(
             ""  # not applicable for Bayesian — posterior can explore whole space
         )
         row["parameterization_version"] = parameterization_version
+        row["kappa_parameterization"] = kappa_parameterization
 
         rows.append(row)
 

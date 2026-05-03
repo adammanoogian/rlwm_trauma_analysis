@@ -336,6 +336,8 @@ def _fit_stacked_model(
     subscale: bool = False,
     max_tree_depth: int = 10,
     use_pscan: bool = False,
+    *,
+    kappa_parameterization: str = "softmax",
 ) -> tuple[object, dict]:
     """Fit a canonical stacked hierarchical model.
 
@@ -395,6 +397,22 @@ def _fit_stacked_model(
     # ------------------------------------------------------------------
     # Build model_args based on subscale flag or standard L2 covariate
     # ------------------------------------------------------------------
+    # Phase 32-04: kappa-family models accept kappa_parameterization
+    # kwarg. M1 (qlearning) and M2 (wmrl) do not have kappa, so the kwarg
+    # is omitted from their model_args. M4 fits through a separate
+    # pipeline (not _fit_stacked_model).
+    _KAPPA_BEARING_MODELS = {
+        "wmrl_m3",
+        "wmrl_m5",
+        "wmrl_m6a",
+        "wmrl_m6b",
+    }
+    kappa_kwargs = (
+        {"kappa_parameterization": kappa_parameterization}
+        if model in _KAPPA_BEARING_MODELS
+        else {}
+    )
+
     if subscale and model == "wmrl_m6b":
         # Full subscale design matrix path (L2-05)
         print(
@@ -409,6 +427,7 @@ def _fit_stacked_model(
             "covariate_matrix": covariate_matrix,
             "covariate_names": cov_names,
             "use_pscan": use_pscan,
+            **kappa_kwargs,
         }
     else:
         # Standard path: single LEC covariate (or None for M1/M2)
@@ -440,12 +459,14 @@ def _fit_stacked_model(
                 "covariate_lec": covariate_lec,
                 "stacked_arrays": stacked_arrays,
                 "use_pscan": use_pscan,
+                **kappa_kwargs,
             }
         else:
             model_args = {
                 "participant_data_stacked": participant_data_stacked,
                 "covariate_lec": covariate_lec,
                 "use_pscan": use_pscan,
+                **kappa_kwargs,
             }
 
     print("\n>> Running MCMC inference (NUTS + convergence auto-bump)...")
@@ -504,6 +525,8 @@ def fit_model(
     subscale: bool = False,
     max_tree_depth: int = 10,
     use_pscan: bool = False,
+    *,
+    kappa_parameterization: str = "softmax",
 ) -> tuple[object, dict]:
     """Fit a hierarchical Bayesian model.
 
@@ -589,6 +612,7 @@ def fit_model(
         subscale=subscale,
         max_tree_depth=max_tree_depth,
         use_pscan=use_pscan,
+        kappa_parameterization=kappa_parameterization,
     )
 
 
@@ -602,6 +626,7 @@ def save_results(
     use_pscan: bool = False,
     *,
     output_subdir: str | None = None,
+    kappa_parameterization: str = "softmax",
 ) -> object:
     """Save fitting results to disk.
 
@@ -775,6 +800,7 @@ def save_results(
             ),
             n_trials_per_participant=n_trials_per_ppt,
             output_subdir=output_subdir,
+            kappa_parameterization=kappa_parameterization,
         )
         print(f"  Saved: {csv_path}")
 
@@ -1111,6 +1137,17 @@ def main() -> None:
             "compatible with Phase 16 SLURM scripts)."
         ),
     )
+    parser.add_argument(
+        "--kappa-parameterization",
+        choices=["softmax", "convex"],
+        default="softmax",
+        help=(
+            "Perseveration kappa parameterization. "
+            "'softmax': Collins 2025 additive bias kappa in [-1, 1] "
+            "(Phase 32-04 default). 'convex': Senta 2025 mixture "
+            "kappa in [0, 1] (legacy revert path)."
+        ),
+    )
 
     args = parser.parse_args()
 
@@ -1147,6 +1184,7 @@ def main() -> None:
         print(f"  Permutation shuffle: {args.permutation_shuffle}")
     if args.output_subdir:
         print(f"  Output subdir: bayesian/{args.output_subdir}/ (Phase 21 layout)")
+    print(f"  Kappa parameterization: {args.kappa_parameterization}")
 
     # Validate --subscale
     if args.subscale and args.model != "wmrl_m6b":
@@ -1202,6 +1240,7 @@ def main() -> None:
         subscale=args.subscale,
         max_tree_depth=args.max_tree_depth,
         use_pscan=args.use_pscan,
+        kappa_parameterization=args.kappa_parameterization,
     )
 
     # extra is participant_data_stacked for all stacked models
@@ -1216,6 +1255,7 @@ def main() -> None:
         else None,
         use_pscan=args.use_pscan,
         output_subdir=args.output_subdir,
+        kappa_parameterization=args.kappa_parameterization,
     )
 
     print("\n" + "=" * 80)

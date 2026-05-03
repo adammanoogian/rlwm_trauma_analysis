@@ -152,6 +152,17 @@ def main() -> None:
         default=str(MODELS_DIR),
         help="Root output directory (default: models).",
     )
+    parser.add_argument(
+        "--kappa-parameterization",
+        choices=["softmax", "convex"],
+        default="softmax",
+        help=(
+            "Perseveration kappa parameterization. "
+            "'softmax': Collins 2025 additive bias kappa in [-1, 1] "
+            "(Phase 32-04 default). 'convex': Senta 2025 mixture "
+            "kappa in [0, 1] (legacy revert path)."
+        ),
+    )
     args = parser.parse_args()
 
     print("=" * 80)
@@ -166,6 +177,7 @@ def main() -> None:
     print(f"  Max tree depth: {args.max_tree_depth}")
     print(f"  Output: {args.output}")
     print(f"  Output subdir: bayesian/{BASELINE_SUBDIR}/ (forced)")
+    print(f"  Kappa parameterization: {args.kappa_parameterization}")
     print("=" * 80)
 
     # Delegate to fit_bayesian.main() with the fixed baseline flags.
@@ -192,6 +204,8 @@ def main() -> None:
         args.output,
         "--output-subdir",
         BASELINE_SUBDIR,
+        "--kappa-parameterization",
+        args.kappa_parameterization,
     ]
     fit_main()
 

@@ -262,6 +262,7 @@ def test_summary_includes_bfmi_and_per_chain_ess_columns(tmp_path):
         participant_ids=["S001", "S002"],
         parameterization_version="test-32-01",
         n_trials_per_participant=[420, 420],
+        kappa_parameterization="convex",
     )
 
     df = pd.read_csv(out_path)
@@ -319,6 +320,7 @@ def test_converged_flag_fails_under_low_bfmi(tmp_path, monkeypatch):
         participant_ids=["S001", "S002"],
         parameterization_version="test-32-01-low-bfmi",
         n_trials_per_participant=[420, 420],
+        kappa_parameterization="convex",
     )
 
     df = pd.read_csv(out_path)
