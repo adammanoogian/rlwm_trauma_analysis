@@ -77,3 +77,48 @@ def test_v4_closure_rejects_wrong_milestone() -> None:
 
     with pytest.raises((ValueError, SystemExit)):
         main(["--milestone", "v3.0"])
+
+
+def test_phase32_bayesian_fanout_narrowed() -> None:
+    """Phase 32-03: Bayesian fan-out drops M3, M5, M6a (M6b corner cases).
+
+    M3 = M6b at kappa_share=1.0; M6a = M6b at kappa_share=0.0.
+    Collins 2025 Methods p.366 says phi_rl (M5's distinguishing param)
+    is unnecessary. All 7 models still in MLE for AIC table.
+    """
+    from config import ALL_MODELS, BAYESIAN_FANOUT_MODELS
+
+    # Bayesian fan-out is exactly the unrestricted set
+    assert sorted(BAYESIAN_FANOUT_MODELS) == sorted(
+        ["qlearning", "wmrl", "wmrl_m6b"]
+    ), (
+        f"BAYESIAN_FANOUT_MODELS drift: expected "
+        f"['qlearning', 'wmrl', 'wmrl_m6b'], got {BAYESIAN_FANOUT_MODELS}"
+    )
+
+    # MLE fan-out is unchanged - all 7 models still here
+    for m in (
+        "qlearning",
+        "wmrl",
+        "wmrl_m3",
+        "wmrl_m5",
+        "wmrl_m6a",
+        "wmrl_m6b",
+        "wmrl_m4",
+    ):
+        assert m in ALL_MODELS, f"{m} missing from ALL_MODELS"
+
+    # Sanity: every Bayesian model is also in ALL_MODELS
+    for m in BAYESIAN_FANOUT_MODELS:
+        assert m in ALL_MODELS, f"{m} in BAYESIAN_FANOUT_MODELS but not ALL_MODELS"
+
+
+def test_phase32_submit_all_narrowed_bayes_default() -> None:
+    """Phase 32-03: submit_all.sh defaults to narrowed Bayesian fan-out."""
+    submit_all = (REPO_ROOT / "cluster" / "submit_all.sh").read_text()
+    # Default value should be the narrowed list
+    expected = 'BAYES_MODELS="${BAYES_MODELS:-qlearning wmrl wmrl_m6b}"'
+    assert expected in submit_all, (
+        f"submit_all.sh BAYES_MODELS default does not match narrowed "
+        f"Phase 32-03 list. Expected line: {expected}"
+    )
