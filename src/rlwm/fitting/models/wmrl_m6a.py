@@ -66,6 +66,8 @@ def wmrl_m6a_fully_batched_likelihood(
     q_init: float = 0.5,
     wm_init: float = 1.0 / 3.0,
     use_pscan: bool = False,
+    *,
+    parameterization: str = "softmax",
 ) -> jnp.ndarray:
     """Fully-batched WM-RL+kappa_s (M6a) log-likelihood via nested vmap.
 
@@ -108,6 +110,7 @@ def wmrl_m6a_fully_batched_likelihood(
             wm_init=wm_init,
             mask=mask,
             return_pointwise=False,
+            parameterization=parameterization,
         )
 
     _over_blocks = jax.vmap(
@@ -150,6 +153,7 @@ def wmrl_m6a_block_likelihood(
     mask: jnp.ndarray = None,
     *,
     return_pointwise: bool = False,
+    parameterization: str = "softmax",
 ) -> float | tuple[float, jnp.ndarray]:
     """
     Compute log-likelihood for WM-RL M6a model with stimulus-specific perseveration.
@@ -257,31 +261,50 @@ def wmrl_m6a_block_likelihood(
         # Get stimulus-specific last action (sentinel -1 = never seen in block)
         last_action_s = last_actions[stimulus]
 
-        # Gate: no kernel if kappa_s == 0 OR this stimulus never seen in this block
-        use_m2_path = jnp.logical_or(kappa_s == 0.0, last_action_s < 0)
-
-        # Both paths start with M2 probability mixing
-        rl_probs = softmax_policy(q_vals, FIXED_BETA)
-        wm_probs = softmax_policy(wm_vals, FIXED_BETA)
-        base_probs = omega * wm_probs + (1 - omega) * rl_probs
-        base_probs = base_probs / jnp.sum(base_probs)  # Normalize
-
-        # Apply epsilon noise to base policy
-        noisy_base = apply_epsilon_noise(base_probs, epsilon, num_actions)
-
         # =================================================================
-        # M6a path: Stimulus-specific choice kernel
-        # P_M6a = (1-kappa_s)*P_noisy + kappa_s*Ck(stimulus)
-        # where Ck(stimulus) = one-hot(last_actions[stimulus])
+        # Phase 32-04: parameterization branch (M6a uses per-stimulus
+        # last_action_s in the perseveration kernel; structure otherwise
+        # identical to M3). See wmrl_m3.py for full design rationale.
         # =================================================================
-        # Clamp prevents bad indexing when sentinel is -1 (safe because masked by use_m2_path)
-        choice_kernel = jnp.eye(num_actions)[jnp.maximum(last_action_s, 0)]
+        if parameterization == "softmax":
+            last_action_one_hot = jnp.eye(num_actions)[
+                jnp.maximum(last_action_s, 0)
+            ]
+            mask_la = (last_action_s >= 0).astype(jnp.float32)
+            last_action_one_hot = last_action_one_hot * mask_la
 
-        # Probability mixing: (1-kappa_s)*noisy_base + kappa_s*choice_kernel
-        hybrid_probs_m6a = (1 - kappa_s) * noisy_base + kappa_s * choice_kernel
+            rl_logits = FIXED_BETA * q_vals
+            wm_logits = FIXED_BETA * wm_vals
+            mixed_logits = omega * wm_logits + (1.0 - omega) * rl_logits
 
-        # Select correct path: M2 uses noisy_base, M6a uses probability mixing
-        noisy_probs = jnp.where(use_m2_path, noisy_base, hybrid_probs_m6a)
+            biased_logits = mixed_logits + kappa_s * last_action_one_hot
+            base_probs = jax.nn.softmax(biased_logits)
+            noisy_probs = (1.0 - epsilon) * base_probs + epsilon / num_actions
+        else:  # parameterization == "convex" — preserved bit-for-bit
+            # Gate: no kernel if kappa_s == 0 OR this stimulus never seen
+            use_m2_path = jnp.logical_or(kappa_s == 0.0, last_action_s < 0)
+
+            # Both paths start with M2 probability mixing
+            rl_probs = softmax_policy(q_vals, FIXED_BETA)
+            wm_probs = softmax_policy(wm_vals, FIXED_BETA)
+            base_probs = omega * wm_probs + (1 - omega) * rl_probs
+            base_probs = base_probs / jnp.sum(base_probs)  # Normalize
+
+            noisy_base = apply_epsilon_noise(base_probs, epsilon, num_actions)
+
+            # M6a path: Stimulus-specific choice kernel
+            # P_M6a = (1-kappa_s)*P_noisy + kappa_s*Ck(stimulus)
+            # Clamp prevents bad indexing when sentinel is -1 (gated by
+            # use_m2_path).
+            choice_kernel = jnp.eye(num_actions)[
+                jnp.maximum(last_action_s, 0)
+            ]
+            hybrid_probs_m6a = (
+                (1 - kappa_s) * noisy_base + kappa_s * choice_kernel
+            )
+            noisy_probs = jnp.where(
+                use_m2_path, noisy_base, hybrid_probs_m6a
+            )
 
         # Log probability of observed action
         log_prob = jnp.log(noisy_probs[action] + 1e-8)
@@ -347,7 +370,9 @@ def wmrl_m6a_multiblock_likelihood(
     wm_init: float = 1.0 / 3.0,  # WM baseline = 1/nA (uniform)
     masks_blocks: list = None,
     verbose: bool = False,
-    participant_id: str = None
+    participant_id: str = None,
+    *,
+    parameterization: str = "softmax",
 ) -> float:
     """
     Compute log-likelihood for WM-RL M6a (stimulus-specific perseveration) across MULTIPLE BLOCKS.
@@ -389,7 +414,8 @@ def wmrl_m6a_multiblock_likelihood(
                 num_actions=num_actions,
                 q_init=q_init,
                 wm_init=wm_init,
-                mask=masks_stacked[block_idx]
+                mask=masks_stacked[block_idx],
+                parameterization=parameterization,
             )
             return total_ll + block_ll
 
@@ -421,7 +447,8 @@ def wmrl_m6a_multiblock_likelihood(
                 num_actions=num_actions,
                 q_init=q_init,
                 wm_init=wm_init,
-                mask=mask_block
+                mask=mask_block,
+                parameterization=parameterization,
             )
             total_log_lik += block_log_lik
 
@@ -449,6 +476,7 @@ def wmrl_m6a_multiblock_likelihood_stacked(
     wm_init: float = 1.0 / 3.0,
     *,
     return_pointwise: bool = False,
+    parameterization: str = "softmax",
 ) -> float | tuple[float, jnp.ndarray]:
     """
     FAST WM-RL M6a multiblock likelihood that takes pre-stacked arrays directly.
@@ -486,6 +514,7 @@ def wmrl_m6a_multiblock_likelihood_stacked(
                 wm_init=wm_init,
                 mask=masks_stacked[block_idx],
                 return_pointwise=True,
+                parameterization=parameterization,
             )
             return total_ll + block_ll, block_probs
 
@@ -511,7 +540,8 @@ def wmrl_m6a_multiblock_likelihood_stacked(
                 num_actions=num_actions,
                 q_init=q_init,
                 wm_init=wm_init,
-                mask=masks_stacked[block_idx]
+                mask=masks_stacked[block_idx],
+                parameterization=parameterization,
             )
             return total_ll + block_ll
 
@@ -536,6 +566,7 @@ def wmrl_m6a_block_likelihood_pscan(
     mask: jnp.ndarray = None,
     *,
     return_pointwise: bool = False,
+    parameterization: str = "softmax",
 ) -> float | tuple[float, jnp.ndarray]:
     """
     WM-RL M6a block likelihood using parallel scan (stimulus-specific perseveration).
@@ -599,10 +630,34 @@ def wmrl_m6a_block_likelihood_pscan(
     last_action_stim = precompute_last_actions_per_stimulus(
         stimuli, actions, mask, num_stimuli
     )  # (T,)
-    use_m2_path = jnp.logical_or(kappa_s == 0.0, last_action_stim < 0)  # (T,)
-    choice_kernels = jnp.eye(num_actions)[jnp.maximum(last_action_stim, 0)]  # (T, A)
-    hybrid_probs = (1 - kappa_s) * noisy_base + kappa_s * choice_kernels
-    noisy_probs = jnp.where(use_m2_path[:, None], noisy_base, hybrid_probs)  # (T, A)
+
+    # Phase 32-04: parameterization branch (M6a pscan path).
+    if parameterization == "softmax":
+        mask_la = (last_action_stim >= 0).astype(jnp.float32)[:, None]
+        last_action_one_hot = (
+            jnp.eye(num_actions)[jnp.maximum(last_action_stim, 0)] * mask_la
+        )
+        rl_logits = FIXED_BETA * q_vals
+        wm_logits = FIXED_BETA * wm_vals
+        mixed_logits = (
+            omega[:, None] * wm_logits + (1.0 - omega[:, None]) * rl_logits
+        )
+        biased_logits = mixed_logits + kappa_s * last_action_one_hot
+        base_probs_smax = jax.nn.softmax(biased_logits, axis=-1)
+        noisy_probs = (
+            (1.0 - epsilon) * base_probs_smax + epsilon / num_actions
+        )
+    else:  # parameterization == "convex" — preserved bit-for-bit
+        use_m2_path = jnp.logical_or(
+            kappa_s == 0.0, last_action_stim < 0
+        )  # (T,)
+        choice_kernels = jnp.eye(num_actions)[
+            jnp.maximum(last_action_stim, 0)
+        ]  # (T, A)
+        hybrid_probs = (1 - kappa_s) * noisy_base + kappa_s * choice_kernels
+        noisy_probs = jnp.where(
+            use_m2_path[:, None], noisy_base, hybrid_probs
+        )  # (T, A)
 
     log_probs = jnp.log(noisy_probs[t_idx, actions] + 1e-8) * mask
 
@@ -629,6 +684,7 @@ def wmrl_m6a_multiblock_likelihood_stacked_pscan(
     wm_init: float = 1.0 / 3.0,
     *,
     return_pointwise: bool = False,
+    parameterization: str = "softmax",
 ) -> float | tuple[float, jnp.ndarray]:
     """
     WM-RL M6a multiblock likelihood using parallel scan.
@@ -671,6 +727,7 @@ def wmrl_m6a_multiblock_likelihood_stacked_pscan(
                 wm_init=wm_init,
                 mask=masks_stacked[block_idx],
                 return_pointwise=True,
+                parameterization=parameterization,
             )
             return total_ll + block_ll, block_probs
 
@@ -697,6 +754,7 @@ def wmrl_m6a_multiblock_likelihood_stacked_pscan(
                 q_init=q_init,
                 wm_init=wm_init,
                 mask=masks_stacked[block_idx],
+                parameterization=parameterization,
             )
             return total_ll + block_ll
 

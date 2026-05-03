@@ -58,7 +58,7 @@ def wmrl_m3_block_likelihood(
     phi: float,
     rho: float,
     capacity: float,
-    kappa: float,  # NEW: perseveration parameter
+    kappa: float,  # perseveration parameter
     epsilon: float = DEFAULT_EPSILON,
     num_stimuli: int = 6,
     num_actions: int = 3,
@@ -67,6 +67,7 @@ def wmrl_m3_block_likelihood(
     mask: jnp.ndarray = None,
     *,
     return_pointwise: bool = False,
+    parameterization: str = "softmax",
 ) -> float | tuple[float, jnp.ndarray]:
     """
     Compute log-likelihood for WM-RL M3 model with perseveration on a SINGLE BLOCK.
@@ -191,32 +192,64 @@ def wmrl_m3_block_likelihood(
         # Adaptive weight: ω = ρ * min(1, K/N_s)
         omega = rho * jnp.minimum(1.0, capacity / set_size)
 
-        # Branch: M2 (probability mixing) vs M3 (probability mixing + perseveration)
-        use_m2_path = jnp.logical_or(kappa == 0.0, last_action < 0)
-
         # =================================================================
-        # Both paths start with M2 probability mixing
+        # Phase 32-04: parameterization branch.
+        # 'softmax' (Collins 2025, default): kappa is an additive bias on
+        #   the last-action logit; mixed channel = softmax(omega * beta*W
+        #   + (1-omega) * beta*Q + kappa * I(a, a_{t-1})). Asymmetric vs
+        #   the convex branch: WM/RL channels are mixed in LOGIT space.
+        # 'convex' (Senta 2025, legacy): preserved bit-for-bit. WM/RL
+        #   channels mixed in PROBABILITY space; kappa is a mixture
+        #   weight onto a one-hot choice kernel.
+        # See docs/03_methods_reference/MODEL_REFERENCE.md §3.6.
         # =================================================================
-        rl_probs = softmax_policy(q_vals, FIXED_BETA)
-        wm_probs = softmax_policy(wm_vals, FIXED_BETA)
-        base_probs = omega * wm_probs + (1 - omega) * rl_probs
-        base_probs = base_probs / jnp.sum(base_probs)  # Normalize
+        if parameterization == "softmax":
+            # Mask out invalid last_action: zero bias on first trial.
+            last_action_one_hot = jnp.eye(num_actions)[
+                jnp.maximum(last_action, 0)
+            ]
+            mask_la = (last_action >= 0).astype(jnp.float32)
+            last_action_one_hot = last_action_one_hot * mask_la
 
-        # Apply epsilon noise to base policy
-        noisy_base = apply_epsilon_noise(base_probs, epsilon, num_actions)
+            # Logit-space channel mix (Collins 2025 WMH).
+            rl_logits = FIXED_BETA * q_vals
+            wm_logits = FIXED_BETA * wm_vals
+            mixed_logits = omega * wm_logits + (1.0 - omega) * rl_logits
 
-        # =================================================================
-        # M3 path: Probability mixing with choice kernel (Senta et al.)
-        # P_M3 = (1-κ)*P_noisy + κ*Ck where Ck = one-hot(last_action)
-        # =================================================================
-        # Choice kernel = one-hot of last action (τ=1 simplification)
-        choice_kernel = jnp.eye(num_actions)[jnp.maximum(last_action, 0)]  # Clamp for indexing
+            # Add perseveration bias and apply softmax.
+            biased_logits = mixed_logits + kappa * last_action_one_hot
+            base_probs = jax.nn.softmax(biased_logits)
 
-        # Probability mixing: (1-κ)*noisy_base + κ*choice_kernel
-        hybrid_probs_m3 = (1 - kappa) * noisy_base + kappa * choice_kernel
+            # Apply epsilon noise after softmax (mirror Senta 2025
+            # placement: noisy = (1-eps)*p + eps/nA).
+            noisy_probs = (1.0 - epsilon) * base_probs + epsilon / num_actions
+        else:  # parameterization == "convex" — preserved bit-for-bit
+            # Branch: M2 (probability mixing) vs M3 (probability mixing
+            # + perseveration). Required for backward compat at kappa=0.
+            use_m2_path = jnp.logical_or(kappa == 0.0, last_action < 0)
 
-        # Select correct path: M2 uses noisy_base, M3 uses probability mixing
-        noisy_probs = jnp.where(use_m2_path, noisy_base, hybrid_probs_m3)
+            # ============================================================
+            # Both paths start with M2 probability mixing
+            # ============================================================
+            rl_probs = softmax_policy(q_vals, FIXED_BETA)
+            wm_probs = softmax_policy(wm_vals, FIXED_BETA)
+            base_probs = omega * wm_probs + (1 - omega) * rl_probs
+            base_probs = base_probs / jnp.sum(base_probs)  # Normalize
+
+            # Apply epsilon noise to base policy
+            noisy_base = apply_epsilon_noise(base_probs, epsilon, num_actions)
+
+            # ============================================================
+            # M3 path: Probability mixing with choice kernel (Senta et al.)
+            # P_M3 = (1-kappa)*P_noisy + kappa*Ck where Ck = one-hot(a_{t-1})
+            # ============================================================
+            choice_kernel = jnp.eye(num_actions)[
+                jnp.maximum(last_action, 0)
+            ]  # Clamp for indexing
+            hybrid_probs_m3 = (1 - kappa) * noisy_base + kappa * choice_kernel
+
+            # Select correct path: M2 uses noisy_base, M3 uses prob mix
+            noisy_probs = jnp.where(use_m2_path, noisy_base, hybrid_probs_m3)
 
         # Log probability of observed action
         log_prob = jnp.log(noisy_probs[action] + 1e-8)
@@ -270,7 +303,7 @@ def wmrl_m3_multiblock_likelihood(
     phi: float,
     rho: float,
     capacity: float,
-    kappa: float,  # NEW: perseveration parameter
+    kappa: float,  # perseveration parameter
     epsilon: float = DEFAULT_EPSILON,
     num_stimuli: int = 6,
     num_actions: int = 3,
@@ -278,7 +311,9 @@ def wmrl_m3_multiblock_likelihood(
     wm_init: float = 1.0 / 3.0,  # WM baseline = 1/nA (uniform)
     masks_blocks: list = None,
     verbose: bool = False,
-    participant_id: str = None
+    participant_id: str = None,
+    *,
+    parameterization: str = "softmax",
 ) -> float:
     """
     Compute log-likelihood for WM-RL M3 (with perseveration) across MULTIPLE BLOCKS.
@@ -380,7 +415,8 @@ def wmrl_m3_multiblock_likelihood(
                 num_actions=num_actions,
                 q_init=q_init,
                 wm_init=wm_init,
-                mask=masks_stacked[block_idx]
+                mask=masks_stacked[block_idx],
+                parameterization=parameterization,
             )
             return total_ll + block_ll
 
@@ -412,7 +448,8 @@ def wmrl_m3_multiblock_likelihood(
                 num_actions=num_actions,
                 q_init=q_init,
                 wm_init=wm_init,
-                mask=mask_block
+                mask=mask_block,
+                parameterization=parameterization,
             )
             total_log_lik += block_log_lik
 
@@ -440,6 +477,7 @@ def wmrl_m3_multiblock_likelihood_stacked(
     wm_init: float = 1.0 / 3.0,
     *,
     return_pointwise: bool = False,
+    parameterization: str = "softmax",
 ) -> float | tuple[float, jnp.ndarray]:
     """
     FAST WM-RL M3 multiblock likelihood that takes pre-stacked arrays directly.
@@ -476,6 +514,7 @@ def wmrl_m3_multiblock_likelihood_stacked(
                 wm_init=wm_init,
                 mask=masks_stacked[block_idx],
                 return_pointwise=True,
+                parameterization=parameterization,
             )
             return total_ll + block_ll, block_probs
 
@@ -501,7 +540,8 @@ def wmrl_m3_multiblock_likelihood_stacked(
                 num_actions=num_actions,
                 q_init=q_init,
                 wm_init=wm_init,
-                mask=masks_stacked[block_idx]
+                mask=masks_stacked[block_idx],
+                parameterization=parameterization,
             )
             return total_ll + block_ll
 
@@ -525,6 +565,8 @@ def wmrl_m3_fully_batched_likelihood(
     q_init: float = 0.5,
     wm_init: float = 1.0 / 3.0,
     use_pscan: bool = False,
+    *,
+    parameterization: str = "softmax",
 ) -> jnp.ndarray:
     """Fully-batched WM-RL M3 log-likelihood via nested vmap.
 
@@ -623,6 +665,7 @@ def wmrl_m3_fully_batched_likelihood(
             wm_init=wm_init,
             mask=mask,
             return_pointwise=False,
+            parameterization=parameterization,
         )
 
     # Inner vmap: over blocks. Data args on axis 0, params broadcast (None).
@@ -671,6 +714,7 @@ def wmrl_m3_block_likelihood_pscan(
     mask: jnp.ndarray = None,
     *,
     return_pointwise: bool = False,
+    parameterization: str = "softmax",
 ) -> float | tuple[float, jnp.ndarray]:
     """
     WM-RL M3 block likelihood using parallel scan (global perseveration).
@@ -731,10 +775,32 @@ def wmrl_m3_block_likelihood_pscan(
 
     # Precompute global last_action for perseveration
     last_action_pre = precompute_last_action_global(actions, mask)  # (T,)
-    use_m2_path = jnp.logical_or(kappa == 0.0, last_action_pre < 0)  # (T,)
-    choice_kernels = jnp.eye(num_actions)[jnp.maximum(last_action_pre, 0)]  # (T, A)
-    hybrid_probs = (1 - kappa) * noisy_base + kappa * choice_kernels
-    noisy_probs = jnp.where(use_m2_path[:, None], noisy_base, hybrid_probs)  # (T, A)
+
+    # Phase 32-04: parameterization branch (pscan path).
+    if parameterization == "softmax":
+        mask_la = (last_action_pre >= 0).astype(jnp.float32)[:, None]
+        last_action_one_hot = (
+            jnp.eye(num_actions)[jnp.maximum(last_action_pre, 0)] * mask_la
+        )
+        rl_logits = FIXED_BETA * q_vals
+        wm_logits = FIXED_BETA * wm_vals
+        mixed_logits = (
+            omega[:, None] * wm_logits + (1.0 - omega[:, None]) * rl_logits
+        )
+        biased_logits = mixed_logits + kappa * last_action_one_hot
+        base_probs_smax = jax.nn.softmax(biased_logits, axis=-1)
+        noisy_probs = (
+            (1.0 - epsilon) * base_probs_smax + epsilon / num_actions
+        )
+    else:  # parameterization == "convex" — preserved bit-for-bit
+        use_m2_path = jnp.logical_or(kappa == 0.0, last_action_pre < 0)  # (T,)
+        choice_kernels = jnp.eye(num_actions)[
+            jnp.maximum(last_action_pre, 0)
+        ]  # (T, A)
+        hybrid_probs = (1 - kappa) * noisy_base + kappa * choice_kernels
+        noisy_probs = jnp.where(
+            use_m2_path[:, None], noisy_base, hybrid_probs
+        )  # (T, A)
 
     log_probs = jnp.log(noisy_probs[t_idx, actions] + 1e-8) * mask
 
@@ -761,6 +827,7 @@ def wmrl_m3_multiblock_likelihood_stacked_pscan(
     wm_init: float = 1.0 / 3.0,
     *,
     return_pointwise: bool = False,
+    parameterization: str = "softmax",
 ) -> float | tuple[float, jnp.ndarray]:
     """
     WM-RL M3 multiblock likelihood using parallel scan.
@@ -803,6 +870,7 @@ def wmrl_m3_multiblock_likelihood_stacked_pscan(
                 wm_init=wm_init,
                 mask=masks_stacked[block_idx],
                 return_pointwise=True,
+                parameterization=parameterization,
             )
             return total_ll + block_ll, block_probs
 
@@ -829,6 +897,7 @@ def wmrl_m3_multiblock_likelihood_stacked_pscan(
                 q_init=q_init,
                 wm_init=wm_init,
                 mask=masks_stacked[block_idx],
+                parameterization=parameterization,
             )
             return total_ll + block_ll
 

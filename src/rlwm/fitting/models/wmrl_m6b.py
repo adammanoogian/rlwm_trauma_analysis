@@ -71,6 +71,8 @@ def wmrl_m6b_fully_batched_likelihood(
     q_init: float = 0.5,
     wm_init: float = 1.0 / 3.0,
     use_pscan: bool = False,
+    *,
+    parameterization: str = "softmax",
 ) -> jnp.ndarray:
     """Fully-batched WM-RL+dual-perseveration (M6b) log-likelihood via nested vmap.
 
@@ -117,6 +119,7 @@ def wmrl_m6b_fully_batched_likelihood(
             wm_init=wm_init,
             mask=mask,
             return_pointwise=False,
+            parameterization=parameterization,
         )
 
     _over_blocks = jax.vmap(
@@ -160,6 +163,7 @@ def wmrl_m6b_block_likelihood(
     mask: jnp.ndarray = None,
     *,
     return_pointwise: bool = False,
+    parameterization: str = "softmax",
 ) -> float | tuple[float, jnp.ndarray]:
     """
     Compute log-likelihood for WM-RL M6b model with DUAL perseveration.
@@ -258,43 +262,70 @@ def wmrl_m6b_block_likelihood(
 
         omega = rho * jnp.minimum(1.0, capacity / set_size)
 
-        rl_probs = softmax_policy(q_vals, FIXED_BETA)
-        wm_probs = softmax_policy(wm_vals, FIXED_BETA)
-        base_probs = omega * wm_probs + (1 - omega) * rl_probs
-        base_probs = base_probs / jnp.sum(base_probs)  # Normalize
-
-        # Apply epsilon noise to base policy
-        P_noisy = apply_epsilon_noise(base_probs, epsilon, num_actions)
-
-        # =================================================================
-        # GLOBAL KERNEL (M3 component)
-        # Apply only if last_action >= 0 (any action was taken in block) AND kappa > 0
-        # =================================================================
-        has_global = jnp.logical_and(kappa > 0.0, last_action >= 0)
-        # Clamp: jnp.maximum prevents -1 from wrapping to last row of eye matrix
-        Ck_global = jnp.eye(num_actions)[jnp.maximum(last_action, 0)]
-        eff_kappa = jnp.where(has_global, kappa, 0.0)
-
-        # =================================================================
-        # STIMULUS-SPECIFIC KERNEL (M6a component)
-        # Apply only if this stimulus was seen before in block AND kappa_s > 0
-        # =================================================================
+        # Per-stimulus last_action: needed for both branches.
         last_action_s = last_actions[stimulus]
-        has_stim = jnp.logical_and(kappa_s > 0.0, last_action_s >= 0)
-        # Clamp prevents -1 wrapping when sentinel
-        Ck_stim = jnp.eye(num_actions)[jnp.maximum(last_action_s, 0)]
-        eff_kappa_s = jnp.where(has_stim, kappa_s, 0.0)
 
         # =================================================================
-        # THREE-WAY BLEND: M2 base + global kernel + stim-specific kernel
-        # After stick-breaking: kappa + kappa_s = kappa_total <= 1
-        # So base_weight = 1 - eff_kappa - eff_kappa_s >= 0 always
+        # Phase 32-04: parameterization branch.
+        # 'softmax' (Collins 2025, default): TWO masked one-hots, TWO
+        #   additive logit biases. WM/RL channels mixed in LOGIT space.
+        # 'convex' (Senta 2025, legacy): preserved bit-for-bit.
+        #   Three-way probability blend: base + global kernel + stim
+        #   kernel.
+        # See docs/03_methods_reference/MODEL_REFERENCE.md §3.6.
         # =================================================================
-        noisy_probs = (
-            (1.0 - eff_kappa - eff_kappa_s) * P_noisy
-            + eff_kappa * Ck_global
-            + eff_kappa_s * Ck_stim
-        )
+        if parameterization == "softmax":
+            mask_global = (last_action >= 0).astype(jnp.float32)
+            mask_stim = (last_action_s >= 0).astype(jnp.float32)
+            one_hot_global = (
+                jnp.eye(num_actions)[jnp.maximum(last_action, 0)]
+                * mask_global
+            )
+            one_hot_stim = (
+                jnp.eye(num_actions)[jnp.maximum(last_action_s, 0)]
+                * mask_stim
+            )
+
+            rl_logits = FIXED_BETA * q_vals
+            wm_logits = FIXED_BETA * wm_vals
+            mixed_logits = omega * wm_logits + (1.0 - omega) * rl_logits
+
+            biased_logits = (
+                mixed_logits
+                + kappa * one_hot_global
+                + kappa_s * one_hot_stim
+            )
+            base_probs = jax.nn.softmax(biased_logits)
+            noisy_probs = (1.0 - epsilon) * base_probs + epsilon / num_actions
+        else:  # parameterization == "convex" — preserved bit-for-bit
+            rl_probs = softmax_policy(q_vals, FIXED_BETA)
+            wm_probs = softmax_policy(wm_vals, FIXED_BETA)
+            base_probs = omega * wm_probs + (1 - omega) * rl_probs
+            base_probs = base_probs / jnp.sum(base_probs)  # Normalize
+
+            # Apply epsilon noise to base policy
+            P_noisy = apply_epsilon_noise(base_probs, epsilon, num_actions)
+
+            # GLOBAL KERNEL (M3 component): apply if last_action >= 0
+            # AND kappa > 0
+            has_global = jnp.logical_and(kappa > 0.0, last_action >= 0)
+            Ck_global = jnp.eye(num_actions)[jnp.maximum(last_action, 0)]
+            eff_kappa = jnp.where(has_global, kappa, 0.0)
+
+            # STIMULUS-SPECIFIC KERNEL (M6a component): apply if this
+            # stimulus seen before AND kappa_s > 0.
+            has_stim = jnp.logical_and(kappa_s > 0.0, last_action_s >= 0)
+            Ck_stim = jnp.eye(num_actions)[jnp.maximum(last_action_s, 0)]
+            eff_kappa_s = jnp.where(has_stim, kappa_s, 0.0)
+
+            # THREE-WAY BLEND: M2 base + global kernel + stim kernel
+            # After stick-breaking: kappa + kappa_s = kappa_total <= 1
+            # So base_weight = 1 - eff_kappa - eff_kappa_s >= 0 always.
+            noisy_probs = (
+                (1.0 - eff_kappa - eff_kappa_s) * P_noisy
+                + eff_kappa * Ck_global
+                + eff_kappa_s * Ck_stim
+            )
 
         # Log probability of observed action
         log_prob = jnp.log(noisy_probs[action] + 1e-8)
@@ -365,7 +396,9 @@ def wmrl_m6b_multiblock_likelihood(
     wm_init: float = 1.0 / 3.0,
     masks_blocks: list = None,
     verbose: bool = False,
-    participant_id: str = None
+    participant_id: str = None,
+    *,
+    parameterization: str = "softmax",
 ) -> float:
     """
     Compute log-likelihood for WM-RL M6b (dual perseveration) across MULTIPLE BLOCKS.
@@ -411,7 +444,8 @@ def wmrl_m6b_multiblock_likelihood(
                 num_actions=num_actions,
                 q_init=q_init,
                 wm_init=wm_init,
-                mask=masks_stacked[block_idx]
+                mask=masks_stacked[block_idx],
+                parameterization=parameterization,
             )
             return total_ll + block_ll
 
@@ -444,7 +478,8 @@ def wmrl_m6b_multiblock_likelihood(
                 num_actions=num_actions,
                 q_init=q_init,
                 wm_init=wm_init,
-                mask=mask_block
+                mask=mask_block,
+                parameterization=parameterization,
             )
             total_log_lik += block_log_lik
 
@@ -473,6 +508,7 @@ def wmrl_m6b_multiblock_likelihood_stacked(
     wm_init: float = 1.0 / 3.0,
     *,
     return_pointwise: bool = False,
+    parameterization: str = "softmax",
 ) -> float | tuple[float, jnp.ndarray]:
     """
     FAST WM-RL M6b multiblock likelihood that takes pre-stacked arrays directly.
@@ -512,6 +548,7 @@ def wmrl_m6b_multiblock_likelihood_stacked(
                 wm_init=wm_init,
                 mask=masks_stacked[block_idx],
                 return_pointwise=True,
+                parameterization=parameterization,
             )
             return total_ll + block_ll, block_probs
 
@@ -538,7 +575,8 @@ def wmrl_m6b_multiblock_likelihood_stacked(
                 num_actions=num_actions,
                 q_init=q_init,
                 wm_init=wm_init,
-                mask=masks_stacked[block_idx]
+                mask=masks_stacked[block_idx],
+                parameterization=parameterization,
             )
             return total_ll + block_ll
 
@@ -564,6 +602,7 @@ def wmrl_m6b_block_likelihood_pscan(
     mask: jnp.ndarray = None,
     *,
     return_pointwise: bool = False,
+    parameterization: str = "softmax",
 ) -> float | tuple[float, jnp.ndarray]:
     """
     WM-RL M6b block likelihood using parallel scan (dual perseveration).
@@ -629,21 +668,56 @@ def wmrl_m6b_block_likelihood_pscan(
         stimuli, actions, mask, num_stimuli
     )  # (T,)
 
-    # Global kernel (M3 component)
-    has_global = jnp.logical_and(kappa > 0.0, last_action_global >= 0)  # (T,)
-    Ck_global = jnp.eye(num_actions)[jnp.maximum(last_action_global, 0)]  # (T, A)
-    eff_kappa = jnp.where(has_global, kappa, 0.0)  # (T,)
+    # Phase 32-04: parameterization branch (M6b pscan path).
+    if parameterization == "softmax":
+        mask_global = (last_action_global >= 0).astype(jnp.float32)[:, None]
+        mask_stim = (last_action_stim >= 0).astype(jnp.float32)[:, None]
+        one_hot_global = (
+            jnp.eye(num_actions)[jnp.maximum(last_action_global, 0)]
+            * mask_global
+        )
+        one_hot_stim = (
+            jnp.eye(num_actions)[jnp.maximum(last_action_stim, 0)]
+            * mask_stim
+        )
+        rl_logits = FIXED_BETA * q_vals
+        wm_logits = FIXED_BETA * wm_vals
+        mixed_logits = (
+            omega[:, None] * wm_logits + (1.0 - omega[:, None]) * rl_logits
+        )
+        biased_logits = (
+            mixed_logits
+            + kappa * one_hot_global
+            + kappa_s * one_hot_stim
+        )
+        base_probs_smax = jax.nn.softmax(biased_logits, axis=-1)
+        noisy_probs = (
+            (1.0 - epsilon) * base_probs_smax + epsilon / num_actions
+        )
+    else:  # parameterization == "convex" — preserved bit-for-bit
+        # Global kernel (M3 component)
+        has_global = jnp.logical_and(
+            kappa > 0.0, last_action_global >= 0
+        )  # (T,)
+        Ck_global = jnp.eye(num_actions)[
+            jnp.maximum(last_action_global, 0)
+        ]  # (T, A)
+        eff_kappa = jnp.where(has_global, kappa, 0.0)  # (T,)
 
-    # Stimulus-specific kernel (M6a component)
-    has_stim = jnp.logical_and(kappa_s > 0.0, last_action_stim >= 0)  # (T,)
-    Ck_stim = jnp.eye(num_actions)[jnp.maximum(last_action_stim, 0)]  # (T, A)
-    eff_kappa_s = jnp.where(has_stim, kappa_s, 0.0)  # (T,)
+        # Stimulus-specific kernel (M6a component)
+        has_stim = jnp.logical_and(
+            kappa_s > 0.0, last_action_stim >= 0
+        )  # (T,)
+        Ck_stim = jnp.eye(num_actions)[
+            jnp.maximum(last_action_stim, 0)
+        ]  # (T, A)
+        eff_kappa_s = jnp.where(has_stim, kappa_s, 0.0)  # (T,)
 
-    noisy_probs = (
-        (1.0 - eff_kappa[:, None] - eff_kappa_s[:, None]) * P_noisy
-        + eff_kappa[:, None] * Ck_global
-        + eff_kappa_s[:, None] * Ck_stim
-    )  # (T, A)
+        noisy_probs = (
+            (1.0 - eff_kappa[:, None] - eff_kappa_s[:, None]) * P_noisy
+            + eff_kappa[:, None] * Ck_global
+            + eff_kappa_s[:, None] * Ck_stim
+        )  # (T, A)
 
     log_probs = jnp.log(noisy_probs[t_idx, actions] + 1e-8) * mask
 
@@ -671,6 +745,7 @@ def wmrl_m6b_multiblock_likelihood_stacked_pscan(
     wm_init: float = 1.0 / 3.0,
     *,
     return_pointwise: bool = False,
+    parameterization: str = "softmax",
 ) -> float | tuple[float, jnp.ndarray]:
     """
     WM-RL M6b multiblock likelihood using parallel scan.
@@ -714,6 +789,7 @@ def wmrl_m6b_multiblock_likelihood_stacked_pscan(
                 wm_init=wm_init,
                 mask=masks_stacked[block_idx],
                 return_pointwise=True,
+                parameterization=parameterization,
             )
             return total_ll + block_ll, block_probs
 
@@ -741,6 +817,7 @@ def wmrl_m6b_multiblock_likelihood_stacked_pscan(
                 q_init=q_init,
                 wm_init=wm_init,
                 mask=masks_stacked[block_idx],
+                parameterization=parameterization,
             )
             return total_ll + block_ll
 
@@ -790,7 +867,12 @@ def test_wmrl_m6b_single_block():
     return log_lik
 
 def test_wmrl_m6b_kappa_share_one_matches_m3():
-    """Verify M6b with kappa_share=1.0 reduces exactly to M3 (all budget to global)."""
+    """Verify M6b with kappa_share=1.0 reduces exactly to M3 (all budget to global).
+
+    Phase 32-04 (Option A): Loops over both parameterizations to assert the
+    M6b -> M3 corner-case containment holds under softmax-bias AND convex-
+    mixture kappa.
+    """
     from .wmrl_m3 import wmrl_m3_block_likelihood  # local — avoid circular import
 
     print("\nTesting WM-RL M6b kappa_share=1.0 matches M3...")
@@ -820,28 +902,46 @@ def test_wmrl_m6b_kappa_share_one_matches_m3():
     kappa = kappa_total * kappa_share        # = 0.3
     kappa_s = kappa_total * (1 - kappa_share)  # = 0.0
 
-    log_lik_m6b = wmrl_m6b_block_likelihood(
-        stimuli, actions, rewards, set_sizes,
-        **shared_params, kappa=kappa, kappa_s=kappa_s
+    diffs = {}
+    for parameterization in ("softmax", "convex"):
+        log_lik_m6b = wmrl_m6b_block_likelihood(
+            stimuli, actions, rewards, set_sizes,
+            **shared_params, kappa=kappa, kappa_s=kappa_s,
+            parameterization=parameterization,
+        )
+
+        # M3 with same kappa=0.3 under matching parameterization.
+        log_lik_m3 = wmrl_m3_block_likelihood(
+            stimuli, actions, rewards, set_sizes,
+            **shared_params, kappa=kappa,
+            parameterization=parameterization,
+        )
+
+        diff = abs(float(log_lik_m6b) - float(log_lik_m3))
+        print(
+            f"  [{parameterization}] M6b={float(log_lik_m6b):.8f} "
+            f"M3={float(log_lik_m3):.8f} diff={diff:.2e}"
+        )
+        assert diff < 1e-6, (
+            f"M6b kappa_share=1.0 must match M3 under "
+            f"parameterization='{parameterization}'! Diff={diff}"
+        )
+        diffs[parameterization] = diff
+
+    print(
+        "[OK] M6b kappa_share=1.0 matches M3 exactly under both "
+        "parameterizations (diff < 1e-6)"
     )
+    return diffs
 
-    # M3 with same kappa=0.3
-    log_lik_m3 = wmrl_m3_block_likelihood(
-        stimuli, actions, rewards, set_sizes,
-        **shared_params, kappa=kappa
-    )
-
-    diff = abs(float(log_lik_m6b) - float(log_lik_m3))
-    print(f"  M6b (kappa_share=1.0): log-lik = {float(log_lik_m6b):.8f}")
-    print(f"  M3 (kappa=0.3):        log-lik = {float(log_lik_m3):.8f}")
-    print(f"  Difference: {diff:.2e}")
-
-    assert diff < 1e-6, f"M6b kappa_share=1.0 must match M3! Diff={diff}"
-    print("[OK] M6b kappa_share=1.0 matches M3 exactly (diff < 1e-6)")
-    return diff
 
 def test_wmrl_m6b_kappa_share_zero_matches_m6a():
-    """Verify M6b with kappa_share=0.0 reduces exactly to M6a (all budget to stim-specific)."""
+    """Verify M6b with kappa_share=0.0 reduces exactly to M6a (all budget to stim-specific).
+
+    Phase 32-04 (Option A): Loops over both parameterizations to assert the
+    M6b -> M6a corner-case containment holds under softmax-bias AND convex-
+    mixture kappa.
+    """
     from .wmrl_m6a import wmrl_m6a_block_likelihood  # local — avoid circular import
 
     print("\nTesting WM-RL M6b kappa_share=0.0 matches M6a...")
@@ -871,25 +971,37 @@ def test_wmrl_m6b_kappa_share_zero_matches_m6a():
     kappa = kappa_total * kappa_share        # = 0.0
     kappa_s = kappa_total * (1 - kappa_share)  # = 0.3
 
-    log_lik_m6b = wmrl_m6b_block_likelihood(
-        stimuli, actions, rewards, set_sizes,
-        **shared_params, kappa=kappa, kappa_s=kappa_s
+    diffs = {}
+    for parameterization in ("softmax", "convex"):
+        log_lik_m6b = wmrl_m6b_block_likelihood(
+            stimuli, actions, rewards, set_sizes,
+            **shared_params, kappa=kappa, kappa_s=kappa_s,
+            parameterization=parameterization,
+        )
+
+        # M6a with same kappa_s=0.3 under matching parameterization.
+        log_lik_m6a = wmrl_m6a_block_likelihood(
+            stimuli, actions, rewards, set_sizes,
+            **shared_params, kappa_s=kappa_s,
+            parameterization=parameterization,
+        )
+
+        diff = abs(float(log_lik_m6b) - float(log_lik_m6a))
+        print(
+            f"  [{parameterization}] M6b={float(log_lik_m6b):.8f} "
+            f"M6a={float(log_lik_m6a):.8f} diff={diff:.2e}"
+        )
+        assert diff < 1e-6, (
+            f"M6b kappa_share=0.0 must match M6a under "
+            f"parameterization='{parameterization}'! Diff={diff}"
+        )
+        diffs[parameterization] = diff
+
+    print(
+        "[OK] M6b kappa_share=0.0 matches M6a exactly under both "
+        "parameterizations (diff < 1e-6)"
     )
-
-    # M6a with same kappa_s=0.3
-    log_lik_m6a = wmrl_m6a_block_likelihood(
-        stimuli, actions, rewards, set_sizes,
-        **shared_params, kappa_s=kappa_s
-    )
-
-    diff = abs(float(log_lik_m6b) - float(log_lik_m6a))
-    print(f"  M6b (kappa_share=0.0): log-lik = {float(log_lik_m6b):.8f}")
-    print(f"  M6a (kappa_s=0.3):     log-lik = {float(log_lik_m6a):.8f}")
-    print(f"  Difference: {diff:.2e}")
-
-    assert diff < 1e-6, f"M6b kappa_share=0.0 must match M6a! Diff={diff}"
-    print("[OK] M6b kappa_share=0.0 matches M6a exactly (diff < 1e-6)")
-    return diff
+    return diffs
 
 def test_padding_equivalence_wmrl_m6b():
     """
