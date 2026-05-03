@@ -594,6 +594,89 @@ p(a|s) = ε/nA + (1-ε) * p_persist(a|s)
 
 **Code reference:** `WMRL_M3_PARAMS` in `mle_utils.py` — 7 parameters: `['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'kappa', 'epsilon']`
 
+#### 3.6.4 Dual κ-Parameterization (Phase 32-04, 2026-05-03)
+
+As of v5.0 Phase 32-04, the project supports **two** mathematically
+distinct kappa parameterizations, gated by the CLI flag
+`--kappa-parameterization {softmax,convex}` (default `softmax`).
+Both parameterizations apply uniformly to M3, M5, M6a, M6b, and M4
+(any model bearing a kappa-family parameter).
+
+**Senta 2025 (convex mixture)** — legacy v5.0 pre-Phase-32 path:
+
+```
+p(a|s) = (1 − κ) · p_noisy(a|s) + κ · C_k(a|s),   κ ∈ [0, 1]
+```
+
+where `p_noisy = ε/nA + (1−ε)·p_hybrid` and `C_k(a|s) = 1[a == a_{t-1}]`
+(or stimulus-specific for M6a/M6b). WM and RL channels mix in
+**probability** space.
+
+**Collins 2025 (softmax bias)** — Phase 32-04 default:
+
+```
+π(a|s) = softmax(β·W(s,a) + κ · I(a, a_{t-1}))    (per channel)
+       = exp(β·W(s,a) + κ · I(a, a_{t-1})) / Σ_i exp(β·W(s,i) + κ · I(i, a_{t-1}))
+```
+
+with `κ ∈ [-1, 1]`. WM and RL channels mix in **logit** space:
+`mixed_logits = ω · β·W + (1−ω) · β·Q`, then add `κ·I(a, a_{t-1})`,
+then softmax + epsilon noise.
+
+**Boundary behavior comparison:**
+
+| Property                         | Convex (Senta 2025) | Softmax (Collins 2025) |
+|----------------------------------|---------------------|------------------------|
+| κ support                        | [0, 1]              | [-1, 1]                |
+| ∂L/∂κ at κ = 0                   | flat (degenerate)   | well-conditioned       |
+| Behavior at κ = 1                | degenerate (all-or-nothing) | well-conditioned |
+| Sign of κ                        | non-negative only   | admits negative κ      |
+| Interpretation of negative κ     | undefined           | action-avoidance       |
+| Bit-equivalent to v5.0 fits      | yes (revert path)   | no (new sign + scale)  |
+| WM/RL channel mix space          | probability         | logit                  |
+
+The convex parameterization has a **boundary pathology**: the likelihood
+gradient is zero at κ = 0 (the M2 corner) and the policy degenerates
+at κ = 1 (deterministic last-action repetition). Under hierarchical
+Bayesian inference these pathologies plausibly explain why M3's
+posterior was multimodal (R-hat = 1.60, ESS = 7) on the v5.0 N=178
+cohort while Collins's MLE-only fits converged. The softmax-bias
+formulation has informative gradient everywhere on `[-1, 1]` and
+admits negative κ, which may be meaningful for trauma-exposed
+participants who exhibit action-avoidance rather than action-repetition
+(see [`.planning/research/mcmc-collins-bayesian.md`](../../.planning/research/mcmc-collins-bayesian.md)
+for the full literature analysis and Phase 32 rationale).
+
+**Default policy (v5.0 ship; Phase 32-04 user decision 2026-05-03):**
+softmax-bias is the project default. The convex revert path is
+preserved for sensitivity analysis and v5.0 reproducibility:
+
+```bash
+# Reproduce v5.0 pre-Phase-32 fits (bit-equivalent under MLE):
+bash cluster/submit_all.sh --kappa-parameterization convex
+```
+
+**M6b stick-breaking under softmax mode:** `kappa_total ∈ [-1, 1]`
+(softmax bias) but `kappa_share` always stays `[0, 1]` (channel-share
+weight, not a softmax bias). The decode is unchanged:
+`kappa = kappa_total · kappa_share`,
+`kappa_s = kappa_total · (1 − kappa_share)`. When `kappa_total < 0`,
+both `kappa` and `kappa_s` share the same (non-positive) sign,
+representing a partitioned action-avoidance budget.
+
+**Citations:**
+- Senta, A., Bishop, S. J., & Collins, A. G. E. (2025). Reduced
+  reinforcement learning, but not working memory, in trauma-exposed
+  individuals. *PLoS Computational Biology*, 21(9), e1012872.
+- Collins, A. G. E. (2025). The cost of behavioral flexibility:
+  reversal learning is reduced in a volatile environment. *Nature
+  Human Behaviour*, 10, 357–369.
+
+**Cross-reference:** `.planning/research/mcmc-collins-bayesian.md` for
+the full Baribault & Collins 2023 prior-pathology analysis, the Rmus
+2023 hierarchical empirical-Bayes pattern adoption, and the Phase 32
+sequencing decision.
+
 ### 3.7 M5: WM-RL + RL Forgetting (phi_rl)
 
 M5 extends M3 with **Q-value decay toward baseline** before each delta-rule update, modeling RL forgetting.
