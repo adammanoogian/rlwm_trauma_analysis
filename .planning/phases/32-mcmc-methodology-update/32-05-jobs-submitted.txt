@@ -1,0 +1,87 @@
+# STATUS: PENDING-USER-SUBMISSION
+# Phase 32-05 cluster smoke jobs — user runs these on Monash M3 after `git pull`.
+#
+# This file is the manifest for the 6-job smoke fan-out (4 Bayesian + 2 MLE)
+# that gates Plan 32-06 phase closure. Submission happens on M3, NOT on the
+# Windows local dev box this orchestrator runs on. Once submitted, fill in
+# the <jobid> column per line so SLURM tracking is captured in git.
+#
+# Why pending-user: Plan 32-05 is `autonomous: false` because (a) sbatch is
+# only available on the cluster and (b) the ~4h GPU walltime + verdict
+# review must be performed by a human. The orchestrator has shipped Task 1
+# (cluster/32_smoke.slurm + --output-subdir CLI extensions) on main; this
+# manifest captures Task 2 in document form so Task 3's checkpoint can
+# resume cleanly after the user confirms job IDs and verdicts.
+#
+# =============================================================================
+# Submission steps (run on M3 after `git pull origin main`):
+# =============================================================================
+#
+#   ssh m3
+#   cd ~/scratch/rlwm_trauma_analysis  # or wherever the v5.0 checkout lives
+#   git pull origin main
+#
+#   # Verify the smoke template lands and is bash-clean before submitting
+#   bash -n cluster/32_smoke.slurm && echo "SLURM SYNTAX OK"
+#
+#   # Submit all 6 jobs. --parsable returns just the JOBID so it scripts cleanly.
+#
+#   # ---- 4 Bayesian smoke fits ----
+#   sbatch --parsable --export=ALL,MODEL=qlearning,KAPPA_MODE=softmax,STAGE=bayesian cluster/32_smoke.slurm
+#   sbatch --parsable --export=ALL,MODEL=qlearning,KAPPA_MODE=convex,STAGE=bayesian  cluster/32_smoke.slurm
+#   sbatch --parsable --export=ALL,MODEL=wmrl_m6b,KAPPA_MODE=softmax,STAGE=bayesian  cluster/32_smoke.slurm
+#   sbatch --parsable --export=ALL,MODEL=wmrl_m6b,KAPPA_MODE=convex,STAGE=bayesian   cluster/32_smoke.slurm
+#
+#   # ---- 2 MLE smoke fits (only softmax — convex MLE baseline already
+#   #      exists at models/mle/ from v5.0 pre-Phase-32 and is the regression
+#   #      reference for the convex-mode comparison in Task 3 step 4) ----
+#   sbatch --parsable --export=ALL,MODEL=qlearning,KAPPA_MODE=softmax,STAGE=mle cluster/32_smoke.slurm
+#   sbatch --parsable --export=ALL,MODEL=wmrl_m6b,KAPPA_MODE=softmax,STAGE=mle  cluster/32_smoke.slurm
+#
+# =============================================================================
+# After submission, fill in the JOBID column below.
+# Format (one job per line, pipe-delimited):
+#   <jobid> <model>    <kappa_mode> <stage>
+# =============================================================================
+
+# JOBID    MODEL      KAPPA_MODE   STAGE
+# -------  ---------  -----------  --------
+# pending  qlearning  softmax      bayesian
+# pending  qlearning  convex       bayesian
+# pending  wmrl_m6b   softmax      bayesian
+# pending  wmrl_m6b   convex       bayesian
+# pending  qlearning  softmax      mle
+# pending  wmrl_m6b   softmax      mle
+
+# =============================================================================
+# Monitoring (after submission):
+# =============================================================================
+#
+#   # Active queue
+#   squeue -u "$USER" -o "%i %j %T %M %l %R"
+#
+#   # Single-job state + walltime accounting
+#   sacct -j <jobid> --format=JobID%20,JobName,State,Elapsed,MaxRSS,ExitCode
+#
+#   # Tail the live log (mode/model/stage chosen)
+#   tail -f logs/cluster/32_smoke/32_smoke_<jobid>.out
+#
+# =============================================================================
+# Expected outputs once all 6 jobs reach State=COMPLETED:
+# =============================================================================
+#
+#   models/bayesian/32_smoke_softmax/qlearning_posterior.nc
+#   models/bayesian/32_smoke_softmax/qlearning_individual_fits.csv
+#   models/bayesian/32_smoke_softmax/wmrl_m6b_posterior.nc
+#   models/bayesian/32_smoke_softmax/wmrl_m6b_individual_fits.csv
+#   models/bayesian/32_smoke_convex/qlearning_posterior.nc
+#   models/bayesian/32_smoke_convex/qlearning_individual_fits.csv
+#   models/bayesian/32_smoke_convex/wmrl_m6b_posterior.nc
+#   models/bayesian/32_smoke_convex/wmrl_m6b_individual_fits.csv
+#   models/mle/32_smoke_softmax/qlearning_individual_fits.csv
+#   models/mle/32_smoke_softmax/wmrl_m6b_individual_fits.csv
+#
+# Then proceed to Plan 32-05 Task 3 (verdicts table at
+# .planning/phases/32-mcmc-methodology-update/32-05-smoke-results.md +
+# convex-mode regression check vs. models/bayesian/21_baseline/) and return
+# the go/no-go verdict for Plan 32-06.
