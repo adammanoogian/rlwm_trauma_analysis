@@ -918,6 +918,8 @@ def wmrl_m6a_hierarchical_model(
     wm_init: float = 1.0 / 3.0,
     use_pscan: bool = False,
     stacked_arrays: dict | None = None,
+    *,
+    kappa_parameterization: str = "softmax",
 ) -> None:
     """Hierarchical Bayesian M6a (WM-RL+kappa_s) model with optional L2 regression.
 
@@ -995,6 +997,12 @@ def wmrl_m6a_hierarchical_model(
         sample_bounded_param,
     )
 
+    if kappa_parameterization not in {"softmax", "convex"}:
+        raise ValueError(
+            f"kappa_parameterization must be 'softmax' or 'convex', "
+            f"got {kappa_parameterization!r}"
+        )
+
     if use_pscan:
         raise NotImplementedError(
             "wmrl_m6a_hierarchical_model: use_pscan + fully-batched vmap "
@@ -1047,35 +1055,60 @@ def wmrl_m6a_hierarchical_model(
         )
 
     # ------------------------------------------------------------------
-    # kappa_s with optional L2 shift on the probit scale
-    # Sampled manually to allow per-participant LEC + IES-R offset.
-    # Same bounds and prior as M3's kappa (both in PARAM_PRIOR_DEFAULTS).
+    # kappa_s with optional L2 shift.
+    # Phase 32-04: dispatch on parameterization.
     # ------------------------------------------------------------------
-    kappa_s_defaults = PARAM_PRIOR_DEFAULTS["kappa_s"]
-    kappa_s_mu_pr = numpyro.sample(
-        "kappa_s_mu_pr",
-        dist.Normal(kappa_s_defaults["mu_prior_loc"], 1.0),
-    )
-    kappa_s_sigma_pr = numpyro.sample("kappa_s_sigma_pr", dist.HalfNormal(0.2))
-    kappa_s_z = numpyro.sample(
-        "kappa_s_z",
-        dist.Normal(0, 1).expand([n_participants]),
-    )
     lec_shift = (
         beta_lec_kappa_s * covariate_lec if covariate_lec is not None else 0.0
     )
     iesr_shift = (
         beta_iesr_kappa_s * covariate_iesr if covariate_iesr is not None else 0.0
     )
-    kappa_s_unc = (
-        kappa_s_mu_pr + kappa_s_sigma_pr * kappa_s_z + lec_shift + iesr_shift
-    )
-    kappa_s = numpyro.deterministic(
-        "kappa_s",
-        kappa_s_defaults["lower"]
-        + (kappa_s_defaults["upper"] - kappa_s_defaults["lower"])
-        * phi_approx(kappa_s_unc),
-    )
+
+    if kappa_parameterization == "convex":
+        kappa_s_defaults = PARAM_PRIOR_DEFAULTS["kappa_s"]
+        kappa_s_mu_pr = numpyro.sample(
+            "kappa_s_mu_pr",
+            dist.Normal(kappa_s_defaults["mu_prior_loc"], 1.0),
+        )
+        kappa_s_sigma_pr = numpyro.sample(
+            "kappa_s_sigma_pr", dist.HalfNormal(0.2)
+        )
+        kappa_s_z = numpyro.sample(
+            "kappa_s_z",
+            dist.Normal(0, 1).expand([n_participants]),
+        )
+        kappa_s_unc = (
+            kappa_s_mu_pr
+            + kappa_s_sigma_pr * kappa_s_z
+            + lec_shift
+            + iesr_shift
+        )
+        kappa_s = numpyro.deterministic(
+            "kappa_s",
+            kappa_s_defaults["lower"]
+            + (kappa_s_defaults["upper"] - kappa_s_defaults["lower"])
+            * phi_approx(kappa_s_unc),
+        )
+    else:  # softmax (Phase 32-04 default)
+        kappa_s_mu_pr = numpyro.sample(
+            "kappa_s_mu_pr", dist.Normal(0.0, 0.5)
+        )
+        kappa_s_sigma_pr = numpyro.sample(
+            "kappa_s_sigma_pr", dist.HalfNormal(0.5)
+        )
+        kappa_s_z = numpyro.sample(
+            "kappa_s_z", dist.Normal(0, 1).expand([n_participants])
+        )
+        kappa_s_raw = (
+            kappa_s_mu_pr
+            + kappa_s_sigma_pr * kappa_s_z
+            + lec_shift
+            + iesr_shift
+        )
+        kappa_s = numpyro.deterministic(
+            "kappa_s", jnp.clip(kappa_s_raw, min=-1.0, max=1.0)
+        )
     sampled["kappa_s"] = kappa_s
 
     # ------------------------------------------------------------------
@@ -1104,5 +1137,6 @@ def wmrl_m6a_hierarchical_model(
         num_actions=num_actions,
         q_init=q_init,
         wm_init=wm_init,
+        parameterization=kappa_parameterization,
     )
     numpyro.factor("obs", per_participant_ll.sum())

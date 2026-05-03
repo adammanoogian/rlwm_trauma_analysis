@@ -1058,6 +1058,8 @@ def wmrl_m6b_hierarchical_model(
     wm_init: float = 1.0 / 3.0,
     use_pscan: bool = False,
     stacked_arrays: dict | None = None,
+    *,
+    kappa_parameterization: str = "softmax",
 ) -> None:
     """Hierarchical Bayesian M6b (WM-RL+dual perseveration) model with optional L2 regression.
 
@@ -1130,6 +1132,12 @@ def wmrl_m6b_hierarchical_model(
         sample_bounded_param,
     )
 
+    if kappa_parameterization not in {"softmax", "convex"}:
+        raise ValueError(
+            f"kappa_parameterization must be 'softmax' or 'convex', "
+            f"got {kappa_parameterization!r}"
+        )
+
     if use_pscan:
         raise NotImplementedError(
             "wmrl_m6b_hierarchical_model: use_pscan + fully-batched vmap "
@@ -1169,33 +1177,59 @@ def wmrl_m6b_hierarchical_model(
         )
 
     # ------------------------------------------------------------------
-    # kappa_total with optional L2 shift on the probit scale
-    # mu_prior_loc=-2.0 pushes group mean toward small total budgets.
+    # kappa_total with optional L2 shift.
+    # Phase 32-04: dispatch on parameterization.
+    # - 'convex': probit-scale shift, then Phi_approx to [0, 1].
+    # - 'softmax': raw real-line shift, clipped to [-1, 1]. Negative
+    #   kappa_total -> action-avoidance budget, partitioned by
+    #   kappa_share (which always stays in [0, 1]).
     # ------------------------------------------------------------------
-    kt_defaults = PARAM_PRIOR_DEFAULTS["kappa_total"]
-    kappa_total_mu_pr = numpyro.sample(
-        "kappa_total_mu_pr",
-        dist.Normal(kt_defaults["mu_prior_loc"], 1.0),
-    )
-    kappa_total_sigma_pr = numpyro.sample(
-        "kappa_total_sigma_pr", dist.HalfNormal(0.2)
-    )
-    kappa_total_z = numpyro.sample(
-        "kappa_total_z",
-        dist.Normal(0, 1).expand([n_participants]),
-    )
     lec_shift_total = (
         beta_lec_kappa_total * covariate_lec if covariate_lec is not None else 0.0
     )
-    kappa_total_unc = (
-        kappa_total_mu_pr + kappa_total_sigma_pr * kappa_total_z + lec_shift_total
-    )
-    kappa_total = numpyro.deterministic(
-        "kappa_total",
-        kt_defaults["lower"]
-        + (kt_defaults["upper"] - kt_defaults["lower"])
-        * phi_approx(kappa_total_unc),
-    )
+    if kappa_parameterization == "convex":
+        kt_defaults = PARAM_PRIOR_DEFAULTS["kappa_total"]
+        kappa_total_mu_pr = numpyro.sample(
+            "kappa_total_mu_pr",
+            dist.Normal(kt_defaults["mu_prior_loc"], 1.0),
+        )
+        kappa_total_sigma_pr = numpyro.sample(
+            "kappa_total_sigma_pr", dist.HalfNormal(0.2)
+        )
+        kappa_total_z = numpyro.sample(
+            "kappa_total_z",
+            dist.Normal(0, 1).expand([n_participants]),
+        )
+        kappa_total_unc = (
+            kappa_total_mu_pr
+            + kappa_total_sigma_pr * kappa_total_z
+            + lec_shift_total
+        )
+        kappa_total = numpyro.deterministic(
+            "kappa_total",
+            kt_defaults["lower"]
+            + (kt_defaults["upper"] - kt_defaults["lower"])
+            * phi_approx(kappa_total_unc),
+        )
+    else:  # softmax (Phase 32-04 default)
+        kappa_total_mu_pr = numpyro.sample(
+            "kappa_total_mu_pr", dist.Normal(0.0, 0.5)
+        )
+        kappa_total_sigma_pr = numpyro.sample(
+            "kappa_total_sigma_pr", dist.HalfNormal(0.5)
+        )
+        kappa_total_z = numpyro.sample(
+            "kappa_total_z",
+            dist.Normal(0, 1).expand([n_participants]),
+        )
+        kappa_total_raw = (
+            kappa_total_mu_pr
+            + kappa_total_sigma_pr * kappa_total_z
+            + lec_shift_total
+        )
+        kappa_total = numpyro.deterministic(
+            "kappa_total", jnp.clip(kappa_total_raw, min=-1.0, max=1.0)
+        )
     sampled["kappa_total"] = kappa_total
 
     # ------------------------------------------------------------------
@@ -1264,6 +1298,7 @@ def wmrl_m6b_hierarchical_model(
         num_actions=num_actions,
         q_init=q_init,
         wm_init=wm_init,
+        parameterization=kappa_parameterization,
     )
     numpyro.factor("obs", per_participant_ll.sum())
 
@@ -1276,6 +1311,8 @@ def wmrl_m6b_hierarchical_model_subscale(
     q_init: float = 0.5,
     wm_init: float = 1.0 / 3.0,
     use_pscan: bool = False,
+    *,
+    kappa_parameterization: str = "softmax",
 ) -> None:
     """Hierarchical M6b model with full subscale Level-2 regression (L2-05).
 
@@ -1364,7 +1401,17 @@ def wmrl_m6b_hierarchical_model_subscale(
     - Do NOT modify this function's API: ``fit_bayesian.py`` dispatches to
       it via the ``--subscale`` flag.
     """
-    from rlwm.fitting.numpyro_helpers import PARAM_PRIOR_DEFAULTS, phi_approx
+    from rlwm.fitting.numpyro_helpers import (
+        KAPPA_FAMILY_PARAMS,
+        PARAM_PRIOR_DEFAULTS,
+        phi_approx,
+    )
+
+    if kappa_parameterization not in {"softmax", "convex"}:
+        raise ValueError(
+            f"kappa_parameterization must be 'softmax' or 'convex', "
+            f"got {kappa_parameterization!r}"
+        )
 
     n_participants = len(participant_data_stacked)
     participant_ids = sorted(participant_data_stacked.keys())
@@ -1423,14 +1470,32 @@ def wmrl_m6b_hierarchical_model_subscale(
         upper = defaults["upper"]
         mu_prior_loc = defaults["mu_prior_loc"]
 
-        mu_pr = numpyro.sample(
-            f"{pname}_mu_pr",
-            dist.Normal(mu_prior_loc, 1.0),
+        # Phase 32-04: kappa-family params under softmax mode skip
+        # Phi_approx — sampled directly on the real line, clipped to
+        # [-1, 1]. kappa_share is NOT in KAPPA_FAMILY_PARAMS so it
+        # always uses the bounded path (channel-share stays [0, 1]).
+        is_kappa_softmax = (
+            kappa_parameterization == "softmax"
+            and pname in KAPPA_FAMILY_PARAMS
         )
-        sigma_pr = numpyro.sample(
-            f"{pname}_sigma_pr",
-            dist.HalfNormal(0.2),
-        )
+
+        if is_kappa_softmax:
+            mu_pr = numpyro.sample(
+                f"{pname}_mu_pr", dist.Normal(0.0, 0.5)
+            )
+            sigma_pr = numpyro.sample(
+                f"{pname}_sigma_pr", dist.HalfNormal(0.5)
+            )
+        else:
+            mu_pr = numpyro.sample(
+                f"{pname}_mu_pr",
+                dist.Normal(mu_prior_loc, 1.0),
+            )
+            sigma_pr = numpyro.sample(
+                f"{pname}_sigma_pr",
+                dist.HalfNormal(0.2),
+            )
+
         z = numpyro.sample(
             f"{pname}_z",
             dist.Normal(0, 1).expand([n_participants]),
@@ -1444,8 +1509,12 @@ def wmrl_m6b_hierarchical_model_subscale(
             for j, cov_name in enumerate(covariate_names):
                 theta_unc = theta_unc + betas[(pname, cov_name)] * covariate_matrix[:, j]
 
-        # Transform to constrained space via Phi_approx
-        theta = lower + (upper - lower) * phi_approx(theta_unc)
+        if is_kappa_softmax:
+            # Direct on real line, clip to [-1, 1].
+            theta = jnp.clip(theta_unc, min=-1.0, max=1.0)
+        else:
+            # Transform to constrained space via Phi_approx.
+            theta = lower + (upper - lower) * phi_approx(theta_unc)
         sampled[pname] = numpyro.deterministic(pname, theta)
 
     # ------------------------------------------------------------------
@@ -1484,5 +1553,6 @@ def wmrl_m6b_hierarchical_model_subscale(
             q_init=q_init,
             wm_init=wm_init,
             return_pointwise=False,
+            parameterization=kappa_parameterization,
         )
         numpyro.factor(f"obs_p{pid}", log_lik)

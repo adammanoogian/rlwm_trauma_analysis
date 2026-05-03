@@ -1036,6 +1036,8 @@ def wmrl_m3_hierarchical_model(
     wm_init: float = 1.0 / 3.0,
     use_pscan: bool = False,
     stacked_arrays: dict | None = None,
+    *,
+    kappa_parameterization: str = "softmax",
 ) -> None:
     """Hierarchical Bayesian M3 (WM-RL+kappa) model with optional Level-2 regression.
 
@@ -1089,12 +1091,21 @@ def wmrl_m3_hierarchical_model(
     wm_init : float
         Initial WM values (uniform baseline ``1/nA``).  Default ``1/3``.
 
+    kappa_parameterization : str, optional
+        One of ``{"softmax", "convex"}``. Default ``"softmax"`` per Phase
+        32-04 user decision (Collins 2025 alignment). Under ``"softmax"``,
+        kappa is sampled directly on the real line (clipped to [-1, 1])
+        with no Phi_approx transform; the L2 shift is added on that
+        unconstrained scale. Under ``"convex"``, kappa uses the legacy
+        Phi_approx -> [0, 1] path.
+
     Notes
     -----
     - Six parameters (alpha_pos, alpha_neg, phi, rho, capacity, epsilon) are sampled
       via ``sample_bounded_param`` from ``numpyro_helpers``.
-    - Kappa is sampled manually with the optional L2 shift applied on the probit scale
-      before the Phi_approx transform (OUTSIDE ``sample_bounded_param``).
+    - Kappa is sampled manually to allow the optional L2 shift on the
+      unconstrained scale (probit when ``"convex"``, raw real line when
+      ``"softmax"``).
     - Likelihood is accumulated via a single ``numpyro.factor("obs", ...)`` call
       using ``wmrl_m3_fully_batched_likelihood`` (nested vmap over participants
       and blocks). Blocks are independent per Senta 2025 (Q/WM/perseveration
@@ -1106,6 +1117,12 @@ def wmrl_m3_hierarchical_model(
         phi_approx,
         sample_bounded_param,
     )
+
+    if kappa_parameterization not in {"softmax", "convex"}:
+        raise ValueError(
+            f"kappa_parameterization must be 'softmax' or 'convex', "
+            f"got {kappa_parameterization!r}"
+        )
 
     # ------------------------------------------------------------------
     # Phase 21 Option C guard: IES-R covariate requires LEC covariate.
@@ -1154,29 +1171,54 @@ def wmrl_m3_hierarchical_model(
         )
 
     # ------------------------------------------------------------------
-    # Kappa with optional L2 shift on the probit scale
-    # Sampled manually to allow per-participant LEC + IES-R offset.
+    # Kappa with optional L2 shift.
+    # Phase 32-04: dispatch on parameterization.
+    # - 'convex' (legacy): probit-scale shift, then Phi_approx to [0, 1].
+    # - 'softmax' (Collins 2025): direct shift on the real line, then
+    #   clip to [-1, 1]. Skips Phi_approx (kappa lives on R for softmax).
     # ------------------------------------------------------------------
-    kappa_defaults = PARAM_PRIOR_DEFAULTS["kappa"]
-    kappa_mu_pr = numpyro.sample(
-        "kappa_mu_pr",
-        dist.Normal(kappa_defaults["mu_prior_loc"], 1.0),
-    )
-    kappa_sigma_pr = numpyro.sample("kappa_sigma_pr", dist.HalfNormal(0.2))
-    kappa_z = numpyro.sample(
-        "kappa_z",
-        dist.Normal(0, 1).expand([n_participants]),
-    )
     lec_shift = beta_lec_kappa * covariate_lec if covariate_lec is not None else 0.0
     iesr_shift = (
         beta_iesr_kappa * covariate_iesr if covariate_iesr is not None else 0.0
     )
-    kappa_unc = kappa_mu_pr + kappa_sigma_pr * kappa_z + lec_shift + iesr_shift
-    kappa = numpyro.deterministic(
-        "kappa",
-        kappa_defaults["lower"]
-        + (kappa_defaults["upper"] - kappa_defaults["lower"]) * phi_approx(kappa_unc),
-    )
+
+    if kappa_parameterization == "convex":
+        kappa_defaults = PARAM_PRIOR_DEFAULTS["kappa"]
+        kappa_mu_pr = numpyro.sample(
+            "kappa_mu_pr",
+            dist.Normal(kappa_defaults["mu_prior_loc"], 1.0),
+        )
+        kappa_sigma_pr = numpyro.sample("kappa_sigma_pr", dist.HalfNormal(0.2))
+        kappa_z = numpyro.sample(
+            "kappa_z",
+            dist.Normal(0, 1).expand([n_participants]),
+        )
+        kappa_unc = (
+            kappa_mu_pr + kappa_sigma_pr * kappa_z + lec_shift + iesr_shift
+        )
+        kappa = numpyro.deterministic(
+            "kappa",
+            kappa_defaults["lower"]
+            + (kappa_defaults["upper"] - kappa_defaults["lower"])
+            * phi_approx(kappa_unc),
+        )
+    else:  # softmax (Phase 32-04 default)
+        # mu_pr ~ Normal(0, 0.5); sigma_pr ~ HalfNormal(0.5); z ~ N(0,1)
+        # No Phi_approx — sampled value is the raw kappa on the real line.
+        # Clip to [-1, 1] for paper conformance to Collins 2025.
+        kappa_mu_pr = numpyro.sample("kappa_mu_pr", dist.Normal(0.0, 0.5))
+        kappa_sigma_pr = numpyro.sample(
+            "kappa_sigma_pr", dist.HalfNormal(0.5)
+        )
+        kappa_z = numpyro.sample(
+            "kappa_z", dist.Normal(0, 1).expand([n_participants])
+        )
+        kappa_raw = (
+            kappa_mu_pr + kappa_sigma_pr * kappa_z + lec_shift + iesr_shift
+        )
+        kappa = numpyro.deterministic(
+            "kappa", jnp.clip(kappa_raw, min=-1.0, max=1.0)
+        )
     sampled["kappa"] = kappa
 
     # ------------------------------------------------------------------
@@ -1214,5 +1256,6 @@ def wmrl_m3_hierarchical_model(
         num_actions=num_actions,
         q_init=q_init,
         wm_init=wm_init,
+        parameterization=kappa_parameterization,
     )
     numpyro.factor("obs", per_participant_ll.sum())
