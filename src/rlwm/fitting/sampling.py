@@ -23,7 +23,7 @@ import numpy as np
 import numpyro
 import numpyro.distributions as dist
 import pandas as pd
-from numpyro.infer import MCMC, NUTS
+from numpyro.infer import MCMC, NUTS, init_to_median
 
 from .core import MAX_TRIALS_PER_BLOCK, pad_block_to_max
 from .models.qlearning import (
@@ -252,6 +252,12 @@ def run_inference(
     test_compilation : bool
         Test likelihood compilation before MCMC (default: True)
 
+    Notes
+    -----
+    NUTS is initialized with ``init_strategy=init_to_median(num_samples=50)``
+    (Phase 32-02), which is more robust for Phi_approx-bounded models than
+    the NumPyro default ``init_to_uniform``.  Cost: ~5 s wall-time per fit.
+
     Returns
     -------
     mcmc : numpyro.infer.MCMC
@@ -283,11 +289,15 @@ def run_inference(
     print(f"   Total iterations: {(num_warmup + num_samples) * num_chains}")
     print()
 
-    # Initialize NUTS sampler
+    # Initialize NUTS sampler.
+    # Phase 32-02: init_to_median(50) is more robust for Phi_approx-bounded
+    # models than init_to_uniform per NumPyro guides (Baribault & Collins
+    # 2023 do not warm-start from MLE either). Cost: ~5 s wall-time per fit.
     nuts_kernel = NUTS(
         model,
         target_accept_prob=target_accept_prob,
         max_tree_depth=max_tree_depth,
+        init_strategy=init_to_median(num_samples=50),
     )
 
     # Create MCMC object
@@ -365,6 +375,10 @@ def run_inference_with_bump(
       is printed after each run so users can track the bumping process.
     - The downstream convergence gate in ``fit_bayesian.py`` checks that
       ``num_divergences == 0`` before writing output files (HIER-07).
+    - NUTS is initialized with ``init_strategy=init_to_median(num_samples=50)``
+      at every acceptance-probability level (Phase 32-02).  More robust for
+      Phi_approx-bounded models than the default ``init_to_uniform``.  Cost:
+      ~5 s wall-time per fit.
     """
     # Enable parallel chains on CPU by exposing multiple host devices.
     # Without this, JAX sees only 1 device and chains run sequentially
@@ -411,10 +425,14 @@ def run_inference_with_bump(
 
     last_mcmc: MCMC | None = None
     for tap in target_accept_probs:
+        # Phase 32-02: init_to_median(50) is more robust for Phi_approx-bounded
+        # models than init_to_uniform per NumPyro guides (Baribault & Collins
+        # 2023 do not warm-start from MLE either). Cost: ~5 s wall-time per fit.
         nuts_kernel = NUTS(
             model,
             target_accept_prob=tap,
             max_tree_depth=max_tree_depth,
+            init_strategy=init_to_median(num_samples=50),
         )
         _chain_method = _select_chain_method(num_chains)
         mcmc = MCMC(
