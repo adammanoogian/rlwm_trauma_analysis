@@ -700,7 +700,9 @@ def save_results(
         )
 
         # ------------------------------------------------------------------
-        # CONVERGENCE GATE (HIER-07) — refuse to write outputs if gate fails
+        # CONVERGENCE GATE (HIER-07; Phase 32-01 BFMI extension) — refuse
+        # to write outputs if gate fails. Tier-1 (Baribault & Collins 2023):
+        # max_rhat < 1.01 AND min_ess >= 400 AND n_div == 0 AND min_bfmi >= 0.2.
         # ------------------------------------------------------------------
         model_params = MODEL_REGISTRY[model]["params"]
         print("\n>> Checking convergence gate...")
@@ -709,19 +711,41 @@ def save_results(
         min_ess = float(convergence_summary["ess_bulk"].min())
         extra = mcmc.get_extra_fields()
         n_div = int(extra["diverging"].sum()) if "diverging" in extra else 0
-        converged = max_rhat < 1.01 and min_ess > 400 and n_div == 0
+        try:
+            bfmi_per_chain = np.asarray(az.bfmi(idata)).ravel()
+            min_bfmi = (
+                float(bfmi_per_chain.min())
+                if bfmi_per_chain.size
+                else float("nan")
+            )
+        except Exception:
+            min_bfmi = float("nan")
+        converged = (
+            max_rhat < 1.01
+            and min_ess >= 400
+            and n_div == 0
+            and (np.isnan(min_bfmi) or min_bfmi >= 0.2)
+        )
+
+        print(
+            f"[convergence-gate] model={model} max_rhat={max_rhat:.3f} "
+            f"min_ess_bulk={min_ess:.0f} divergences={n_div} "
+            f"min_bfmi={min_bfmi:.2f}"
+        )
 
         if not converged:
             print(
                 f"\n[CONVERGENCE GATE FAILED] max_rhat={max_rhat:.4f}, "
-                f"min_ess_bulk={min_ess:.0f}, divergences={n_div}"
+                f"min_ess_bulk={min_ess:.0f}, divergences={n_div}, "
+                f"min_bfmi={min_bfmi:.3f}"
             )
             print("Refusing to write output files. Fix convergence issues and re-run.")
             return None  # Early return — no files written
 
         print(
             f"\n[CONVERGENCE GATE PASSED] max_rhat={max_rhat:.4f}, "
-            f"min_ess_bulk={min_ess:.0f}, divergences={n_div}"
+            f"min_ess_bulk={min_ess:.0f}, divergences={n_div}, "
+            f"min_bfmi={min_bfmi:.3f}"
         )
 
         # ------------------------------------------------------------------
