@@ -8,18 +8,19 @@ Column layout:
 - <param_1>, ..., <param_k>          (posterior mean — matches MLE point-estimate semantics)
 - nll, aic, bic, aicc, pseudo_r2     (computed from posterior-mean NLL)
 - <param_1>_hdi_low, <param_1>_hdi_high, <param_1>_sd, ...
-- max_rhat, min_ess_bulk, num_divergences
+- max_rhat, min_ess_bulk, num_divergences, min_bfmi, per_chain_ess_bulk
 - n_trials, converged, at_bounds
 - parameterization_version
 
-Key design decisions (see 13-RESEARCH.md):
+Key design decisions (see 13-RESEARCH.md, 32-RESEARCH.md):
 1. Posterior MEAN for <param> columns (matches MLE point-estimate semantics).
 2. 95% HDI for _hdi_low/_hdi_high.
 3. Posterior STD for _sd (not "SE" — frequentist term).
-4. converged = max_rhat < 1.01 AND min_ess_bulk > 400 AND num_divergences == 0.
+4. converged = max_rhat < 1.01 AND min_ess_bulk > 400 AND num_divergences == 0
+   AND min_bfmi >= 0.2 (Baribault & Collins 2023 Tier-1 publication standard).
 5. NO grad_norm, hessian_*, _se, _ci_*, high_correlations (Hessian-based).
 
-v4.0 INFRA-04.
+v4.0 INFRA-04. Phase 32-01 added Tier-1 BFMI gate + per-chain ESS column.
 """
 
 from __future__ import annotations
@@ -140,6 +141,8 @@ def _build_column_order(param_names: list[str]) -> list[str]:
         cols += [f"{p}_hdi_low", f"{p}_hdi_high", f"{p}_sd"]
     # Convergence diagnostics
     cols += ["max_rhat", "min_ess_bulk", "num_divergences"]
+    # Tier-1 (Baribault & Collins 2023) energy + per-chain diagnostics
+    cols += ["min_bfmi", "per_chain_ess_bulk"]
     # Standard outcome columns
     cols += ["n_trials", "converged", "at_bounds"]
     # Parameterisation metadata
@@ -265,6 +268,40 @@ def write_bayesian_summary(
     if hasattr(idata, "sample_stats") and "diverging" in idata.sample_stats:
         num_divergences_total = int(idata.sample_stats["diverging"].values.sum())
 
+    # ------------------------------------------------------------------
+    # BFMI per chain (Baribault & Collins 2023 Tier-1; Betancourt 2016)
+    # ------------------------------------------------------------------
+    # az.bfmi(idata) returns one BFMI per chain. Minimum across chains is
+    # the publication-standard summary; values < 0.2 indicate inefficient
+    # Hamiltonian flow (energy diffusion bottleneck). NaN tolerated for
+    # legacy fits where sample_stats.energy is absent.
+    try:
+        bfmi_per_chain = np.asarray(az.bfmi(idata)).ravel()
+        min_bfmi = float(bfmi_per_chain.min()) if bfmi_per_chain.size else float("nan")
+    except Exception:
+        bfmi_per_chain = np.array([])
+        min_bfmi = float("nan")
+
+    # ------------------------------------------------------------------
+    # Per-chain ESS_bulk (single-chain ESS surfaces label-switching /
+    # one-bad-chain pathologies that all-chain ESS hides)
+    # ------------------------------------------------------------------
+    # az.summary aggregates across chains, so we recompute ESS chain-by-
+    # chain and record the minimum across plate-indexed parameters per
+    # chain. Stored as a semicolon-separated string so downstream readers
+    # can split on ";" without breaking CSV parsing.
+    per_chain_ess_bulk_str = ""
+    n_chains = int(posterior.sizes.get("chain", 1))
+    if n_chains > 1:
+        chain_ess: list[float] = []
+        for c in range(n_chains):
+            single_chain = posterior.isel(chain=slice(c, c + 1))
+            chain_summary = az.summary(
+                single_chain, var_names=param_names, hdi_prob=hdi_prob
+            )
+            chain_ess.append(float(chain_summary["ess_bulk"].min()))
+        per_chain_ess_bulk_str = ";".join(f"{v:.0f}" for v in chain_ess)
+
     # Posterior draws: collapse chains*samples → (draws, n_participants)
     def _get_draws(param: str) -> np.ndarray:
         """Return draws array of shape (draws, n_participants) or (draws,) for group params."""
@@ -346,12 +383,17 @@ def write_bayesian_summary(
         row["num_divergences"] = (
             num_divergences_total  # global; per-participant not available
         )
+        row["min_bfmi"] = min_bfmi
+        row["per_chain_ess_bulk"] = per_chain_ess_bulk_str
 
-        # converged: max_rhat < 1.01 AND min_ess_bulk > 400 AND num_divergences == 0
+        # converged (Baribault & Collins 2023 Tier-1):
+        # max_rhat < 1.01 AND min_ess_bulk > 400 AND num_divergences == 0
+        # AND min_bfmi >= 0.2 (NaN tolerated for legacy fits w/o energy stat).
         converged = (
             (not np.isnan(max_rhat) and max_rhat < 1.01)
             and (not np.isnan(min_ess) and min_ess > 400)
             and (num_divergences_total == 0)
+            and (np.isnan(min_bfmi) or min_bfmi >= 0.2)
         )
         row["n_trials"] = n_trials
         row["converged"] = converged
