@@ -23,13 +23,20 @@
 # remains dispatchable via USE_CPU=1 in the master orchestrator
 # (cluster/submit_all.sh).
 #
+# Phase 32-03 (2026-05-03): Default fan-out via submit_all.sh now omits
+# M3, M5, M6a from Bayesian (they are M6b corner cases / Collins 2025
+# ruled out phi_rl). Standalone default MODEL is wmrl_m6b (canonical
+# winning model). To fit M3/M5/M6a as sensitivity analyses run
+# standalone:
+#   sbatch --export=ALL,MODEL=wmrl_m3 cluster/04b_bayesian_gpu.slurm
+#
 # Usage:
-#   sbatch cluster/04b_bayesian_gpu.slurm                                  # Default model (wmrl_m3)
+#   sbatch cluster/04b_bayesian_gpu.slurm                                  # Default model (wmrl_m6b — Phase 32-03)
 #   sbatch --export=ALL,MODEL=qlearning cluster/04b_bayesian_gpu.slurm     # Q-Learning
 #   sbatch --export=ALL,MODEL=wmrl_m6b,SUBSCALE=1 \
 #     --time=36:00:00 cluster/04b_bayesian_gpu.slurm                       # M6b subscale
 #   sbatch --export=ALL,MODEL=wmrl_m3,LIMIT=5 \
-#     cluster/04b_bayesian_gpu.slurm                                       # Quick test
+#     cluster/04b_bayesian_gpu.slurm                                       # Quick test (sensitivity-only post 32-03)
 #
 # Optional GPU type override (default L40S; pins JIT cache to one arch per
 # CLUSTER_GPU_LESSONS.md §5):
@@ -56,7 +63,7 @@
 # =============================================================================
 # Configuration — override via --export when submitting
 # =============================================================================
-MODEL="${MODEL:-wmrl_m3}"
+MODEL="${MODEL:-wmrl_m6b}"  # Phase 32-03: standalone default flipped from wmrl_m3 to canonical winner wmrl_m6b
 LIMIT="${LIMIT:-}"
 CHAINS="${CHAINS:-4}"
 WARMUP="${WARMUP:-1000}"

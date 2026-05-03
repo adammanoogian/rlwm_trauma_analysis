@@ -7,12 +7,20 @@
 # the 13_bayesian_m6b_subscale.slurm variant (via --export=SUBSCALE=1).
 # CPU-only (no GPU needed for choice-only models).
 #
-# Usage:
+# Phase 32-03 (2026-05-03): Default fan-out via submit_all.sh now omits
+# M3, M5, M6a from Bayesian (they are M6b corner cases / Collins 2025
+# ruled out phi_rl). Standalone default MODEL is wmrl_m6b (canonical
+# winning model). To fit M3/M5/M6a as sensitivity analyses run
+# standalone:
 #   sbatch --export=ALL,MODEL=wmrl_m3 cluster/04b_bayesian_cpu.slurm
+#
+# Usage:
+#   sbatch cluster/04b_bayesian_cpu.slurm                                  # Default model (wmrl_m6b — Phase 32-03)
+#   sbatch --export=ALL,MODEL=wmrl_m3 cluster/04b_bayesian_cpu.slurm       # Sensitivity-only post 32-03
 #   sbatch --export=ALL,MODEL=qlearning cluster/04b_bayesian_cpu.slurm
 #   sbatch --export=ALL,MODEL=wmrl cluster/04b_bayesian_cpu.slurm
-#   sbatch --export=ALL,MODEL=wmrl_m5 cluster/04b_bayesian_cpu.slurm
-#   sbatch --export=ALL,MODEL=wmrl_m6a cluster/04b_bayesian_cpu.slurm
+#   sbatch --export=ALL,MODEL=wmrl_m5 cluster/04b_bayesian_cpu.slurm       # Sensitivity-only post 32-03
+#   sbatch --export=ALL,MODEL=wmrl_m6a cluster/04b_bayesian_cpu.slurm      # Sensitivity-only post 32-03
 #
 # M6b requires 36h wall-time due to stick-breaking decode in the 8-parameter
 # model. Submit M6b with an explicit time override:
@@ -41,7 +49,7 @@
 #SBATCH --partition=comp
 
 # --- Model selection + MCMC knobs (override via --export=ALL,KEY=VAL,...) ---
-MODEL="${MODEL:-wmrl_m3}"
+MODEL="${MODEL:-wmrl_m6b}"  # Phase 32-03: standalone default flipped from wmrl_m3 to canonical winner wmrl_m6b
 CHAINS="${CHAINS:-4}"
 WARMUP="${WARMUP:-1000}"
 SAMPLES="${SAMPLES:-2000}"
