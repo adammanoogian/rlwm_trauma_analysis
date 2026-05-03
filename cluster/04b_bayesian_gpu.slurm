@@ -71,6 +71,10 @@ SAMPLES="${SAMPLES:-2000}"
 SEED="${SEED:-42}"
 MAX_TREE_DEPTH="${MAX_TREE_DEPTH:-8}"
 SUBSCALE="${SUBSCALE:-0}"  # 1 enables --subscale flag (M6b subscale variant)
+# Phase 32-04: kappa parameterization. 'softmax' (Collins 2025 additive
+# bias kappa in [-1, 1], default) | 'convex' (Senta 2025 mixture kappa
+# in [0, 1], legacy revert path).
+KAPPA_MODE="${KAPPA_MODE:-softmax}"
 
 # =============================================================================
 # Environment Setup (M3 specific)
@@ -102,6 +106,7 @@ echo "Samples:        $SAMPLES"
 echo "Seed:           $SEED"
 echo "Max tree depth: $MAX_TREE_DEPTH"
 echo "Subscale:       $SUBSCALE"
+echo "Kappa param:    $KAPPA_MODE"
 echo "Limit:          ${LIMIT:-<all participants>}"
 echo "Start time:     $(date)"
 echo "============================================================"
@@ -231,7 +236,8 @@ CMD=(python scripts/04_model_fitting/b_bayesian/fit_baseline.py
      --warmup "$WARMUP"
      --samples "$SAMPLES"
      --seed "$SEED"
-     --max-tree-depth "$MAX_TREE_DEPTH")
+     --max-tree-depth "$MAX_TREE_DEPTH"
+     --kappa-parameterization "$KAPPA_MODE")
 
 if [ "$SUBSCALE" = "1" ] || [[ -n "$LIMIT" ]]; then
     echo "WARNING: SUBSCALE/LIMIT env vars are ignored under fit_baseline.py."

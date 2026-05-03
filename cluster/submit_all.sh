@@ -31,6 +31,13 @@
 #                                                      #   M3/M5/M6a are M6b corner cases or Collins 2025 ruled out
 #                                                      #   so they are dropped from default Bayesian — fit them
 #                                                      #   standalone as sensitivity analyses)
+#   bash cluster/submit_all.sh --kappa-parameterization convex
+#                                                      # Phase 32-04: select kappa parameterization. 'softmax' (default,
+#                                                      #   Collins 2025) uses additive bias kappa in [-1, 1].
+#                                                      #   'convex' (legacy revert path, Senta 2025) uses mixture
+#                                                      #   kappa in [0, 1] — reproduces v5.0 pre-Phase-32 fits
+#                                                      #   bit-equivalently. Threads through to stage-04b SLURM
+#                                                      #   workers via the KAPPA_MODE env var.
 #   bash cluster/submit_all.sh --preflight              # prepend SLURM-automated 2-cov L2 hook gate
 #                                                      #   (cluster/00_preflight.slurm runs on a compute node
 #                                                      #    with rlwm_gpu activated, then chains stage 01 via afterok)
@@ -60,6 +67,12 @@ MODELS="qlearning wmrl wmrl_m3 wmrl_m5 wmrl_m6a wmrl_m6b"
 # - M5's phi_rl is unnecessary per Collins 2025 Methods p.366
 # Override via: --bayes-models "qlearning wmrl wmrl_m6b wmrl_m3"
 BAYES_MODELS="${BAYES_MODELS:-qlearning wmrl wmrl_m6b}"
+# Phase 32-04: Perseveration kappa parameterization. 'softmax' = Collins
+# 2025 additive bias kappa in [-1, 1] (Phase 32-04 default). 'convex' =
+# Senta 2025 mixture kappa in [0, 1] (legacy revert path; reproduces v5.0
+# pre-Phase-32 fits bit-equivalently).
+# Override via: --kappa-parameterization convex
+KAPPA_MODE="${KAPPA_MODE:-softmax}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -67,6 +80,7 @@ while [[ $# -gt 0 ]]; do
     --from-stage) FROM_STAGE="$2"; shift 2 ;;
     --models) MODELS="$2"; shift 2 ;;
     --bayes-models) BAYES_MODELS="$2"; shift 2 ;;
+    --kappa-parameterization) KAPPA_MODE="$2"; shift 2 ;;
     --preflight) DO_PREFLIGHT=1; shift ;;
     -h|--help)
       grep "^#" "$0" | head -60
@@ -76,12 +90,19 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# Validate KAPPA_MODE
+case "$KAPPA_MODE" in
+  softmax|convex) ;;
+  *) echo "ERROR: --kappa-parameterization must be 'softmax' or 'convex', got '$KAPPA_MODE'" >&2; exit 2 ;;
+esac
+
 echo "============================================================"
 echo "[submit_all.sh] $(date)"
 echo "  mode:           ${DRY_RUN:+dry-run}${DRY_RUN:-real}"
 echo "  stages:         ${FROM_STAGE}..6"
 echo "  models (MLE):   ${MODELS}"
 echo "  models (Bayes): ${BAYES_MODELS}"
+echo "  kappa param:    ${KAPPA_MODE}"
 echo "============================================================"
 
 # =============================================================================
@@ -274,9 +295,10 @@ if [[ "$FROM_STAGE" -le 4 ]]; then
     # M6b needs 36h walltime
     TIME_OVERRIDE=()
     [[ "$m" == "wmrl_m6b" ]] && TIME_OVERRIDE=(--time=36:00:00)
+    # Phase 32-04: thread KAPPA_MODE through to the SLURM as an env var.
     BAYES_JOBS[$m]=$(submit "$BAYES_SCRIPT" "${DEP[@]}" "${TIME_OVERRIDE[@]}" \
-                      --export=ALL,MODEL="$m")
-    echo "  [04b] $m -> ${BAYES_JOBS[$m]}"
+                      --export=ALL,MODEL="$m",KAPPA_MODE="$KAPPA_MODE")
+    echo "  [04b] $m -> ${BAYES_JOBS[$m]} (kappa=${KAPPA_MODE})"
     J04_ALL+=("${BAYES_JOBS[$m]}")
   done
 fi

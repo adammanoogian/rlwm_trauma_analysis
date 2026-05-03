@@ -43,6 +43,9 @@
 # =============================================================================
 MODELS="${MODEL:-qlearning wmrl wmrl_m3 wmrl_m5 wmrl_m6a wmrl_m6b wmrl_m4}"
 LIMIT="${LIMIT:-}"
+# Phase 32-04: kappa parameterization. 'softmax' (Collins 2025) | 'convex'
+# (Senta 2025 legacy revert path). Threaded into fit_mle.py CLI.
+KAPPA_MODE="${KAPPA_MODE:-softmax}"
 
 # =============================================================================
 # Environment Setup (M3 specific)
@@ -71,6 +74,7 @@ echo "Node: ${SLURMD_NODENAME:-$(hostname)}"
 echo "Partition: ${SLURM_JOB_PARTITION:-gpu}"
 echo "GPU(s): ${CUDA_VISIBLE_DEVICES:-none}"
 echo "Project: $PROJECT_ROOT"
+echo "Kappa param: $KAPPA_MODE"
 echo "Start time: $(date)"
 echo "============================================================"
 
@@ -173,13 +177,13 @@ if [[ "$MODEL_COUNT" -gt 1 ]]; then
 
     JOBIDS=()
     for model in $MODELS; do
-        EXPORTS="MODEL=$model"
+        EXPORTS="MODEL=$model,KAPPA_MODE=$KAPPA_MODE"
         [[ -n "$LIMIT" ]] && EXPORTS="$EXPORTS,LIMIT=$LIMIT"
         [[ -n "$KEEP_CHECKPOINTS" ]] && EXPORTS="$EXPORTS,KEEP_CHECKPOINTS=$KEEP_CHECKPOINTS"
 
         JOBID=$(sbatch --export="$EXPORTS" --job-name="mle_${model}" "$0" | awk '{print $NF}')
         JOBIDS+=("$JOBID")
-        echo "  $model -> Job $JOBID"
+        echo "  $model -> Job $JOBID (kappa=$KAPPA_MODE)"
     done
 
     echo ""
@@ -218,6 +222,7 @@ for model in $MODELS; do
         --n-starts 50 \
         --seed 42 \
         --use-gpu \
+        --kappa-parameterization $KAPPA_MODE \
         --compute-diagnostics"
 
     if [[ -n "$LIMIT" ]]; then

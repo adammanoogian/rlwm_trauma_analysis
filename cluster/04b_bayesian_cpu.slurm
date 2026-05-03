@@ -56,6 +56,8 @@ SAMPLES="${SAMPLES:-2000}"
 SEED="${SEED:-42}"
 MAX_TREE_DEPTH="${MAX_TREE_DEPTH:-8}"
 SUBSCALE="${SUBSCALE:-0}"  # 1 enables --subscale flag (M6b subscale variant)
+# Phase 32-04: kappa parameterization (default: softmax = Collins 2025).
+KAPPA_MODE="${KAPPA_MODE:-softmax}"
 
 # --- Environment Setup ---
 module load miniforge3
@@ -84,6 +86,7 @@ echo "Samples:        $SAMPLES"
 echo "Seed:           $SEED"
 echo "Max tree depth: $MAX_TREE_DEPTH"
 echo "Subscale:       $SUBSCALE"
+echo "Kappa param:    $KAPPA_MODE"
 echo "Start time:     $(date)"
 echo "============================================================"
 
@@ -176,7 +179,8 @@ CMD=(python scripts/04_model_fitting/b_bayesian/fit_baseline.py
      --warmup "$WARMUP"
      --samples "$SAMPLES"
      --seed "$SEED"
-     --max-tree-depth "$MAX_TREE_DEPTH")
+     --max-tree-depth "$MAX_TREE_DEPTH"
+     --kappa-parameterization "$KAPPA_MODE")
 
 if [ "$SUBSCALE" = "1" ]; then
     echo "WARNING: SUBSCALE=1 ignored under fit_baseline.py."

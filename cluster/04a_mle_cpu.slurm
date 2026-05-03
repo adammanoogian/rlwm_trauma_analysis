@@ -39,6 +39,9 @@
 # Use NJOBS=1 if you experience OOM errors on first run (cache cold).
 MODELS="${MODEL:-qlearning wmrl wmrl_m3 wmrl_m5 wmrl_m6a wmrl_m6b wmrl_m4}"
 NJOBS="${NJOBS:-4}"
+# Phase 32-04: kappa parameterization. 'softmax' (Collins 2025) | 'convex'
+# (Senta 2025 legacy revert path). Threaded into fit_mle.py CLI.
+KAPPA_MODE="${KAPPA_MODE:-softmax}"
 
 # =============================================================================
 # Environment Setup (M3 specific)
@@ -71,6 +74,7 @@ echo "CPUs requested: ${SLURM_CPUS_PER_TASK:-16}"
 echo "Memory requested: ${SLURM_MEM_PER_NODE:-64G}"
 echo "Parallel workers: $NJOBS"
 echo "Project: $PROJECT_ROOT"
+echo "Kappa param: $KAPPA_MODE"
 echo "Start time: $(date)"
 echo "============================================================"
 
@@ -210,6 +214,7 @@ for model in $MODELS; do
         --n-starts 20 \
         --seed 42 \
         --n-jobs "$NJOBS" \
+        --kappa-parameterization "$KAPPA_MODE" \
         --compute-diagnostics
 
     EXIT_CODE=$?
