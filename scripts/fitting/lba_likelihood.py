@@ -406,6 +406,8 @@ def wmrl_m4_block_likelihood(
     q_init: float = 0.5,
     wm_init: float = 1.0 / 3.0,
     mask: jnp.ndarray = None,
+    *,
+    parameterization: str = "softmax",
 ) -> float:
     """Compute NLL for WM-RL M4 (LBA decision) on a SINGLE BLOCK.
 
@@ -498,14 +500,40 @@ def wmrl_m4_block_likelihood(
 
         # Adaptive weighting: omega = rho * min(1, capacity/set_size)
         omega = rho * jnp.minimum(1.0, capacity / set_size.astype(jnp.float64))
-        hybrid_probs = omega * wm_probs + (1.0 - omega) * rl_probs
-        hybrid_probs = hybrid_probs / jnp.sum(hybrid_probs)  # renormalize
 
-        # Perseveration kernel (M3 pattern, effective-weight gating)
-        has_prev = last_action >= 0
-        Ck = jnp.eye(num_actions, dtype=jnp.float64)[jnp.maximum(last_action, 0)]
-        eff_kappa = jnp.where(has_prev, kappa, jnp.float64(0.0))
-        pi_hybrid = (1.0 - eff_kappa) * hybrid_probs + eff_kappa * Ck
+        # Phase 32-04: parameterization branch (M4 LBA path).
+        # 'softmax' (Collins 2025, default): logit-space WM/RL mix +
+        #   additive kappa bias on last-action logit, then softmax.
+        # 'convex' (Senta 2025, legacy): preserved bit-for-bit.
+        if parameterization == "softmax":
+            mask_la = (last_action >= 0).astype(jnp.float64)
+            last_action_one_hot = (
+                jnp.eye(num_actions, dtype=jnp.float64)[
+                    jnp.maximum(last_action, 0)
+                ]
+                * mask_la
+            )
+            rl_logits = FIXED_BETA * q_vals
+            wm_logits = FIXED_BETA * wm_vals
+            mixed_logits = (
+                omega * wm_logits + (1.0 - omega) * rl_logits
+            )
+            biased_logits = mixed_logits + kappa * last_action_one_hot
+            biased_logits = biased_logits - jnp.max(biased_logits)
+            pi_hybrid = jnp.exp(biased_logits) / jnp.sum(
+                jnp.exp(biased_logits)
+            )
+        else:  # parameterization == "convex" — preserved bit-for-bit
+            hybrid_probs = omega * wm_probs + (1.0 - omega) * rl_probs
+            hybrid_probs = hybrid_probs / jnp.sum(hybrid_probs)
+
+            # Perseveration kernel (M3 pattern, effective-weight gating)
+            has_prev = last_action >= 0
+            Ck = jnp.eye(num_actions, dtype=jnp.float64)[
+                jnp.maximum(last_action, 0)
+            ]
+            eff_kappa = jnp.where(has_prev, kappa, jnp.float64(0.0))
+            pi_hybrid = (1.0 - eff_kappa) * hybrid_probs + eff_kappa * Ck
 
         # ------------------------------------------------------------------
         # 3. M4 DECISION: LBA drift rates from hybrid policy (no epsilon)
@@ -582,6 +610,8 @@ def wmrl_m4_multiblock_likelihood(
     q_init: float = 0.5,
     wm_init: float = 1.0 / 3.0,
     masks_blocks: list = None,
+    *,
+    parameterization: str = "softmax",
 ) -> float:
     """Compute NLL for M4 across multiple blocks.
 
@@ -639,6 +669,7 @@ def wmrl_m4_multiblock_likelihood(
             q_init=q_init,
             wm_init=wm_init,
             mask=mask,
+            parameterization=parameterization,
         )
         total_nll = total_nll + block_nll
 
@@ -666,6 +697,8 @@ def wmrl_m4_multiblock_likelihood_stacked(
     num_actions: int = 3,
     q_init: float = 0.5,
     wm_init: float = 1.0 / 3.0,
+    *,
+    parameterization: str = "softmax",
 ) -> float:
     """Stacked (fori_loop) version of M4 multiblock likelihood.
 
@@ -710,6 +743,7 @@ def wmrl_m4_multiblock_likelihood_stacked(
             q_init=q_init,
             wm_init=wm_init,
             mask=masks_stacked[block_idx],
+            parameterization=parameterization,
         )
         return total_nll + block_nll
 

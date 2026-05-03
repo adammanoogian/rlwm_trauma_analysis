@@ -175,6 +175,39 @@ from scripts.fitting.mle_utils import (
 # Suppress JAX warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
 
+
+# =============================================================================
+# Phase 32-04: kappa-aware bounds dict helper
+# =============================================================================
+# kappa-family parameter names that flip bounds under softmax mode.
+# kappa_share is intentionally EXCLUDED — channel-share, not a softmax bias.
+_KAPPA_FAMILY_PARAMS_MLE = {"kappa", "kappa_s", "kappa_total"}
+
+
+def _kappa_aware_bounds_dict(
+    base_bounds: dict[str, tuple[float, float]],
+    kappa_parameterization: str,
+) -> dict[str, tuple[float, float]]:
+    """Return a copy of ``base_bounds`` with kappa-family bounds adjusted.
+
+    Under ``kappa_parameterization='softmax'`` (Phase 32-04 default), any
+    param in ``{kappa, kappa_s, kappa_total}`` gets bounds (-1.0, 1.0).
+    Under ``'convex'``, bounds remain as defined in ``base_bounds`` (which
+    are (0, 1) for kappa-family by default).
+    """
+    if kappa_parameterization not in {"softmax", "convex"}:
+        raise ValueError(
+            f"kappa_parameterization must be 'softmax' or 'convex', "
+            f"got {kappa_parameterization!r}"
+        )
+    if kappa_parameterization == "convex":
+        return dict(base_bounds)
+    out = dict(base_bounds)
+    for p in _KAPPA_FAMILY_PARAMS_MLE & out.keys():
+        out[p] = (-1.0, 1.0)
+    return out
+
+
 # =============================================================================
 # JAX Compilation Warmup (for parallel execution)
 # =============================================================================
@@ -444,6 +477,8 @@ def _make_jax_objective_wmrl_m3(
     rewards_blocks: list[jnp.ndarray],
     set_sizes_blocks: list[jnp.ndarray],
     masks_blocks: list[jnp.ndarray] = None,
+    *,
+    kappa_parameterization: str = "softmax",
 ):
     """
     Create a JAX-compatible objective function for WM-RL M3.
@@ -458,6 +493,8 @@ def _make_jax_objective_wmrl_m3(
         set_sizes_blocks: list of set size arrays per block
         masks_blocks: list of mask arrays per block (1.0 for real trials, 0.0 for padding).
                      When provided, enables fixed-size compilation for efficiency.
+        kappa_parameterization: 'softmax' (Collins 2025; default) or 'convex'
+                               (Senta 2025; kappa in [0, 1]).
     """
     # Pre-stack blocks ONCE - use stacked version to avoid list/restack overhead
     stimuli_stacked = jnp.stack(stimuli_blocks)
@@ -471,7 +508,7 @@ def _make_jax_objective_wmrl_m3(
 
     def objective(x: jnp.ndarray) -> float:
         alpha_pos, alpha_neg, phi, rho, capacity, kappa, epsilon = (
-            jax_unconstrained_to_params_wmrl_m3(x)
+            jax_unconstrained_to_params_wmrl_m3(x, kappa_parameterization)
         )
         # Use stacked version directly - avoids list conversion and restacking
         log_lik = wmrl_m3_multiblock_likelihood_stacked(
@@ -487,6 +524,7 @@ def _make_jax_objective_wmrl_m3(
             capacity=capacity,
             kappa=kappa,
             epsilon=epsilon,
+            parameterization=kappa_parameterization,
         )
         return -log_lik
 
@@ -500,6 +538,8 @@ def _make_jax_objective_wmrl_m5(
     rewards_blocks: list[jnp.ndarray],
     set_sizes_blocks: list[jnp.ndarray],
     masks_blocks: list[jnp.ndarray] = None,
+    *,
+    kappa_parameterization: str = "softmax",
 ):
     """
     Create a JAX-compatible objective function for WM-RL M5 (RL forgetting).
@@ -513,6 +553,7 @@ def _make_jax_objective_wmrl_m5(
         rewards_blocks: list of reward arrays per block
         set_sizes_blocks: list of set size arrays per block
         masks_blocks: list of mask arrays per block (1.0 for real trials, 0.0 for padding).
+        kappa_parameterization: 'softmax' (default) or 'convex'.
     """
     # Pre-stack blocks ONCE - use stacked version to avoid list/restack overhead
     stimuli_stacked = jnp.stack(stimuli_blocks)
@@ -526,7 +567,7 @@ def _make_jax_objective_wmrl_m5(
 
     def objective(x: jnp.ndarray) -> float:
         alpha_pos, alpha_neg, phi, rho, capacity, kappa, phi_rl, epsilon = (
-            jax_unconstrained_to_params_wmrl_m5(x)
+            jax_unconstrained_to_params_wmrl_m5(x, kappa_parameterization)
         )
         # Use stacked version directly - avoids list conversion and restacking
         log_lik = wmrl_m5_multiblock_likelihood_stacked(
@@ -543,6 +584,7 @@ def _make_jax_objective_wmrl_m5(
             kappa=kappa,
             phi_rl=phi_rl,
             epsilon=epsilon,
+            parameterization=kappa_parameterization,
         )
         return -log_lik
 
@@ -556,6 +598,8 @@ def _make_jax_objective_wmrl_m6a(
     rewards_blocks: list[jnp.ndarray],
     set_sizes_blocks: list[jnp.ndarray],
     masks_blocks: list[jnp.ndarray] = None,
+    *,
+    kappa_parameterization: str = "softmax",
 ):
     """
     Create a JAX-compatible objective function for WM-RL M6a (stimulus-specific perseveration).
@@ -569,6 +613,7 @@ def _make_jax_objective_wmrl_m6a(
         rewards_blocks: list of reward arrays per block
         set_sizes_blocks: list of set size arrays per block
         masks_blocks: list of mask arrays per block (1.0 for real trials, 0.0 for padding).
+        kappa_parameterization: 'softmax' (default) or 'convex'.
     """
     # Pre-stack blocks ONCE - use stacked version to avoid list/restack overhead
     stimuli_stacked = jnp.stack(stimuli_blocks)
@@ -582,7 +627,7 @@ def _make_jax_objective_wmrl_m6a(
 
     def objective(x: jnp.ndarray) -> float:
         alpha_pos, alpha_neg, phi, rho, capacity, kappa_s, epsilon = (
-            jax_unconstrained_to_params_wmrl_m6a(x)
+            jax_unconstrained_to_params_wmrl_m6a(x, kappa_parameterization)
         )
         log_lik = wmrl_m6a_multiblock_likelihood_stacked(
             stimuli_stacked=stimuli_stacked,
@@ -597,6 +642,7 @@ def _make_jax_objective_wmrl_m6a(
             capacity=capacity,
             kappa_s=kappa_s,
             epsilon=epsilon,
+            parameterization=kappa_parameterization,
         )
         return -log_lik
 
@@ -610,6 +656,8 @@ def _make_jax_objective_wmrl_m6b(
     rewards_blocks: list[jnp.ndarray],
     set_sizes_blocks: list[jnp.ndarray],
     masks_blocks: list[jnp.ndarray] = None,
+    *,
+    kappa_parameterization: str = "softmax",
 ):
     """
     Create a JAX-compatible objective function for WM-RL M6b (dual perseveration).
@@ -627,6 +675,8 @@ def _make_jax_objective_wmrl_m6b(
         rewards_blocks: list of reward arrays per block
         set_sizes_blocks: list of set size arrays per block
         masks_blocks: list of mask arrays per block (1.0 for real trials, 0.0 for padding).
+        kappa_parameterization: 'softmax' (default) or 'convex'. Under
+            'softmax', kappa_total in [-1, 1]; kappa_share always [0, 1].
     """
     # Pre-stack blocks ONCE - use stacked version to avoid list/restack overhead
     stimuli_stacked = jnp.stack(stimuli_blocks)
@@ -640,9 +690,12 @@ def _make_jax_objective_wmrl_m6b(
 
     def objective(x: jnp.ndarray) -> float:
         alpha_pos, alpha_neg, phi, rho, capacity, kappa_total, kappa_share, epsilon = (
-            jax_unconstrained_to_params_wmrl_m6b(x)
+            jax_unconstrained_to_params_wmrl_m6b(x, kappa_parameterization)
         )
-        # Stick-breaking decode: enforces kappa + kappa_s = kappa_total <= 1
+        # Stick-breaking decode: enforces kappa + kappa_s = kappa_total
+        # (under convex, |kappa| + |kappa_s| <= 1; under softmax, with
+        # kappa_total possibly negative, both kappa and kappa_s share the
+        # same sign).
         kappa = kappa_total * kappa_share
         kappa_s = kappa_total * (1 - kappa_share)
         log_lik = wmrl_m6b_multiblock_likelihood_stacked(
@@ -659,6 +712,7 @@ def _make_jax_objective_wmrl_m6b(
             kappa=kappa,
             kappa_s=kappa_s,
             epsilon=epsilon,
+            parameterization=kappa_parameterization,
         )
         return -log_lik
 
@@ -673,6 +727,8 @@ def _make_jax_objective_wmrl_m4(
     set_sizes_blocks: list[jnp.ndarray],
     rts_blocks: list[jnp.ndarray],
     masks_blocks: list[jnp.ndarray] = None,
+    *,
+    kappa_parameterization: str = "softmax",
 ):
     """
     Create a JAX-compatible objective function for WM-RL M4 (LBA joint choice+RT).
@@ -688,6 +744,7 @@ def _make_jax_objective_wmrl_m4(
         stimuli_blocks, actions_blocks, rewards_blocks, set_sizes_blocks: per-block data
         rts_blocks: per-block RT arrays in seconds (float64)
         masks_blocks: per-block masks (1.0 real, 0.0 pad/RT-outlier filtered)
+        kappa_parameterization: 'softmax' (default) or 'convex'.
     """
     # Lazy import to avoid float64 side-effect when not using M4
     from scripts.fitting.lba_likelihood import wmrl_m4_multiblock_likelihood_stacked
@@ -707,7 +764,7 @@ def _make_jax_objective_wmrl_m4(
 
     def objective(x: jnp.ndarray) -> float:
         alpha_pos, alpha_neg, phi, rho, capacity, kappa, v_scale, A, delta, t0 = (
-            jax_unconstrained_to_params_wmrl_m4(x)
+            jax_unconstrained_to_params_wmrl_m4(x, kappa_parameterization)
         )
         # b > A decode: b = A + delta (enforced structurally because delta > 0)
         b = A + delta
@@ -728,6 +785,7 @@ def _make_jax_objective_wmrl_m4(
             A=A,
             b=b,
             t0=t0,
+            parameterization=kappa_parameterization,
         )
         return nll  # Already NLL (positive = minimizable)
 
@@ -831,6 +889,8 @@ def _make_bounded_objective_wmrl_m3(
     rewards_blocks: list[jnp.ndarray],
     set_sizes_blocks: list[jnp.ndarray],
     masks_blocks: list[jnp.ndarray] = None,
+    *,
+    kappa_parameterization: str = "softmax",
 ):
     """
     Create bounded-space objective for WM-RL M3 (no parameter transforms).
@@ -868,6 +928,7 @@ def _make_bounded_objective_wmrl_m3(
             capacity=capacity,
             kappa=kappa,
             epsilon=epsilon,
+            parameterization=kappa_parameterization,
         )
         return -log_lik
 
@@ -880,6 +941,8 @@ def _make_bounded_objective_wmrl_m5(
     rewards_blocks: list[jnp.ndarray],
     set_sizes_blocks: list[jnp.ndarray],
     masks_blocks: list[jnp.ndarray] = None,
+    *,
+    kappa_parameterization: str = "softmax",
 ):
     """
     Create bounded-space objective for WM-RL M5 (no parameter transforms).
@@ -920,6 +983,7 @@ def _make_bounded_objective_wmrl_m5(
             kappa=kappa,
             phi_rl=phi_rl,
             epsilon=epsilon,
+            parameterization=kappa_parameterization,
         )
         return -log_lik
 
@@ -932,6 +996,8 @@ def _make_bounded_objective_wmrl_m6a(
     rewards_blocks: list[jnp.ndarray],
     set_sizes_blocks: list[jnp.ndarray],
     masks_blocks: list[jnp.ndarray] = None,
+    *,
+    kappa_parameterization: str = "softmax",
 ):
     """
     Create bounded-space objective for WM-RL M6a (no parameter transforms).
@@ -970,6 +1036,7 @@ def _make_bounded_objective_wmrl_m6a(
             capacity=capacity,
             kappa_s=kappa_s,
             epsilon=epsilon,
+            parameterization=kappa_parameterization,
         )
         return -log_lik
 
@@ -982,6 +1049,8 @@ def _make_bounded_objective_wmrl_m6b(
     rewards_blocks: list[jnp.ndarray],
     set_sizes_blocks: list[jnp.ndarray],
     masks_blocks: list[jnp.ndarray] = None,
+    *,
+    kappa_parameterization: str = "softmax",
 ):
     """
     Create bounded-space objective for WM-RL M6b (no parameter transforms).
@@ -1011,7 +1080,7 @@ def _make_bounded_objective_wmrl_m6b(
         kappa_total = params[5]
         kappa_share = params[6]
         epsilon = params[7]
-        # Stick-breaking decode: enforces kappa + kappa_s = kappa_total <= 1
+        # Stick-breaking decode (kappa_share always [0, 1])
         kappa = kappa_total * kappa_share
         kappa_s = kappa_total * (1 - kappa_share)
         log_lik = wmrl_m6b_multiblock_likelihood_stacked(
@@ -1028,6 +1097,7 @@ def _make_bounded_objective_wmrl_m6b(
             kappa=kappa,
             kappa_s=kappa_s,
             epsilon=epsilon,
+            parameterization=kappa_parameterization,
         )
         return -log_lik
 
@@ -1041,6 +1111,8 @@ def _make_bounded_objective_wmrl_m4(
     set_sizes_blocks: list[jnp.ndarray],
     rts_blocks: list[jnp.ndarray],
     masks_blocks: list[jnp.ndarray] = None,
+    *,
+    kappa_parameterization: str = "softmax",
 ):
     """
     Create bounded-space objective for WM-RL M4 (no parameter transforms).
@@ -1097,6 +1169,7 @@ def _make_bounded_objective_wmrl_m4(
             A=A,
             b=b,
             t0=t0,
+            parameterization=kappa_parameterization,
         )
         return nll  # Already NLL
 
@@ -1975,6 +2048,8 @@ def fit_participant_mle(
     compute_diagnostics: bool = True,
     verbose: bool = False,
     participant_index: int = 0,
+    *,
+    kappa_parameterization: str = "softmax",
 ) -> dict:
     """
     Fit a single participant using MLE with multiple starting points.
@@ -2078,53 +2153,77 @@ def fit_participant_mle(
             raise ValueError("set_sizes_blocks required for WM-RL M3 model")
         set_sizes_jax = [jnp.array(s, dtype=jnp.int32) for s in set_sizes_blocks]
         bounded_objective = _make_bounded_objective_wmrl_m3(
-            stimuli_jax, actions_jax, rewards_jax, set_sizes_jax, masks_blocks=masks_jax
+            stimuli_jax, actions_jax, rewards_jax, set_sizes_jax,
+            masks_blocks=masks_jax,
+            kappa_parameterization=kappa_parameterization,
         )
         objective = _make_jax_objective_wmrl_m3(
-            stimuli_jax, actions_jax, rewards_jax, set_sizes_jax, masks_blocks=masks_jax
+            stimuli_jax, actions_jax, rewards_jax, set_sizes_jax,
+            masks_blocks=masks_jax,
+            kappa_parameterization=kappa_parameterization,
         )
         n_params = 7
         param_names = WMRL_M3_PARAMS
-        bounds_dict = WMRL_M3_BOUNDS
+        bounds_dict = _kappa_aware_bounds_dict(
+            WMRL_M3_BOUNDS, kappa_parameterization
+        )
     elif model == "wmrl_m5":
         if set_sizes_blocks is None:
             raise ValueError("set_sizes_blocks required for WM-RL M5 model")
         set_sizes_jax = [jnp.array(s, dtype=jnp.int32) for s in set_sizes_blocks]
         bounded_objective = _make_bounded_objective_wmrl_m5(
-            stimuli_jax, actions_jax, rewards_jax, set_sizes_jax, masks_blocks=masks_jax
+            stimuli_jax, actions_jax, rewards_jax, set_sizes_jax,
+            masks_blocks=masks_jax,
+            kappa_parameterization=kappa_parameterization,
         )
         objective = _make_jax_objective_wmrl_m5(
-            stimuli_jax, actions_jax, rewards_jax, set_sizes_jax, masks_blocks=masks_jax
+            stimuli_jax, actions_jax, rewards_jax, set_sizes_jax,
+            masks_blocks=masks_jax,
+            kappa_parameterization=kappa_parameterization,
         )
         n_params = 8
         param_names = WMRL_M5_PARAMS
-        bounds_dict = WMRL_M5_BOUNDS
+        bounds_dict = _kappa_aware_bounds_dict(
+            WMRL_M5_BOUNDS, kappa_parameterization
+        )
     elif model == "wmrl_m6a":
         if set_sizes_blocks is None:
             raise ValueError("set_sizes_blocks required for WM-RL M6a model")
         set_sizes_jax = [jnp.array(s, dtype=jnp.int32) for s in set_sizes_blocks]
         bounded_objective = _make_bounded_objective_wmrl_m6a(
-            stimuli_jax, actions_jax, rewards_jax, set_sizes_jax, masks_blocks=masks_jax
+            stimuli_jax, actions_jax, rewards_jax, set_sizes_jax,
+            masks_blocks=masks_jax,
+            kappa_parameterization=kappa_parameterization,
         )
         objective = _make_jax_objective_wmrl_m6a(
-            stimuli_jax, actions_jax, rewards_jax, set_sizes_jax, masks_blocks=masks_jax
+            stimuli_jax, actions_jax, rewards_jax, set_sizes_jax,
+            masks_blocks=masks_jax,
+            kappa_parameterization=kappa_parameterization,
         )
         n_params = 7
         param_names = WMRL_M6A_PARAMS
-        bounds_dict = WMRL_M6A_BOUNDS
+        bounds_dict = _kappa_aware_bounds_dict(
+            WMRL_M6A_BOUNDS, kappa_parameterization
+        )
     elif model == "wmrl_m6b":
         if set_sizes_blocks is None:
             raise ValueError("set_sizes_blocks required for WM-RL M6b model")
         set_sizes_jax = [jnp.array(s, dtype=jnp.int32) for s in set_sizes_blocks]
         bounded_objective = _make_bounded_objective_wmrl_m6b(
-            stimuli_jax, actions_jax, rewards_jax, set_sizes_jax, masks_blocks=masks_jax
+            stimuli_jax, actions_jax, rewards_jax, set_sizes_jax,
+            masks_blocks=masks_jax,
+            kappa_parameterization=kappa_parameterization,
         )
         objective = _make_jax_objective_wmrl_m6b(
-            stimuli_jax, actions_jax, rewards_jax, set_sizes_jax, masks_blocks=masks_jax
+            stimuli_jax, actions_jax, rewards_jax, set_sizes_jax,
+            masks_blocks=masks_jax,
+            kappa_parameterization=kappa_parameterization,
         )
         n_params = 8
         param_names = WMRL_M6B_PARAMS
-        bounds_dict = WMRL_M6B_BOUNDS
+        bounds_dict = _kappa_aware_bounds_dict(
+            WMRL_M6B_BOUNDS, kappa_parameterization
+        )
     elif model == "wmrl_m4":
         # Enable float64 lazily (only when model == wmrl_m4)
         jax.config.update("jax_enable_x64", True)
@@ -2141,6 +2240,7 @@ def fit_participant_mle(
             set_sizes_jax,
             rts_jax,
             masks_blocks=masks_jax,
+            kappa_parameterization=kappa_parameterization,
         )
         objective = _make_jax_objective_wmrl_m4(
             stimuli_jax,
@@ -2149,10 +2249,13 @@ def fit_participant_mle(
             set_sizes_jax,
             rts_jax,
             masks_blocks=masks_jax,
+            kappa_parameterization=kappa_parameterization,
         )
         n_params = 10
         param_names = WMRL_M4_PARAMS
-        bounds_dict = WMRL_M4_BOUNDS
+        bounds_dict = _kappa_aware_bounds_dict(
+            WMRL_M4_BOUNDS, kappa_parameterization
+        )
     else:
         raise ValueError(f"Unknown model: {model}")
     if show_setup_steps:
@@ -2598,8 +2701,22 @@ def _fit_single_participant_worker(args: tuple) -> dict:
     Returns:
         Fit result dictionary with participant_id added
     """
-    # Handle variable number of arguments for backward compatibility
-    if len(args) == 8:
+    # Handle variable number of arguments for backward compatibility.
+    # Phase 32-04 adds an optional 9th element (kappa_parameterization).
+    kappa_parameterization = "softmax"
+    if len(args) == 9:
+        (
+            pid,
+            data_dict,
+            model,
+            n_starts,
+            seed,
+            compute_diagnostics,
+            verbose,
+            participant_index,
+            kappa_parameterization,
+        ) = args
+    elif len(args) == 8:
         (
             pid,
             data_dict,
@@ -2636,6 +2753,7 @@ def _fit_single_participant_worker(args: tuple) -> dict:
         compute_diagnostics=compute_diagnostics,
         verbose=verbose,
         participant_index=participant_index,
+        kappa_parameterization=kappa_parameterization,
     )
     result["participant_id"] = pid
     return result
@@ -2650,6 +2768,8 @@ def fit_all_participants(
     n_jobs: int = 1,
     compute_diagnostics: bool = False,
     output_dir: Path | None = None,
+    *,
+    kappa_parameterization: str = "softmax",
 ) -> tuple[pd.DataFrame, dict, list[dict]]:
     """
     Fit all participants using MLE.
@@ -2706,7 +2826,11 @@ def fit_all_participants(
     participant_args = []
     for i, pid in enumerate(participants):
         pdata = prepare_participant_data(data, pid, model)
-        participant_args.append((pid, pdata, model, n_starts, seed + i))
+        # 9-tuple form (Phase 32-04) — passes kappa_parameterization through
+        participant_args.append((
+            pid, pdata, model, n_starts, seed + i,
+            compute_diagnostics, verbose, i, kappa_parameterization,
+        ))
         if verbose and (i + 1) % 10 == 0:
             print(f"  Prepared {i + 1}/{n_participants} participants...", flush=True)
     if verbose:
@@ -2806,9 +2930,9 @@ def fit_all_participants(
                 )
 
             fit_start = time.time()
-            result = _fit_single_participant_worker(
-                args + (compute_diagnostics, verbose, i)
-            )
+            # Phase 32-04: participant_args is already a 9-tuple (includes
+            # compute_diagnostics, verbose, i, kappa_parameterization).
+            result = _fit_single_participant_worker(args)
             fit_time = time.time() - fit_start
             fit_times.append(fit_time)
             results.append(result)
@@ -2919,8 +3043,10 @@ def fit_all_participants(
         if verbose:
             print(f"Running parallel fitting with {n_jobs} workers...")
 
-        # Add compute_diagnostics to args for parallel workers
-        parallel_args = [args + (compute_diagnostics,) for args in participant_args]
+        # Phase 32-04: participant_args is already a 9-tuple (pid,
+        # data_dict, model, n_starts, seed, compute_diagnostics, verbose,
+        # participant_index, kappa_parameterization).
+        parallel_args = participant_args
 
         # joblib handles the parallel execution
         # verbose=10 shows progress; verbose=0 is silent
@@ -3259,6 +3385,17 @@ def main():
         action="store_true",
         help="Compute Hessian diagnostics (adds 5-30s per participant)",
     )
+    parser.add_argument(
+        "--kappa-parameterization",
+        choices=["softmax", "convex"],
+        default="softmax",
+        help=(
+            "Perseveration kappa parameterization. "
+            "'softmax': Collins 2025 additive bias kappa in [-1, 1] "
+            "(default). 'convex': Senta 2025 mixture kappa in [0, 1] "
+            "(legacy revert path)."
+        ),
+    )
 
     args = parser.parse_args()
 
@@ -3298,6 +3435,7 @@ def main():
     print(f"Random starts: {args.n_starts}")
     print(f"Seed: {args.seed}")
     print(f"Output: {args.output}")
+    print(f"Kappa parameterization: {args.kappa_parameterization}")
     print(f"Include practice: {args.include_practice}")
     print(
         f"Parallel workers: {args.n_jobs if args.n_jobs > 0 else 'all available cores'}"
@@ -3357,6 +3495,7 @@ def main():
         n_jobs=args.n_jobs,
         compute_diagnostics=args.compute_diagnostics,
         output_dir=output_dir,  # For incremental checkpoint saving
+        kappa_parameterization=args.kappa_parameterization,
     )
 
     # Compute group summary

@@ -230,6 +230,30 @@ def jax_unbounded_to_bounded(x, lower: float, upper: float):
     return lower + p * (upper - lower)
 
 
+# =============================================================================
+# Phase 32-04: kappa-aware bounds resolution
+# =============================================================================
+# Helper: pick kappa-family bounds based on kappa_parameterization. Used by
+# the JAX unconstrained-to-params transforms below to support softmax-bias
+# kappa (Collins 2025; [-1, 1]) alongside convex-mixture kappa (Senta 2025;
+# [0, 1]). kappa_share is always [0, 1] (channel-share, not a softmax bias).
+
+_KAPPA_BOUNDS_BY_MODE: dict[str, tuple[float, float]] = {
+    "convex": (0.0, 1.0),
+    "softmax": (-1.0, 1.0),
+}
+
+
+def _kappa_bounds(kappa_parameterization: str) -> tuple[float, float]:
+    """Return the (lower, upper) tuple for kappa-family params under mode."""
+    if kappa_parameterization not in _KAPPA_BOUNDS_BY_MODE:
+        raise ValueError(
+            f"kappa_parameterization must be 'softmax' or 'convex', "
+            f"got {kappa_parameterization!r}"
+        )
+    return _KAPPA_BOUNDS_BY_MODE[kappa_parameterization]
+
+
 def jax_unconstrained_to_params_qlearning(x: jnp.ndarray) -> tuple:
     """
     JAX-compatible parameter transformation for Q-learning.
@@ -259,19 +283,26 @@ def jax_unconstrained_to_params_wmrl(x: jnp.ndarray) -> tuple:
     return alpha_pos, alpha_neg, phi, rho, capacity, epsilon
 
 
-def jax_unconstrained_to_params_wmrl_m3(x: jnp.ndarray) -> tuple:
+def jax_unconstrained_to_params_wmrl_m3(
+    x: jnp.ndarray, kappa_parameterization: str = "softmax"
+) -> tuple:
     """
     JAX-compatible parameter transformation for WM-RL M3.
 
     Returns tuple (alpha_pos, alpha_neg, phi, rho, capacity, kappa, epsilon) for direct use.
+
+    Phase 32-04: kappa bounds depend on ``kappa_parameterization``.
+    Default ``"softmax"`` => kappa in [-1, 1] (Collins 2025);
+    ``"convex"`` => kappa in [0, 1] (Senta 2025, legacy).
     """
     bounds = WMRL_M3_BOUNDS
+    kappa_lo, kappa_hi = _kappa_bounds(kappa_parameterization)
     alpha_pos = jax_unbounded_to_bounded(x[0], *bounds["alpha_pos"])
     alpha_neg = jax_unbounded_to_bounded(x[1], *bounds["alpha_neg"])
     phi = jax_unbounded_to_bounded(x[2], *bounds["phi"])
     rho = jax_unbounded_to_bounded(x[3], *bounds["rho"])
     capacity = jax_unbounded_to_bounded(x[4], *bounds["capacity"])
-    kappa = jax_unbounded_to_bounded(x[5], *bounds["kappa"])
+    kappa = jax_unbounded_to_bounded(x[5], kappa_lo, kappa_hi)
     epsilon = jax_unbounded_to_bounded(x[6], *bounds["epsilon"])
     return alpha_pos, alpha_neg, phi, rho, capacity, kappa, epsilon
 
@@ -354,20 +385,25 @@ def jax_bounded_to_unconstrained_wmrl_m3(x: jnp.ndarray) -> jnp.ndarray:
     )
 
 
-def jax_unconstrained_to_params_wmrl_m5(x: jnp.ndarray) -> tuple:
+def jax_unconstrained_to_params_wmrl_m5(
+    x: jnp.ndarray, kappa_parameterization: str = "softmax"
+) -> tuple:
     """
     JAX-compatible parameter transformation for WM-RL M5.
 
     Returns tuple (alpha_pos, alpha_neg, phi, rho, capacity, kappa, phi_rl, epsilon) for direct use.
     x[0..5] same as M3. x[6] = phi_rl. x[7] = epsilon.
+
+    Phase 32-04: kappa bounds depend on ``kappa_parameterization``.
     """
     bounds = WMRL_M5_BOUNDS
+    kappa_lo, kappa_hi = _kappa_bounds(kappa_parameterization)
     alpha_pos = jax_unbounded_to_bounded(x[0], *bounds["alpha_pos"])
     alpha_neg = jax_unbounded_to_bounded(x[1], *bounds["alpha_neg"])
     phi = jax_unbounded_to_bounded(x[2], *bounds["phi"])
     rho = jax_unbounded_to_bounded(x[3], *bounds["rho"])
     capacity = jax_unbounded_to_bounded(x[4], *bounds["capacity"])
-    kappa = jax_unbounded_to_bounded(x[5], *bounds["kappa"])
+    kappa = jax_unbounded_to_bounded(x[5], kappa_lo, kappa_hi)
     phi_rl = jax_unbounded_to_bounded(x[6], *bounds["phi_rl"])
     epsilon = jax_unbounded_to_bounded(x[7], *bounds["epsilon"])
     return alpha_pos, alpha_neg, phi, rho, capacity, kappa, phi_rl, epsilon
@@ -396,21 +432,26 @@ def jax_bounded_to_unconstrained_wmrl_m5(x: jnp.ndarray) -> jnp.ndarray:
     )
 
 
-def jax_unconstrained_to_params_wmrl_m6a(x: jnp.ndarray) -> tuple:
+def jax_unconstrained_to_params_wmrl_m6a(
+    x: jnp.ndarray, kappa_parameterization: str = "softmax"
+) -> tuple:
     """
     JAX-compatible parameter transformation for WM-RL M6a.
 
     Returns tuple (alpha_pos, alpha_neg, phi, rho, capacity, kappa_s, epsilon).
     x[0..4] same as M3. x[5] = kappa_s. x[6] = epsilon.
     7 parameters total (same count as M3; kappa_s replaces kappa).
+
+    Phase 32-04: kappa_s bounds depend on ``kappa_parameterization``.
     """
     bounds = WMRL_M6A_BOUNDS
+    kappa_lo, kappa_hi = _kappa_bounds(kappa_parameterization)
     alpha_pos = jax_unbounded_to_bounded(x[0], *bounds["alpha_pos"])
     alpha_neg = jax_unbounded_to_bounded(x[1], *bounds["alpha_neg"])
     phi = jax_unbounded_to_bounded(x[2], *bounds["phi"])
     rho = jax_unbounded_to_bounded(x[3], *bounds["rho"])
     capacity = jax_unbounded_to_bounded(x[4], *bounds["capacity"])
-    kappa_s = jax_unbounded_to_bounded(x[5], *bounds["kappa_s"])
+    kappa_s = jax_unbounded_to_bounded(x[5], kappa_lo, kappa_hi)
     epsilon = jax_unbounded_to_bounded(x[6], *bounds["epsilon"])
     return alpha_pos, alpha_neg, phi, rho, capacity, kappa_s, epsilon
 
@@ -437,7 +478,9 @@ def jax_bounded_to_unconstrained_wmrl_m6a(x: jnp.ndarray) -> jnp.ndarray:
     )
 
 
-def jax_unconstrained_to_params_wmrl_m6b(x: jnp.ndarray) -> tuple:
+def jax_unconstrained_to_params_wmrl_m6b(
+    x: jnp.ndarray, kappa_parameterization: str = "softmax"
+) -> tuple:
     """
     JAX-compatible parameter transformation for WM-RL M6b.
 
@@ -449,14 +492,18 @@ def jax_unconstrained_to_params_wmrl_m6b(x: jnp.ndarray) -> tuple:
     CRITICAL: Returns kappa_total and kappa_share, NOT decoded kappa/kappa_s.
     The stick-breaking decode (kappa = kappa_total * kappa_share) happens in
     objective functions only, not here.
+
+    Phase 32-04: kappa_total bounds depend on ``kappa_parameterization``.
+    kappa_share ALWAYS stays in [0, 1] (channel-share, not a softmax bias).
     """
     bounds = WMRL_M6B_BOUNDS
+    kappa_lo, kappa_hi = _kappa_bounds(kappa_parameterization)
     alpha_pos = jax_unbounded_to_bounded(x[0], *bounds["alpha_pos"])
     alpha_neg = jax_unbounded_to_bounded(x[1], *bounds["alpha_neg"])
     phi = jax_unbounded_to_bounded(x[2], *bounds["phi"])
     rho = jax_unbounded_to_bounded(x[3], *bounds["rho"])
     capacity = jax_unbounded_to_bounded(x[4], *bounds["capacity"])
-    kappa_total = jax_unbounded_to_bounded(x[5], *bounds["kappa_total"])
+    kappa_total = jax_unbounded_to_bounded(x[5], kappa_lo, kappa_hi)
     kappa_share = jax_unbounded_to_bounded(x[6], *bounds["kappa_share"])
     epsilon = jax_unbounded_to_bounded(x[7], *bounds["epsilon"])
     return alpha_pos, alpha_neg, phi, rho, capacity, kappa_total, kappa_share, epsilon
@@ -485,7 +532,9 @@ def jax_bounded_to_unconstrained_wmrl_m6b(x: jnp.ndarray) -> jnp.ndarray:
     )
 
 
-def jax_unconstrained_to_params_wmrl_m4(x: jnp.ndarray) -> tuple:
+def jax_unconstrained_to_params_wmrl_m4(
+    x: jnp.ndarray, kappa_parameterization: str = "softmax"
+) -> tuple:
     """
     JAX-compatible parameter transformation for WM-RL M4.
 
@@ -495,14 +544,17 @@ def jax_unconstrained_to_params_wmrl_m4(x: jnp.ndarray) -> tuple:
 
     CRITICAL: Returns A and delta (NOT decoded b). The decode b = A + delta happens
     in objective functions only, not here.
+
+    Phase 32-04: kappa bounds depend on ``kappa_parameterization``.
     """
     bounds = WMRL_M4_BOUNDS
+    kappa_lo, kappa_hi = _kappa_bounds(kappa_parameterization)
     alpha_pos = jax_unbounded_to_bounded(x[0], *bounds["alpha_pos"])
     alpha_neg = jax_unbounded_to_bounded(x[1], *bounds["alpha_neg"])
     phi = jax_unbounded_to_bounded(x[2], *bounds["phi"])
     rho = jax_unbounded_to_bounded(x[3], *bounds["rho"])
     capacity = jax_unbounded_to_bounded(x[4], *bounds["capacity"])
-    kappa = jax_unbounded_to_bounded(x[5], *bounds["kappa"])
+    kappa = jax_unbounded_to_bounded(x[5], kappa_lo, kappa_hi)
     v_scale = jax_unbounded_to_bounded(x[6], *bounds["v_scale"])
     A = jax_unbounded_to_bounded(x[7], *bounds["A"])
     delta = jax_unbounded_to_bounded(x[8], *bounds["delta"])

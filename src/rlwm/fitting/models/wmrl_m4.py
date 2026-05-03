@@ -176,6 +176,8 @@ def wmrl_m4_hierarchical_model(
     num_actions: int = 3,
     q_init: float = 0.5,
     wm_init: float = 1.0 / 3.0,
+    *,
+    kappa_parameterization: str = "softmax",
 ) -> None:
     """Hierarchical Bayesian M4 (WM-RL+LBA) model.
 
@@ -231,29 +233,52 @@ def wmrl_m4_hierarchical_model(
     """
     # Lazy imports to avoid float64 contamination in choice-only import paths
     from rlwm.fitting.numpyro_helpers import (
+        KAPPA_FAMILY_PARAMS,
         PARAM_PRIOR_DEFAULTS,
         phi_approx,
         sample_bounded_param,
+        sample_unbounded_normal_param,
     )
     from scripts.fitting.lba_likelihood import wmrl_m4_multiblock_likelihood_stacked
+
+    if kappa_parameterization not in {"softmax", "convex"}:
+        raise ValueError(
+            f"kappa_parameterization must be 'softmax' or 'convex', "
+            f"got {kappa_parameterization!r}"
+        )
 
     n_participants = len(participant_data_stacked)
     participant_ids = sorted(participant_data_stacked.keys())
 
     # ------------------------------------------------------------------
-    # Group priors for 6 RLWM parameters via sample_bounded_param
+    # Group priors for 6 RLWM parameters
+    # Phase 32-04: kappa-family params dispatch on parameterization.
     # Note: no epsilon in M4 (LBA handles decision noise directly)
     # ------------------------------------------------------------------
     sampled: dict[str, jnp.ndarray] = {}
     for param in ["alpha_pos", "alpha_neg", "phi", "rho", "capacity", "kappa"]:
         defaults = PARAM_PRIOR_DEFAULTS[param]
-        sampled[param] = sample_bounded_param(
-            param,
-            lower=defaults["lower"],
-            upper=defaults["upper"],
-            n_participants=n_participants,
-            mu_prior_loc=defaults["mu_prior_loc"],
-        )
+        if (
+            kappa_parameterization == "softmax"
+            and param in KAPPA_FAMILY_PARAMS
+        ):
+            sampled[param] = sample_unbounded_normal_param(
+                param,
+                n_participants=n_participants,
+                mu_prior_loc=0.0,
+                mu_prior_scale=0.5,
+                sigma_prior_scale=0.5,
+                clip_lower=-1.0,
+                clip_upper=1.0,
+            )
+        else:
+            sampled[param] = sample_bounded_param(
+                param,
+                lower=defaults["lower"],
+                upper=defaults["upper"],
+                n_participants=n_participants,
+                mu_prior_loc=defaults["mu_prior_loc"],
+            )
 
     # ------------------------------------------------------------------
     # v_scale: log-normal non-centered
@@ -334,5 +359,6 @@ def wmrl_m4_hierarchical_model(
             num_actions=num_actions,
             q_init=q_init,
             wm_init=wm_init,
+            parameterization=kappa_parameterization,
         )
         numpyro.factor(f"obs_p{pid}", log_lik)
