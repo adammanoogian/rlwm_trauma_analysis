@@ -186,9 +186,9 @@ PARAM_PRIOR_DEFAULTS: dict[str, dict] = {
     "phi": {"lower": 0.0, "upper": 1.0, "mu_prior_loc": 0.0},
     "rho": {"lower": 0.0, "upper": 1.0, "mu_prior_loc": 0.0},
     "capacity": {"lower": 2.0, "upper": 6.0, "mu_prior_loc": 0.0},
-    "kappa": {"lower": 0.0, "upper": 1.0, "mu_prior_loc": 0.0},
-    "kappa_s": {"lower": 0.0, "upper": 1.0, "mu_prior_loc": 0.0},
-    "kappa_total": {"lower": 0.0, "upper": 1.0, "mu_prior_loc": 0.0},
+    "kappa": {"lower": 0.0, "upper": 1.0, "mu_prior_loc": -1.0},
+    "kappa_s": {"lower": 0.0, "upper": 1.0, "mu_prior_loc": -1.0},
+    "kappa_total": {"lower": 0.0, "upper": 1.0, "mu_prior_loc": -1.0},
     "kappa_share": {"lower": 0.0, "upper": 1.0, "mu_prior_loc": 0.0},
     "phi_rl": {"lower": 0.0, "upper": 1.0, "mu_prior_loc": 0.0},
 }
@@ -221,6 +221,19 @@ Rationale for moving to 0.0 from the prior MLE-calibrated values:
   so a neutral prior avoids building the hypothesis into the prior.
 - Principled priors make the L2 HDI interpretable as "data-driven"
   rather than "prior-shifted" conclusions.
+
+Phase 32 update (2026-05-03): The κ-family ``mu_prior_loc`` is shifted
+from 0.0 back to −1.0.  This anchors the group-mean prior at Phi(−1) ≈
+0.16 on the bounded scale, matching Rmus 2023's hierarchical
+empirical-Bayes pattern (Beta(1+a, 1+b) with Gamma(1,1) / Gamma(12,1)
+hyperpriors) without re-introducing the MLE-circularity of the
+pre-2026-04-17 priors.  Justification: Baribault & Collins 2023 (their
+"more informative priors" pathology recipe for multimodal R-hat) plus
+the model-misspecification finding that M3 / M5 / M6a hit identical
+R-hat = 1.60 with ESS = 7 under the previous ``mu_prior_loc = 0.0``
+setup.  ``kappa_share`` is left at 0.0 because the channel-share is
+genuinely uncertain a priori — Collins 2025's WMH motor-vs-stimulus
+split does not anchor it to either corner.
 
 Consequences:
 
