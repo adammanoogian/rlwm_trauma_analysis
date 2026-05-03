@@ -24,7 +24,13 @@
 #   bash cluster/submit_all.sh --from-stage 2          # cluster cold-start entry that bypasses the stage 01 SLURM cost
 #                                                      #   entirely; equivalent to relying on the auto-skip above.
 #   bash cluster/submit_all.sh --from-stage 4           # start mid-pipeline
-#   bash cluster/submit_all.sh --models "wmrl_m3 wmrl_m5"  # subset of choice-only models
+#   bash cluster/submit_all.sh --models "wmrl_m3 wmrl_m5"  # subset of choice-only models (MLE fan-out)
+#   bash cluster/submit_all.sh --bayes-models "qlearning wmrl wmrl_m6b wmrl_m3"
+#                                                      # override Bayesian fan-out (default: qlearning wmrl wmrl_m6b
+#                                                      #   per Phase 32-03 / config.BAYESIAN_FANOUT_MODELS;
+#                                                      #   M3/M5/M6a are M6b corner cases or Collins 2025 ruled out
+#                                                      #   so they are dropped from default Bayesian — fit them
+#                                                      #   standalone as sensitivity analyses)
 #   bash cluster/submit_all.sh --preflight              # prepend SLURM-automated 2-cov L2 hook gate
 #                                                      #   (cluster/00_preflight.slurm runs on a compute node
 #                                                      #    with rlwm_gpu activated, then chains stage 01 via afterok)
@@ -47,15 +53,23 @@ DRY_RUN=""
 FROM_STAGE=1
 DO_PREFLIGHT=""
 MODELS="qlearning wmrl wmrl_m3 wmrl_m5 wmrl_m6a wmrl_m6b"
+# Phase 32-03: Narrowed Bayesian fan-out (see config.BAYESIAN_FANOUT_MODELS).
+# MLE keeps all 7 choice-only models; Bayesian drops M3, M5, M6a because:
+# - M3 = M6b at kappa_share = 1.0 (corner of simplex)
+# - M6a = M6b at kappa_share = 0.0 (other corner)
+# - M5's phi_rl is unnecessary per Collins 2025 Methods p.366
+# Override via: --bayes-models "qlearning wmrl wmrl_m6b wmrl_m3"
+BAYES_MODELS="${BAYES_MODELS:-qlearning wmrl wmrl_m6b}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --dry-run) DRY_RUN=1; shift ;;
     --from-stage) FROM_STAGE="$2"; shift 2 ;;
     --models) MODELS="$2"; shift 2 ;;
+    --bayes-models) BAYES_MODELS="$2"; shift 2 ;;
     --preflight) DO_PREFLIGHT=1; shift ;;
     -h|--help)
-      grep "^#" "$0" | head -50
+      grep "^#" "$0" | head -60
       exit 0
       ;;
     *) echo "Unknown arg: $1" >&2; exit 2 ;;
@@ -64,9 +78,10 @@ done
 
 echo "============================================================"
 echo "[submit_all.sh] $(date)"
-echo "  mode:    ${DRY_RUN:+dry-run}${DRY_RUN:-real}"
-echo "  stages:  ${FROM_STAGE}..6"
-echo "  models:  ${MODELS}"
+echo "  mode:           ${DRY_RUN:+dry-run}${DRY_RUN:-real}"
+echo "  stages:         ${FROM_STAGE}..6"
+echo "  models (MLE):   ${MODELS}"
+echo "  models (Bayes): ${BAYES_MODELS}"
 echo "============================================================"
 
 # =============================================================================
@@ -245,8 +260,13 @@ declare -A BAYES_JOBS
 J04_ALL=()
 if [[ "$FROM_STAGE" -le 4 ]]; then
   echo ""
-  echo "[04b] Bayesian baseline (fan-out per choice-only model, CPU)"
-  for m in $MODELS; do
+  echo "[04b] Bayesian baseline (fan-out per Bayesian model, narrowed per Phase 32-03)"
+  # Phase 32-03: iterate over BAYES_MODELS (default: qlearning wmrl wmrl_m6b),
+  # NOT MODELS. M3, M5, M6a are dropped from default Bayesian (M6b corner
+  # cases / Collins 2025 ruled out phi_rl). MLE fan-out and stage 03
+  # prefitting still iterate over MODELS so all 7 models stay in the AIC
+  # comparison table and prior-predictive sweeps.
+  for m in $BAYES_MODELS; do
     DEP=()
     if [[ -n "${REC_JOBS[$m]:-}" ]]; then
       DEP=(--dependency=afterok:"${REC_JOBS[$m]}")
