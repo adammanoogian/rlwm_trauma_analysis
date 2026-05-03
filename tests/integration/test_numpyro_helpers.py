@@ -282,6 +282,34 @@ def test_param_prior_defaults_completeness():
             )
 
 
+def test_kappa_family_anchored_to_negative_one() -> None:
+    """Phase 32-02: kappa-family group-mean prior anchors to mu = -1.0.
+
+    Anchors prior mean kappa ~ Phi(-1) ~ 0.16, matching Rmus 2023.
+    ``kappa_share`` retains mu = 0.0 because channel-share is a priori
+    uncertain (Collins 2025 WMH motor-vs-stimulus split).
+    """
+    from rlwm.fitting.numpyro_helpers import PARAM_PRIOR_DEFAULTS
+
+    assert PARAM_PRIOR_DEFAULTS["kappa"]["mu_prior_loc"] == -1.0
+    assert PARAM_PRIOR_DEFAULTS["kappa_s"]["mu_prior_loc"] == -1.0
+    assert PARAM_PRIOR_DEFAULTS["kappa_total"]["mu_prior_loc"] == -1.0
+    assert PARAM_PRIOR_DEFAULTS["kappa_share"]["mu_prior_loc"] == 0.0
+
+
+def test_init_strategy_default_is_init_to_median() -> None:
+    """Phase 32-02: NUTS uses init_to_median(50), not init_to_uniform."""
+    import inspect
+
+    from rlwm.fitting import sampling
+
+    src = inspect.getsource(sampling.run_inference)
+    assert "init_to_median(num_samples=50)" in src
+
+    src_bump = inspect.getsource(sampling.run_inference_with_bump)
+    assert "init_to_median(num_samples=50)" in src_bump
+
+
 # ---------------------------------------------------------------------------
 # load_fits_with_validation tests
 # ---------------------------------------------------------------------------
