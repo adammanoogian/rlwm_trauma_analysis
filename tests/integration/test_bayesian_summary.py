@@ -198,3 +198,136 @@ def test_reference_csv_participant_id_column():
     assert ref.columns[0] == "participant_id", (
         f"First column must be 'participant_id'; got '{ref.columns[0]}'."
     )
+
+
+# ---------------------------------------------------------------------------
+# Phase 32-01: Tier-1 BFMI gate + per-chain ESS schema additions
+# ---------------------------------------------------------------------------
+
+
+def _build_minimal_idata(
+    n_chains: int = 4,
+    n_draws: int = 100,
+    n_participants: int = 2,
+    *,
+    seed: int = 0,
+):
+    """Construct a minimal ArviZ InferenceData with energy diagnostics.
+
+    Parameters
+    ----------
+    n_chains : int
+        Number of MCMC chains to simulate.
+    n_draws : int
+        Draws per chain.
+    n_participants : int
+        Plate (participant) dimension size.
+    seed : int
+        RNG seed for reproducibility.
+
+    Returns
+    -------
+    az.InferenceData
+        InferenceData with one plate-indexed parameter (``alpha_pos``)
+        and a ``sample_stats.energy`` array sufficient for ``az.bfmi``.
+    """
+    import arviz as az
+
+    rng = np.random.default_rng(seed)
+    posterior = {
+        "alpha_pos": rng.uniform(
+            0.1, 0.9, size=(n_chains, n_draws, n_participants)
+        ).astype(float),
+    }
+    # Healthy energy: high within-chain variance => BFMI close to 1.
+    sample_stats = {
+        "energy": rng.normal(
+            loc=0.0, scale=1.0, size=(n_chains, n_draws)
+        ).astype(float),
+        "diverging": np.zeros((n_chains, n_draws), dtype=bool),
+    }
+    return az.from_dict(posterior=posterior, sample_stats=sample_stats)
+
+
+def test_summary_includes_bfmi_and_per_chain_ess_columns(tmp_path):
+    """Phase 32-01: CSV must gain min_bfmi and per_chain_ess_bulk columns."""
+    from scripts.fitting.bayesian_summary_writer import write_bayesian_summary
+
+    idata = _build_minimal_idata(n_chains=4, n_draws=100, n_participants=2)
+    out_path = write_bayesian_summary(
+        idata,
+        model_name="qlearning",
+        output_dir=tmp_path,
+        param_names=["alpha_pos"],
+        participant_ids=["S001", "S002"],
+        parameterization_version="test-32-01",
+        n_trials_per_participant=[420, 420],
+    )
+
+    df = pd.read_csv(out_path)
+    assert "min_bfmi" in df.columns, (
+        f"Expected min_bfmi column in {out_path}; got {list(df.columns)}"
+    )
+    assert "per_chain_ess_bulk" in df.columns, (
+        f"Expected per_chain_ess_bulk column in {out_path}; "
+        f"got {list(df.columns)}"
+    )
+
+    # min_bfmi should be a finite positive float on a healthy synthetic fit.
+    assert df["min_bfmi"].notna().all(), (
+        f"min_bfmi must be populated for every row; got {df['min_bfmi'].tolist()}"
+    )
+    assert (df["min_bfmi"] > 0).all(), (
+        "Expected positive BFMI values on synthetic fit; "
+        f"got {df['min_bfmi'].tolist()}"
+    )
+
+    # per_chain_ess_bulk should contain n_chains - 1 semicolons (4 chains -> 3 ;).
+    per_chain_strs = df["per_chain_ess_bulk"].astype(str).tolist()
+    for s in per_chain_strs:
+        assert s.count(";") == 3, (
+            f"Expected 3 semicolons for 4 chains; got '{s}'"
+        )
+
+
+def test_converged_flag_fails_under_low_bfmi(tmp_path, monkeypatch):
+    """Phase 32-01: converged must be False when min BFMI < 0.2.
+
+    Constructs a synthetic idata with healthy R-hat / ESS / divergences,
+    then monkey-patches ``az.bfmi`` to return ``[0.05, 0.5, 0.5, 0.5]`` so
+    the minimum across chains is 0.05 < 0.2. The converged flag must
+    reflect the failed BFMI gate even though all other metrics pass.
+    """
+    import arviz as az
+
+    from scripts.fitting import bayesian_summary_writer
+
+    idata = _build_minimal_idata(n_chains=4, n_draws=200, n_participants=2)
+
+    def _fake_bfmi(_idata):
+        return np.array([0.05, 0.5, 0.5, 0.5])
+
+    # The writer rebinds ``az`` via a function-local ``import arviz as az``,
+    # so patching the attribute on the arviz module itself takes effect.
+    monkeypatch.setattr(az, "bfmi", _fake_bfmi)
+
+    out_path = bayesian_summary_writer.write_bayesian_summary(
+        idata,
+        model_name="qlearning",
+        output_dir=tmp_path,
+        param_names=["alpha_pos"],
+        participant_ids=["S001", "S002"],
+        parameterization_version="test-32-01-low-bfmi",
+        n_trials_per_participant=[420, 420],
+    )
+
+    df = pd.read_csv(out_path)
+    assert "min_bfmi" in df.columns
+    np.testing.assert_allclose(df["min_bfmi"].to_numpy(), 0.05, rtol=1e-6)
+    assert not df["converged"].any(), (
+        "converged must be False for every row when min_bfmi < 0.2; "
+        f"got max_rhat={df['max_rhat'].tolist()}, "
+        f"min_ess_bulk={df['min_ess_bulk'].tolist()}, "
+        f"min_bfmi={df['min_bfmi'].tolist()}, "
+        f"converged={df['converged'].tolist()}"
+    )
