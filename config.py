@@ -295,6 +295,16 @@ MODEL_REGISTRY: dict[str, dict] = {
 ALL_MODELS: list[str] = list(MODEL_REGISTRY.keys())
 CHOICE_ONLY_MODELS: list[str] = [k for k, v in MODEL_REGISTRY.items() if v['is_choice_only']]
 
+# Phase 32-03 (2026-05-03): Hierarchical Bayesian fan-out is narrowed to
+# the unrestricted models. M3, M5, M6a are dropped because:
+# - M3 = M6b restricted to kappa_share = 1.0 (corner of simplex)
+# - M6a = M6b restricted to kappa_share = 0.0 (other corner)
+# - M5's phi_rl is unnecessary per Collins 2025, Methods p.366
+# All 7 models still fit in MLE for the AIC comparison table.
+# Override at the orchestrator level via:
+#   bash cluster/submit_all.sh --bayes-models "qlearning wmrl wmrl_m6b wmrl_m3"
+BAYESIAN_FANOUT_MODELS: list[str] = ["qlearning", "wmrl", "wmrl_m6b"]
+
 # ============================================================================
 # PYMC SAMPLING PARAMETERS
 # ============================================================================
