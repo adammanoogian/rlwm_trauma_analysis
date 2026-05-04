@@ -122,3 +122,66 @@ def test_phase32_submit_all_narrowed_bayes_default() -> None:
         f"submit_all.sh BAYES_MODELS default does not match narrowed "
         f"Phase 32-03 list. Expected line: {expected}"
     )
+
+
+def test_phase32_smoke_allow_gate_failure_wired() -> None:
+    """Phase 32-05 fix: --allow-gate-failure flag threaded through three layers.
+
+    Silent-failure root cause: the engine's convergence gate at
+    ``rlwm.fitting.bayesian.save_results`` returned ``None`` and refused to
+    write artefacts when Tier-1 failed. Smoke runs need the artefacts even
+    on failure (the verdict IS the data). This test asserts the flag exists
+    on each layer of the call stack and that the cluster smoke template
+    passes it, so a future refactor cannot silently drop the wiring.
+    """
+    import inspect
+
+    # Layer 1: engine save_results signature accepts allow_gate_failure
+    from rlwm.fitting.bayesian import save_results
+
+    sig = inspect.signature(save_results)
+    assert "allow_gate_failure" in sig.parameters, (
+        "rlwm.fitting.bayesian.save_results lost the allow_gate_failure "
+        "kwarg. Phase 32-05 smoke runs depend on it; without the kwarg, "
+        "softmax-mode gate failures will silently drop artefacts again."
+    )
+    assert sig.parameters["allow_gate_failure"].default is False, (
+        "allow_gate_failure default must remain False to preserve the "
+        "load-bearing refuse-to-write behaviour for canonical baseline runs."
+    )
+
+    # Layer 2: engine main() exposes --allow-gate-failure as a CLI flag
+    bayesian_src = (REPO_ROOT / "src" / "rlwm" / "fitting" / "bayesian.py").read_text()
+    assert '"--allow-gate-failure"' in bayesian_src, (
+        "rlwm.fitting.bayesian.main is missing the --allow-gate-failure "
+        "argparse flag."
+    )
+    assert "allow_gate_failure=args.allow_gate_failure" in bayesian_src, (
+        "rlwm.fitting.bayesian.main is not threading args.allow_gate_failure "
+        "to save_results()."
+    )
+
+    # Layer 3: fit_baseline.py runner exposes the same flag and forwards it
+    fit_baseline = (
+        REPO_ROOT
+        / "scripts"
+        / "04_model_fitting"
+        / "b_bayesian"
+        / "fit_baseline.py"
+    ).read_text()
+    assert '"--allow-gate-failure"' in fit_baseline, (
+        "fit_baseline.py runner is missing the --allow-gate-failure flag."
+    )
+    assert "args.allow_gate_failure" in fit_baseline, (
+        "fit_baseline.py is not forwarding the flag to the inner engine."
+    )
+
+    # Layer 4: cluster smoke template passes --allow-gate-failure for
+    # Bayesian smoke fits (the whole reason the chain exists).
+    smoke = (REPO_ROOT / "cluster" / "32_smoke.slurm").read_text()
+    assert "--allow-gate-failure" in smoke, (
+        "cluster/32_smoke.slurm does not pass --allow-gate-failure for "
+        "Bayesian smoke fits. Without it, a softmax-mode convergence "
+        "failure will silently produce no artefacts and Phase 32-05 "
+        "verdicts cannot be computed."
+    )
