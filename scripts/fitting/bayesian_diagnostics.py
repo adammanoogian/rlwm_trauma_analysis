@@ -488,24 +488,41 @@ def compute_shrinkage_report(
     idata: az.InferenceData,
     param_names: list[str],
 ) -> dict[str, float]:
-    """Compute shrinkage for each individual-level parameter.
+    """Compute hierarchical identifiability (ICC-style) per parameter.
 
-    Shrinkage measures how much the posterior individual differences are
-    pulled toward the group mean relative to the total posterior variance.
-    Values close to 1.0 indicate strong shrinkage (the model identifies the
-    parameter well at the group level); values below 0.3 flag the parameter
-    as poorly identified.
+    Reports an intra-class-correlation-style ratio measuring how well the
+    hierarchy distinguishes participants from each other given each
+    participant's posterior uncertainty. Values lie in ``[0, 1]``:
+
+    - ``~1.0`` — between-participant variance dominates; participants are
+      clearly distinguishable, hierarchy is well-identified.
+    - ``~0.5`` — within and between variance comparable.
+    - ``~0.0`` — within-participant posterior uncertainty dominates;
+      participants indistinguishable from one another, hierarchy
+      effectively unidentified for this parameter.
 
     Formula::
 
-        shrinkage = 1 - var_indiv / (var_group_mean + 1e-10)
+        ICC = var_between / (var_within + var_between + 1e-10)
 
     Where:
 
-    - ``var_indiv`` = variance of ALL individual-level draws
-      (across all MCMC draws AND all participants)
-    - ``var_group_mean`` = variance of the per-draw group mean
-      (how much the group mean shifts across MCMC iterations)
+    - ``var_within``  = mean over participants of var-across-draws
+      (per-participant posterior uncertainty, averaged)
+    - ``var_between`` = variance across participants of the per-participant
+      posterior MEAN (between-participant spread, with within-MCMC noise
+      averaged out per participant first — this avoids the var_within
+      double-count that ``var(per-draw across participants)`` would
+      introduce when within-noise is independent per participant)
+
+    The previous formulation (Phase 21 baseline; ``1 - var_indiv /
+    var_group_mean``) is mathematically degenerate: ``var_group_mean``
+    scales as ``tau^2 / N``, so the ratio scales with cohort size N rather
+    than with identifiability, returning increasingly negative values
+    independent of model quality. Phase 32-05 audit caught it on the
+    softmax-vs-convex compare, where phi shrinkage was identical (-124.2
+    vs -124.5) across two parameterizations that should differ in
+    identifiability for kappa-bearing parameters but not for phi.
 
     Parameters
     ----------
@@ -513,15 +530,13 @@ def compute_shrinkage_report(
         ArviZ InferenceData with a ``posterior`` group containing individual-
         level parameter arrays of shape ``(chains, draws, n_participants)``.
     param_names : list[str]
-        Names of individual-level parameters to compute shrinkage for.
-        Each must be a key in ``idata.posterior``.
+        Names of individual-level parameters to compute identifiability
+        for. Each must be a key in ``idata.posterior``.
 
     Returns
     -------
     dict[str, float]
-        Mapping from parameter name to shrinkage value in ``(-inf, 1.0]``.
-        Negative values are theoretically possible but indicate a poorly
-        specified model (individual variance exceeds group variance).
+        Mapping from parameter name to ICC in ``[0, 1]``.
 
     Notes
     -----
@@ -532,10 +547,17 @@ def compute_shrinkage_report(
     for param in param_names:
         arr = posterior[param].values  # (chains, draws, n_participants)
         flat = arr.reshape(-1, arr.shape[-1])  # (total_draws, n_participants)
-        var_indiv = float(np.var(flat))
-        var_group_mean = float(np.var(flat.mean(axis=1)))
-        shrinkage = 1.0 - var_indiv / (var_group_mean + 1e-10)
-        results[param] = shrinkage
+        # var_within: average per-participant posterior variance over draws.
+        var_within = float(np.mean(np.var(flat, axis=0)))
+        # var_between: variance across participants of each participant's
+        # posterior mean. Averaging draws first removes within-noise
+        # contamination (independent per-participant MCMC noise inflates
+        # the per-draw across-participant variance and gives a falsely
+        # high ICC for cases where within dominates).
+        participant_means = flat.mean(axis=0)  # (n_participants,)
+        var_between = float(np.var(participant_means))
+        icc = var_between / (var_within + var_between + 1e-10)
+        results[param] = icc
     return results
 
 
@@ -569,12 +591,16 @@ def write_shrinkage_report(
     n_poor = len(shrinkage) - n_identified
 
     lines = [
-        "# Shrinkage Diagnostic Report\n",
-        "Formula: `Shrinkage = 1 - var(individual draws) / var(per-draw group mean)`\n",
-        "- `var(individual draws)`: variance across all MCMC draws AND all participants",
-        "- `var(per-draw group mean)`: variance of the per-draw group mean across iterations\n",
-        "| Parameter | Shrinkage | Status |",
-        "|-----------|-----------|--------|",
+        "# Hierarchical Identifiability Report (ICC)\n",
+        "Formula: `ICC = var_between / (var_within + var_between)`\n",
+        "- `var_within`:  mean over participants of var-across-draws "
+        "(per-participant posterior uncertainty)",
+        "- `var_between`: mean over draws of var-across-participants "
+        "(between-participant spread)\n",
+        "Range [0, 1]: 1.0 = participants well-distinguished by data; "
+        "0.0 = within-subject posterior uncertainty dominates.\n",
+        "| Parameter | ICC | Status |",
+        "|-----------|-----|--------|",
     ]
     for param, val in shrinkage.items():
         status = "identified" if val >= threshold else "WARNING: poorly identified"
@@ -583,9 +609,9 @@ def write_shrinkage_report(
     lines += [
         "",
         f"**Summary:** {n_identified}/{len(shrinkage)} parameters identified "
-        f"(shrinkage >= {threshold}); {n_poor} poorly identified.",
+        f"(ICC >= {threshold}); {n_poor} poorly identified.",
         "",
-        "> Parameters with shrinkage < 0.3 should be treated as descriptive only "
+        "> Parameters with ICC < 0.3 should be treated as descriptive only "
         "for downstream inference.",
     ]
 

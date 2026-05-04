@@ -756,7 +756,7 @@ def save_results(
         print(
             f"[convergence-gate] model={model} max_rhat={max_rhat:.3f} "
             f"min_ess_bulk={min_ess:.0f} divergences={n_div} "
-            f"min_bfmi={min_bfmi:.2f}"
+            f"min_bfmi={min_bfmi:.2f} allow_gate_failure={allow_gate_failure}"
         )
 
         if not converged:
@@ -783,12 +783,12 @@ def save_results(
                 "be recorded in the CSV; downstream readers must check that "
                 "column before treating the .nc as production-quality."
             )
-
-        print(
-            f"\n[CONVERGENCE GATE PASSED] max_rhat={max_rhat:.4f}, "
-            f"min_ess_bulk={min_ess:.0f}, divergences={n_div}, "
-            f"min_bfmi={min_bfmi:.3f}"
-        )
+        else:
+            print(
+                f"\n[CONVERGENCE GATE PASSED] max_rhat={max_rhat:.4f}, "
+                f"min_ess_bulk={min_ess:.0f}, divergences={n_div}, "
+                f"min_bfmi={min_bfmi:.3f}"
+            )
 
         # ------------------------------------------------------------------
         # Write outputs (only reached if gate passes)

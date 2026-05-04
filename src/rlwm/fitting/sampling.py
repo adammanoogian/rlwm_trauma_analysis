@@ -314,9 +314,13 @@ def run_inference(
     )
     print(f"   Backend: {jax.default_backend()} | chain_method: {_chain_method}")
 
-    # Run sampling
+    # Run sampling. extra_fields=("energy",) is required for ArviZ az.bfmi()
+    # to compute Betancourt 2016 BFMI from sample_stats.energy. NumPyro's
+    # NUTS default extra_fields tracks accept_prob/diverging/tree_size but
+    # NOT energy, so omitting this argument silently makes BFMI NaN
+    # downstream (Phase 32-01 SC-1 surface-BFMI requirement).
     rng_key = jax.random.PRNGKey(seed)
-    mcmc.run(rng_key, **model_args)
+    mcmc.run(rng_key, extra_fields=("energy",), **model_args)
 
     # Print diagnostics
     print("\n>> Sampling complete! Computing diagnostics...")
@@ -446,7 +450,10 @@ def run_inference_with_bump(
         print(f"   Backend: {jax.default_backend()} | chain_method: {_chain_method}")
         rng_key = jax.random.PRNGKey(seed)
         t0_compile = time.perf_counter()
-        mcmc.run(rng_key, **model_args)
+        # extra_fields=("energy",): see comment at the inner-loop call above
+        # — NumPyro NUTS default fields exclude energy, so az.bfmi() returns
+        # NaN unless we explicitly request it.
+        mcmc.run(rng_key, extra_fields=("energy",), **model_args)
         t1_run = time.perf_counter()
         print(f"[timing] target_accept_prob={tap:.2f} wall={t1_run - t0_compile:.1f}s")
 
