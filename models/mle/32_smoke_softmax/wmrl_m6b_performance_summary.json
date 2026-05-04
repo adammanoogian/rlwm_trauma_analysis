@@ -1,0 +1,19 @@
+{
+  "model": "wmrl_m6b",
+  "n_participants": 30,
+  "n_starts": 50,
+  "total_time_s": 11712.682271957397,
+  "total_time_min": 195.21137119928997,
+  "avg_time_per_participant_s": 390.42274239857994,
+  "jit_compilation_time_s": null,
+  "steady_state_avg_s": null,
+  "n_jobs": 1,
+  "peak_memory_mb": 2132.125,
+  "initial_memory_mb": 2026.140625,
+  "memory_increase_mb": 105.984375,
+  "timestamp": "2026-05-04T06:59:28.534269",
+  "seed": 42,
+  "data_file": "data/processed/task_trials_long_30p_smoke.csv",
+  "n_converged": 23,
+  "convergence_rate": 0.7666666666666667
+}
