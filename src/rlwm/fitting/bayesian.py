@@ -627,6 +627,7 @@ def save_results(
     *,
     output_subdir: str | None = None,
     kappa_parameterization: str = "softmax",
+    allow_gate_failure: bool = False,
 ) -> object:
     """Save fitting results to disk.
 
@@ -764,8 +765,24 @@ def save_results(
                 f"min_ess_bulk={min_ess:.0f}, divergences={n_div}, "
                 f"min_bfmi={min_bfmi:.3f}"
             )
-            print("Refusing to write output files. Fix convergence issues and re-run.")
-            return None  # Early return — no files written
+            if not allow_gate_failure:
+                print(
+                    "Refusing to write output files. Fix convergence issues and re-run."
+                )
+                return None  # Early return — no files written
+            # Phase 32-05: smoke / diagnostic pathway preserves artefacts so
+            # reviewers can post-mortem the failure (which parameters were
+            # multimodal, which chains stuck, etc.). The CSV's `converged=False`
+            # column from plan 32-01 carries the gate verdict as data; the
+            # canonical baseline path remains refuse-to-write because the
+            # master pipeline's --dependency=afterok chains rely on a non-zero
+            # exit to halt downstream steps on a real convergence failure.
+            print(
+                "[--allow-gate-failure] Writing diagnostic artefacts despite "
+                "gate failure (smoke / diagnostic mode). converged=False will "
+                "be recorded in the CSV; downstream readers must check that "
+                "column before treating the .nc as production-quality."
+            )
 
         print(
             f"\n[CONVERGENCE GATE PASSED] max_rhat={max_rhat:.4f}, "
@@ -1148,6 +1165,21 @@ def main() -> None:
             "kappa in [0, 1] (legacy revert path)."
         ),
     )
+    parser.add_argument(
+        "--allow-gate-failure",
+        action="store_true",
+        default=False,
+        help=(
+            "Phase 32-05 diagnostic flag. When set, write posterior .nc + "
+            "individual_fits.csv even if the Tier-1 convergence gate "
+            "(R-hat<=1.01, ESS>=400, divergences=0, BFMI>=0.2) fails. The "
+            "converged=False verdict is still recorded in the CSV. Default "
+            "off preserves the load-bearing refuse-to-write behaviour for "
+            "canonical baseline runs (which the master pipeline's "
+            "--dependency=afterok chain relies on). Use ONLY for smoke / "
+            "diagnostic runs where the failure mode itself is the data."
+        ),
+    )
 
     args = parser.parse_args()
 
@@ -1256,6 +1288,7 @@ def main() -> None:
         use_pscan=args.use_pscan,
         output_subdir=args.output_subdir,
         kappa_parameterization=args.kappa_parameterization,
+        allow_gate_failure=args.allow_gate_failure,
     )
 
     print("\n" + "=" * 80)

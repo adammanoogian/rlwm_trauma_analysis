@@ -176,6 +176,21 @@ def main() -> None:
             "subdir."
         ),
     )
+    parser.add_argument(
+        "--allow-gate-failure",
+        action="store_true",
+        default=False,
+        help=(
+            "Phase 32-05 diagnostic flag. When set, the inner engine writes "
+            "posterior .nc + individual_fits.csv even if the Tier-1 "
+            "convergence gate fails. The post-fit expected.exists() check "
+            "below downgrades from exit-1 to a warning so SLURM does NOT "
+            "fail the job (artefacts will exist; the gate verdict is "
+            "carried by the CSV's converged=False column). Default off "
+            "preserves the load-bearing refuse-to-write + exit-1 path that "
+            "the master pipeline's --dependency=afterok chains rely on."
+        ),
+    )
     args = parser.parse_args()
 
     print("=" * 80)
@@ -223,6 +238,8 @@ def main() -> None:
         "--kappa-parameterization",
         args.kappa_parameterization,
     ]
+    if args.allow_gate_failure:
+        sys.argv.append("--allow-gate-failure")
     fit_main()
 
     # ------------------------------------------------------------------
@@ -248,6 +265,20 @@ def main() -> None:
         / f"{args.model}_posterior.nc"
     )
     if not expected.exists():
+        if args.allow_gate_failure:
+            # Phase 32-05 diagnostic mode: with --allow-gate-failure ON the
+            # engine should have written artefacts even on gate failure.
+            # If the .nc is STILL missing, that is a real upstream error
+            # (data loading, MCMC crash, OOM) — exit 1 so the operator
+            # investigates rather than silently green-lighting a smoke run
+            # that produced nothing.
+            print(
+                f"[ARTEFACT MISSING under --allow-gate-failure] Expected "
+                f"NetCDF: {expected}. Engine failed before reaching the "
+                f"convergence gate (data load, MCMC crash, OOM). Exiting 1.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
         print(
             f"[CONVERGENCE GATE FAIL] Expected NetCDF missing: {expected}. "
             f"fit_bayesian either failed convergence (R-hat, ESS, divergences) "

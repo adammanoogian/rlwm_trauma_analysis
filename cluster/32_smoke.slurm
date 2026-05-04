@@ -42,11 +42,17 @@
 #SBATCH --job-name=rlwm-32-smoke
 #SBATCH --output=logs/cluster/32_smoke/32_smoke_%j.out
 #SBATCH --error=logs/cluster/32_smoke/32_smoke_%j.err
-#SBATCH --time=04:00:00
+#SBATCH --time=06:00:00
 #SBATCH --mem=32G
 #SBATCH --cpus-per-task=4
 #SBATCH --gres=gpu:1
 #SBATCH --partition=gpu
+
+# Walltime: 6h. Belt-and-suspenders against the NUTS auto-bump schedule
+# (target_accept_prob 0.80 -> 0.95 -> 0.99) which can take ~1h per attempt
+# at 30 participants. 4h was tight on the convex run; 6h leaves headroom
+# for the third bump on softmax fits without timing out before the gate
+# verdict + write completes.
 
 set -e
 
@@ -183,11 +189,18 @@ echo ""
 if [ "$STAGE" = "bayesian" ]; then
     mkdir -p "models/bayesian/${OUT_SUBDIR}"
     echo "[$(date)] Starting Bayesian smoke fit: MODEL=$MODEL KAPPA_MODE=$KAPPA_MODE"
+    # --allow-gate-failure: smoke runs MUST preserve diagnostic artefacts
+    # even when Tier-1 convergence fails. The verdict is recorded in the
+    # CSV's converged column (added by plan 32-01); without this flag, a
+    # FAIL on softmax mode would refuse to write any output and we would
+    # lose the very data needed to diagnose whether softmax-bias kappa
+    # rescued multimodality or not.
     python scripts/04_model_fitting/b_bayesian/fit_baseline.py \
         --model "$MODEL" \
         --kappa-parameterization "$KAPPA_MODE" \
         --data "$SMOKE_DATA" \
-        --output-subdir "$OUT_SUBDIR"
+        --output-subdir "$OUT_SUBDIR" \
+        --allow-gate-failure
     EXIT_CODE=$?
 elif [ "$STAGE" = "mle" ]; then
     mkdir -p "models/mle/${OUT_SUBDIR}"
