@@ -89,10 +89,14 @@ models/mle/*_checkpoint.csv
 !reports/tables/.gitkeep
 
 # Logs — dev + SLURM job logs merged here in Wave E. SLURM .err/.out are
-# whitelisted so cluster autopush surfaces job failures locally (root only;
-# SLURM writes flat: logs/<jobname>_%j.{out,err}).
+# whitelisted at every depth so cluster autopush surfaces job failures
+# locally regardless of whether the SLURM template writes flat
+# (logs/<job>_%j.err) or nested (logs/cluster/<phase>/<job>_%j.err).
 logs/*
 !logs/.gitkeep
 !logs/*.err
 !logs/*.out
+!logs/**/
+!logs/**/*.err
+!logs/**/*.out
 
