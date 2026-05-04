@@ -9,15 +9,10 @@ Range [0, 1]: 1.0 = participants well-distinguished by data; 0.0 = within-subjec
 
 | Parameter | ICC | Status |
 |-----------|-----|--------|
-| alpha_pos | 0.6425 | identified |
-| alpha_neg | 0.0008 | WARNING: poorly identified |
-| phi | 0.8962 | identified |
-| rho | 0.2205 | WARNING: poorly identified |
-| capacity | 0.0070 | WARNING: poorly identified |
-| kappa_total | 0.5370 | identified |
-| kappa_share | 0.8247 | identified |
-| epsilon | 0.7112 | identified |
+| alpha_pos | 0.7292 | identified |
+| alpha_neg | 0.7085 | identified |
+| epsilon | 0.5320 | identified |
 
-**Summary:** 5/8 parameters identified (ICC >= 0.3); 3 poorly identified.
+**Summary:** 3/3 parameters identified (ICC >= 0.3); 0 poorly identified.
 
 > Parameters with ICC < 0.3 should be treated as descriptive only for downstream inference.
