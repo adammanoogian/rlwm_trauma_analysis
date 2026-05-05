@@ -58,6 +58,14 @@ MAX_TREE_DEPTH="${MAX_TREE_DEPTH:-8}"
 SUBSCALE="${SUBSCALE:-0}"  # 1 enables --subscale flag (M6b subscale variant)
 # Phase 32-04: kappa parameterization (default: softmax = Collins 2025).
 KAPPA_MODE="${KAPPA_MODE:-softmax}"
+# Phase 32-05: output subdir override. Default '21_baseline' preserves the
+# canonical afterok chain (stage 05 baseline_audit reads from this path).
+# Override for side-by-side parameterization comparisons:
+#   --export=ALL,MODEL=wmrl_m6b,KAPPA_MODE=convex,OUT_SUBDIR=32_full_convex
+#   --export=ALL,MODEL=wmrl_m6b,KAPPA_MODE=softmax,OUT_SUBDIR=32_full_softmax
+# so artefacts land under separate subdirs and can be diffed without one
+# overwriting the other.
+OUT_SUBDIR="${OUT_SUBDIR:-21_baseline}"
 
 # --- Environment Setup ---
 module load miniforge3
@@ -87,6 +95,7 @@ echo "Seed:           $SEED"
 echo "Max tree depth: $MAX_TREE_DEPTH"
 echo "Subscale:       $SUBSCALE"
 echo "Kappa param:    $KAPPA_MODE"
+echo "Out subdir:     $OUT_SUBDIR"
 echo "Start time:     $(date)"
 echo "============================================================"
 
@@ -130,16 +139,16 @@ echo "JAX cache: ${JAX_COMPILATION_CACHE_DIR:-disabled}"
 
 # --- Create output directories ---
 mkdir -p logs
-mkdir -p models/bayesian/21_baseline
+mkdir -p "models/bayesian/${OUT_SUBDIR}"
 
 # Clear any stale per-model artefacts from a previous run (different cohort N,
 # aborted fit, etc.). Without this, a fit failure mid-rerun would leave the
 # previous run's posterior in place and stage 05 would silently audit it.
-echo "[$(date)] Clearing stale ${MODEL} artefacts from models/bayesian/21_baseline/"
-for stale in "models/bayesian/21_baseline/${MODEL}_individual_fits.csv" \
-             "models/bayesian/21_baseline/${MODEL}_posterior.nc" \
-             "models/bayesian/21_baseline/${MODEL}_shrinkage_report.md" \
-             "models/bayesian/21_baseline/${MODEL}_ppc_results.csv"; do
+echo "[$(date)] Clearing stale ${MODEL} artefacts from models/bayesian/${OUT_SUBDIR}/"
+for stale in "models/bayesian/${OUT_SUBDIR}/${MODEL}_individual_fits.csv" \
+             "models/bayesian/${OUT_SUBDIR}/${MODEL}_posterior.nc" \
+             "models/bayesian/${OUT_SUBDIR}/${MODEL}_shrinkage_report.md" \
+             "models/bayesian/${OUT_SUBDIR}/${MODEL}_ppc_results.csv"; do
     if [[ -f "$stale" ]]; then
         echo "  removing $stale"
         rm -f "$stale"
@@ -180,7 +189,8 @@ CMD=(python scripts/04_model_fitting/b_bayesian/fit_baseline.py
      --samples "$SAMPLES"
      --seed "$SEED"
      --max-tree-depth "$MAX_TREE_DEPTH"
-     --kappa-parameterization "$KAPPA_MODE")
+     --kappa-parameterization "$KAPPA_MODE"
+     --output-subdir "$OUT_SUBDIR")
 
 if [ "$SUBSCALE" = "1" ]; then
     echo "WARNING: SUBSCALE=1 ignored under fit_baseline.py."
@@ -200,12 +210,12 @@ echo ""
 echo "[$(date)] ${MODEL} hierarchical fit finished (exit code: $EXIT_CODE)"
 
 if [ $EXIT_CODE -eq 0 ]; then
-    echo "Expected outputs (under models/bayesian/21_baseline/):"
+    echo "Expected outputs (under models/bayesian/${OUT_SUBDIR}/):"
     MISSING_ARTIFACTS=0
-    for f in "models/bayesian/21_baseline/${MODEL}_individual_fits.csv" \
-             "models/bayesian/21_baseline/${MODEL}_posterior.nc" \
-             "models/bayesian/21_baseline/${MODEL}_shrinkage_report.md" \
-             "models/bayesian/21_baseline/${MODEL}_ppc_results.csv"; do
+    for f in "models/bayesian/${OUT_SUBDIR}/${MODEL}_individual_fits.csv" \
+             "models/bayesian/${OUT_SUBDIR}/${MODEL}_posterior.nc" \
+             "models/bayesian/${OUT_SUBDIR}/${MODEL}_shrinkage_report.md" \
+             "models/bayesian/${OUT_SUBDIR}/${MODEL}_ppc_results.csv"; do
         if [ -f "$f" ]; then
             echo "  [OK] $f ($(du -h "$f" | cut -f1))"
         else
