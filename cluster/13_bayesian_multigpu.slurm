@@ -65,12 +65,6 @@ module load miniforge3
 cd "${SLURM_SUBMIT_DIR:-$(dirname "$0")/..}"
 PROJECT_ROOT="$(pwd)"
 
-# Install autopush trap (must come BEFORE any failure-prone command).
-# autopush.sh registers an EXIT trap that fires on success or failure,
-# so SLURM .err/.out logs land in git regardless of outcome — see
-# cluster/autopush.sh for rationale.
-[ -f cluster/autopush.sh ] && source cluster/autopush.sh
-
 
 echo "============================================================"
 echo "Multi-GPU Bayesian Fit — $MODEL (chains via pmap)"
@@ -150,8 +144,5 @@ echo ""
 echo "[$(date)] Fit finished (exit code: $EXIT_CODE)"
 
 # Auto-push logs and results when job completes
-if [[ -f cluster/autopush.sh ]]; then
-    source cluster/autopush.sh
-fi
 
 exit $EXIT_CODE

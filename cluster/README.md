@@ -41,7 +41,6 @@ cluster/
 │
 ├── 00_setup_env.sh                   # CPU conda environment setup
 ├── 00_setup_env_gpu.sh               # GPU conda environment setup (JAX CUDA)
-├── autopush.sh                       # Auto-push helper (sourced by SLURMs)
 ├── legacy/                           # Archived shipped-milestone SLURMs (pscan/fullybatched benchmarks, wave-based orchestrator)
 │                                     # SLURM output goes to top-level logs/ (gitignored)
 └── README.md                         # this file

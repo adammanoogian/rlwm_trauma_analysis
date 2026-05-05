@@ -74,12 +74,6 @@ module load miniforge3
 cd "${SLURM_SUBMIT_DIR:-$(dirname "$0")/..}"
 PROJECT_ROOT="$(pwd)"
 
-# Install autopush trap (must come BEFORE any failure-prone command).
-# autopush.sh registers an EXIT trap that fires on success or failure,
-# so SLURM .err/.out logs land in git regardless of outcome — see
-# cluster/autopush.sh for rationale.
-[ -f cluster/autopush.sh ] && source cluster/autopush.sh
-
 
 echo "============================================================"
 echo "Stage 04b — Choice-Only Hierarchical Bayesian Fit (CPU)"
@@ -233,9 +227,5 @@ else
     echo "ERROR: fit_baseline.py exited with code $EXIT_CODE"
 fi
 
-# Auto-push logs and results when job completes (autopush exit code is
-# isolated from fit exit code so a transient network failure does not
-# mark the SLURM job as failed and orphan the afterok chain).
-source cluster/autopush.sh
 
 exit $EXIT_CODE

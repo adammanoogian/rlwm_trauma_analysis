@@ -30,6 +30,23 @@
 #   # Override remote (if origin is not your repo):
 #   sbatch --export=GIT_REMOTE=upstream cluster/99_push_results.slurm
 #
+#   # Email notification — two independent mechanisms, use either or both:
+#   #   (1) SLURM-native (terse scheduler email, fires even on script crash):
+#   sbatch --mail-type=END,FAIL --mail-user=adam.manoogian@monash.edu \
+#          --dependency=afterany:JID cluster/99_push_results.slurm
+#   #   (2) Custom rich email at exit (branch, commit hash, file counts):
+#   sbatch --export=ALL,NOTIFY_EMAIL=adam.manoogian@monash.edu \
+#          --dependency=afterany:JID cluster/99_push_results.slurm
+#
+# History (2026-05-05):
+#   The per-job autopush.sh trap (commit e10cd66, deleted 2026-05-05) was
+#   replaced by this dependency-chained Pattern A push. The trap raced on
+#   the shared NFS-mounted PROJECT_ROOT when fan-out fitting jobs all hit
+#   `git push` concurrently — auto-stash + rebase conflicts dropped the
+#   files visible in the "one job saved" / "adding non autopushed"
+#   recovery commits. One push job at the end + afterany dependency gives
+#   the same "logs-back-on-failure" guarantee without the race.
+#
 # Prerequisites:
 #   - SSH key or credential helper configured for git push on cluster nodes
 #   - Git remote configured (defaults to 'origin'; override with GIT_REMOTE)
@@ -60,6 +77,9 @@ BRANCH_NAME="${BRANCH_NAME:-results/slurm-$(date +%Y%m%d-%H%M%S)}"
 PARENT_JOBS="${PARENT_JOBS:-${SLURM_JOB_DEPENDENCY:-unknown}}"
 # Override if 'origin' is not your personal fork (e.g. GIT_REMOTE=upstream)
 GIT_REMOTE="${GIT_REMOTE:-origin}"
+# Optional: rich custom email at exit (branch, commit hash, file counts).
+# Requires `mail`/`mailx`/`sendmail` on the compute node. Empty = disabled.
+NOTIFY_EMAIL="${NOTIFY_EMAIL:-}"
 
 # =============================================================================
 # Environment Setup (minimal — only need git, no conda/python)
@@ -67,14 +87,59 @@ GIT_REMOTE="${GIT_REMOTE:-origin}"
 cd "${SLURM_SUBMIT_DIR:-$(dirname "$0")/..}"
 PROJECT_ROOT="$(pwd)"
 
-# Install autopush trap (must come BEFORE any failure-prone command).
-# autopush.sh registers an EXIT trap that fires on success or failure,
-# so SLURM .err/.out logs land in git regardless of outcome — see
-# cluster/autopush.sh for rationale.
-[ -f cluster/autopush.sh ] && source cluster/autopush.sh
-
-
 mkdir -p logs
+
+# =============================================================================
+# Email Notification (custom body, fired via trap at exit)
+# =============================================================================
+PUSH_STATUS="UNKNOWN"
+PUSH_SUMMARY=""
+
+_send_notify_email() {
+    local exit_code=$?
+    [[ -z "$NOTIFY_EMAIL" ]] && return 0
+    local mailer=""
+    for cand in mail mailx sendmail; do
+        if command -v "$cand" &>/dev/null; then mailer="$cand"; break; fi
+    done
+    if [[ -z "$mailer" ]]; then
+        echo "  NOTIFY_EMAIL set but no mail/mailx/sendmail found — skipping custom email"
+        return 0
+    fi
+
+    local subject="[SLURM ${SLURM_JOB_ID:-local}] push_results: ${PUSH_STATUS}"
+    local body
+    body=$(cat <<EOF
+SLURM push_results job ${SLURM_JOB_ID:-local} finished with status: ${PUSH_STATUS}
+Exit code: ${exit_code}
+Node:      ${SLURMD_NODENAME:-$(hostname)}
+Project:   ${PROJECT_ROOT}
+Remote:    ${GIT_REMOTE}
+Parent:    ${PARENT_JOBS}
+End time:  $(date)
+
+${PUSH_SUMMARY}
+
+Log: logs/push_results_${SLURM_JOB_ID:-local}.out
+EOF
+)
+    case "$mailer" in
+        mail|mailx)
+            printf '%s\n' "$body" | "$mailer" -s "$subject" "$NOTIFY_EMAIL" \
+                && echo "  notify email sent to $NOTIFY_EMAIL" \
+                || echo "  WARN: $mailer exit non-zero sending to $NOTIFY_EMAIL"
+            ;;
+        sendmail)
+            {
+                printf 'To: %s\nSubject: %s\n\n' "$NOTIFY_EMAIL" "$subject"
+                printf '%s\n' "$body"
+            } | sendmail -t "$NOTIFY_EMAIL" \
+                && echo "  notify email sent to $NOTIFY_EMAIL (sendmail)" \
+                || echo "  WARN: sendmail failed"
+            ;;
+    esac
+}
+trap _send_notify_email EXIT
 
 echo "============================================================"
 echo "Auto-Push Results to Git"
@@ -96,12 +161,16 @@ echo "Checking git configuration..."
 
 if ! command -v git &>/dev/null; then
     echo "ERROR: git not found on this node"
+    PUSH_STATUS="FAILED_PREFLIGHT"
+    PUSH_SUMMARY="git not found on compute node"
     exit 1
 fi
 
 # Verify we're in a git repo
 if ! git rev-parse --is-inside-work-tree &>/dev/null; then
     echo "ERROR: Not inside a git repository: $PROJECT_ROOT"
+    PUSH_STATUS="FAILED_PREFLIGHT"
+    PUSH_SUMMARY="Not inside a git repository: ${PROJECT_ROOT}"
     exit 1
 fi
 
@@ -110,6 +179,8 @@ if ! git remote get-url "$GIT_REMOTE" &>/dev/null; then
     echo "ERROR: No '$GIT_REMOTE' remote configured"
     echo "Available remotes: $(git remote)"
     echo "Override with: sbatch --export=GIT_REMOTE=<name> ..."
+    PUSH_STATUS="FAILED_PREFLIGHT"
+    PUSH_SUMMARY="No '${GIT_REMOTE}' remote configured. Available: $(git remote | tr '\n' ' ')"
     exit 1
 fi
 
@@ -119,6 +190,8 @@ if ! git ls-remote --exit-code "$GIT_REMOTE" HEAD &>/dev/null 2>&1; then
     echo "ERROR: Cannot reach $GIT_REMOTE remote"
     echo "Check SSH keys or credential helper on cluster nodes"
     echo "Remote URL: $(git remote get-url "$GIT_REMOTE")"
+    PUSH_STATUS="FAILED_PREFLIGHT"
+    PUSH_SUMMARY="Cannot reach ${GIT_REMOTE} ($(git remote get-url "$GIT_REMOTE")). Check SSH keys on compute nodes."
     exit 1
 fi
 echo "  Remote accessible: $(git remote get-url "$GIT_REMOTE")"
@@ -179,6 +252,8 @@ if [[ "$STAGED_COUNT" -eq 0 ]]; then
         echo "No new or modified result files to commit."
         echo "All outputs may already be committed, or fitting produced no files."
         echo "STATUS: NOTHING TO PUSH"
+        PUSH_STATUS="NOTHING_TO_PUSH"
+        PUSH_SUMMARY="No result files changed since last push."
         exit 0
     fi
 fi
@@ -187,6 +262,7 @@ fi
 echo "Staged changes:"
 git diff --cached --stat
 echo ""
+STAGED_STAT=$(git diff --cached --stat | tail -n 1)
 
 # =============================================================================
 # Commit and Push
@@ -200,18 +276,26 @@ if [[ "$PUSH_TO_MAIN" == "true" ]]; then
         echo ""
         echo "ERROR: git pull --rebase failed (likely merge conflict)"
         echo "Results are staged but NOT pushed. Manual resolution required."
+        PUSH_STATUS="FAILED_REBASE_CONFLICT"
+        PUSH_SUMMARY="Results staged but NOT pushed (rebase on main failed)."
         exit 1
     fi
 
     git commit -m "results: pipeline outputs (SLURM jobs: ${PARENT_JOBS})"
+    COMMIT_HASH=$(git rev-parse --short HEAD)
 
     echo "Pushing to main on $GIT_REMOTE..."
     if git push "$GIT_REMOTE" main; then
         echo ""
         echo "STATUS: PUSHED TO MAIN"
+        PUSH_STATUS="PUSHED_TO_MAIN"
+        PUSH_SUMMARY=$(printf 'Commit: %s\nStaged: %s\nPull locally: git pull %s main' \
+                       "$COMMIT_HASH" "$STAGED_STAT" "$GIT_REMOTE")
     else
         echo ""
         echo "ERROR: git push to main failed"
+        PUSH_STATUS="FAILED_PUSH"
+        PUSH_SUMMARY="Commit ${COMMIT_HASH} made locally but push to main failed."
         exit 1
     fi
 else
@@ -229,16 +313,23 @@ Date: $(date --iso-8601=seconds 2>/dev/null || date +%Y-%m-%dT%H:%M:%S)
 
 Merge with:
   git checkout main && git merge $BRANCH_NAME"
+    COMMIT_HASH=$(git rev-parse --short HEAD)
 
     echo "Pushing branch to $GIT_REMOTE..."
     if git push -u "$GIT_REMOTE" "$BRANCH_NAME"; then
         echo ""
         echo "STATUS: PUSHED TO BRANCH $BRANCH_NAME"
+        PUSH_STATUS="PUSHED_TO_BRANCH"
+        PUSH_SUMMARY=$(printf 'Branch: %s\nCommit: %s\nStaged: %s\nMerge locally: git fetch %s && git merge %s/%s' \
+                       "$BRANCH_NAME" "$COMMIT_HASH" "$STAGED_STAT" \
+                       "$GIT_REMOTE" "$GIT_REMOTE" "$BRANCH_NAME")
     else
         echo ""
         echo "ERROR: git push failed"
         echo "Results are committed locally on branch $BRANCH_NAME but NOT pushed."
-        echo "Manual push: git push -u origin $BRANCH_NAME"
+        echo "Manual push: git push -u $GIT_REMOTE $BRANCH_NAME"
+        PUSH_STATUS="FAILED_PUSH"
+        PUSH_SUMMARY="Branch ${BRANCH_NAME} committed locally as ${COMMIT_HASH} but push failed. Manual: git push -u ${GIT_REMOTE} ${BRANCH_NAME}"
         exit 1
     fi
 

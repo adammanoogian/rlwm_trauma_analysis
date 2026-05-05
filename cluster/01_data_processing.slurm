@@ -34,12 +34,6 @@ module load miniforge3
 cd "${SLURM_SUBMIT_DIR:-$(dirname "$0")/..}"
 PROJECT_ROOT="$(pwd)"
 
-# Install autopush trap (must come BEFORE any failure-prone command).
-# autopush.sh registers an EXIT trap that fires on success or failure,
-# so SLURM .err/.out logs land in git regardless of outcome — see
-# cluster/autopush.sh for rationale.
-[ -f cluster/autopush.sh ] && source cluster/autopush.sh
-
 
 echo "============================================================"
 echo "Stage 01 — Data Preprocessing (01..04)"
@@ -103,9 +97,6 @@ if [[ "$PROCESSED_CSVS_PRESENT" -eq 1 ]]; then
         echo "      Regenerate processed/ explicitly by running scripts/01_data_preprocessing/01..04 locally."
     fi
     echo "Stage 01 skipped — downstream stages will read committed processed/ CSVs"
-    if [[ -f cluster/autopush.sh ]]; then
-        source cluster/autopush.sh
-    fi
     exit 0
 fi
 
@@ -153,6 +144,3 @@ echo "  data/processed/summary_participant_metrics.csv"
 echo "============================================================"
 
 # Auto-push logs and results when job completes
-if [[ -f cluster/autopush.sh ]]; then
-    source cluster/autopush.sh
-fi

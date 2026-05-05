@@ -61,7 +61,6 @@ set -e
 # the cluster/04b_bayesian_gpu.slurm convention.
 _ON_EXIT() {
     local _exit=$?
-    [ -f cluster/autopush.sh ] && source cluster/autopush.sh || true
     exit "$_exit"
 }
 trap _ON_EXIT EXIT

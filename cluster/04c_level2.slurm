@@ -73,12 +73,6 @@ module load miniforge3
 cd "${SLURM_SUBMIT_DIR:-$(dirname "$0")/..}"
 PROJECT_ROOT="$(pwd)"
 
-# Install autopush trap (must come BEFORE any failure-prone command).
-# autopush.sh registers an EXIT trap that fires on success or failure,
-# so SLURM .err/.out logs land in git regardless of outcome — see
-# cluster/autopush.sh for rationale.
-[ -f cluster/autopush.sh ] && source cluster/autopush.sh
-
 
 echo "============================================================"
 echo "Phase 21 Step 21.6 — Winner Refit WITH L2 Scales"
@@ -200,7 +194,6 @@ else
 fi
 
 # Auto-push logs and results when job completes
-source cluster/autopush.sh
 
 # Propagate exit code to the master orchestrator's --dependency=afterok
 # chain (plan 21-10). Load-bearing — DO NOT replace with `exit 0`.

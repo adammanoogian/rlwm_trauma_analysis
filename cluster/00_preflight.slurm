@@ -53,12 +53,6 @@ module load miniforge3
 cd "${SLURM_SUBMIT_DIR:-$(dirname "$0")/..}"
 PROJECT_ROOT="$(pwd)"
 
-# Install autopush trap (must come BEFORE any failure-prone command).
-# autopush.sh registers an EXIT trap that fires on success or failure,
-# so SLURM .err/.out logs land in git regardless of outcome — see
-# cluster/autopush.sh for rationale.
-[ -f cluster/autopush.sh ] && source cluster/autopush.sh
-
 export PROJECT_ROOT
 
 # Pre-flight log lives in CCDS path so autopush picks it up
@@ -163,8 +157,5 @@ echo "============================================================"
 # ---------------------------------------------------------------
 # Autopush the log so the gate verdict syncs to main without operator action
 # ---------------------------------------------------------------
-if [[ -f cluster/autopush.sh ]]; then
-    source cluster/autopush.sh
-fi
 
 exit 0

@@ -59,6 +59,9 @@ cd "$(dirname "$0")/.."
 DRY_RUN=""
 FROM_STAGE=1
 DO_PREFLIGHT=""
+AUTO_PUSH=true
+NOTIFY_EMAIL="${NOTIFY_EMAIL:-}"
+GIT_REMOTE="${GIT_REMOTE:-origin}"
 MODELS="qlearning wmrl wmrl_m3 wmrl_m5 wmrl_m6a wmrl_m6b"
 # Phase 32-03: Narrowed Bayesian fan-out (see config.BAYESIAN_FANOUT_MODELS).
 # MLE keeps all 7 choice-only models; Bayesian drops M3, M5, M6a because:
@@ -82,6 +85,9 @@ while [[ $# -gt 0 ]]; do
     --bayes-models) BAYES_MODELS="$2"; shift 2 ;;
     --kappa-parameterization) KAPPA_MODE="$2"; shift 2 ;;
     --preflight) DO_PREFLIGHT=1; shift ;;
+    --no-auto-push) AUTO_PUSH=false; shift ;;
+    --notify-email) NOTIFY_EMAIL="$2"; shift 2 ;;
+    --git-remote) GIT_REMOTE="$2"; shift 2 ;;
     -h|--help)
       grep "^#" "$0" | head -60
       exit 0
@@ -402,6 +408,55 @@ if [[ "$FROM_STAGE" -le 6 ]]; then
   done
 fi
 
+# ---------------------------------------------------------------------------
+# Auto-push: dependency-chained push job (replaces the per-SLURM autopush
+# trap — see commit removing cluster/autopush.sh on 2026-05-05). One push
+# at the end avoids the fan-out race where N concurrent fitting jobs sharing
+# the NFS-mounted working tree all hit `git push` simultaneously, causing
+# auto-stash + rebase conflicts that lose data ("one job saved" /
+# "adding non autopushed" recovery commits in recent history).
+#
+# afterany (not afterok) so the push fires even when fitting crashes — we
+# want logs back. Skip with --no-auto-push.
+# ---------------------------------------------------------------------------
+PUSH_JID=""
+if [[ "$AUTO_PUSH" == "true" && -z "$DRY_RUN" ]]; then
+  ALL_JOBIDS=()
+  [[ -n "$JPRE"          ]] && ALL_JOBIDS+=("$JPRE")
+  [[ -n "$J01"           ]] && ALL_JOBIDS+=("$J01")
+  [[ -n "$J02"           ]] && ALL_JOBIDS+=("$J02")
+  ALL_JOBIDS+=("${J03_ALL[@]}")
+  ALL_JOBIDS+=("${J04_ALL[@]}")
+  [[ -n "$L2_DISPATCH_JID" ]] && ALL_JOBIDS+=("$L2_DISPATCH_JID")
+  [[ -n "$J05_BASELINE"  ]] && ALL_JOBIDS+=("$J05_BASELINE")
+  [[ -n "$J05_SCALE"     ]] && ALL_JOBIDS+=("$J05_SCALE")
+  ALL_JOBIDS+=("${J06_ALL[@]}")
+
+  if [[ ${#ALL_JOBIDS[@]} -gt 0 ]]; then
+    echo ""
+    echo "--- Auto-push: dependency-chained results push ---"
+    PUSH_DEP=$(IFS=:; echo "${ALL_JOBIDS[*]}")
+    PUSH_PARENTS=$(IFS=' '; echo "${ALL_JOBIDS[*]}")
+
+    PUSH_MAIL_FLAGS=()
+    if [[ -n "$NOTIFY_EMAIL" ]]; then
+      PUSH_MAIL_FLAGS=(--mail-type=END,FAIL --mail-user="$NOTIFY_EMAIL")
+    fi
+
+    PUSH_JID=$(sbatch --parsable \
+        --dependency=afterany:${PUSH_DEP} \
+        "${PUSH_MAIL_FLAGS[@]}" \
+        --export="ALL,PARENT_JOBS=${PUSH_PARENTS},NOTIFY_EMAIL=${NOTIFY_EMAIL},GIT_REMOTE=${GIT_REMOTE}" \
+        cluster/99_push_results.slurm)
+    echo "  push job: $PUSH_JID (afterany on ${#ALL_JOBIDS[@]} parent jobs)"
+    [[ -n "$NOTIFY_EMAIL" ]] && echo "  email notifications: $NOTIFY_EMAIL"
+  fi
+elif [[ "$AUTO_PUSH" != "true" ]]; then
+  echo ""
+  echo "--- Auto-push: SKIPPED (--no-auto-push) ---"
+  echo "  Manual: sbatch --dependency=afterany:<JID1>:<JID2>:... cluster/99_push_results.slurm"
+fi
+
 echo ""
 echo "============================================================"
 echo "[submit_all.sh] done — $(date)"
@@ -415,6 +470,7 @@ echo "Stage 04: ${J04_ALL[*]}"
 echo "Stage 04c L2 dispatch: ${L2_DISPATCH_JID:-<not dispatched; no winners.txt>}"
 echo "Stage 05: $J05_BASELINE $J05_SCALE"
 echo "Stage 06: ${J06_ALL[*]}"
+echo "Auto-push:  ${PUSH_JID:-<skipped>}"
 echo "============================================================"
 if [[ -n "$DRY_RUN" ]]; then
   echo "DRY-RUN: every stage SLURM passed bash -n and every python target resolved on disk."
