@@ -595,8 +595,9 @@ def write_shrinkage_report(
         "Formula: `ICC = var_between / (var_within + var_between)`\n",
         "- `var_within`:  mean over participants of var-across-draws "
         "(per-participant posterior uncertainty)",
-        "- `var_between`: mean over draws of var-across-participants "
-        "(between-participant spread)\n",
+        "- `var_between`: variance across participants of per-participant "
+        "posterior mean (between-participant spread, with within-MCMC "
+        "noise averaged out per participant first)\n",
         "Range [0, 1]: 1.0 = participants well-distinguished by data; "
         "0.0 = within-subject posterior uncertainty dominates.\n",
         "| Parameter | ICC | Status |",
