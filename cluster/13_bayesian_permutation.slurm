@@ -17,6 +17,9 @@
 #
 # Aggregated summary:
 #   models/bayesian/permutation/permutation_summary.md
+#
+# Debug solo run with auto-push (per-job result push on success/crash/timeout):
+#   bash cluster/submit_one.sh <this-script>
 # =============================================================================
 
 #SBATCH --job-name=perm_null
@@ -43,6 +46,7 @@ echo "Array job ID: ${SLURM_ARRAY_JOB_ID:-local}"
 echo "Task ID:      ${SLURM_ARRAY_TASK_ID:-0}"
 echo "Node:         ${SLURMD_NODENAME:-$(hostname)}"
 echo "Project:      $PROJECT_ROOT"
+echo "Commit: $(git rev-parse --short HEAD 2>/dev/null) [$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ') dirty] — $(git log -1 --format=%s 2>/dev/null)"
 echo "Start time:   $(date)"
 echo "============================================================"
 

@@ -117,6 +117,7 @@ echo "KAPPA_MODE:     $KAPPA_MODE"
 echo "STAGE:          $STAGE"
 echo "SUBSAMPLE_N:    $SUBSAMPLE_N"
 echo "OUT_SUBDIR:     $OUT_SUBDIR"
+echo "Commit: $(git rev-parse --short HEAD 2>/dev/null) [$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ') dirty] — $(git log -1 --format=%s 2>/dev/null)"
 echo "Start time:     $(date)"
 echo "============================================================"
 

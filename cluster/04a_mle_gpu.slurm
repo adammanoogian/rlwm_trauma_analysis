@@ -27,6 +27,9 @@
 #   - logs/mle_gpu_{jobid}.out
 #
 # Reference: https://docs.erc.monash.edu/old-M3/M3/slurm/partitions/
+#
+# Debug solo run with auto-push (per-job result push on success/crash/timeout):
+#   bash cluster/submit_one.sh <this-script>
 # =============================================================================
 
 #SBATCH --job-name=rlwm_mle_gpu
@@ -69,6 +72,7 @@ echo "Partition: ${SLURM_JOB_PARTITION:-gpu}"
 echo "GPU(s): ${CUDA_VISIBLE_DEVICES:-none}"
 echo "Project: $PROJECT_ROOT"
 echo "Kappa param: $KAPPA_MODE"
+echo "Commit: $(git rev-parse --short HEAD 2>/dev/null) [$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ') dirty] — $(git log -1 --format=%s 2>/dev/null)"
 echo "Start time: $(date)"
 echo "============================================================"
 

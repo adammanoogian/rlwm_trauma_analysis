@@ -47,6 +47,9 @@
 #   - models/bayesian/21_baseline/${MODEL}_posterior.nc
 #   - models/bayesian/21_baseline/${MODEL}_shrinkage_report.md
 #   - models/bayesian/21_baseline/${MODEL}_ppc_results.csv
+#
+# Debug solo run with auto-push (per-job result push on success/crash/timeout):
+#   bash cluster/submit_one.sh <this-script>
 # =============================================================================
 
 #SBATCH --job-name=rlwm-bayesian-gpu-mgpu
@@ -102,6 +105,7 @@ echo "Max tree depth: $MAX_TREE_DEPTH"
 echo "Subscale:       $SUBSCALE"
 echo "Kappa param:    $KAPPA_MODE"
 echo "Limit:          ${LIMIT:-<all participants>}"
+echo "Commit: $(git rev-parse --short HEAD 2>/dev/null) [$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ') dirty] — $(git log -1 --format=%s 2>/dev/null)"
 echo "Start time:     $(date)"
 echo "============================================================"
 

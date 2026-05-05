@@ -78,6 +78,7 @@ echo "Max tree depth: $MAX_TREE_DEPTH"
 echo "Participants (smoke limit): $N_PARTICIPANTS_LIMIT"
 echo "Per-model timeout: ${PER_MODEL_TIMEOUT}s"
 echo "Smoke output dir: $SMOKE_OUT_DIR"
+echo "Commit: $(git rev-parse --short HEAD 2>/dev/null) [$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ') dirty] — $(git log -1 --format=%s 2>/dev/null)"
 echo "Start time: $(date)"
 echo "============================================================"
 

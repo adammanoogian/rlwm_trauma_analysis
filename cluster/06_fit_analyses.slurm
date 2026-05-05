@@ -25,6 +25,9 @@
 #   sbatch --export=ALL,STEP=loo_stacking cluster/06_fit_analyses.slurm
 #   sbatch --export=ALL,STEP=model_averaging cluster/06_fit_analyses.slurm
 #   sbatch --export=ALL,STEP=manuscript_tables cluster/06_fit_analyses.slurm
+#
+# Debug solo run with auto-push (per-job result push on success/crash/timeout):
+#   bash cluster/submit_one.sh <this-script>
 # =============================================================================
 
 #SBATCH --job-name=p29_06_fit_analyses
@@ -71,6 +74,7 @@ echo "============================================================"
 echo "Job ID:     ${SLURM_JOB_ID:-local}"
 echo "Node:       ${SLURMD_NODENAME:-$(hostname)}"
 echo "Project:    $PROJECT_ROOT"
+echo "Commit: $(git rev-parse --short HEAD 2>/dev/null) [$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ') dirty] — $(git log -1 --format=%s 2>/dev/null)"
 echo "Start time: $(date)"
 echo "============================================================"
 

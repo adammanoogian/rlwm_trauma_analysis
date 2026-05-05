@@ -17,6 +17,9 @@
 #   - data/processed/task_trials_long.csv
 #   - data/processed/task_trials_long_all.csv
 #   - data/processed/summary_participant_metrics.csv
+#
+# Debug solo run with auto-push (per-job result push on success/crash/timeout):
+#   bash cluster/submit_one.sh <this-script>
 # =============================================================================
 
 #SBATCH --job-name=p29_01_data
@@ -41,6 +44,7 @@ echo "============================================================"
 echo "Job ID:     ${SLURM_JOB_ID:-local}"
 echo "Node:       ${SLURMD_NODENAME:-$(hostname)}"
 echo "Project:    $PROJECT_ROOT"
+echo "Commit: $(git rev-parse --short HEAD 2>/dev/null) [$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ') dirty] — $(git log -1 --format=%s 2>/dev/null)"
 echo "Start time: $(date)"
 echo "============================================================"
 
