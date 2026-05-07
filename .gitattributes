@@ -1,0 +1,36 @@
+# Line-ending policy for the rlwm_trauma_analysis repo.
+#
+# Why: this repo is developed on Windows (CRLF default) and runs on M3
+# Linux (LF default). Without an explicit policy, every text file
+# round-trips between CRLF and LF, which (a) breaks bash shebangs on
+# the cluster and (b) breaks Mutagen sync (which compares bytes, not
+# git-normalized content, so every text file becomes a conflict).
+#
+# `text=auto eol=lf` means: git auto-detects text vs binary, and stores
+# / checks out text files with LF universally. Binary files (PNGs,
+# PDFs, .nc posteriors, etc.) pass through unchanged.
+
+* text=auto eol=lf
+
+# Explicit LF for files where line endings affect behavior:
+*.sh    text eol=lf
+*.slurm text eol=lf
+*.py    text eol=lf
+*.qmd   text eol=lf
+
+# Explicit binary so they never get normalized
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.pdf   binary
+*.nc    binary
+*.npy   binary
+*.npz   binary
+*.parquet binary
+*.feather binary
+*.h5    binary
+*.hdf5  binary
+*.zip   binary
+*.gz    binary
+*.tar   binary
+*.tgz   binary
