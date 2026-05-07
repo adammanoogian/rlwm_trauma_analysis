@@ -419,3 +419,52 @@ python scripts/fitting/jax_likelihoods.py
 ```bash
 python config.py
 ```
+
+# M3 HPC settings for this project
+
+This project runs on Monash M3 (MASSIVE). The `m3-hpc` skill defines the
+overall workflow — this section sets project-specific details. Read both.
+
+## Project specifics
+
+- **Project name (used for paths):** rlwm_trauma_analysis
+- **Slurm account:** ACCOUNT          ← edit (e.g., nq46)
+- **Default partition:** gpu          ← gpu | m3g | m3h
+- **Default GPU:** A40                ← T4 | A40 | V100 (V100 needs partition=m3g)
+- **GPU memory budget:** 48GB         ← match your --gres choice
+- **Default walltime for sbatch:** 08:00:00
+- **Default walltime for srun (debug):** 00:15:00
+
+## Paths
+
+- **Local source:** `C:\Users\aman0087\Documents\Github\rlwm_trauma_analysis` (this directory)
+- **Remote source:** `~/fc37/adam/projects/rlwm_trauma_analysis/` (resolves to `/projects/fc37/adam/projects/rlwm_trauma_analysis/` on the `/fs04` Lustre filesystem; synced via Mutagen)
+- **Logs:** `~/fc37/adam/projects/rlwm_trauma_analysis/logs/<jobname>_<jobid>.{out,err}` (project-internal, written by `cluster/*.slurm`)
+- **Outputs:** `models/`, `reports/`, `output/`, `figures/` inside the project dir (`/fs04` Lustre, ~229G free); no separate `~/scratch/` used
+- **Slurm scripts:** `cluster/` in the project root (NOT `slurm/`)
+- **Mutagen agent location on M3:** `~/.mutagen/` (default location; ~30 MB on `/home`. Cannot be redirected to `/fs04` because Mutagen's agent installer uses `rename(2)` between staging on `$HOME` and final location, which fails with EXDEV across filesystems.)
+
+## Environment
+
+- **Python venv on M3:** `~/venvs/rlwm_trauma_analysis/`
+- **CUDA module:** `cuda/12.1`
+- **Python module:** `python/3.11`
+- **Key dependencies:** PyTorch 2.x, (add others)
+
+## Quick-test command pattern
+
+For Claude's reference, here's the canonical srun invocation for a quick
+GPU sanity check on this project:
+
+```bash
+ssh m3 "cd ~/fc37/adam/projects/rlwm_trauma_analysis && srun \
+  --partition=gpu --gres=gpu:T4:1 \
+  --mem=16G --cpus-per-task=4 --time=00:15:00 \
+  --account=ACCOUNT \
+  bash -c 'source ~/venvs/rlwm_trauma_analysis/bin/activate && python <CMD>'"
+```
+
+## What's special about this project
+
+(Add anything Claude should know — model architectures, data peculiarities,
+reproducibility seeds, known flaky tests, etc.)

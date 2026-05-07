@@ -100,3 +100,31 @@ logs/*
 !logs/**/*.err
 !logs/**/*.out
 
+# ============================================================================
+# Defense-in-depth: never track secrets, SSH keys, or sync-tool state
+# ============================================================================
+# SSH keys (in case a stray copy ever ends up in the repo)
+*.pem
+*.key
+id_rsa*
+id_ed25519*
+known_hosts
+authorized_keys
+
+# Environment / credentials
+.env
+.env.*
+!.env.example
+.envrc
+secrets.json
+credentials.json
+*.credentials
+.aws/
+.gcp/
+
+# Mutagen state (defense-in-depth — Mutagen normally writes elsewhere)
+.mutagen/
+.mutagen-sync/
+
+# Weights & Biases run dir (if ever used)
+wandb/
