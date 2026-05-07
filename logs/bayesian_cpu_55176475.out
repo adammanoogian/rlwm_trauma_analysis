@@ -269,3 +269,7 @@ FITTING WMRL-M6B HIERARCHICAL MODEL
 ============================================================
 
    Backend: cpu | chain_method: sequential
+
+============================================================
+AUTO-PUSH: Committing and pushing results
+============================================================

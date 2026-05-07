@@ -277,3 +277,23 @@ ERROR: fit_baseline.py exited with code 134
 ============================================================
 AUTO-PUSH: Committing and pushing results
 ============================================================
+[main 5a3b961] bayesian_cpu job 55176476 results
+ 16 files changed, 2049 insertions(+), 66 deletions(-)
+ create mode 100644 logs/04b_bayesian_gpu_55177920.err
+ create mode 100644 logs/04b_bayesian_gpu_55177920.out
+ create mode 100644 logs/bayesian_cpu_55176475.err
+ create mode 100644 logs/bayesian_cpu_55176475.out
+ create mode 100644 logs/bayesian_cpu_55176476.err
+ create mode 100644 logs/bayesian_cpu_55176476.out
+ create mode 100644 logs/bayesian_cpu_55177921.err
+ create mode 100644 logs/bayesian_cpu_55177921.out
+ create mode 100644 logs/cluster/33_bench/JIDS.env
+ create mode 100644 logs/pscan_bench_55177923.err
+ create mode 100644 logs/pscan_bench_55177923.out
+ create mode 100644 models/bayesian/32_full_convex/wmrl_m6b_individual_fits.csv
+ create mode 100644 models/bayesian/32_full_convex/wmrl_m6b_shrinkage_report.md
+ create mode 100644 models/bayesian/33_bench_gpu_m3/wmrl_m3_individual_fits.csv
+ create mode 100644 models/bayesian/33_bench_gpu_m3/wmrl_m3_shrinkage_report.md
+To github.com:adammanoogian/rlwm_trauma_analysis
+   db75ff8..5a3b961  main -> main
+  Auto-push complete
