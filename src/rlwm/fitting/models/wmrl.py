@@ -14,19 +14,13 @@ from typing import Any
 
 import jax
 import jax.numpy as jnp
-import numpy as np
 import numpyro
 import numpyro.distributions as dist
 from jax import lax
-from numpyro.infer import MCMC, NUTS
 
 from ..core import (
     DEFAULT_EPSILON,
     FIXED_BETA,
-    MAX_BLOCKS,
-    MAX_TRIALS_PER_BLOCK,
-    NUM_ACTIONS,
-    affine_scan,
     apply_epsilon_noise,
     associative_scan_q_update,
     associative_scan_wm_update,
@@ -867,7 +861,9 @@ def test_padding_equivalence_wmrl():
 
 def test_multiblock_padding_equivalence():
     """Verify padding equivalence works across multiple blocks (full participant)."""
-    from .qlearning import q_learning_multiblock_likelihood  # local — avoid circular import
+    from .qlearning import (
+        q_learning_multiblock_likelihood,  # local — avoid circular import
+    )
 
     print("\nTesting multiblock padding equivalence...")
 

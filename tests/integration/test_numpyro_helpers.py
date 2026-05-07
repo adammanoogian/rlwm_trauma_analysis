@@ -28,9 +28,7 @@ from rlwm.fitting.numpyro_helpers import (
     phi_approx,
     sample_bounded_param,
     sample_capacity,
-    sample_model_params,
 )
-
 
 # ---------------------------------------------------------------------------
 # phi_approx tests

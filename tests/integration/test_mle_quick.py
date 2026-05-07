@@ -8,12 +8,12 @@ from pathlib import Path
 project_root = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(project_root))
 
-import numpy as np
 import jax.numpy as jnp
-import pytest
+import numpy as np
 
-from rlwm.fitting.models.qlearning import q_learning_multiblock_likelihood
 from rlwm.fitting.mle import fit_participant_mle
+from rlwm.fitting.models.qlearning import q_learning_multiblock_likelihood
+
 # simulate_qlearning_block now lives in tests/conftest.py (merged from
 # scripts/fitting/tests/conftest.py by plan 31-04).
 from tests.conftest import simulate_qlearning_block

@@ -188,6 +188,7 @@ def test_wmrl_m3_fully_batched_matches_sequential():
     This is the correctness gate for the vmap refactor (Task 4/5).
     """
     import pandas as pd
+
     from rlwm.fitting.core import (
         prepare_stacked_participant_data,
         stack_across_participants,
@@ -296,6 +297,7 @@ def test_qlearning_fully_batched_matches_sequential():
     rollout.
     """
     import pandas as pd
+
     from rlwm.fitting.core import (
         prepare_stacked_participant_data,
         stack_across_participants,
@@ -385,6 +387,7 @@ def _make_wmrl_family_synthetic():
     B in {12, 17}, and variable block lengths.  Matches the M3 test design.
     """
     import pandas as pd
+
     from rlwm.fitting.core import (
         prepare_stacked_participant_data,
         stack_across_participants,

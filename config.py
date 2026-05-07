@@ -667,7 +667,7 @@ def get_analysis_cohort(
 
     # Late-block accuracy: per-participant max block, then select the last
     # `late_block_n` blocks for each participant.
-    def _late_block_mean(group: "pd.DataFrame") -> float:
+    def _late_block_mean(group: pd.DataFrame) -> float:
         max_b = int(group["block"].max())
         min_b = max_b - late_block_n + 1
         return float(group.loc[group["block"] >= min_b, "correct"].mean())
@@ -842,9 +842,9 @@ entry — only Collins K ∈ [2, 6] CSVs validate.
 
 
 def load_fits_with_validation(
-    path: "Path",
+    path: Path,
     model: str,
-) -> "pd.DataFrame":
+) -> pd.DataFrame:
     """Load a fit CSV and validate its parameterization_version.
 
     Raises loudly if the CSV lacks a ``parameterization_version`` column
@@ -895,9 +895,9 @@ def load_fits_with_validation(
 
 
 def load_netcdf_with_validation(
-    path: "Path",
+    path: Path,
     model: str,
-) -> "az.InferenceData":
+) -> az.InferenceData:
     """Load a Bayesian posterior NetCDF and validate basic invariants.
 
     Companion to :func:`load_fits_with_validation` (which validates CSV

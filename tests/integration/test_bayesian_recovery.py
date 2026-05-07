@@ -16,11 +16,8 @@ is not marked slow because the budget is already small).
 from __future__ import annotations
 
 import json
-import os
 import sys
 from pathlib import Path
-
-import pytest
 
 # Ensure the project root is importable for `import scripts...` and `import config`.
 # tests/integration/<file>.py is 2 levels below repo root after Phase 31

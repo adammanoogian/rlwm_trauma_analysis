@@ -13,9 +13,9 @@ from __future__ import annotations
 
 import time
 
-import numpy as np
 import jax
 import jax.numpy as jnp
+import numpy as np
 import pytest
 
 # ---------------------------------------------------------------------------
@@ -81,6 +81,7 @@ def test_compile_gate():
     2. Warm run: second MCMC call reuses compiled kernels; must be < 60s.
     """
     from numpyro.infer import MCMC, NUTS
+
     from rlwm.fitting.models.qlearning import qlearning_hierarchical_model
 
     model_args = _make_minimal_synthetic_data(n_ppts=2, n_blocks=2, n_trials=20)
@@ -119,6 +120,7 @@ def test_compile_gate():
 def test_compile_gate_samples_accessible():
     """After warm run, MCMC samples must be accessible and have correct shape."""
     from numpyro.infer import MCMC, NUTS
+
     from rlwm.fitting.models.qlearning import qlearning_hierarchical_model
 
     model_args = _make_minimal_synthetic_data(n_ppts=2, n_blocks=2, n_trials=20)

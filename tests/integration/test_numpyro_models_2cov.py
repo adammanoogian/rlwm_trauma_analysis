@@ -139,10 +139,10 @@ def test_model_accepts_covariate_iesr(model_name: str, target: str) -> None:
         L2 target parameter name used in site naming (``kappa`` or
         ``kappa_s``).
     """
+    import importlib
+
     import jax.numpy as jnp
     import numpyro.handlers as handlers
-
-    import importlib
 
     # Resolve hierarchical model symbol from per-model canonical module.
     # model_name like "wmrl_m3_hierarchical_model" -> rlwm.fitting.models.wmrl_m3
@@ -206,10 +206,10 @@ def test_m3_single_cov_unchanged(model_name: str, target: str) -> None:
     target : str
         L2 target parameter name (``kappa`` or ``kappa_s``).
     """
+    import importlib
+
     import jax.numpy as jnp
     import numpyro.handlers as handlers
-
-    import importlib
 
     # Resolve hierarchical model symbol from per-model canonical module.
     # model_name like "wmrl_m3_hierarchical_model" -> rlwm.fitting.models.wmrl_m3
@@ -265,10 +265,10 @@ def test_guard_raises_iesr_without_lec(model_name: str) -> None:
     model_name : str
         NumPyro model attribute on ``rlwm.fitting.numpyro_models``.
     """
+    import importlib
+
     import jax.numpy as jnp
     import numpyro.handlers as handlers
-
-    import importlib
 
     # Resolve hierarchical model symbol from per-model canonical module.
     # model_name like "wmrl_m3_hierarchical_model" -> rlwm.fitting.models.wmrl_m3

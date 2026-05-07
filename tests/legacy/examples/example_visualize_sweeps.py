@@ -8,19 +8,20 @@ Usage:
     python tests/examples/example_visualize_sweeps.py
 """
 
-import pandas as pd
-from pathlib import Path
 import sys
+from pathlib import Path
+
+import pandas as pd
 
 # Add project root
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from scripts.legacy.simulations.visualize_parameter_sweeps import (
+    plot_comparative_accuracy_by_setsize,
+    plot_comparative_heatmaps,
     plot_qlearning_sweep,
     plot_wmrl_sweep,
-    plot_comparative_accuracy_by_setsize,
-    plot_comparative_heatmaps
 )
 
 print("=" * 80)
@@ -123,7 +124,7 @@ print()
 # Find best overall combination
 best_idx = qlearning_df['accuracy_mean'].idxmax()
 best_row = qlearning_df.loc[best_idx]
-print(f"Best overall performance:")
+print("Best overall performance:")
 print(f"  Alpha+ = {best_row['alpha_pos']:.2f}")
 print(f"  Alpha- = {best_row['alpha_neg']:.2f}")
 print(f"  Beta = {best_row['beta']:.1f}")
@@ -169,7 +170,7 @@ print()
 # Find best overall combination
 best_idx = wmrl_df['accuracy_mean'].idxmax()
 best_row = wmrl_df.loc[best_idx]
-print(f"Best overall performance:")
+print("Best overall performance:")
 print(f"  Capacity (K) = {best_row['capacity']}")
 print(f"  Rho (WM reliance) = {best_row['rho']:.2f}")
 if 'phi' in wmrl_df.columns:
@@ -274,7 +275,7 @@ print("=" * 80)
 print("VISUALIZATION COMPLETE!")
 print("=" * 80)
 print()
-print(f"All figures saved to: figures/parameter_sweeps/")
+print("All figures saved to: figures/parameter_sweeps/")
 print()
 print("Generated files:")
 print("  1. qlearning_individual.png - Q-learning parameter effects")

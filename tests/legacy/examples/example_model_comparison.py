@@ -11,9 +11,10 @@ Usage:
     python tests/examples/example_model_comparison.py
 """
 
-import pandas as pd
-from pathlib import Path
 import sys
+from pathlib import Path
+
+import pandas as pd
 
 # Add project root
 project_root = Path(__file__).parent.parent.parent
@@ -227,7 +228,7 @@ elif delta_waic < 10:
 else:
     strength = "very strong"
 print(f"  → {strength.upper()} evidence for Q-Learning")
-print(f"  → Fully Bayesian criterion using entire posterior")
+print("  → Fully Bayesian criterion using entire posterior")
 print()
 
 # LOO interpretation
@@ -241,7 +242,7 @@ elif delta_loo < 10:
 else:
     strength = "very strong"
 print(f"  → {strength.upper()} evidence for Q-Learning")
-print(f"  → Gold standard: estimates out-of-sample prediction")
+print("  → Gold standard: estimates out-of-sample prediction")
 print()
 
 # ============================================================================

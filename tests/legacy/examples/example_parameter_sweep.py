@@ -7,10 +7,11 @@ across different parameter values and task conditions.
 This is a minimal, easy-to-understand example that you can modify.
 """
 
+import sys
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
-from pathlib import Path
-import sys
 
 # Add project root
 project_root = Path(__file__).parent.parent.parent

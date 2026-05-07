@@ -30,18 +30,16 @@ Usage:
     python tests/examples/explore_prior_parameter_space.py --model both --n-samples 200 --set-sizes 2 3 5 6 --n-jobs -1
 """
 
+import argparse
+import sys
+import time
+from multiprocessing import Pool, cpu_count
+from pathlib import Path
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 import seaborn as sns
-from pathlib import Path
-from typing import Dict, List, Tuple
-import sys
-import argparse
-from itertools import combinations
-from multiprocessing import Pool, cpu_count
-from functools import partial
-import time
 
 try:
     from tqdm.auto import tqdm
@@ -56,13 +54,16 @@ except ImportError:
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
+from config import TaskParams
 from rlwm.envs.rlwm_env import create_rlwm_env
 from rlwm.models.q_learning import QLearningAgent
 from rlwm.models.wm_rl_hybrid import WMRLHybridAgent
+from scripts.legacy.analysis.plotting_utils import (
+    get_color_palette,
+    save_figure,
+    setup_plot_style,
+)
 from scripts.legacy.simulations.unified_simulator import simulate_agent_fixed
-from scripts.legacy.analysis.plotting_utils import setup_plot_style, save_figure, get_color_palette
-from config import TaskParams
-
 
 # ============================================================================
 # PRIOR DISTRIBUTIONS (matching PyMC priors)
@@ -134,8 +135,8 @@ def sample_wmrl_params(n_samples: int, seed: int = None) -> pd.DataFrame:
 # ============================================================================
 
 def _simulate_single_param_set(
-    args: Tuple[int, pd.Series, str, List[int], int, int, int]
-) -> List[Dict]:
+    args: tuple[int, pd.Series, str, list[int], int, int, int]
+) -> list[dict]:
     """
     Worker function to simulate a single parameter set across conditions.
 
@@ -223,7 +224,7 @@ def _simulate_single_param_set(
 def run_simulations_with_samples(
     model_type: str,
     param_samples: pd.DataFrame,
-    set_sizes: List[int] = [3, 5],
+    set_sizes: list[int] = [3, 5],
     num_trials: int = 50,
     num_reps: int = 3,
     seed: int = 42,
@@ -278,7 +279,7 @@ def run_simulations_with_samples(
             all_results.extend(_simulate_single_param_set(args))
     else:
         # Parallel execution with progress bar
-        print(f"  Starting parallel simulations...")
+        print("  Starting parallel simulations...")
         with Pool(processes=n_jobs) as pool:
             # Use imap_unordered for progress tracking
             results_nested = list(tqdm(
@@ -301,7 +302,7 @@ def run_simulations_with_samples(
 def create_pairwise_heatmaps(
     results: pd.DataFrame,
     model_type: str,
-    param_pairs: List[Tuple[str, str]] = None,
+    param_pairs: list[tuple[str, str]] = None,
     save_dir: Path = None
 ) -> None:
     """
@@ -571,7 +572,7 @@ def main():
     print("PRIOR-BASED PARAMETER SPACE EXPLORATION")
     print("=" * 80)
     print()
-    print(f"Configuration:")
+    print("Configuration:")
     print(f"  Model: {args.model}")
     print(f"  Prior samples: {args.n_samples}")
     print(f"  Set sizes: {args.set_sizes}")
@@ -597,10 +598,10 @@ def main():
         print(f"Sampling {args.n_samples} parameter sets from prior distributions...")
         if model == 'qlearning':
             param_samples = sample_qlearning_params(args.n_samples, seed=args.seed)
-            print(f"  Sampled: alpha_pos, alpha_neg, beta")
+            print("  Sampled: alpha_pos, alpha_neg, beta")
         else:
             param_samples = sample_wmrl_params(args.n_samples, seed=args.seed)
-            print(f"  Sampled: alpha_pos, alpha_neg, beta, beta_wm, capacity, phi, rho")
+            print("  Sampled: alpha_pos, alpha_neg, beta, beta_wm, capacity, phi, rho")
         print()
 
         # Show sample statistics
@@ -668,7 +669,7 @@ def main():
     print("=" * 80)
     print()
     print(f"Results saved to: {output_dir}")
-    print(f"Figures saved to: figures/parameter_exploration/")
+    print("Figures saved to: figures/parameter_exploration/")
     print()
     print(f"Total runtime: {total_elapsed_time/60:.2f} minutes ({total_elapsed_time:.1f} seconds)")
     print()

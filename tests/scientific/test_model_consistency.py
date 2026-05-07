@@ -5,10 +5,10 @@ Ensures that agent classes produce identical, deterministic results
 across different contexts (simulation, fitting, testing).
 """
 
-import pytest
-import numpy as np
 import sys
 from pathlib import Path
+
+import numpy as np
 
 # Add project root to path
 project_root = Path(__file__).parent.parent

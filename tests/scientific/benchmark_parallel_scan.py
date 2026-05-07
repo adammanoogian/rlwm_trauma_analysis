@@ -356,11 +356,11 @@ def benchmark_model(
     kwargs = _build_call_kwargs(model_name, data)
 
     # Measure compilation time
-    print(f"  Compiling sequential...", end="", flush=True)
+    print("  Compiling sequential...", end="", flush=True)
     seq_compile_ms = _time_compilation(reg["seq_fn"], kwargs)
     print(f" {seq_compile_ms:.0f}ms")
 
-    print(f"  Compiling pscan...", end="", flush=True)
+    print("  Compiling pscan...", end="", flush=True)
     pscan_compile_ms = _time_compilation(reg["pscan_fn"], kwargs)
     print(f" {pscan_compile_ms:.0f}ms")
 
@@ -375,7 +375,7 @@ def benchmark_model(
     print(f"  NLL agreement:  {nll_rel_diff:.2e} (abs diff: {nll_diff:.2e})")
 
     if nll_rel_diff > 1e-4:
-        print(f"  WARNING: NLL disagreement > 1e-4!")
+        print("  WARNING: NLL disagreement > 1e-4!")
 
     # Timed runs
     print(f"  Timing sequential ({n_repeats} repeats)...", end="", flush=True)

@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import jax
 import jax.numpy as jnp
-import numpy as np
 import numpyro
 import numpyro.distributions as dist
 from jax import lax
@@ -21,17 +20,12 @@ from jax import lax
 from ..core import (
     DEFAULT_EPSILON,
     FIXED_BETA,
-    MAX_BLOCKS,
-    MAX_TRIALS_PER_BLOCK,
-    NUM_ACTIONS,
-    affine_scan,
     apply_epsilon_noise,
     associative_scan_q_update,
     associative_scan_wm_update,
     pad_block_to_max,
     precompute_last_action_global,
     precompute_last_actions_per_stimulus,
-    prepare_stacked_participant_data,
     softmax_policy,
     stack_across_participants,
 )

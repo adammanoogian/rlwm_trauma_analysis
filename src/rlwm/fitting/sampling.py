@@ -19,13 +19,10 @@ from typing import Any
 
 import jax
 import jax.numpy as jnp
-import numpy as np
 import numpyro
-import numpyro.distributions as dist
 import pandas as pd
 from numpyro.infer import MCMC, NUTS, init_to_median
 
-from .core import MAX_TRIALS_PER_BLOCK, pad_block_to_max
 from .models.qlearning import (
     prepare_block_data,
     q_learning_multiblock_likelihood,
@@ -390,7 +387,6 @@ def run_inference_with_bump(
     if num_chains > 1:
         numpyro.set_host_device_count(num_chains)
 
-    import os
     import time
 
     print(">> Starting MCMC sampling with convergence auto-bump...")
@@ -540,11 +536,11 @@ def test_model_with_synthetic_data() -> MCMC:
         ],
     }
 
-    print(f"\nTrue parameters:")
+    print("\nTrue parameters:")
     print(f"  mu_alpha_pos: {true_params['mu_alpha_pos']}")
     print(f"  mu_alpha_neg: {true_params['mu_alpha_neg']}")
     print(f"  mu_epsilon: {true_params['mu_epsilon']}")
-    print(f"  beta (fixed): 50")
+    print("  beta (fixed): 50")
 
     # Generate synthetic data
     participant_data: dict = {}
@@ -574,7 +570,7 @@ def test_model_with_synthetic_data() -> MCMC:
             "rewards_blocks": rewards_blocks,
         }
 
-    print(f"\nGenerated data:")
+    print("\nGenerated data:")
     print(f"  Participants: {len(participant_data)}")
     print(f"  Blocks per participant: {len(participant_data[0]['stimuli_blocks'])}")
     print(f"  Trials per block: {len(participant_data[0]['stimuli_blocks'][0])}")

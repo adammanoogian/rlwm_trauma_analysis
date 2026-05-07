@@ -8,8 +8,6 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-import pytest
-
 # ---------------------------------------------------------------------------
 # Enumerated consumer files that must NOT contain bare NetCDF calls
 # ---------------------------------------------------------------------------

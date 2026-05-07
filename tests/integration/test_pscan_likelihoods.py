@@ -18,12 +18,11 @@ All comparisons use element-wise relative error thresholds documented in
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
-import numpy as np
 import jax
 import jax.numpy as jnp
+import numpy as np
 import pytest
 
 from rlwm.fitting.core import (
@@ -917,6 +916,7 @@ def test_pscan_agreement_real_data(model):
         pytest.skip(f"Trial data not found: {_DATA_PATH}")
 
     import pandas as pd
+
     from rlwm.fitting.core import prepare_stacked_participant_data
 
     # Load trial data
@@ -974,6 +974,7 @@ def test_pscan_full_n154_agreement(model):
         pytest.skip(f"Trial data not found: {_DATA_PATH}")
 
     import pandas as pd
+
     from rlwm.fitting.core import prepare_stacked_participant_data
 
     data_df = pd.read_csv(_DATA_PATH)
@@ -1503,6 +1504,7 @@ def test_fully_batched_full_n154_agreement(model):
         pytest.skip(f"Trial data not found: {_DATA_PATH}")
 
     import pandas as pd
+
     from rlwm.fitting.core import (
         prepare_stacked_participant_data,
         stack_across_participants,

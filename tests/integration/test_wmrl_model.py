@@ -14,7 +14,6 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-import pytest
 import jax
 import jax.numpy as jnp
 import numpyro
@@ -113,7 +112,7 @@ if __name__ == "__main__":
             'set_sizes_blocks': set_sizes_blocks
         }
 
-    print(f"\nGenerated synthetic data:")
+    print("\nGenerated synthetic data:")
     print(f"  Participants: {len(participant_data)}")
     print(f"  Blocks per participant: {len(participant_data[0]['stimuli_blocks'])}")
     print(f"  Trials per block: {len(participant_data[0]['stimuli_blocks'][0])}")
@@ -133,7 +132,7 @@ if __name__ == "__main__":
     print(f"\nPrior sample keys: {list(prior_samples.keys())}")
 
     # Group-level parameters
-    print(f"\nGroup-level parameter shapes:")
+    print("\nGroup-level parameter shapes:")
     print(f"  mu_alpha_pos: {prior_samples['mu_alpha_pos'].shape}")
     print(f"  mu_beta: {prior_samples['mu_beta'].shape}")
     print(f"  mu_beta_wm: {prior_samples['mu_beta_wm'].shape}")
@@ -142,7 +141,7 @@ if __name__ == "__main__":
     print(f"  mu_capacity: {prior_samples['mu_capacity'].shape}")
 
     # Individual-level parameters
-    print(f"\nIndividual-level parameter shapes:")
+    print("\nIndividual-level parameter shapes:")
     print(f"  alpha_pos: {prior_samples['alpha_pos'].shape}")
     print(f"  beta: {prior_samples['beta'].shape}")
     print(f"  beta_wm: {prior_samples['beta_wm'].shape}")
@@ -151,7 +150,7 @@ if __name__ == "__main__":
     print(f"  capacity: {prior_samples['capacity'].shape}")
 
     # Print some prior values to check they're in valid ranges
-    print(f"\nPrior sample statistics (mean across samples):")
+    print("\nPrior sample statistics (mean across samples):")
     print(f"  mu_alpha_pos: {prior_samples['mu_alpha_pos'].mean():.3f}")
     print(f"  mu_beta: {prior_samples['mu_beta'].mean():.3f}")
     print(f"  mu_beta_wm: {prior_samples['mu_beta_wm'].mean():.3f}")

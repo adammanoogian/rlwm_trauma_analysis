@@ -12,12 +12,11 @@ Usage in Jupyter:
     explore_wmrl_interactive()
 """
 
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
 import sys
 from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
 
 # Add project root to path
 project_root = Path(__file__).parent.parent.parent
@@ -28,7 +27,7 @@ from rlwm.models.q_learning import create_q_learning_agent, simulate_agent_on_en
 from rlwm.models.wm_rl_hybrid import create_wm_rl_agent, simulate_wm_rl_on_env
 
 try:
-    from ipywidgets import interact, FloatSlider, IntSlider, fixed, Dropdown
+    from ipywidgets import Dropdown, FloatSlider, IntSlider, fixed, interact
     WIDGETS_AVAILABLE = True
 except ImportError:
     WIDGETS_AVAILABLE = False
@@ -256,7 +255,7 @@ def explore_wmrl_interactive():
         if set_size > capacity:
             interp = f"Set size ({set_size}) >\nCapacity ({capacity})\n→ RL must help!"
         elif set_size <= capacity:
-            interp = f"Set size ≤ capacity\n→ WM can handle all"
+            interp = "Set size ≤ capacity\n→ WM can handle all"
         else:
             interp = ""
 
@@ -382,7 +381,7 @@ def compare_models_interactive():
         plt.tight_layout()
         plt.show()
 
-        print(f"\nPerformance Comparison:")
+        print("\nPerformance Comparison:")
         print(f"  Q-learning:  {results_q['accuracy']:.1%}")
         print(f"  WM-RL:       {results_wmrl['accuracy']:.1%}")
         print(f"  Difference:  {(results_wmrl['accuracy'] - results_q['accuracy']):.1%}")

@@ -2,11 +2,12 @@
 Quick test script to debug WM-RL parameter exploration issues.
 """
 
+import sys
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import pytest
-import sys
-from pathlib import Path
 
 # Add project root.  tests/unit/<file>.py is 2 levels below repo root.
 project_root = Path(__file__).resolve().parents[2]
@@ -26,7 +27,9 @@ pytest.importorskip(
 
 from rlwm.envs.rlwm_env import create_rlwm_env  # noqa: E402
 from rlwm.models.wm_rl_hybrid import WMRLHybridAgent  # noqa: E402
-from scripts.legacy.simulations.unified_simulator import simulate_agent_fixed  # noqa: E402
+from scripts.legacy.simulations.unified_simulator import (
+    simulate_agent_fixed,  # noqa: E402
+)
 
 print("=" * 80)
 print("TESTING WM-RL PARAMETER EXPLORATION")
@@ -171,7 +174,7 @@ for idx, row in param_samples.iterrows():
         print(f"  ✓ Accuracy: {result.accuracy:.3f}")
     except Exception as e:
         print(f"  ✗ ERROR: {e}")
-        print(f"  Parameters that caused error:")
+        print("  Parameters that caused error:")
         for k, v in test_params.items():
             print(f"    {k} = {v} (type: {type(v).__name__})")
         import traceback

@@ -12,12 +12,13 @@ Tests cover:
 - Sanity check that high kappa increases likelihood for repetitive actions
 """
 
-import pytest
-import numpy as np
-import jax
-import jax.numpy as jnp
 import sys
 from pathlib import Path
+
+import jax
+import jax.numpy as jnp
+import numpy as np
+import pytest
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
@@ -31,7 +32,6 @@ from rlwm.fitting.models.wmrl_m3 import (
     wmrl_m3_block_likelihood,
     wmrl_m3_multiblock_likelihood,
 )
-
 
 # ============================================================================
 # FIXTURES

@@ -126,7 +126,7 @@ def test_prepare_stacked_data_m4_rts():
         )
 
         # Padding positions (beyond n_trials) must be 0.0
-        if MAX_TRIALS_PER_BLOCK > n_trials:
+        if n_trials < MAX_TRIALS_PER_BLOCK:
             pad_vals = masks[:, n_trials:]
             assert float(pad_vals.max()) == 0.0, (
                 f"Participant {pid}: padding mask positions have non-zero values. "
