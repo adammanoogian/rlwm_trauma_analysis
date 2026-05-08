@@ -39,8 +39,7 @@ print()
 # Sample WM-RL parameters (similar to prior sampling)
 np.random.seed(42)
 params_sample = {
-    'alpha_pos': 0.5,
-    'alpha_neg': 0.2,
+    'alpha': 0.3,  # single learning rate (Phase 33: alpha_neg dropped)
     'beta': 2.0,
     'beta_wm': 3.0,
     'capacity': 4,
@@ -123,8 +122,7 @@ n_samples = 5
 np.random.seed(42)
 
 param_samples = pd.DataFrame({
-    'alpha_pos': np.random.beta(2, 2, n_samples),
-    'alpha_neg': np.random.beta(2, 2, n_samples),
+    'alpha': np.random.beta(2, 2, n_samples),  # single learning rate (Phase 33)
     'beta': np.random.gamma(2, 1, n_samples),
     'beta_wm': np.random.gamma(2, 1, n_samples),
     'capacity': np.random.randint(2, 7, n_samples),
@@ -146,8 +144,7 @@ for idx, row in param_samples.iterrows():
         'gamma': 0.0,
         'q_init': 0.5,
         'wm_init': 0.0,
-        'alpha_pos': row['alpha_pos'],
-        'alpha_neg': row['alpha_neg'],
+        'alpha': row['alpha'],  # single learning rate (Phase 33)
         'beta': row['beta'],
         'beta_wm': row['beta_wm'],
         'capacity': int(row['capacity']),

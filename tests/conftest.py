@@ -102,14 +102,12 @@ def sample_agent_params():
     """
     return {
         "qlearning": {
-            "alpha_pos": 0.3,
-            "alpha_neg": 0.1,
+            "alpha": 0.3,
             "beta": 3.0,
             "gamma": 0.0,
         },
         "wmrl": {
-            "alpha_pos": 0.3,
-            "alpha_neg": 0.1,
+            "alpha": 0.3,
             "beta": 2.0,
             "beta_wm": 3.0,
             "capacity": 4,
@@ -216,8 +214,7 @@ def output_dir(project_root, tmp_path):
 
 
 def simulate_qlearning_block(
-    alpha_pos: float,
-    alpha_neg: float,
+    alpha: float,
     epsilon: float,
     beta: float,
     n_trials: int,
@@ -229,10 +226,8 @@ def simulate_qlearning_block(
 
     Parameters
     ----------
-    alpha_pos : float
-        Positive learning rate.
-    alpha_neg : float
-        Negative learning rate.
+    alpha : float
+        Single learning rate (Phase 33: alpha_neg dropped).
     epsilon : float
         Noise parameter.
     beta : float
@@ -272,8 +267,8 @@ def simulate_qlearning_block(
         rewards.append(r)
 
         delta = r - Q[s, a]
-        alpha = alpha_pos if delta > 0 else alpha_neg
-        Q[s, a] += alpha * delta
+        alpha_lr = alpha  # single learning rate (Phase 33)
+        Q[s, a] += alpha_lr * delta
 
     return (
         np.array(stimuli, dtype=np.int32),
@@ -283,8 +278,7 @@ def simulate_qlearning_block(
 
 
 def simulate_wmrl_block(
-    alpha_pos: float,
-    alpha_neg: float,
+    alpha: float,
     phi: float,
     rho: float,
     capacity: float,
@@ -302,10 +296,8 @@ def simulate_wmrl_block(
 
     Parameters
     ----------
-    alpha_pos : float
-        Positive learning rate (RL).
-    alpha_neg : float
-        Negative learning rate (RL).
+    alpha : float
+        Single learning rate for RL (Phase 33: alpha_neg dropped).
     phi : float
         WM decay rate.
     rho : float
@@ -363,8 +355,8 @@ def simulate_wmrl_block(
         rewards.append(r)
 
         delta = r - Q[s, a]
-        alpha = alpha_pos if delta > 0 else alpha_neg
-        Q[s, a] += alpha * delta
+        alpha_lr = alpha  # single learning rate (Phase 33)
+        Q[s, a] += alpha_lr * delta
 
         WM[s, a] = r
         WM = WM * (1 - phi) + phi * (1.0 / n_act)
@@ -384,8 +376,7 @@ def qlearning_synthetic_data():
     Returns 3 blocks of data with known parameters.
     """
     true_params = {
-        "alpha_pos": 0.4,
-        "alpha_neg": 0.15,
+        "alpha": 0.4,
         "epsilon": 0.05,
         "beta": 50.0,
     }
@@ -394,8 +385,7 @@ def qlearning_synthetic_data():
 
     for i in range(3):
         s, a, r = simulate_qlearning_block(
-            alpha_pos=true_params["alpha_pos"],
-            alpha_neg=true_params["alpha_neg"],
+            alpha=true_params["alpha"],
             epsilon=true_params["epsilon"],
             beta=true_params["beta"],
             n_trials=30,
@@ -422,8 +412,7 @@ def wmrl_synthetic_data():
     Returns 2 blocks of data with known parameters.
     """
     true_params = {
-        "alpha_pos": 0.3,
-        "alpha_neg": 0.1,
+        "alpha": 0.3,
         "phi": 0.1,
         "rho": 0.7,
         "capacity": 4.0,
@@ -440,8 +429,7 @@ def wmrl_synthetic_data():
 
     for i in range(2):
         s, a, r, ss = simulate_wmrl_block(
-            alpha_pos=true_params["alpha_pos"],
-            alpha_neg=true_params["alpha_neg"],
+            alpha=true_params["alpha"],
             phi=true_params["phi"],
             rho=true_params["rho"],
             capacity=true_params["capacity"],
@@ -521,8 +509,7 @@ def m4_synthetic_data_small():
         pid = f"SYNTH_{pid_idx:03d}"
         for block_idx in range(3):
             stim, act, rew, ss = simulate_wmrl_block(
-                alpha_pos=0.5,
-                alpha_neg=0.3,
+                alpha=0.5,
                 phi=0.2,
                 rho=0.7,
                 capacity=4.0,

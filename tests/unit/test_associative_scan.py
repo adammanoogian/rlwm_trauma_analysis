@@ -1,7 +1,7 @@
 """Unit tests for associative_scan_q_update with single learning rate.
 
 Phase 33 W1 gate: associative_scan_q_update must accept a single `alpha`
-parameter (not `alpha_pos` + `alpha_neg`).  This file contains:
+parameter (not `alpha` + `alpha`).  This file contains:
 
 1. A regression test that the single-alpha pscan agrees with a reference
    sequential lax.scan implementation to relative tolerance < 1e-6.
@@ -73,7 +73,7 @@ class TestAssociativeScanQUpdateSingleAlpha:
         return stimuli, actions, rewards, masks
 
     def test_single_alpha_signature_accepted(self):
-        """associative_scan_q_update must accept keyword `alpha` (not alpha_pos/alpha_neg)."""
+        """associative_scan_q_update must accept keyword `alpha` (not alpha/alpha)."""
         stimuli, actions, rewards, masks = self._make_block(n_trials=10)
         # This should not raise
         result = associative_scan_q_update(
@@ -176,20 +176,20 @@ class TestAssociativeScanQUpdateSingleAlpha:
         )
 
     def test_old_two_alpha_signature_rejected(self):
-        """Calling with alpha_pos + alpha_neg must raise TypeError.
+        """Calling with 9 positional args (old alpha+/alpha- API) must raise TypeError.
 
-        This enforces that the Phase 33 migration is complete. If someone
-        tries to call the old API they get an informative error immediately.
+        This enforces that the Phase 33 migration is complete. The old API
+        accepted alpha_pos + alpha_neg as two separate floats (positions 5 and 6).
+        After Phase 33, the function only accepts a single alpha (position 5),
+        so passing a 9th positional argument raises TypeError.
         """
         stimuli, actions, rewards, masks = self._make_block(n_trials=10)
         with pytest.raises(TypeError):
+            # 9 positional args: old signature was (stim, act, rew, mask, alpha_pos, alpha_neg,
+            # q_init, S, A) — now raises because max positional args is 8
             associative_scan_q_update(
                 stimuli, actions, rewards, masks,
-                alpha_pos=0.3,
-                alpha_neg=0.1,
-                q_init=0.5,
-                num_stimuli=6,
-                num_actions=3,
+                0.3, 0.2, 0.5, 6, 3,  # 9 args total: alpha_pos, alpha_neg, q_init, S, A
             )
 
     def test_q_init_respected(self):

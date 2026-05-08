@@ -107,8 +107,8 @@ class TestCanonicalPaths:
     def test_create_agent_via_canonical_import(self):
         from rlwm.models.q_learning import create_q_learning_agent
 
-        agent = create_q_learning_agent(alpha_pos=0.5, seed=42)
-        assert agent.alpha_pos == 0.5
+        agent = create_q_learning_agent(alpha=0.5, seed=42)
+        assert agent.alpha == 0.5
 
 
 # ──────────────────────────────────────────────────────────────────
@@ -122,7 +122,7 @@ class TestAgentEnvInteraction:
         from rlwm.models import QLearningAgent
 
         env = create_rlwm_env(set_size=3, seed=42)
-        agent = QLearningAgent(alpha_pos=0.3, alpha_neg=0.1, beta=3.0, seed=42)
+        agent = QLearningAgent(alpha=0.3, beta=3.0, seed=42)
 
         obs, info = env.reset()
         for _ in range(20):
@@ -141,7 +141,7 @@ class TestAgentEnvInteraction:
 
         env = create_rlwm_env(set_size=5, seed=42)
         agent = WMRLHybridAgent(
-            alpha_pos=0.3, alpha_neg=0.1, beta=2.0, capacity=4, seed=42
+            alpha=0.3, beta=2.0, capacity=4, seed=42
         )
 
         obs, info = env.reset()

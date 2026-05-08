@@ -1,9 +1,9 @@
 """W2 smoke tests: all 7 models compile and return finite log-likelihoods with single alpha.
 
 Phase 33 gate: each model's block_likelihood function must:
-1. Accept single `alpha` (not alpha_pos + alpha_neg).
+1. Accept single `alpha` (not alpha + alpha).
 2. Return a finite scalar log-likelihood for synthetic data.
-3. Import cleanly (no broken references to alpha_pos/alpha_neg).
+3. Import cleanly (no broken references to alpha/alpha).
 """
 from __future__ import annotations
 
@@ -52,13 +52,13 @@ class TestQLearningSmoke:
         assert float(ll) < 0, f"Log-likelihood should be negative, got {ll}"
 
     def test_no_alpha_pos_kwarg(self):
-        """Passing alpha_pos= must raise TypeError (old API rejected)."""
+        """Passing alpha_pos= must raise TypeError (old API rejected, Phase 33)."""
         from rlwm.fitting.models.qlearning import q_learning_block_likelihood
         stimuli, actions, rewards, mask = _make_block()
         with pytest.raises(TypeError):
             q_learning_block_likelihood(
                 stimuli, actions, rewards,
-                alpha_pos=0.3, alpha_neg=0.1,
+                alpha_pos=0.3,
                 epsilon=0.05, mask=mask,
             )
 
@@ -93,14 +93,14 @@ class TestWMRLSmoke:
         assert jnp.isfinite(ll), f"M2 block likelihood not finite: {ll}"
 
     def test_no_alpha_pos_kwarg(self):
-        """Passing alpha_pos= must raise TypeError."""
+        """Passing alpha_pos= must raise TypeError (old API rejected, Phase 33)."""
         from rlwm.fitting.models.wmrl import wmrl_block_likelihood
         stimuli, actions, rewards, mask = _make_block()
         set_sizes = _make_set_sizes()
         with pytest.raises(TypeError):
             wmrl_block_likelihood(
                 stimuli, actions, rewards, set_sizes,
-                alpha_pos=0.3, alpha_neg=0.1,
+                alpha_pos=0.3,
                 phi=0.8, rho=0.7, capacity=3.0, epsilon=0.05, mask=mask,
             )
 
@@ -125,14 +125,14 @@ class TestWMRLM3Smoke:
         assert jnp.isfinite(ll), f"M3 block likelihood not finite: {ll}"
 
     def test_no_alpha_pos_kwarg(self):
-        """Passing alpha_pos= must raise TypeError."""
+        """Passing alpha_pos= must raise TypeError (old API rejected, Phase 33)."""
         from rlwm.fitting.models.wmrl_m3 import wmrl_m3_block_likelihood
         stimuli, actions, rewards, mask = _make_block()
         set_sizes = _make_set_sizes()
         with pytest.raises(TypeError):
             wmrl_m3_block_likelihood(
                 stimuli, actions, rewards, set_sizes,
-                alpha_pos=0.3, alpha_neg=0.1,
+                alpha_pos=0.3,
                 phi=0.8, rho=0.7, capacity=3.0, kappa=0.2, epsilon=0.05, mask=mask,
             )
 
@@ -157,14 +157,14 @@ class TestWMRLM5Smoke:
         assert jnp.isfinite(ll), f"M5 block likelihood not finite: {ll}"
 
     def test_no_alpha_pos_kwarg(self):
-        """Passing alpha_pos= must raise TypeError."""
+        """Passing alpha_pos= must raise TypeError (old API rejected, Phase 33)."""
         from rlwm.fitting.models.wmrl_m5 import wmrl_m5_block_likelihood
         stimuli, actions, rewards, mask = _make_block()
         set_sizes = _make_set_sizes()
         with pytest.raises(TypeError):
             wmrl_m5_block_likelihood(
                 stimuli, actions, rewards, set_sizes,
-                alpha_pos=0.3, alpha_neg=0.1,
+                alpha_pos=0.3,
                 phi=0.8, rho=0.7, capacity=3.0, kappa=0.2, phi_rl=0.3,
                 epsilon=0.05, mask=mask,
             )
@@ -190,14 +190,14 @@ class TestWMRLM6aSmoke:
         assert jnp.isfinite(ll), f"M6a block likelihood not finite: {ll}"
 
     def test_no_alpha_pos_kwarg(self):
-        """Passing alpha_pos= must raise TypeError."""
+        """Passing alpha_pos= must raise TypeError (old API rejected, Phase 33)."""
         from rlwm.fitting.models.wmrl_m6a import wmrl_m6a_block_likelihood
         stimuli, actions, rewards, mask = _make_block()
         set_sizes = _make_set_sizes()
         with pytest.raises(TypeError):
             wmrl_m6a_block_likelihood(
                 stimuli, actions, rewards, set_sizes,
-                alpha_pos=0.3, alpha_neg=0.1,
+                alpha_pos=0.3,
                 phi=0.8, rho=0.7, capacity=3.0, kappa_s=0.2,
                 epsilon=0.05, mask=mask,
             )
@@ -228,14 +228,14 @@ class TestWMRLM6bSmoke:
         assert jnp.isfinite(ll), f"M6b block likelihood not finite: {ll}"
 
     def test_no_alpha_pos_kwarg(self):
-        """Passing alpha_pos= must raise TypeError."""
+        """Passing alpha_pos= must raise TypeError (old API rejected, Phase 33)."""
         from rlwm.fitting.models.wmrl_m6b import wmrl_m6b_block_likelihood
         stimuli, actions, rewards, mask = _make_block()
         set_sizes = _make_set_sizes()
         with pytest.raises(TypeError):
             wmrl_m6b_block_likelihood(
                 stimuli, actions, rewards, set_sizes,
-                alpha_pos=0.3, alpha_neg=0.1,
+                alpha_pos=0.3,
                 phi=0.8, rho=0.7, capacity=3.0,
                 kappa=0.2, kappa_s=0.2, epsilon=0.05, mask=mask,
             )
@@ -250,7 +250,7 @@ class TestWMRLM4Smoke:
 
     M4 is a NumPyro-only model — no standalone block_likelihood function exists.
     Its likelihood is computed inside wmrl_m4_hierarchical_model.
-    We verify: (a) module imports cleanly, (b) no alpha_pos/alpha_neg present,
+    We verify: (a) module imports cleanly, (b) no alpha/alpha present,
     (c) the hierarchical model function is importable.
     """
 
@@ -264,8 +264,8 @@ class TestWMRLM4Smoke:
             "wmrl_m4 must expose wmrl_m4_hierarchical_model"
         )
 
-    def test_no_alpha_pos_in_module(self):
-        """wmrl_m4 module must not contain alpha_pos or alpha_neg strings."""
+    def test_no_alpha_in_module(self):
+        """wmrl_m4 module must not contain alpha_pos or alpha_neg strings (Phase 33)."""
         import inspect, sys
         if "rlwm.fitting.models.wmrl_m4" in sys.modules:
             del sys.modules["rlwm.fitting.models.wmrl_m4"]
