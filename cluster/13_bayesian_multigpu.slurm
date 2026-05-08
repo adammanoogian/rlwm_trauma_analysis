@@ -48,6 +48,8 @@ WARMUP="${WARMUP:-1000}"
 SAMPLES="${SAMPLES:-2000}"
 MAX_TREE_DEPTH="${MAX_TREE_DEPTH:-10}"
 SEED="${SEED:-42}"
+# Optional output subdir (e.g. "33_single_alpha"). Empty = engine default.
+OUT_SUBDIR="${OUT_SUBDIR:-}"
 
 _VALID_MODELS=("qlearning" "wmrl" "wmrl_m3" "wmrl_m5" "wmrl_m6a" "wmrl_m6b")
 _MODEL_OK=false
@@ -78,6 +80,7 @@ echo "Project: $PROJECT_ROOT"
 echo "Model: $MODEL"
 echo "Chains: $CHAINS  Warmup: $WARMUP  Samples: $SAMPLES"
 echo "Max tree depth: $MAX_TREE_DEPTH  Seed: $SEED"
+echo "Output subdir: ${OUT_SUBDIR:-<engine default>}"
 echo "Commit: $(git rev-parse --short HEAD 2>/dev/null) [$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ') dirty] — $(git log -1 --format=%s 2>/dev/null)"
 echo "Start time: $(date)"
 echo "============================================================"
@@ -134,14 +137,20 @@ mkdir -p logs models/bayesian
 echo ""
 echo "[$(date)] Starting multi-GPU Bayesian fit for $MODEL"
 
-python scripts/04_model_fitting/b_bayesian/fit_bayesian.py \
-    --model "$MODEL" \
-    --data data/processed/task_trials_long.csv \
-    --chains "$CHAINS" \
-    --warmup "$WARMUP" \
-    --samples "$SAMPLES" \
-    --max-tree-depth "$MAX_TREE_DEPTH" \
+PYARGS=(
+    --model "$MODEL"
+    --data data/processed/task_trials_long.csv
+    --chains "$CHAINS"
+    --warmup "$WARMUP"
+    --samples "$SAMPLES"
+    --max-tree-depth "$MAX_TREE_DEPTH"
     --seed "$SEED"
+)
+if [ -n "$OUT_SUBDIR" ]; then
+    PYARGS+=(--output-subdir "$OUT_SUBDIR")
+fi
+
+python scripts/04_model_fitting/b_bayesian/fit_bayesian.py "${PYARGS[@]}"
 
 EXIT_CODE=$?
 echo ""
