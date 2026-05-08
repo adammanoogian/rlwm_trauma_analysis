@@ -930,9 +930,7 @@ def wmrl_hierarchical_model(
     Model Structure:
     ---------------
     # Group-level (population) parameters
-    mu_alpha ~ Beta(3, 2)         # Mean positive learning rate ~ 0.6
-    sigma_alpha ~ HalfNormal(0.3) # Variability in alpha
-    mu_alpha ~ Beta(2, 3)         # Mean negative learning rate ~ 0.4
+    mu_alpha ~ Beta(3, 2)         # Mean learning rate ~ 0.6 (Phase 33: single alpha)
     sigma_alpha ~ HalfNormal(0.3) # Variability in alpha
     mu_phi ~ Beta(2, 8)               # Mean WM decay rate ~ 0.2
     sigma_phi ~ HalfNormal(0.3)       # Variability in phi
@@ -978,12 +976,8 @@ def wmrl_hierarchical_model(
     # GROUP-LEVEL (POPULATION) PRIORS
     # ========================================================================
 
-    # Positive learning rate: bounded [0, 1]
+    # Learning rate: bounded [0, 1] (Phase 33: single alpha)
     mu_alpha = numpyro.sample("mu_alpha", dist.Beta(3, 2))
-    sigma_alpha = numpyro.sample("sigma_alpha", dist.HalfNormal(0.3))
-
-    # Negative learning rate: bounded [0, 1]
-    mu_alpha = numpyro.sample("mu_alpha", dist.Beta(2, 3))
     sigma_alpha = numpyro.sample("sigma_alpha", dist.HalfNormal(0.3))
 
     # WM decay rate: bounded [0, 1]
@@ -1011,19 +1005,12 @@ def wmrl_hierarchical_model(
     with numpyro.plate("participants", num_participants):
         # Sample standard normal offsets
         z_alpha = numpyro.sample("z_alpha", dist.Normal(0, 1))
-        z_alpha = numpyro.sample("z_alpha", dist.Normal(0, 1))
         z_phi = numpyro.sample("z_phi", dist.Normal(0, 1))
         z_rho = numpyro.sample("z_rho", dist.Normal(0, 1))
         z_capacity = numpyro.sample("z_capacity", dist.Normal(0, 1))
         z_epsilon = numpyro.sample("z_epsilon", dist.Normal(0, 1))
 
         # Transform to constrained space via logit transformation
-        alpha = numpyro.deterministic(
-            "alpha",
-            jax.scipy.special.expit(
-                jax.scipy.special.logit(mu_alpha) + sigma_alpha * z_alpha
-            ),
-        )
         alpha = numpyro.deterministic(
             "alpha",
             jax.scipy.special.expit(

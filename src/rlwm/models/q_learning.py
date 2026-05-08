@@ -1,14 +1,12 @@
 """
 Q-Learning Model for RLWM Task
 
-Model-free reinforcement learning agent with asymmetric learning rates for
-positive and negative prediction errors.
+Model-free reinforcement learning agent with a single learning rate.
 
 Model Equations
 ---------------
-Q-value update (asymmetric learning):
+Q-value update:
     delta = r - Q(s,a)                          [prediction error]
-    alpha = alpha_pos if delta > 0 else alpha_neg  [select learning rate]
     Q(s,a) <- Q(s,a) + alpha * delta
 
 Action selection (softmax):
@@ -16,8 +14,7 @@ Action selection (softmax):
 
 Parameters
 ----------
-alpha_pos : learning rate for positive PE (0-1)
-alpha_neg : learning rate for negative PE (0-1)
+alpha : learning rate (0-1)
 beta : inverse temperature (>0)
 gamma : discount factor (0-1), fixed at 0 for this task
 """
@@ -31,18 +28,16 @@ from rlwm.config import ModelParams, TaskParams
 
 class QLearningAgent:
     """
-    Q-Learning agent with asymmetric learning rates.
+    Q-Learning agent with a single learning rate (Phase 33).
 
-    Learns stimulus-response mappings using temporal difference learning with
-    separate learning rates for positive and negative prediction errors.
+    Learns stimulus-response mappings using temporal difference learning.
     """
 
     def __init__(
         self,
         num_stimuli: int = TaskParams.MAX_STIMULI,
         num_actions: int = TaskParams.NUM_ACTIONS,
-        alpha_pos: float = ModelParams.ALPHA_POS_DEFAULT,
-        alpha_neg: float = ModelParams.ALPHA_NEG_DEFAULT,
+        alpha: float = ModelParams.ALPHA_POS_DEFAULT,
         beta: float = ModelParams.BETA_DEFAULT,
         gamma: float = 0.0,
         q_init: float = ModelParams.Q_INIT_VALUE,
@@ -50,8 +45,7 @@ class QLearningAgent:
     ):
         self.num_stimuli = num_stimuli
         self.num_actions = num_actions
-        self.alpha_pos = alpha_pos
-        self.alpha_neg = alpha_neg
+        self.alpha = alpha
         self.beta = beta
         self.gamma = gamma
         self.q_init = q_init
@@ -110,8 +104,7 @@ class QLearningAgent:
             td_target = reward
 
         prediction_error = td_target - q_current
-        alpha = self.alpha_pos if prediction_error > 0 else self.alpha_neg
-        self.Q[stimulus, action] += alpha * prediction_error
+        self.Q[stimulus, action] += self.alpha * prediction_error
 
     def predict_action_probs(self, stimulus: int) -> np.ndarray:
         return self.get_action_probs(stimulus)
@@ -151,15 +144,12 @@ class QLearningAgent:
 
     def set_parameters(
         self,
-        alpha_pos: float | None = None,
-        alpha_neg: float | None = None,
+        alpha: float | None = None,
         beta: float | None = None,
         gamma: float | None = None,
     ):
-        if alpha_pos is not None:
-            self.alpha_pos = alpha_pos
-        if alpha_neg is not None:
-            self.alpha_neg = alpha_neg
+        if alpha is not None:
+            self.alpha = alpha
         if beta is not None:
             self.beta = beta
         if gamma is not None:
@@ -167,8 +157,7 @@ class QLearningAgent:
 
     def get_parameters(self) -> dict[str, float]:
         return {
-            "alpha_pos": self.alpha_pos,
-            "alpha_neg": self.alpha_neg,
+            "alpha": self.alpha,
             "beta": self.beta,
             "gamma": self.gamma,
             "q_init": self.q_init,
@@ -176,8 +165,7 @@ class QLearningAgent:
 
 
 def create_q_learning_agent(
-    alpha_pos: float = ModelParams.ALPHA_POS_DEFAULT,
-    alpha_neg: float = ModelParams.ALPHA_NEG_DEFAULT,
+    alpha: float = ModelParams.ALPHA_POS_DEFAULT,
     beta: float = ModelParams.BETA_DEFAULT,
     gamma: float = 0.0,
     seed: int | None = None,
@@ -185,8 +173,7 @@ def create_q_learning_agent(
 ) -> QLearningAgent:
     """Factory function to create Q-learning agent."""
     return QLearningAgent(
-        alpha_pos=alpha_pos,
-        alpha_neg=alpha_neg,
+        alpha=alpha,
         beta=beta,
         gamma=gamma,
         seed=seed,

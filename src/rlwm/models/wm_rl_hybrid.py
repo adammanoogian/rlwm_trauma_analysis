@@ -14,7 +14,7 @@ Working Memory (WM):
 
 Q-Learning (RL):
 - Representation: State-action value matrix Q(s,a)
-- Update: delta = r - Q(s,a); alpha = alpha_pos if delta>0 else alpha_neg
+- Update: delta = r - Q(s,a); Q(s,a) <- Q(s,a) + alpha * delta
 - Policy: p_RL(a|s) = softmax(beta * Q(s,:))
 
 Hybrid Decision:
@@ -23,8 +23,7 @@ Hybrid Decision:
 
 Parameters
 ----------
-alpha_pos : learning rate for positive PE in RL (0-1)
-alpha_neg : learning rate for negative PE in RL (0-1)
+alpha : learning rate for RL (0-1)
 beta : inverse temperature for RL softmax (>0)
 beta_wm : inverse temperature for WM softmax (>0)
 phi : WM decay rate toward baseline (0-1)
@@ -44,7 +43,7 @@ from rlwm.config import ModelParams, TaskParams
 
 class WMRLHybridAgent:
     """
-    Matrix-based Working Memory + RL Hybrid agent.
+    Matrix-based Working Memory + RL Hybrid agent (Phase 33: single alpha).
 
     Combines distributed WM value matrix with incremental Q-learning for
     robust learning across different set sizes.
@@ -54,8 +53,7 @@ class WMRLHybridAgent:
         self,
         num_stimuli: int = TaskParams.MAX_STIMULI,
         num_actions: int = TaskParams.NUM_ACTIONS,
-        alpha_pos: float = ModelParams.ALPHA_POS_DEFAULT,
-        alpha_neg: float = ModelParams.ALPHA_NEG_DEFAULT,
+        alpha: float = ModelParams.ALPHA_POS_DEFAULT,
         beta: float = ModelParams.BETA_DEFAULT,
         beta_wm: float = ModelParams.BETA_DEFAULT,
         gamma: float = 0.0,
@@ -69,8 +67,7 @@ class WMRLHybridAgent:
     ):
         self.num_stimuli = num_stimuli
         self.num_actions = num_actions
-        self.alpha_pos = alpha_pos
-        self.alpha_neg = alpha_neg
+        self.alpha = alpha
         self.beta = beta
         self.beta_wm = beta_wm
         self.gamma = gamma
@@ -195,7 +192,7 @@ class WMRLHybridAgent:
         # 2. Update WM: immediate overwrite
         self.WM[stimulus, action] = reward
 
-        # 3. Update Q-table: asymmetric learning
+        # 3. Update Q-table: single learning rate
         q_current = self.Q[stimulus, action]
 
         if self.gamma > 0 and next_stimulus is not None:
@@ -205,8 +202,7 @@ class WMRLHybridAgent:
             td_target = reward
 
         prediction_error = td_target - q_current
-        alpha = self.alpha_pos if prediction_error > 0 else self.alpha_neg
-        self.Q[stimulus, action] += alpha * prediction_error
+        self.Q[stimulus, action] += self.alpha * prediction_error
 
         # 4. Track action for perseveration
         self.last_action = action
@@ -251,8 +247,7 @@ class WMRLHybridAgent:
 
     def set_parameters(
         self,
-        alpha_pos: float | None = None,
-        alpha_neg: float | None = None,
+        alpha: float | None = None,
         beta: float | None = None,
         beta_wm: float | None = None,
         phi: float | None = None,
@@ -260,10 +255,8 @@ class WMRLHybridAgent:
         capacity: int | None = None,
         kappa: float | None = None,
     ):
-        if alpha_pos is not None:
-            self.alpha_pos = alpha_pos
-        if alpha_neg is not None:
-            self.alpha_neg = alpha_neg
+        if alpha is not None:
+            self.alpha = alpha
         if beta is not None:
             self.beta = beta
         if beta_wm is not None:
@@ -279,8 +272,7 @@ class WMRLHybridAgent:
 
     def get_parameters(self) -> dict[str, float]:
         return {
-            "alpha_pos": self.alpha_pos,
-            "alpha_neg": self.alpha_neg,
+            "alpha": self.alpha,
             "beta": self.beta,
             "beta_wm": self.beta_wm,
             "gamma": self.gamma,
@@ -294,8 +286,7 @@ class WMRLHybridAgent:
 
 
 def create_wm_rl_agent(
-    alpha_pos: float = ModelParams.ALPHA_POS_DEFAULT,
-    alpha_neg: float = ModelParams.ALPHA_NEG_DEFAULT,
+    alpha: float = ModelParams.ALPHA_POS_DEFAULT,
     beta: float = ModelParams.BETA_DEFAULT,
     beta_wm: float = ModelParams.BETA_DEFAULT,
     capacity: int = ModelParams.WM_CAPACITY_DEFAULT,
@@ -308,8 +299,7 @@ def create_wm_rl_agent(
 ) -> WMRLHybridAgent:
     """Factory function to create WM-RL agent."""
     return WMRLHybridAgent(
-        alpha_pos=alpha_pos,
-        alpha_neg=alpha_neg,
+        alpha=alpha,
         beta=beta,
         beta_wm=beta_wm,
         capacity=capacity,

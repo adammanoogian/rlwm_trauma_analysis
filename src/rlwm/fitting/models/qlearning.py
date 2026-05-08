@@ -1034,12 +1034,8 @@ def qlearning_hierarchical_model(
     # GROUP-LEVEL (POPULATION) PRIORS
     # ========================================================================
 
-    # Positive learning rate: bounded [0, 1]
+    # Learning rate: bounded [0, 1] (Phase 33: single alpha)
     mu_alpha = numpyro.sample("mu_alpha", dist.Beta(3, 2))
-    sigma_alpha = numpyro.sample("sigma_alpha", dist.HalfNormal(0.3))
-
-    # Negative learning rate: bounded [0, 1]
-    mu_alpha = numpyro.sample("mu_alpha", dist.Beta(2, 3))
     sigma_alpha = numpyro.sample("sigma_alpha", dist.HalfNormal(0.3))
 
     # Epsilon noise: bounded [0, 1], prior centered around 0.05
@@ -1054,16 +1050,9 @@ def qlearning_hierarchical_model(
     with numpyro.plate("participants", num_participants):
         # Sample standard normal offsets
         z_alpha = numpyro.sample("z_alpha", dist.Normal(0, 1))
-        z_alpha = numpyro.sample("z_alpha", dist.Normal(0, 1))
         z_epsilon = numpyro.sample("z_epsilon", dist.Normal(0, 1))
 
         # Transform to constrained space via logit transformation
-        alpha = numpyro.deterministic(
-            "alpha",
-            jax.scipy.special.expit(
-                jax.scipy.special.logit(mu_alpha) + sigma_alpha * z_alpha
-            ),
-        )
         alpha = numpyro.deterministic(
             "alpha",
             jax.scipy.special.expit(
@@ -1085,7 +1074,6 @@ def qlearning_hierarchical_model(
         pdata = participant_data[participant_id]
 
         # Get individual parameters
-        alpha_i = alpha[i]
         alpha_i = alpha[i]
         epsilon_i = epsilon[i]
 
