@@ -25,8 +25,8 @@ def test_jax_likelihood_direct():
     act_test = [jnp.array([0, 1, 0, 1, 2], dtype=jnp.int32)]
     rew_test = [jnp.array([1., 0., 1., 1., 0.], dtype=jnp.float32)]
 
-    # Note: beta is fixed at 50 inside the function, epsilon comes after alpha_neg
-    ll_test = q_learning_multiblock_likelihood(stim_test, act_test, rew_test, 0.3, 0.1, 0.05)
+    # Phase 33: single alpha; old alpha_pos=0.3, alpha_neg=0.1 → alpha=0.3, epsilon=0.05
+    ll_test = q_learning_multiblock_likelihood(stim_test, act_test, rew_test, 0.3, 0.05)
 
     assert ll_test is not None
     assert not np.isnan(float(ll_test))
@@ -54,16 +54,15 @@ def test_mle_fitting_qlearning(qlearning_synthetic_data):
     assert not np.isnan(result['nll']), "NLL should not be NaN"
     assert np.isfinite(result['nll']), "NLL should be finite"
 
-    # Check parameters are in valid range
-    assert 0 < result['alpha_pos'] < 1, "alpha_pos should be in (0, 1)"
-    assert 0 < result['alpha_neg'] < 1, "alpha_neg should be in (0, 1)"
+    # Check parameters are in valid range (Phase 33: single alpha, no alpha_neg)
+    assert 0 < result['alpha'] < 1, "alpha should be in (0, 1)"
     assert 0 < result['epsilon'] < 1, "epsilon should be in (0, 1)"
 
     # Check reasonable recovery (with tolerance for noise)
     # Note: With limited synthetic data, exact recovery is not expected
     # Threshold is 0.7 to tolerate stochastic variation in synthetic data
-    alpha_pos_error = abs(result['alpha_pos'] - true_params['alpha_pos'])
-    assert alpha_pos_error < 0.7, f"alpha_pos error too large: {alpha_pos_error}"
+    alpha_error = abs(result['alpha'] - true_params['alpha'])
+    assert alpha_error < 0.7, f"alpha error too large: {alpha_error}"
 
 
 def test_mle_fitting_information_criteria(qlearning_synthetic_data):
@@ -79,8 +78,8 @@ def test_mle_fitting_information_criteria(qlearning_synthetic_data):
         seed=456
     )
 
-    # AIC = 2k + 2*NLL, k=3 for Q-learning
-    expected_aic = 2 * 3 + 2 * result['nll']
+    # AIC = 2k + 2*NLL, k=2 for Q-learning (Phase 33: alpha_neg dropped)
+    expected_aic = 2 * 2 + 2 * result['nll']
     assert abs(result['aic'] - expected_aic) < 1e-6, "AIC calculation incorrect"
 
     # BIC should be larger than AIC for small k
@@ -98,22 +97,22 @@ if __name__ == '__main__':
     print("\nTesting MLE fitting on synthetic data...")
 
     # Generate synthetic data manually (fixture won't work in __main__)
-    true_alpha_pos = 0.4
-    true_alpha_neg = 0.15
+    # Phase 33: single alpha (alpha_neg dropped)
+    true_alpha = 0.4
     true_epsilon = 0.05
     true_beta = 50.0
 
     stimuli_blocks, actions_blocks, rewards_blocks = [], [], []
     for i in range(3):
         s, a, r = simulate_qlearning_block(
-            true_alpha_pos, true_alpha_neg, true_epsilon, true_beta,
+            true_alpha, true_epsilon, true_beta,
             30, 3, 3, seed=42 + i
         )
         stimuli_blocks.append(s)
         actions_blocks.append(a)
         rewards_blocks.append(r)
 
-    print(f'True parameters: alpha_pos={true_alpha_pos}, alpha_neg={true_alpha_neg}, epsilon={true_epsilon}')
+    print(f'True parameters: alpha={true_alpha}, epsilon={true_epsilon}')
 
     result = fit_participant_mle(
         stimuli_blocks=stimuli_blocks,
@@ -125,16 +124,15 @@ if __name__ == '__main__':
     )
 
     print('\nMLE Results:')
-    print(f'  alpha_pos: {result["alpha_pos"]:.3f} (true: {true_alpha_pos})')
-    print(f'  alpha_neg: {result["alpha_neg"]:.3f} (true: {true_alpha_neg})')
-    print(f'  epsilon:   {result["epsilon"]:.3f} (true: {true_epsilon})')
+    print(f'  alpha:   {result["alpha"]:.3f} (true: {true_alpha})')
+    print(f'  epsilon: {result["epsilon"]:.3f} (true: {true_epsilon})')
     print(f'  NLL:       {result["nll"]:.2f}')
     print(f'  Converged: {result["converged"]}')
 
-    alpha_pos_error = abs(result['alpha_pos'] - true_alpha_pos)
+    alpha_error = abs(result['alpha'] - true_alpha)
 
     print()
-    if result['converged'] and alpha_pos_error < 0.3:
+    if result['converged'] and alpha_error < 0.3:
         print('SUCCESS: MLE fitting is working!')
     else:
         print('Note: Recovery may vary with small data')

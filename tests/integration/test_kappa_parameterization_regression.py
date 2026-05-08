@@ -61,8 +61,7 @@ def toy_block() -> dict:
 def shared_params() -> dict:
     """Per-trial RLWM kwargs. IDENTICAL to Task 0 capture-script fixture."""
     return dict(
-        alpha_pos=0.3,
-        alpha_neg=0.2,
+        alpha=0.3,
         phi=0.05,
         rho=0.7,
         capacity=4.0,

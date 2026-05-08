@@ -48,7 +48,7 @@ _REQUIRED_COLS = {
     "parameterization_version",
 }
 
-_QLEARNING_PARAMS = ["alpha_pos", "alpha_neg", "epsilon"]
+_QLEARNING_PARAMS = ["alpha", "epsilon"]
 
 
 def _load_reference_csv() -> pd.DataFrame:
@@ -227,14 +227,14 @@ def _build_minimal_idata(
     Returns
     -------
     az.InferenceData
-        InferenceData with one plate-indexed parameter (``alpha_pos``)
+        InferenceData with one plate-indexed parameter (``alpha``)
         and a ``sample_stats.energy`` array sufficient for ``az.bfmi``.
     """
     import arviz as az
 
     rng = np.random.default_rng(seed)
     posterior = {
-        "alpha_pos": rng.uniform(
+        "alpha": rng.uniform(
             0.1, 0.9, size=(n_chains, n_draws, n_participants)
         ).astype(float),
     }
@@ -257,7 +257,7 @@ def test_summary_includes_bfmi_and_per_chain_ess_columns(tmp_path):
         idata,
         model_name="qlearning",
         output_dir=tmp_path,
-        param_names=["alpha_pos"],
+        param_names=["alpha"],
         participant_ids=["S001", "S002"],
         parameterization_version="test-32-01",
         n_trials_per_participant=[420, 420],
@@ -315,7 +315,7 @@ def test_converged_flag_fails_under_low_bfmi(tmp_path, monkeypatch):
         idata,
         model_name="qlearning",
         output_dir=tmp_path,
-        param_names=["alpha_pos"],
+        param_names=["alpha"],
         participant_ids=["S001", "S002"],
         parameterization_version="test-32-01-low-bfmi",
         n_trials_per_participant=[420, 420],

@@ -33,18 +33,17 @@ def test_wmrl_model_compilation(wmrl_participant_data):
         num_samples=10
     )(rng_key, participant_data=participant_data)
 
-    # Check that key parameters are present
+    # Check that key parameters are present (Phase 33: single mu_alpha, no mu_alpha_neg)
     # Note: mu_beta not present — beta is fixed at 50 (not estimated)
-    assert 'mu_alpha_pos' in prior_samples
-    assert 'mu_alpha_neg' in prior_samples
+    assert 'mu_alpha' in prior_samples
     assert 'mu_phi' in prior_samples
     assert 'mu_rho' in prior_samples
     assert 'mu_capacity' in prior_samples
     assert 'mu_epsilon' in prior_samples
 
     # Check shapes
-    assert prior_samples['mu_alpha_pos'].shape == (10,)
-    assert prior_samples['alpha_pos'].shape[0] == 10
+    assert prior_samples['mu_alpha'].shape == (10,)
+    assert prior_samples['alpha'].shape[0] == 10
 
 
 def test_wmrl_prior_ranges(wmrl_participant_data):
@@ -59,8 +58,8 @@ def test_wmrl_prior_ranges(wmrl_participant_data):
     )(rng_key, participant_data=participant_data)
 
     # Check all samples are in valid ranges
-    assert jnp.all(prior_samples['mu_alpha_pos'] >= 0)
-    assert jnp.all(prior_samples['mu_alpha_pos'] <= 1)
+    assert jnp.all(prior_samples['mu_alpha'] >= 0)
+    assert jnp.all(prior_samples['mu_alpha'] <= 1)
     assert jnp.all(prior_samples['mu_phi'] >= 0)
     assert jnp.all(prior_samples['mu_phi'] <= 1)
     assert jnp.all(prior_samples['mu_rho'] >= 0)
@@ -133,7 +132,7 @@ if __name__ == "__main__":
 
     # Group-level parameters
     print("\nGroup-level parameter shapes:")
-    print(f"  mu_alpha_pos: {prior_samples['mu_alpha_pos'].shape}")
+    print(f"  mu_alpha: {prior_samples['mu_alpha'].shape}")
     print(f"  mu_beta: {prior_samples['mu_beta'].shape}")
     print(f"  mu_beta_wm: {prior_samples['mu_beta_wm'].shape}")
     print(f"  mu_phi: {prior_samples['mu_phi'].shape}")
@@ -142,7 +141,7 @@ if __name__ == "__main__":
 
     # Individual-level parameters
     print("\nIndividual-level parameter shapes:")
-    print(f"  alpha_pos: {prior_samples['alpha_pos'].shape}")
+    print(f"  alpha: {prior_samples['alpha'].shape}")
     print(f"  beta: {prior_samples['beta'].shape}")
     print(f"  beta_wm: {prior_samples['beta_wm'].shape}")
     print(f"  phi: {prior_samples['phi'].shape}")
@@ -151,7 +150,7 @@ if __name__ == "__main__":
 
     # Print some prior values to check they're in valid ranges
     print("\nPrior sample statistics (mean across samples):")
-    print(f"  mu_alpha_pos: {prior_samples['mu_alpha_pos'].mean():.3f}")
+    print(f"  mu_alpha: {prior_samples['mu_alpha'].mean():.3f}")
     print(f"  mu_beta: {prior_samples['mu_beta'].mean():.3f}")
     print(f"  mu_beta_wm: {prior_samples['mu_beta_wm'].mean():.3f}")
     print(f"  mu_phi: {prior_samples['mu_phi'].mean():.3f}")

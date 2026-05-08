@@ -135,14 +135,14 @@ def test_compile_gate_samples_accessible():
     mcmc.run(jax.random.PRNGKey(42), **model_args)
 
     samples = mcmc.get_samples()
-    assert "alpha_pos" in samples, (
-        f"Expected 'alpha_pos' in samples; got keys: {list(samples.keys())}"
+    assert "alpha" in samples, (
+        f"Expected 'alpha' in samples; got keys: {list(samples.keys())}"
     )
-    alpha_pos = samples["alpha_pos"]
+    alpha = samples["alpha"]
     # shape: (n_samples, n_participants) = (10, 2)
-    assert alpha_pos.shape == (10, 2), (
-        f"Expected alpha_pos shape (10, 2); got {alpha_pos.shape}"
+    assert alpha.shape == (10, 2), (
+        f"Expected alpha shape (10, 2); got {alpha.shape}"
     )
     # Values in [0, 1]
-    assert float(jnp.min(alpha_pos)) >= 0.0, "alpha_pos below 0"
-    assert float(jnp.max(alpha_pos)) <= 1.0, "alpha_pos above 1"
+    assert float(jnp.min(alpha)) >= 0.0, "alpha below 0"
+    assert float(jnp.max(alpha)) <= 1.0, "alpha above 1"

@@ -295,8 +295,7 @@ def test_guard_raises_iesr_without_lec(model_name: str) -> None:
 
 
 def _simulate_m3_block_numpy(
-    alpha_pos: float,
-    alpha_neg: float,
+    alpha: float,
     phi: float,
     rho: float,
     capacity: float,
@@ -318,7 +317,7 @@ def _simulate_m3_block_numpy(
 
     Parameters
     ----------
-    alpha_pos, alpha_neg : float
+    alpha, alpha : float
         Asymmetric RL learning rates.
     phi : float
         WM decay rate.
@@ -399,7 +398,7 @@ def _simulate_m3_block_numpy(
 
         # Updates (after action taken)
         delta = r - Q[s, a]
-        alpha = alpha_pos if delta > 0 else alpha_neg
+        alpha_lr = alpha  # single learning rate (Phase 33)
         Q[s, a] = Q[s, a] + alpha * delta
         WM[s, a] = r  # Immediate overwrite
 
@@ -470,8 +469,7 @@ def _build_recovery_dataset(
 
     if base_params is None:
         base_params = {
-            "alpha_pos": 0.4,
-            "alpha_neg": 0.15,
+            "alpha": 0.4,
             "phi": 0.05,
             "rho": 0.7,
             "capacity": 4.0,
@@ -508,8 +506,7 @@ def _build_recovery_dataset(
 
         for b in range(n_blocks):
             stim, act, rew, ss = _simulate_m3_block_numpy(
-                alpha_pos=base_params["alpha_pos"],
-                alpha_neg=base_params["alpha_neg"],
+                alpha=base_params["alpha"],
                 phi=base_params["phi"],
                 rho=base_params["rho"],
                 capacity=base_params["capacity"],

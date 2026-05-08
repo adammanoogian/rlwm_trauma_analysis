@@ -97,7 +97,7 @@ def test_capacity_range():
 
 @pytest.mark.slow
 def test_bounded_param_recovery_alpha():
-    """Recover alpha_pos group mean within 5% relative error under MCMC.
+    """Recover alpha group mean within 5% relative error under MCMC.
 
     Ground truth: mu_pr=0.0, sigma_pr=0.1 (tight population).
     Observation: Normal(ground_truth, 0.01).
@@ -117,7 +117,7 @@ def test_bounded_param_recovery_alpha():
 
     def recovery_model(obs):
         theta = sample_bounded_param(
-            "alpha_pos",
+            "alpha",
             lower=0.0,
             upper=1.0,
             n_participants=n_participants,
@@ -132,10 +132,10 @@ def test_bounded_param_recovery_alpha():
     mcmc.run(jax.random.PRNGKey(0), obs=alpha_true)
     samples = mcmc.get_samples()
 
-    recovered_mu = float(jnp.mean(samples["alpha_pos_mu_pr"]))
+    recovered_mu = float(jnp.mean(samples["alpha_mu_pr"]))
     rel_error = abs(recovered_mu - true_mu_pr) / max(abs(true_mu_pr), 0.1)
     assert rel_error < 0.05, (
-        f"alpha_pos_mu_pr recovery failed: expected={true_mu_pr:.4f}, "
+        f"alpha_mu_pr recovery failed: expected={true_mu_pr:.4f}, "
         f"recovered={recovered_mu:.4f}, rel_error={rel_error:.4f}"
     )
 
@@ -315,7 +315,7 @@ def test_init_strategy_default_is_init_to_median() -> None:
 
 def test_load_fits_with_validation_missing_column():
     """Raises ValueError with 'lacks' when parameterization_version absent."""
-    df = pd.DataFrame({"alpha_pos": [0.3, 0.4], "epsilon": [0.05, 0.06]})
+    df = pd.DataFrame({"alpha": [0.3, 0.4], "epsilon": [0.05, 0.06]})
     with tempfile.NamedTemporaryFile(suffix=".csv", delete=False, mode="w") as f:
         df.to_csv(f, index=False)
         tmp_path = Path(f.name)
@@ -330,7 +330,7 @@ def test_load_fits_with_validation_missing_column():
 def test_load_fits_with_validation_mismatch():
     """Raises ValueError with 'mismatch' when version string is wrong."""
     df = pd.DataFrame({
-        "alpha_pos": [0.3],
+        "alpha": [0.3],
         "parameterization_version": ["v3.0-legacy"],
     })
     with tempfile.NamedTemporaryFile(suffix=".csv", delete=False, mode="w") as f:
@@ -349,7 +349,7 @@ def test_load_fits_with_validation_success():
     model = "wmrl_m3"
     expected_version = EXPECTED_PARAMETERIZATION[model]
     df = pd.DataFrame({
-        "alpha_pos": [0.3, 0.4],
+        "alpha": [0.3, 0.4],
         "parameterization_version": [expected_version, expected_version],
     })
     with tempfile.NamedTemporaryFile(suffix=".csv", delete=False, mode="w") as f:
@@ -359,6 +359,6 @@ def test_load_fits_with_validation_success():
     try:
         result = load_fits_with_validation(tmp_path, model)
         assert len(result) == 2
-        assert "alpha_pos" in result.columns
+        assert "alpha" in result.columns
     finally:
         tmp_path.unlink(missing_ok=True)

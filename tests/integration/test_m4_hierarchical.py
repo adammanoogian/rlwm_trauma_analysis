@@ -199,8 +199,7 @@ def test_m4_model_smoke():
     samples = mcmc.get_samples()
 
     expected_params = [
-        "alpha_pos",
-        "alpha_neg",
+        "alpha",
         "phi",
         "rho",
         "capacity",

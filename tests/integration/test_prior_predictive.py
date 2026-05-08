@@ -69,8 +69,8 @@ def _make_synthetic_stacked(
 def test_prior_predictive_wmrl_m3_smoke():
     """Predictive runs on wmrl_m3 and produces expected sample keys.
 
-    Gate: ``alpha_pos`` and ``kappa`` both appear in the returned dict;
-    first axis of ``alpha_pos`` equals ``num_samples``.  This protects
+    Gate: ``alpha`` and ``kappa`` both appear in the returned dict;
+    first axis of ``alpha`` equals ``num_samples``.  This protects
     against regressions in the NumPyro dispatch table (M3 was the model
     that triggered the v3 dispatch bug).
     """
@@ -89,22 +89,22 @@ def test_prior_predictive_wmrl_m3_smoke():
         use_pscan=False,
     )
 
-    assert "alpha_pos" in samples, (
-        f"Expected 'alpha_pos' in prior samples; got {sorted(samples.keys())}"
+    assert "alpha" in samples, (
+        f"Expected 'alpha' in prior samples; got {sorted(samples.keys())}"
     )
     assert "kappa" in samples, (
         f"Expected 'kappa' in prior samples; got {sorted(samples.keys())}"
     )
-    alpha_pos = np.asarray(samples["alpha_pos"])
-    assert alpha_pos.shape[0] == 10, (
-        f"Expected num_samples=10 on axis 0; got shape {alpha_pos.shape}"
+    alpha = np.asarray(samples["alpha"])
+    assert alpha.shape[0] == 10, (
+        f"Expected num_samples=10 on axis 0; got shape {alpha.shape}"
     )
-    assert alpha_pos.shape[1] == 3, (
-        f"Expected n_participants=3 on axis 1; got shape {alpha_pos.shape}"
+    assert alpha.shape[1] == 3, (
+        f"Expected n_participants=3 on axis 1; got shape {alpha.shape}"
     )
     # Bounded in [0, 1]
-    assert float(np.min(alpha_pos)) >= 0.0
-    assert float(np.max(alpha_pos)) <= 1.0
+    assert float(np.min(alpha)) >= 0.0
+    assert float(np.max(alpha)) <= 1.0
 
 
 def test_prior_predictive_gate_helper():

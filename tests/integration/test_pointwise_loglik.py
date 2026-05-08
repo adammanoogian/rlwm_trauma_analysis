@@ -88,8 +88,7 @@ def _make_stacked_qlearning(n_blocks: int = N_BLOCKS) -> dict:
         actions_stacked=actions_stacked,
         rewards_stacked=rewards_stacked,
         masks_stacked=masks_stacked,
-        alpha_pos=0.3,
-        alpha_neg=0.15,
+        alpha=0.3,
     )
 
 
@@ -107,8 +106,7 @@ def _make_stacked_wmrl(n_blocks: int = N_BLOCKS) -> dict:
         rewards_stacked=rewards_stacked,
         set_sizes_stacked=set_sizes_stacked,
         masks_stacked=masks_stacked,
-        alpha_pos=0.3,
-        alpha_neg=0.15,
+        alpha=0.3,
         phi=0.1,
         rho=0.7,
         capacity=4.0,
@@ -215,7 +213,7 @@ def _call_block_fn(fn, padded_block):
         base_kwargs = dict(
             stimuli=stimuli, actions=actions, rewards=rewards,
             set_sizes=set_sizes,
-            alpha_pos=0.3, alpha_neg=0.15,
+            alpha=0.3,
             phi=0.1, rho=0.7, capacity=4.0,
             mask=mask, return_pointwise=True,
         )

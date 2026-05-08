@@ -80,8 +80,7 @@ def _sequential_q_update(
     actions: np.ndarray,
     rewards: np.ndarray,
     masks: np.ndarray,
-    alpha_pos: float,
-    alpha_neg: float,
+    alpha: float,
     q_init: float,
     num_stimuli: int,
     num_actions: int,
@@ -95,7 +94,7 @@ def _sequential_q_update(
     Parameters
     ----------
     stimuli, actions, rewards, masks : arrays, shape (T,)
-    alpha_pos, alpha_neg : float
+    alpha, alpha : float
     q_init : float
     num_stimuli, num_actions : int
 
@@ -114,7 +113,7 @@ def _sequential_q_update(
             s, a, r = int(stimuli[t]), int(actions[t]), float(rewards[t])
             q_old = Q[s, a]
             delta = r - q_old
-            alpha = alpha_pos if delta > 0 else alpha_neg
+            alpha_lr = alpha  # single learning rate (Phase 33)
             Q[s, a] = q_old + alpha * delta
 
     return np.array(Q_history)
@@ -333,8 +332,8 @@ def test_q_update_agreement_synthetic():
     rng = np.random.default_rng(123)
     T = 1000
     S, A = 6, 3
-    alpha_pos = 0.3
-    alpha_neg = 0.2
+    alpha = 0.3
+    alpha = 0.2
     q_init = 0.5
 
     stimuli = rng.integers(0, S, T).astype(np.int32)
@@ -345,13 +344,13 @@ def test_q_update_agreement_synthetic():
     # Sequential ground truth
     Q_seq = _sequential_q_update(
         stimuli, actions, rewards, masks,
-        alpha_pos, alpha_neg, q_init, S, A,
+        alpha, q_init, S, A,
     )
 
     # Parallel scan
     Q_par = np.array(associative_scan_q_update(
         jnp.array(stimuli), jnp.array(actions), jnp.array(rewards),
-        jnp.array(masks), alpha_pos, alpha_neg, q_init, S, A,
+        jnp.array(masks), alpha, q_init, S, A,
     ))
 
     rel_err = _rel_error(Q_par, Q_seq)
@@ -379,8 +378,8 @@ def test_q_update_agreement_extreme_alpha():
     rng = np.random.default_rng(456)
     T = 1000
     S, A = 6, 3
-    alpha_pos = 0.95
-    alpha_neg = 0.95  # extreme: fast convergence to boundary
+    alpha = 0.95
+    alpha = 0.95  # extreme: fast convergence to boundary
     q_init = 0.5
 
     stimuli = rng.integers(0, S, T).astype(np.int32)
@@ -390,12 +389,12 @@ def test_q_update_agreement_extreme_alpha():
 
     Q_seq = _sequential_q_update(
         stimuli, actions, rewards, masks,
-        alpha_pos, alpha_neg, q_init, S, A,
+        alpha, q_init, S, A,
     )
 
     Q_par = np.array(associative_scan_q_update(
         jnp.array(stimuli), jnp.array(actions), jnp.array(rewards),
-        jnp.array(masks), alpha_pos, alpha_neg, q_init, S, A,
+        jnp.array(masks), alpha, q_init, S, A,
     ))
 
     rel_err = _rel_error(Q_par, Q_seq)
@@ -674,8 +673,7 @@ def _load_mle_params(model: str, participant_id: int) -> dict:
 
     # Model-specific parameter extraction
     base = {
-        "alpha_pos": float(row["alpha_pos"]),
-        "alpha_neg": float(row["alpha_neg"]),
+        "alpha": float(row["alpha"]),
         "epsilon": float(row["epsilon"]),
     }
     if model == "qlearning":
@@ -793,26 +791,26 @@ def _call_seq_and_pscan(model: str, data: dict, params: dict) -> tuple[float, fl
 # =============================================================================
 
 _TYPICAL_PARAMS = {
-    "qlearning": {"alpha_pos": 0.3, "alpha_neg": 0.1, "epsilon": 0.05},
+    "qlearning": {"alpha": 0.3, "epsilon": 0.05},
     "wmrl": {
-        "alpha_pos": 0.3, "alpha_neg": 0.1,
+        "alpha": 0.3,
         "phi": 0.1, "rho": 0.7, "capacity": 3.0, "epsilon": 0.05,
     },
     "wmrl_m3": {
-        "alpha_pos": 0.3, "alpha_neg": 0.1,
+        "alpha": 0.3,
         "phi": 0.1, "rho": 0.7, "capacity": 3.0, "kappa": 0.2, "epsilon": 0.05,
     },
     "wmrl_m5": {
-        "alpha_pos": 0.3, "alpha_neg": 0.1,
+        "alpha": 0.3,
         "phi": 0.1, "rho": 0.7, "capacity": 3.0, "kappa": 0.2,
         "phi_rl": 0.05, "epsilon": 0.05,
     },
     "wmrl_m6a": {
-        "alpha_pos": 0.3, "alpha_neg": 0.1,
+        "alpha": 0.3,
         "phi": 0.1, "rho": 0.7, "capacity": 3.0, "kappa_s": 0.2, "epsilon": 0.05,
     },
     "wmrl_m6b": {
-        "alpha_pos": 0.3, "alpha_neg": 0.1,
+        "alpha": 0.3,
         "phi": 0.1, "rho": 0.7, "capacity": 3.0,
         "kappa": 0.15, "kappa_s": 0.10, "epsilon": 0.05,
     },

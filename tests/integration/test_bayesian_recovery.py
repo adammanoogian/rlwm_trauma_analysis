@@ -120,7 +120,7 @@ def test_single_subject_recovery_qlearning_smoke(tmp_path: Path) -> None:
     assert result["mcmc_budget"]["num_warmup"] == 50
 
     # Per-parameter entries must exist for all qlearning params with all keys
-    expected_params = {"alpha_pos", "alpha_neg", "epsilon"}
+    expected_params = {"alpha", "epsilon"}
     assert set(result["params"].keys()) == expected_params
 
     for pname in expected_params:
@@ -190,9 +190,9 @@ def test_aggregate_handles_missing(tmp_path: Path) -> None:
     _write_stub_subject_json(
         tmp_path, "qlearning", 1,
         {
-            "alpha_pos": {"true": 0.3, "posterior_mean": 0.32,
+            "alpha": {"true": 0.3, "posterior_mean": 0.32,
                           "hdi_low": 0.2, "hdi_high": 0.45, "in_hdi": 1},
-            "alpha_neg": {"true": 0.2, "posterior_mean": 0.25,
+            "alpha": {"true": 0.2, "posterior_mean": 0.25,
                           "hdi_low": 0.1, "hdi_high": 0.40, "in_hdi": 1},
             "epsilon": {"true": 0.1, "posterior_mean": 0.08,
                         "hdi_low": 0.01, "hdi_high": 0.20, "in_hdi": 1},
@@ -201,9 +201,9 @@ def test_aggregate_handles_missing(tmp_path: Path) -> None:
     _write_stub_subject_json(
         tmp_path, "qlearning", 2,
         {
-            "alpha_pos": {"true": 0.7, "posterior_mean": 0.68,
+            "alpha": {"true": 0.7, "posterior_mean": 0.68,
                           "hdi_low": 0.55, "hdi_high": 0.85, "in_hdi": 1},
-            "alpha_neg": {"true": 0.5, "posterior_mean": 0.45,
+            "alpha": {"true": 0.5, "posterior_mean": 0.45,
                           "hdi_low": 0.30, "hdi_high": 0.60, "in_hdi": 1},
             "epsilon": {"true": 0.4, "posterior_mean": 0.50,
                         "hdi_low": 0.25, "hdi_high": 0.60, "in_hdi": 1},
@@ -252,7 +252,7 @@ def test_aggregate_kappa_pass_and_fail(tmp_path: Path) -> None:
 
     * ``kappa`` recovers well — true and posterior_mean correlate strongly
       with all five in the HDI (coverage = 1.0).
-    * ``alpha_pos`` recovers poorly (not kappa-family, so descriptive only
+    * ``alpha`` recovers poorly (not kappa-family, so descriptive only
       — must NOT drive the verdict either way).
     """
     import numpy as np
@@ -264,9 +264,9 @@ def test_aggregate_kappa_pass_and_fail(tmp_path: Path) -> None:
 
     for idx, (tk, pk) in enumerate(zip(true_kappa, post_kappa), start=1):
         params = {
-            "alpha_pos": {"true": 0.3, "posterior_mean": 0.5,
+            "alpha": {"true": 0.3, "posterior_mean": 0.5,
                           "hdi_low": 0.1, "hdi_high": 0.8, "in_hdi": 1},
-            "alpha_neg": {"true": 0.3, "posterior_mean": 0.5,
+            "alpha": {"true": 0.3, "posterior_mean": 0.5,
                           "hdi_low": 0.1, "hdi_high": 0.8, "in_hdi": 1},
             "phi": {"true": 0.2, "posterior_mean": 0.3,
                     "hdi_low": 0.05, "hdi_high": 0.55, "in_hdi": 1},
@@ -312,9 +312,9 @@ def test_aggregate_kappa_fail_low_coverage(tmp_path: Path) -> None:
 
     for idx, (tk, pk) in enumerate(zip(true_kappa, post_kappa), start=1):
         params = {
-            "alpha_pos": {"true": 0.3, "posterior_mean": 0.3,
+            "alpha": {"true": 0.3, "posterior_mean": 0.3,
                           "hdi_low": 0.2, "hdi_high": 0.4, "in_hdi": 1},
-            "alpha_neg": {"true": 0.3, "posterior_mean": 0.3,
+            "alpha": {"true": 0.3, "posterior_mean": 0.3,
                           "hdi_low": 0.2, "hdi_high": 0.4, "in_hdi": 1},
             "phi": {"true": 0.2, "posterior_mean": 0.2,
                     "hdi_low": 0.1, "hdi_high": 0.3, "in_hdi": 1},

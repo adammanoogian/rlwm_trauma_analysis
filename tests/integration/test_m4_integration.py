@@ -161,8 +161,7 @@ def test_log_delta_recovery() -> None:
 
     # All 10 expected parameters must be present and finite
     expected_params = [
-        "alpha_pos",
-        "alpha_neg",
+        "alpha",
         "phi",
         "rho",
         "capacity",
