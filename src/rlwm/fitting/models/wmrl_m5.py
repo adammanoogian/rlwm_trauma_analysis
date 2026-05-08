@@ -49,8 +49,7 @@ def wmrl_m5_fully_batched_likelihood(
     rewards: jnp.ndarray,
     set_sizes: jnp.ndarray,
     masks: jnp.ndarray,
-    alpha_pos: jnp.ndarray,
-    alpha_neg: jnp.ndarray,
+    alpha: jnp.ndarray,
     phi: jnp.ndarray,
     rho: jnp.ndarray,
     capacity: jnp.ndarray,
@@ -75,7 +74,7 @@ def wmrl_m5_fully_batched_likelihood(
     ----------
     stimuli, actions, rewards, set_sizes, masks : jnp.ndarray
         Shape (N, B, T).
-    alpha_pos, alpha_neg, phi, rho, capacity, kappa, phi_rl, epsilon : jnp.ndarray
+    alpha, phi, rho, capacity, kappa, phi_rl, epsilon : jnp.ndarray
         Shape (N,) per-participant parameter vectors.
 
     Returns
@@ -94,8 +93,7 @@ def wmrl_m5_fully_batched_likelihood(
             actions=act,
             rewards=rew,
             set_sizes=ss,
-            alpha_pos=ap,
-            alpha_neg=an,
+            alpha=ap,
             phi=ph,
             rho=rh,
             capacity=cap,
@@ -129,7 +127,7 @@ def wmrl_m5_fully_batched_likelihood(
     )
     return _over_participants(
         stimuli, actions, rewards, set_sizes, masks,
-        alpha_pos, alpha_neg, phi, rho, capacity, kappa, phi_rl, epsilon,
+        alpha, phi, rho, capacity, kappa, phi_rl, epsilon,
     )
 
 def wmrl_m5_block_likelihood(
@@ -137,8 +135,7 @@ def wmrl_m5_block_likelihood(
     actions: jnp.ndarray,
     rewards: jnp.ndarray,
     set_sizes: jnp.ndarray,
-    alpha_pos: float,
-    alpha_neg: float,
+    alpha: float,
     phi: float,
     rho: float,
     capacity: float,
@@ -189,9 +186,9 @@ def wmrl_m5_block_likelihood(
         Reward sequence (0 or 1)
     set_sizes : array, shape (n_trials,)
         Set size for each trial (for adaptive weighting)
-    alpha_pos : float
+    alpha : float
         RL learning rate for positive PE
-    alpha_neg : float
+    alpha : float
         RL learning rate for negative PE
     phi : float
         WM decay rate (0-1)
@@ -332,8 +329,8 @@ def wmrl_m5_block_likelihood(
         # =================================================================
         q_current = Q_decayed[stimulus, action]
         delta = reward - q_current
-        alpha = jnp.where(delta > 0, alpha_pos, alpha_neg)
-        q_updated = q_current + alpha * delta
+        alpha_lr = alpha  # single learning rate (Phase 33)
+        q_updated = q_current + alpha_lr * delta
         Q_updated = Q_decayed.at[stimulus, action].set(
             jnp.where(valid, q_updated, q_current)
         )
@@ -360,8 +357,7 @@ def wmrl_m5_multiblock_likelihood(
     actions_blocks: list,
     rewards_blocks: list,
     set_sizes_blocks: list,
-    alpha_pos: float,
-    alpha_neg: float,
+    alpha: float,
     phi: float,
     rho: float,
     capacity: float,
@@ -393,7 +389,7 @@ def wmrl_m5_multiblock_likelihood(
     actions_blocks : list of arrays
     rewards_blocks : list of arrays
     set_sizes_blocks : list of arrays
-    alpha_pos, alpha_neg : float
+    alpha, alpha : float
     phi : float (WM decay)
     rho : float (WM reliance)
     capacity : float (WM capacity)
@@ -430,8 +426,7 @@ def wmrl_m5_multiblock_likelihood(
                 actions=actions_stacked[block_idx],
                 rewards=rewards_stacked[block_idx],
                 set_sizes=set_sizes_stacked[block_idx],
-                alpha_pos=alpha_pos,
-                alpha_neg=alpha_neg,
+                alpha=alpha,
                 phi=phi,
                 rho=rho,
                 capacity=capacity,
@@ -464,8 +459,7 @@ def wmrl_m5_multiblock_likelihood(
                 actions=act_block,
                 rewards=rew_block,
                 set_sizes=set_block,
-                alpha_pos=alpha_pos,
-                alpha_neg=alpha_neg,
+                alpha=alpha,
                 phi=phi,
                 rho=rho,
                 capacity=capacity,
@@ -492,8 +486,7 @@ def wmrl_m5_multiblock_likelihood_stacked(
     rewards_stacked: jnp.ndarray,
     set_sizes_stacked: jnp.ndarray,
     masks_stacked: jnp.ndarray,
-    alpha_pos: float,
-    alpha_neg: float,
+    alpha: float,
     phi: float,
     rho: float,
     capacity: float,
@@ -531,8 +524,7 @@ def wmrl_m5_multiblock_likelihood_stacked(
                 actions=actions_stacked[block_idx],
                 rewards=rewards_stacked[block_idx],
                 set_sizes=set_sizes_stacked[block_idx],
-                alpha_pos=alpha_pos,
-                alpha_neg=alpha_neg,
+                alpha=alpha,
                 phi=phi,
                 rho=rho,
                 capacity=capacity,
@@ -560,8 +552,7 @@ def wmrl_m5_multiblock_likelihood_stacked(
                 actions=actions_stacked[block_idx],
                 rewards=rewards_stacked[block_idx],
                 set_sizes=set_sizes_stacked[block_idx],
-                alpha_pos=alpha_pos,
-                alpha_neg=alpha_neg,
+                alpha=alpha,
                 phi=phi,
                 rho=rho,
                 capacity=capacity,
@@ -584,8 +575,7 @@ def wmrl_m5_block_likelihood_pscan(
     actions: jnp.ndarray,
     rewards: jnp.ndarray,
     set_sizes: jnp.ndarray,
-    alpha_pos: float,
-    alpha_neg: float,
+    alpha: float,
     phi: float,
     rho: float,
     capacity: float,
@@ -631,7 +621,7 @@ def wmrl_m5_block_likelihood_pscan(
     Parameters
     ----------
     stimuli, actions, rewards, set_sizes : arrays, shape (n_trials,)
-    alpha_pos, alpha_neg, phi, rho, capacity, kappa, phi_rl, epsilon : float
+    alpha, phi, rho, capacity, kappa, phi_rl, epsilon : float
     num_stimuli, num_actions : int
     q_init, wm_init : float
     mask : array, optional
@@ -660,8 +650,7 @@ def wmrl_m5_block_likelihood_pscan(
     # Reward-based alpha approximation (same as standard Q scan)
     alpha_t = jnp.where(
         rewards[:, None, None] == 1.0,
-        alpha_pos,
-        alpha_neg,
+        alpha,
     )  # (T, S, A)
 
     # Composed coefficients for active (learning) positions:
@@ -756,8 +745,7 @@ def wmrl_m5_multiblock_likelihood_stacked_pscan(
     rewards_stacked: jnp.ndarray,
     set_sizes_stacked: jnp.ndarray,
     masks_stacked: jnp.ndarray,
-    alpha_pos: float,
-    alpha_neg: float,
+    alpha: float,
     phi: float,
     rho: float,
     capacity: float,
@@ -781,7 +769,7 @@ def wmrl_m5_multiblock_likelihood_stacked_pscan(
     ----------
     stimuli_stacked, actions_stacked, rewards_stacked,
     set_sizes_stacked, masks_stacked : arrays, shape (n_blocks, max_trials)
-    alpha_pos, alpha_neg, phi, rho, capacity, kappa, phi_rl, epsilon : float
+    alpha, phi, rho, capacity, kappa, phi_rl, epsilon : float
     num_stimuli, num_actions : int
     q_init, wm_init : float
     return_pointwise : bool, optional
@@ -800,8 +788,7 @@ def wmrl_m5_multiblock_likelihood_stacked_pscan(
                 actions=actions_stacked[block_idx],
                 rewards=rewards_stacked[block_idx],
                 set_sizes=set_sizes_stacked[block_idx],
-                alpha_pos=alpha_pos,
-                alpha_neg=alpha_neg,
+                alpha=alpha,
                 phi=phi,
                 rho=rho,
                 capacity=capacity,
@@ -829,8 +816,7 @@ def wmrl_m5_multiblock_likelihood_stacked_pscan(
                 actions=actions_stacked[block_idx],
                 rewards=rewards_stacked[block_idx],
                 set_sizes=set_sizes_stacked[block_idx],
-                alpha_pos=alpha_pos,
-                alpha_neg=alpha_neg,
+                alpha=alpha,
                 phi=phi,
                 rho=rho,
                 capacity=capacity,
@@ -863,8 +849,8 @@ def test_wmrl_m5_single_block():
     set_sizes = jnp.ones((n_trials,)) * 5
 
     params = {
-        'alpha_pos': 0.3,
-        'alpha_neg': 0.1,
+        'alpha': 0.3,
+        'alpha': 0.1,
         'phi': 0.1,
         'rho': 0.7,
         'capacity': 4.0,
@@ -909,8 +895,8 @@ def test_wmrl_m5_backward_compatibility():
 
     # kappa=0.3 (non-zero to exercise perseveration path in both models)
     params_m3 = {
-        'alpha_pos': 0.3,
-        'alpha_neg': 0.1,
+        'alpha': 0.3,
+        'alpha': 0.1,
         'phi': 0.1,
         'rho': 0.7,
         'capacity': 4.0,
@@ -957,7 +943,7 @@ def test_padding_equivalence_wmrl_m5():
     set_sizes = jnp.full((n_real_trials,), 5, dtype=jnp.int32)
 
     params = {
-        'alpha_pos': 0.3, 'alpha_neg': 0.1, 'phi': 0.1,
+        'alpha': 0.3, 'alpha': 0.1, 'phi': 0.1,
         'rho': 0.7, 'capacity': 4.0, 'kappa': 0.3,
         'phi_rl': 0.15, 'epsilon': 0.05
     }
@@ -1021,7 +1007,7 @@ def wmrl_m5_hierarchical_model(
                    + beta_lec_kappa * lec_i + beta_iesr_kappa * iesr_i``.
 
     M5 adds ``phi_rl`` (RL forgetting rate) relative to M3.  The 8 model parameters
-    are: alpha_pos, alpha_neg, phi, rho, capacity, epsilon, phi_rl (7, sampled via
+    are: alpha, phi, rho, capacity, epsilon, phi_rl (7, sampled via
     ``sample_bounded_param``) and kappa (1, sampled manually with optional L2 shift).
 
     Parameters
@@ -1056,7 +1042,7 @@ def wmrl_m5_hierarchical_model(
 
     Notes
     -----
-    - Seven parameters (alpha_pos, alpha_neg, phi, rho, capacity, epsilon, phi_rl)
+    - Seven parameters (alpha, phi, rho, capacity, epsilon, phi_rl)
       are sampled via ``sample_bounded_param`` from ``numpyro_helpers``.
     - Kappa is sampled manually with the optional L2 shift applied on the probit
       scale before the Phi_approx transform (OUTSIDE ``sample_bounded_param``).
@@ -1121,8 +1107,8 @@ def wmrl_m5_hierarchical_model(
     # ------------------------------------------------------------------
     sampled: dict[str, jnp.ndarray] = {}
     for param in [
-        "alpha_pos",
-        "alpha_neg",
+        "alpha",
+        "alpha",
         "phi",
         "rho",
         "capacity",
@@ -1199,8 +1185,7 @@ def wmrl_m5_hierarchical_model(
         rewards=stacked_arrays["rewards"],
         set_sizes=stacked_arrays["set_sizes"],
         masks=stacked_arrays["masks"],
-        alpha_pos=sampled["alpha_pos"],
-        alpha_neg=sampled["alpha_neg"],
+        alpha=sampled["alpha"],
         phi=sampled["phi"],
         rho=sampled["rho"],
         capacity=sampled["capacity"],

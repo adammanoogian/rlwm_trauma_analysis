@@ -6,7 +6,7 @@ should import directly from this module; the legacy
 re-export shims were deleted in the v5.0 shim cleanup.
 
 Senta et al. (2025) M1: Q-learning with asymmetric learning rates
-``(alpha_pos, alpha_neg)`` and epsilon noise.
+``(alpha, alpha)`` and epsilon noise.
 """
 
 from __future__ import annotations
@@ -90,7 +90,7 @@ def q_learning_step(
     q_vals = Q_table[stimulus]
 
     # Compute action probabilities (softmax policy)
-    # Note: alpha_pos, alpha_neg, beta will be passed via functools.partial
+    # Note: alpha, beta will be passed via functools.partial
     # For now, using placeholder values - will be fixed when integrated with model
     probs = softmax_policy(q_vals, beta=2.0)  # Will be parameterized
 
@@ -102,10 +102,10 @@ def q_learning_step(
     delta = reward - q_current
 
     # Asymmetric learning rate (will be parameterized)
-    alpha = jnp.where(delta > 0, 0.3, 0.1)  # Placeholder: alpha_pos, alpha_neg
+    alpha = jnp.where(delta > 0, 0.3, 0.1)  # Placeholder: alpha, alpha
 
     # Q-value update (functional - creates new value)
-    q_updated = q_current + alpha * delta
+    q_updated = q_current + alpha_lr * delta
 
     # Create new Q-table with updated value (immutable update)
     Q_table_new = Q_table.at[stimulus, action].set(q_updated)
@@ -120,8 +120,7 @@ def q_learning_block_likelihood(
     stimuli: jnp.ndarray,
     actions: jnp.ndarray,
     rewards: jnp.ndarray,
-    alpha_pos: float,
-    alpha_neg: float,
+    alpha: float,
     epsilon: float = DEFAULT_EPSILON,
     num_stimuli: int = 6,
     num_actions: int = 3,
@@ -153,9 +152,9 @@ def q_learning_block_likelihood(
         Action sequence for this block
     rewards : array, shape (n_trials,)
         Reward sequence for this block
-    alpha_pos : float
+    alpha : float
         Learning rate for positive prediction errors
-    alpha_neg : float
+    alpha : float
         Learning rate for negative prediction errors
     epsilon : float
         Epsilon noise parameter (probability of random action)
@@ -188,7 +187,7 @@ def q_learning_block_likelihood(
     >>> actions = jnp.array([0, 1, 0, 2, 1])
     >>> rewards = jnp.array([1.0, 0.0, 1.0, 1.0, 0.0])
     >>> log_lik = q_learning_block_likelihood(
-    ...     stimuli, actions, rewards, alpha_pos=0.3, alpha_neg=0.1, epsilon=0.05
+    ...     stimuli, actions, rewards, alpha=0.3, epsilon=0.05
     ... )
 
     # With padding (same result for real trials):
@@ -199,8 +198,8 @@ def q_learning_block_likelihood(
     ...     stimuli_pad,
     ...     actions_pad,
     ...     rewards_pad,
-    ...     alpha_pos=0.3,
-    ...     alpha_neg=0.1,
+    ...     alpha=0.3,
+    ...,
     ...     epsilon=0.05,
     ...     mask=mask,
     ... )
@@ -239,8 +238,8 @@ def q_learning_block_likelihood(
         # Compute prediction error and update
         q_current = Q_table[stimulus, action]
         delta = reward - q_current
-        alpha = jnp.where(delta > 0, alpha_pos, alpha_neg)
-        q_updated = q_current + alpha * delta
+        alpha_lr = alpha  # single learning rate (Phase 33)
+        q_updated = q_current + alpha_lr * delta
 
         # Conditional Q-update: only update for valid trials
         # For padding trials, keep Q-table unchanged
@@ -263,8 +262,7 @@ def q_learning_multiblock_likelihood(
     stimuli_blocks: list,
     actions_blocks: list,
     rewards_blocks: list,
-    alpha_pos: float,
-    alpha_neg: float,
+    alpha: float,
     epsilon: float = DEFAULT_EPSILON,
     num_stimuli: int = 6,
     num_actions: int = 3,
@@ -297,9 +295,9 @@ def q_learning_multiblock_likelihood(
         List of action sequences, one per block
     rewards_blocks : list of arrays
         List of reward sequences, one per block
-    alpha_pos : float
+    alpha : float
         Learning rate for positive prediction errors
-    alpha_neg : float
+    alpha : float
         Learning rate for negative prediction errors
     epsilon : float
         Epsilon noise parameter (probability of random action)
@@ -330,8 +328,8 @@ def q_learning_multiblock_likelihood(
     ...     stimuli_blocks,
     ...     actions_blocks,
     ...     rewards_blocks,
-    ...     alpha_pos=0.3,
-    ...     alpha_neg=0.1,
+    ...     alpha=0.3,
+    ...,
     ...     epsilon=0.05,
     ... )
     """
@@ -363,8 +361,7 @@ def q_learning_multiblock_likelihood(
                 stimuli=stimuli_stacked[block_idx],
                 actions=actions_stacked[block_idx],
                 rewards=rewards_stacked[block_idx],
-                alpha_pos=alpha_pos,
-                alpha_neg=alpha_neg,
+                alpha=alpha,
                 epsilon=epsilon,
                 num_stimuli=num_stimuli,
                 num_actions=num_actions,
@@ -392,8 +389,7 @@ def q_learning_multiblock_likelihood(
                 stimuli=stim_block,
                 actions=act_block,
                 rewards=rew_block,
-                alpha_pos=alpha_pos,
-                alpha_neg=alpha_neg,
+                alpha=alpha,
                 epsilon=epsilon,
                 num_stimuli=num_stimuli,
                 num_actions=num_actions,
@@ -427,8 +423,7 @@ def q_learning_multiblock_likelihood_stacked(
     actions_stacked: jnp.ndarray,
     rewards_stacked: jnp.ndarray,
     masks_stacked: jnp.ndarray,
-    alpha_pos: float,
-    alpha_neg: float,
+    alpha: float,
     epsilon: float = DEFAULT_EPSILON,
     num_stimuli: int = 6,
     num_actions: int = 3,
@@ -453,7 +448,7 @@ def q_learning_multiblock_likelihood_stacked(
     rewards_stacked : array, shape (n_blocks, max_trials)
     masks_stacked : array, shape (n_blocks, max_trials)
         Mask with 1.0 for real trials, 0.0 for padding
-    alpha_pos, alpha_neg, epsilon : float
+    alpha, epsilon : float
         Model parameters
     num_stimuli, num_actions, q_init : int/float
         Static parameters
@@ -479,8 +474,7 @@ def q_learning_multiblock_likelihood_stacked(
                 stimuli=stimuli_stacked[block_idx],
                 actions=actions_stacked[block_idx],
                 rewards=rewards_stacked[block_idx],
-                alpha_pos=alpha_pos,
-                alpha_neg=alpha_neg,
+                alpha=alpha,
                 epsilon=epsilon,
                 num_stimuli=num_stimuli,
                 num_actions=num_actions,
@@ -499,8 +493,7 @@ def q_learning_multiblock_likelihood_stacked(
                 stimuli=stimuli_stacked[block_idx],
                 actions=actions_stacked[block_idx],
                 rewards=rewards_stacked[block_idx],
-                alpha_pos=alpha_pos,
-                alpha_neg=alpha_neg,
+                alpha=alpha,
                 epsilon=epsilon,
                 num_stimuli=num_stimuli,
                 num_actions=num_actions,
@@ -582,8 +575,7 @@ def q_learning_fully_batched_likelihood(
     actions: jnp.ndarray,
     rewards: jnp.ndarray,
     masks: jnp.ndarray,
-    alpha_pos: jnp.ndarray,
-    alpha_neg: jnp.ndarray,
+    alpha: jnp.ndarray,
     epsilon: jnp.ndarray,
     num_stimuli: int = 6,
     num_actions: int = 3,
@@ -619,9 +611,9 @@ def q_learning_fully_batched_likelihood(
         Shape (N, B, T) float32.
     masks : jnp.ndarray
         Shape (N, B, T) float32.  Padded blocks have mask entirely 0.0.
-    alpha_pos : jnp.ndarray
+    alpha : jnp.ndarray
         Shape (N,) float32 per-participant positive learning rates.
-    alpha_neg : jnp.ndarray
+    alpha : jnp.ndarray
         Shape (N,) float32 per-participant negative learning rates.
     epsilon : jnp.ndarray
         Shape (N,) float32 per-participant random-response rates.
@@ -658,8 +650,7 @@ def q_learning_fully_batched_likelihood(
             stimuli=stim,
             actions=act,
             rewards=rew,
-            alpha_pos=ap,
-            alpha_neg=an,
+            alpha=ap,
             epsilon=e,
             num_stimuli=num_stimuli,
             num_actions=num_actions,
@@ -690,8 +681,7 @@ def q_learning_fully_batched_likelihood(
         actions,
         rewards,
         masks,
-        alpha_pos,
-        alpha_neg,
+        alpha,
         epsilon,
     )
 
@@ -700,8 +690,7 @@ def q_learning_block_likelihood_pscan(
     stimuli: jnp.ndarray,
     actions: jnp.ndarray,
     rewards: jnp.ndarray,
-    alpha_pos: float,
-    alpha_neg: float,
+    alpha: float,
     epsilon: float = DEFAULT_EPSILON,
     num_stimuli: int = 6,
     num_actions: int = 3,
@@ -726,7 +715,7 @@ def q_learning_block_likelihood_pscan(
     stimuli : array, shape (n_trials,)
     actions : array, shape (n_trials,)
     rewards : array, shape (n_trials,)
-    alpha_pos, alpha_neg : float
+    alpha, alpha : float
     epsilon : float
     num_stimuli, num_actions : int
     q_init : float
@@ -751,8 +740,7 @@ def q_learning_block_likelihood_pscan(
         actions,
         rewards,
         mask,
-        alpha_pos,
-        alpha_neg,
+        alpha,
         q_init,
         num_stimuli,
         num_actions,
@@ -779,8 +767,7 @@ def q_learning_multiblock_likelihood_stacked_pscan(
     actions_stacked: jnp.ndarray,
     rewards_stacked: jnp.ndarray,
     masks_stacked: jnp.ndarray,
-    alpha_pos: float,
-    alpha_neg: float,
+    alpha: float,
     epsilon: float = DEFAULT_EPSILON,
     num_stimuli: int = 6,
     num_actions: int = 3,
@@ -799,7 +786,7 @@ def q_learning_multiblock_likelihood_stacked_pscan(
     actions_stacked : array, shape (n_blocks, max_trials)
     rewards_stacked : array, shape (n_blocks, max_trials)
     masks_stacked : array, shape (n_blocks, max_trials)
-    alpha_pos, alpha_neg, epsilon : float
+    alpha, epsilon : float
     num_stimuli, num_actions, q_init : int / float
     return_pointwise : bool, optional
 
@@ -817,8 +804,7 @@ def q_learning_multiblock_likelihood_stacked_pscan(
                 stimuli=stimuli_stacked[block_idx],
                 actions=actions_stacked[block_idx],
                 rewards=rewards_stacked[block_idx],
-                alpha_pos=alpha_pos,
-                alpha_neg=alpha_neg,
+                alpha=alpha,
                 epsilon=epsilon,
                 num_stimuli=num_stimuli,
                 num_actions=num_actions,
@@ -837,8 +823,7 @@ def q_learning_multiblock_likelihood_stacked_pscan(
                 stimuli=stimuli_stacked[block_idx],
                 actions=actions_stacked[block_idx],
                 rewards=rewards_stacked[block_idx],
-                alpha_pos=alpha_pos,
-                alpha_neg=alpha_neg,
+                alpha=alpha,
                 epsilon=epsilon,
                 num_stimuli=num_stimuli,
                 num_actions=num_actions,
@@ -864,13 +849,13 @@ def test_single_block():
     rewards = jax.random.bernoulli(key, 0.7, (n_trials,)).astype(jnp.float32)
 
     # Test parameters (no beta - it's fixed at 50)
-    alpha_pos = 0.3
-    alpha_neg = 0.1
+    alpha = 0.3
+    alpha = 0.1
     epsilon = 0.05
 
     # Compute likelihood
     log_lik = q_learning_block_likelihood(
-        stimuli, actions, rewards, alpha_pos, alpha_neg, epsilon
+        stimuli, actions, rewards, alpha, epsilon
     )
 
     print(f"[OK] Single block log-likelihood: {log_lik:.2f}")
@@ -878,7 +863,7 @@ def test_single_block():
 
     # Test JIT compilation
     log_lik_jit = q_learning_block_likelihood_jit(
-        stimuli, actions, rewards, alpha_pos, alpha_neg, epsilon
+        stimuli, actions, rewards, alpha, epsilon
     )
 
     print(f"[OK] JIT-compiled result matches: {jnp.allclose(log_lik, log_lik_jit)}")
@@ -912,13 +897,13 @@ def test_multiblock():
         )
 
     # Test parameters (no beta - it's fixed at 50)
-    alpha_pos = 0.3
-    alpha_neg = 0.1
+    alpha = 0.3
+    alpha = 0.1
     epsilon = 0.05
 
     # Compute likelihood
     log_lik = q_learning_multiblock_likelihood(
-        stimuli_blocks, actions_blocks, rewards_blocks, alpha_pos, alpha_neg, epsilon
+        stimuli_blocks, actions_blocks, rewards_blocks, alpha, epsilon
     )
 
     total_trials = sum(block_sizes)
@@ -929,7 +914,7 @@ def test_multiblock():
     # Verify it equals sum of individual blocks
     manual_sum = sum(
         [
-            q_learning_block_likelihood(stim, act, rew, alpha_pos, alpha_neg, epsilon)
+            q_learning_block_likelihood(stim, act, rew, alpha, epsilon)
             for stim, act, rew in zip(stimuli_blocks, actions_blocks, rewards_blocks)
         ]
     )
@@ -963,7 +948,7 @@ def test_padding_equivalence_qlearning():
     key, subkey = jax.random.split(key)
     rewards = jax.random.bernoulli(subkey, 0.7, (n_real_trials,)).astype(jnp.float32)
 
-    params = {"alpha_pos": 0.3, "alpha_neg": 0.1, "epsilon": 0.05}
+    params = {"alpha": 0.3, "alpha": 0.1, "epsilon": 0.05}
 
     # Unpadded likelihood (original)
     log_lik_original = q_learning_block_likelihood(stimuli, actions, rewards, **params)
@@ -1003,25 +988,25 @@ def qlearning_hierarchical_model(
     Model Structure:
     ---------------
     # Group-level (population) parameters
-    mu_alpha_pos ~ Beta(3, 2)      # Mean positive learning rate ~ 0.6
-    sigma_alpha_pos ~ HalfNormal(0.3) # Variability in alpha_pos
-    mu_alpha_neg ~ Beta(2, 3)      # Mean negative learning rate ~ 0.4
-    sigma_alpha_neg ~ HalfNormal(0.3) # Variability in alpha_neg
+    mu_alpha ~ Beta(3, 2)      # Mean positive learning rate ~ 0.6
+    sigma_alpha ~ HalfNormal(0.3) # Variability in alpha
+    mu_alpha ~ Beta(2, 3)      # Mean negative learning rate ~ 0.4
+    sigma_alpha ~ HalfNormal(0.3) # Variability in alpha
     mu_epsilon ~ Beta(1, 19)       # Mean epsilon noise ~ 0.05
     sigma_epsilon ~ HalfNormal(0.1)  # Variability in epsilon
 
     # Individual-level parameters (non-centered)
-    z_alpha_pos_i ~ Normal(0, 1)
-    alpha_pos_i = expit(logit(mu_alpha_pos) + sigma_alpha_pos * z_alpha_pos_i)
+    z_alpha_i ~ Normal(0, 1)
+    alpha_i = expit(logit(mu_alpha) + sigma_alpha * z_alpha_i)
 
-    z_alpha_neg_i ~ Normal(0, 1)
-    alpha_neg_i = expit(logit(mu_alpha_neg) + sigma_alpha_neg * z_alpha_neg_i)
+    z_alpha_i ~ Normal(0, 1)
+    alpha_i = expit(logit(mu_alpha) + sigma_alpha * z_alpha_i)
 
     z_epsilon_i ~ Normal(0, 1)
     epsilon_i = expit(logit(mu_epsilon) + sigma_epsilon * z_epsilon_i)
 
     # Likelihood (beta=50 fixed)
-    actions_i ~ Softmax(Q-values; alpha_pos_i, alpha_neg_i, beta=50, epsilon_i)
+    actions_i ~ Softmax(Q-values; alpha_i, alpha_i, beta=50, epsilon_i)
 
     Parameters
     ----------
@@ -1050,12 +1035,12 @@ def qlearning_hierarchical_model(
     # ========================================================================
 
     # Positive learning rate: bounded [0, 1]
-    mu_alpha_pos = numpyro.sample("mu_alpha_pos", dist.Beta(3, 2))
-    sigma_alpha_pos = numpyro.sample("sigma_alpha_pos", dist.HalfNormal(0.3))
+    mu_alpha = numpyro.sample("mu_alpha", dist.Beta(3, 2))
+    sigma_alpha = numpyro.sample("sigma_alpha", dist.HalfNormal(0.3))
 
     # Negative learning rate: bounded [0, 1]
-    mu_alpha_neg = numpyro.sample("mu_alpha_neg", dist.Beta(2, 3))
-    sigma_alpha_neg = numpyro.sample("sigma_alpha_neg", dist.HalfNormal(0.3))
+    mu_alpha = numpyro.sample("mu_alpha", dist.Beta(2, 3))
+    sigma_alpha = numpyro.sample("sigma_alpha", dist.HalfNormal(0.3))
 
     # Epsilon noise: bounded [0, 1], prior centered around 0.05
     # Beta(1, 19) gives mean of 1/20 = 0.05
@@ -1068,21 +1053,21 @@ def qlearning_hierarchical_model(
 
     with numpyro.plate("participants", num_participants):
         # Sample standard normal offsets
-        z_alpha_pos = numpyro.sample("z_alpha_pos", dist.Normal(0, 1))
-        z_alpha_neg = numpyro.sample("z_alpha_neg", dist.Normal(0, 1))
+        z_alpha = numpyro.sample("z_alpha", dist.Normal(0, 1))
+        z_alpha = numpyro.sample("z_alpha", dist.Normal(0, 1))
         z_epsilon = numpyro.sample("z_epsilon", dist.Normal(0, 1))
 
         # Transform to constrained space via logit transformation
-        alpha_pos = numpyro.deterministic(
-            "alpha_pos",
+        alpha = numpyro.deterministic(
+            "alpha",
             jax.scipy.special.expit(
-                jax.scipy.special.logit(mu_alpha_pos) + sigma_alpha_pos * z_alpha_pos
+                jax.scipy.special.logit(mu_alpha) + sigma_alpha * z_alpha
             ),
         )
-        alpha_neg = numpyro.deterministic(
-            "alpha_neg",
+        alpha = numpyro.deterministic(
+            "alpha",
             jax.scipy.special.expit(
-                jax.scipy.special.logit(mu_alpha_neg) + sigma_alpha_neg * z_alpha_neg
+                jax.scipy.special.logit(mu_alpha) + sigma_alpha * z_alpha
             ),
         )
         epsilon = numpyro.deterministic(
@@ -1100,8 +1085,8 @@ def qlearning_hierarchical_model(
         pdata = participant_data[participant_id]
 
         # Get individual parameters
-        alpha_pos_i = alpha_pos[i]
-        alpha_neg_i = alpha_neg[i]
+        alpha_i = alpha[i]
+        alpha_i = alpha[i]
         epsilon_i = epsilon[i]
 
         # Compute log-likelihood across all blocks for this participant
@@ -1110,8 +1095,7 @@ def qlearning_hierarchical_model(
             stimuli_blocks=pdata["stimuli_blocks"],
             actions_blocks=pdata["actions_blocks"],
             rewards_blocks=pdata["rewards_blocks"],
-            alpha_pos=alpha_pos_i,
-            alpha_neg=alpha_neg_i,
+            alpha=alpha_i,
             epsilon=epsilon_i,
             num_stimuli=num_stimuli,
             num_actions=num_actions,
@@ -1139,7 +1123,7 @@ def qlearning_hierarchical_model_stacked(
     ``theta = lower + (upper - lower) * Phi_approx(theta_unc)``,
     where ``Phi_approx = jax.scipy.stats.norm.cdf``.
 
-    Three parameters (alpha_pos, alpha_neg, epsilon) are sampled via
+    Three parameters (alpha, epsilon) are sampled via
     :func:`sample_bounded_param` from :mod:`rlwm.fitting.numpyro_helpers`.
 
     Likelihood is accumulated via a single ``numpyro.factor("obs", ...)`` call
@@ -1205,7 +1189,7 @@ def qlearning_hierarchical_model_stacked(
     # Group priors for 3 parameters via hBayesDM non-centered convention
     # ------------------------------------------------------------------
     sampled: dict[str, jnp.ndarray] = {}
-    for param in ["alpha_pos", "alpha_neg", "epsilon"]:
+    for param in ["alpha", "epsilon"]:
         defaults = PARAM_PRIOR_DEFAULTS[param]
         sampled[param] = sample_bounded_param(
             param,
@@ -1229,8 +1213,7 @@ def qlearning_hierarchical_model_stacked(
         actions=stacked_arrays["actions"],
         rewards=stacked_arrays["rewards"],
         masks=stacked_arrays["masks"],
-        alpha_pos=sampled["alpha_pos"],
-        alpha_neg=sampled["alpha_neg"],
+        alpha=sampled["alpha"],
         epsilon=sampled["epsilon"],
         num_stimuli=num_stimuli,
         num_actions=num_actions,

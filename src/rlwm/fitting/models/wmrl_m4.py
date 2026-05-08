@@ -218,7 +218,7 @@ def wmrl_m4_hierarchical_model(
 
     Notes
     -----
-    - Six RLWM params (alpha_pos, alpha_neg, phi, rho, capacity, kappa) are
+    - Six RLWM params (alpha, phi, rho, capacity, kappa) are
       sampled via ``sample_bounded_param`` from ``numpyro_helpers``.
     - No ``epsilon`` parameter: M4 is the joint choice+RT model and uses the
       LBA decision process directly (not the noisy softmax).
@@ -256,7 +256,7 @@ def wmrl_m4_hierarchical_model(
     # Note: no epsilon in M4 (LBA handles decision noise directly)
     # ------------------------------------------------------------------
     sampled: dict[str, jnp.ndarray] = {}
-    for param in ["alpha_pos", "alpha_neg", "phi", "rho", "capacity", "kappa"]:
+    for param in ["alpha", "alpha", "phi", "rho", "capacity", "kappa"]:
         defaults = PARAM_PRIOR_DEFAULTS[param]
         if (
             kappa_parameterization == "softmax"
@@ -345,8 +345,7 @@ def wmrl_m4_hierarchical_model(
             set_sizes_stacked=pdata["set_sizes_stacked"],
             rts_stacked=pdata["rts_stacked"],
             masks_stacked=pdata["masks_stacked"],
-            alpha_pos=sampled["alpha_pos"][idx],
-            alpha_neg=sampled["alpha_neg"][idx],
+            alpha=sampled["alpha"][idx],
             phi=sampled["phi"][idx],
             rho=sampled["rho"][idx],
             capacity=sampled["capacity"][idx],
