@@ -7,7 +7,9 @@ shim cleanup.
 
 Follows Senta et al. (2025) PLoS Comp. Biol. 21(9):e1012872 math conventions:
 ``beta = 50`` fixed during learning, epsilon-noise action probabilities, and
-asymmetric Q-learning with ``alpha_pos`` / ``alpha_neg``.
+a single learning rate ``alpha`` for the RL slow module (Phase 33: asymmetric
+``alpha_pos`` / ``alpha_neg`` dropped — see Senta 2025, Sugawara & Katahira
+2021, Collins 2024 for rationale).
 """
 from __future__ import annotations
 
@@ -351,11 +353,10 @@ def associative_scan_q_update(
     actions: jnp.ndarray,
     rewards: jnp.ndarray,
     masks: jnp.ndarray,
-    alpha_pos: float,
-    alpha_neg: float,
-    q_init: float,
-    num_stimuli: int,
-    num_actions: int,
+    alpha: float,
+    q_init: float = 0.5,
+    num_stimuli: int = 6,
+    num_actions: int = 3,
 ) -> jnp.ndarray:
     """
     Compute Q-value trajectories for a single block via parallel scan.
@@ -364,11 +365,15 @@ def associative_scan_q_update(
     ``Q_t(s,a) = (1-alpha)*Q_{t-1}(s,a) + alpha*r_t``
     for the active (s,a) pair at trial t; identity elsewhere.
 
-    **Alpha approximation:** Uses ``alpha = alpha_pos if r==1 else alpha_neg``
-    instead of the exact ``alpha = alpha_pos if delta>0 else alpha_neg``.
-    Agreement with the exact sequential rule is < 1e-5 for typical parameters
-    (alpha <= 0.5) and < 1e-3 for extreme parameters (alpha ~ 0.95).
-    See ``docs/PARALLEL_SCAN_LIKELIHOOD.md`` for derivation.
+    **Phase 33 — single learning rate:** The asymmetric alpha+/alpha-
+    parameterization was dropped. A single ``alpha`` is used for both
+    positive and negative outcomes. Rationale: alpha- is structurally
+    unidentifiable in hierarchical WM-RL fits (ICC ~ 0.0001; Phase 32-05),
+    consistent with Senta et al. (2025), Sugawara & Katahira (2021), and
+    Collins (2024).
+
+    Because both outcomes now use the same rate the parallel scan is
+    exact (no reward-conditional approximation needed).
 
     Parameters
     ----------
@@ -380,16 +385,14 @@ def associative_scan_q_update(
         Rewards, 0 or 1 (may include padding).
     masks : array, shape (T,)
         1.0 for real trials, 0.0 for padding.
-    alpha_pos : float
-        Learning rate for positive outcomes (r=1).
-    alpha_neg : float
-        Learning rate for negative outcomes (r=0).
+    alpha : float
+        Single learning rate for all outcomes (r=0 and r=1).
     q_init : float
-        Initial Q-value for all (s, a) pairs.
+        Initial Q-value for all (s, a) pairs. Default 0.5.
     num_stimuli : int
-        Number of stimuli (S).
+        Number of stimuli (S). Default 6.
     num_actions : int
-        Number of actions (A).
+        Number of actions (A). Default 3.
 
     Returns
     -------
@@ -410,13 +413,13 @@ def associative_scan_q_update(
     # Apply trial validity mask: inactive for padding trials
     active = sa_mask * masks[:, None, None]  # (T, S, A)
 
-    # Data-dependent alpha: reward-based approximation
-    # alpha_t = alpha_pos if r==1, else alpha_neg
-    alpha_t = jnp.where(
-        rewards[:, None, None] == 1.0,
-        alpha_pos,
-        alpha_neg,
-    )  # (T, S, A) broadcast
+    # Single learning rate (Phase 33). Asymmetric alpha+/alpha- was
+    # structurally unidentifiable in hierarchical fits (ICC ~ 0 for
+    # alpha-) and the wider literature (Senta 2025, Sugawara &
+    # Katahira 2021, Collins 2024) recommends single alpha for the
+    # RL slow module in the WM-RL family. With a single alpha the
+    # scan is exact (no reward-conditional approximation).
+    alpha_t = alpha  # scalar, broadcast over (T, S, A) below
 
     # AR(1) coefficients
     # Active position: a = 1 - alpha, b = alpha * r
