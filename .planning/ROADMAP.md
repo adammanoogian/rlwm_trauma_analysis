@@ -655,6 +655,66 @@ Plans:
 
 **Origin:** 2026-04-23 user discussion during Phase 29 UAT — user requested: "1) adopt the data structure 2) fix the outputs and reports structure 3) consider the workflow and data structures more deeply. i need more research to know what these are 4) but let's also consider merging the two tests together for simplicity on a reader, as well as two logs together. we want to move away from development to a final package."
 
+#### Phase 33: Asymmetric Alpha Removal — Drop α₋ from RL Slow Module
+
+**Goal:** Drop the asymmetric `alpha_neg` parameter from all RL slow modules (qlearning, wmrl, wmrl_m3, wmrl_m5, wmrl_m6a, wmrl_m6b, wmrl_m4). Replace `alpha_pos + alpha_neg` with a single `alpha`. Refit all 6 choice-only models hierarchically on GPU. Verify the M6b κ_total × LEC trauma headline survives. Update the manuscript with the new parameterization and a new appendix documenting the literature + empirical justification.
+
+**Depends on:** Phase 32-05 (M6b convex full result that exposed α₋ ICC = 0.0001) + Phase 32-06 (full pipeline rerun completion if any in flight).
+
+**Origin:** 2026-05-07/08 conversation. Phase 32-05's full convex M6b posterior showed `alpha_neg` ICC = 0.0001 (structurally unidentifiable), with group mean ≈ 0.013 and per-participant range collapsed to [0.0000, 0.0000] across all 158 participants. The pattern replicated across the entire WM-RL family (`32_smoke_convex/`: M3=0.0006, M5=0.0010, M6a=0.0007, M6b=0.0007). Q-learning's α_neg is fine (ICC = 0.71), confirming the failure is WM-RL-family-specific. Literature review (Senta 2025, Sugawara & Katahira 2021, Collins 2024) confirms single-α is the canonical Collins-lab parameterization for this task class — none of the canonical RLWM papers put a free α₋ on the RL module.
+
+**Requirements:** ALPHA-01 (drop alpha_neg from `core.py:associative_scan_q_update`); ALPHA-02 (drop from all 7 model wrappers); ALPHA-03 (update MLE/Bayesian engines + CLI); ALPHA-04 (update test suite + closure guard parameter-count invariant); ALPHA-05 (refit all 6 choice-only models on GPU + verify 7/7 ICC for M6b + κ_total × LEC HDI excludes zero); ALPHA-06 (manuscript paper.qmd updates + new appendix "Why we did not include asymmetric α₊/α₋ learning rates" + Quarto render passes).
+
+**Success Criteria (what must be TRUE):**
+1. All 6 choice-only models fit with single learning rate alpha; M4 LBA also drops alpha_neg.
+2. M6b hierarchical fit achieves identifiability ICC ≥ 0.3 for ALL parameters (target 7/7).
+3. M6b κ_total × LEC effect remains positive with 95% CrI excluding zero (sanity check the trauma headline survives).
+4. Convergence gate passes for all 6 refit models: max R̂ < 1.05, min ESS_bulk > 400, divergences = 0, BFMI > 0.3.
+5. Manuscript paper.qmd renders cleanly via quarto with the new single-alpha parameterization + new appendix.
+6. New appendix section "Why we did not include asymmetric α₊/α₋ learning rates" cites Senta 2025, Sugawara & Katahira 2021, and Collins 2024.
+7. `validation/check_v4_closure.py` exits 0 (parameter-count invariant updated).
+8. All existing pytest suites pass with no NEW failures vs Phase 32-06 baseline.
+
+**Plans:** 1 plan (single-wave execution with 6 internal subtasks W1-W6)
+
+Plans:
+- [ ] 33-01-PLAN.md — Drop α₋, refit all 6 models on GPU, manuscript appendix update
+
+**Out of scope (deferred to Phase 34):**
+- Replacing the RL slow module with Collins (2024) H-agent (WMH model).
+- Adding Senta's η (negative-feedback neglect) parameterization.
+- Permutation null retest (`cluster/13_bayesian_permutation.slurm`) — separate ~25h job, schedule outside Phase 33-01 or push to Phase 33-02.
+
+**Sequencing:** Phase 33 is a small empirical fix (~3-4 hours of work + ~40 min cluster wall-clock for 6 parallel GPU jobs). Should land before any further manuscript polish. Pre-Phase-26 manuscript finalization.
+
+**Details:** See `.planning/phases/33-asymmetric-alpha-removal/33-CONTEXT.md` for full empirical + literature context.
+
+#### Phase 34: WMH (WM + H-agent) Follow-up — Test Collins (2024) Architecture
+
+**Status:** Provisional / queued. Likely a separate paper rather than a fix within the current manuscript.
+
+**Goal:** Test the WMH parameterization (Collins 2024) head-to-head against single-α RL (Phase 33-01 baseline) on the trauma dataset, and against Senta's η parameterization. Decide via WAIC / LOO / exceedance probability which architecture best describes the slow learning process in our task.
+
+**Depends on:** Phase 33-01 (single-α baseline must exist as the reference comparison point).
+
+**Origin:** 2026-05-08 conversation. Collins (2024) "RL or not RL?" reanalysis of 7 RLWM datasets showed exceedance probability > 0.93 for the WMH (WM + H-agent) architecture, in which the slow module tracks Hebbian/habit-like stimulus-action selection frequency rather than expected value. The H-agent update is `H_{t+1} = H_t + α_H · (SR(r_t) - H_t)` where `SR(1) = 1` and `SR(0) = r_0 ∈ [0, 1]`; with `r_0 = 1` the H-agent treats all outcomes as positive (pure habit), and Collins (2024) reports this as the empirically winning configuration.
+
+**Tentative scope (5 plans, finalized when greenlit):**
+- 34-01: Implement H-agent likelihood (`associative_scan_h_update` — mirror of Q-update with `target = jnp.where(r == 1, 1.0, r0)`)
+- 34-02: Implement Senta η parameterization (negative-feedback neglect, shared between RL and WM)
+- 34-03: Parameter recovery for r₀ and η on synthetic data
+- 34-04: Three-way fit + comparison (single-α RL vs H-agent vs η-RL) on M6b
+- 34-05: Manuscript rewrite OR separate methodological paper (user decision point post-34-04)
+
+**Out of scope (Phase 34):**
+- Changes to WM module (stays one-shot overwrite)
+- Changes to perseveration (κ_total / κ_share / κ_s preserved)
+- Neural-substrate analysis (no fMRI / EEG in this dataset)
+
+**Sequencing:** Decision deferred until Phase 33-01 lands and manuscript is in a stable state. If user ships the manuscript with Phase 33-01 alone (single-α + Collins citation), Phase 34 becomes a future paper opportunity rather than an active effort.
+
+**Details:** See `.planning/phases/34-wmh-h-agent-followup/34-CONTEXT.md`.
+
 </details>
 
 ## Progress
@@ -695,3 +755,6 @@ Phases execute in numeric order: 13 → 14 → 15 → 16 → 17 → 18 → 19 �
 | 29. Pipeline Canonical Reorganization & Utilities Consolidation | v5.0 | 9/9 | Complete | 2026-04-22 |
 | 30. JAX Simulator Consolidation | v5.0/v5.1 | 0/5 | Proposed (added 2026-04-23; may defer to v5.1 per CONTEXT.md sequencing recommendation B) | — |
 | 31. Final-Package Restructure (CCDS layout + test/log consolidation) | v5.0/v5.1 | 6/6 | Complete (verified 7/7 SC; executed ahead of Phase 24 cold-start — future artifacts will land in CCDS layout directly) | 2026-04-24 |
+| 32. MCMC Methodology Update (kappa parameterization + convergence gates) | v5.0 | 5/6 | In progress (32-05 M6b convex full SHIPPED; 32-06 pipeline rerun pending) | — |
+| 33. Asymmetric Alpha Removal (drop α₋, refit single-α) | v5.0 | 0/1 | Proposed (added 2026-05-08; ready to execute) | — |
+| 34. WMH (WM + H-agent) Follow-up — Collins (2024) Architecture | v5.1+ | 0/5 | Provisional / queued (added 2026-05-08; depends on Phase 33-01) | — |
