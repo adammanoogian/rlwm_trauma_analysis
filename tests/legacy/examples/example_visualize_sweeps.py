@@ -125,8 +125,8 @@ print()
 best_idx = qlearning_df['accuracy_mean'].idxmax()
 best_row = qlearning_df.loc[best_idx]
 print("Best overall performance:")
-print(f"  Alpha+ = {best_row['alpha_pos']:.2f}")
-print(f"  Alpha- = {best_row['alpha_neg']:.2f}")
+print(f"  Alpha+ = {best_row['alpha']:.2f}")
+print(f"  Alpha- = {best_row['alpha']:.2f}")
 print(f"  Beta = {best_row['beta']:.1f}")
 print(f"  Set Size = {best_row['set_size']}")
 print(f"  Accuracy = {best_row['accuracy_mean']:.3f} ± {best_row['accuracy_std']:.3f}")
@@ -139,7 +139,7 @@ for ss in set_sizes:
     ss_data = qlearning_df[qlearning_df['set_size'] == ss]
     best_ss_idx = ss_data['accuracy_mean'].idxmax()
     best_ss = ss_data.loc[best_ss_idx]
-    print(f"  Set Size {ss}: α+={best_ss['alpha_pos']:.2f}, α-={best_ss['alpha_neg']:.2f}, "
+    print(f"  Set Size {ss}: α+={best_ss['alpha']:.2f}, α-={best_ss['alpha']:.2f}, "
           f"β={best_ss['beta']:.1f} → {best_ss['accuracy_mean']:.3f}")
 print()
 

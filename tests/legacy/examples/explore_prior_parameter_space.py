@@ -83,14 +83,14 @@ def sample_qlearning_params(n_samples: int, seed: int = None) -> pd.DataFrame:
     Returns
     -------
     pd.DataFrame
-        Sampled parameters with columns: alpha_pos, alpha_neg, beta
+        Sampled parameters with columns: alpha, beta
     """
     if seed is not None:
         np.random.seed(seed)
 
     params = pd.DataFrame({
-        'alpha_pos': np.random.beta(2, 2, n_samples),      # Beta(2, 2) ~ uniform-ish on [0,1]
-        'alpha_neg': np.random.beta(2, 2, n_samples),      # Beta(2, 2)
+        'alpha': np.random.beta(2, 2, n_samples),      # Beta(2, 2) ~ uniform-ish on [0,1]
+        'alpha': np.random.beta(2, 2, n_samples),      # Beta(2, 2)
         'beta': np.random.gamma(2, 1, n_samples),          # Gamma(2, 1) ~ mean=2, allows high values
     })
 
@@ -111,15 +111,15 @@ def sample_wmrl_params(n_samples: int, seed: int = None) -> pd.DataFrame:
     Returns
     -------
     pd.DataFrame
-        Sampled parameters with columns: alpha_pos, alpha_neg, beta, beta_wm,
+        Sampled parameters with columns: alpha, beta, beta_wm,
         capacity, phi, rho
     """
     if seed is not None:
         np.random.seed(seed)
 
     params = pd.DataFrame({
-        'alpha_pos': np.random.beta(2, 2, n_samples),
-        'alpha_neg': np.random.beta(2, 2, n_samples),
+        'alpha': np.random.beta(2, 2, n_samples),
+        'alpha': np.random.beta(2, 2, n_samples),
         'beta': np.random.gamma(2, 1, n_samples),
         'beta_wm': np.random.gamma(2, 1, n_samples),
         'capacity': np.random.randint(2, 7, n_samples),    # DiscreteUniform(2, 6)
@@ -180,14 +180,14 @@ def _simulate_single_param_set(
             # Add model-specific parameters
             if model_type == 'qlearning':
                 params.update({
-                    'alpha_pos': row['alpha_pos'],
-                    'alpha_neg': row['alpha_neg'],
+                    'alpha': row['alpha'],
+                    'alpha': row['alpha'],
                     'beta': row['beta'],
                 })
             else:  # wmrl
                 params.update({
-                    'alpha_pos': row['alpha_pos'],
-                    'alpha_neg': row['alpha_neg'],
+                    'alpha': row['alpha'],
+                    'alpha': row['alpha'],
                     'beta': row['beta'],
                     'beta_wm': row['beta_wm'],
                     'capacity': int(row['capacity']),
@@ -325,19 +325,19 @@ def create_pairwise_heatmaps(
     if param_pairs is None:
         if model_type == 'qlearning':
             param_pairs = [
-                ('alpha_pos', 'alpha_neg'),
-                ('alpha_pos', 'beta'),
-                ('alpha_neg', 'beta'),
+                ('alpha', 'alpha'),
+                ('alpha', 'beta'),
+                ('alpha', 'beta'),
             ]
         else:  # wmrl
             param_pairs = [
-                ('alpha_pos', 'alpha_neg'),
-                ('alpha_pos', 'beta'),
+                ('alpha', 'alpha'),
+                ('alpha', 'beta'),
                 ('capacity', 'rho'),
                 ('capacity', 'phi'),
                 ('rho', 'phi'),
                 ('beta', 'beta_wm'),
-                ('alpha_pos', 'capacity'),
+                ('alpha', 'capacity'),
                 ('beta', 'rho'),
             ]
 
@@ -392,8 +392,8 @@ def create_pairwise_heatmaps(
 
             # Labels
             param_labels = {
-                'alpha_pos': 'Alpha+ (Pos PE LR)',
-                'alpha_neg': 'Alpha- (Neg PE LR)',
+                'alpha': 'Alpha+ (Pos PE LR)',
+                'alpha': 'Alpha- (Neg PE LR)',
                 'beta': 'Beta (Inv Temp)',
                 'beta_wm': 'Beta WM (WM Inv Temp)',
                 'capacity': 'Capacity (K)',
@@ -453,9 +453,9 @@ def create_marginal_distributions(
 
     # Get parameter columns
     if model_type == 'qlearning':
-        params = ['alpha_pos', 'alpha_neg', 'beta']
+        params = ['alpha', 'alpha', 'beta']
     else:
-        params = ['alpha_pos', 'alpha_neg', 'beta', 'beta_wm', 'capacity', 'phi', 'rho']
+        params = ['alpha', 'alpha', 'beta', 'beta_wm', 'capacity', 'phi', 'rho']
 
     n_params = len(params)
     n_cols = 3
@@ -465,8 +465,8 @@ def create_marginal_distributions(
     axes = axes.flatten()
 
     param_labels = {
-        'alpha_pos': 'Alpha+ (Positive PE LR)',
-        'alpha_neg': 'Alpha- (Negative PE LR)',
+        'alpha': 'Alpha+ (Positive PE LR)',
+        'alpha': 'Alpha- (Negative PE LR)',
         'beta': 'Beta (Inverse Temperature)',
         'beta_wm': 'Beta WM (WM Inverse Temp)',
         'capacity': 'Capacity (K)',
@@ -598,10 +598,10 @@ def main():
         print(f"Sampling {args.n_samples} parameter sets from prior distributions...")
         if model == 'qlearning':
             param_samples = sample_qlearning_params(args.n_samples, seed=args.seed)
-            print("  Sampled: alpha_pos, alpha_neg, beta")
+            print("  Sampled: alpha, beta")
         else:
             param_samples = sample_wmrl_params(args.n_samples, seed=args.seed)
-            print("  Sampled: alpha_pos, alpha_neg, beta, beta_wm, capacity, phi, rho")
+            print("  Sampled: alpha, beta, beta_wm, capacity, phi, rho")
         print()
 
         # Show sample statistics
