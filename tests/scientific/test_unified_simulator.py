@@ -55,8 +55,8 @@ class TestSimulateAgentFixed:
         params = {
             'num_stimuli': 6,
             'num_actions': 3,
-            'alpha_pos': 0.3,
-            'alpha_neg': 0.1,
+            'alpha': 0.3,
+            'alpha': 0.1,
             'beta': 2.0,
             'gamma': 0.0,
             'q_init': 0.5
@@ -78,8 +78,8 @@ class TestSimulateAgentFixed:
         assert 0.0 <= result.accuracy <= 1.0
 
         # Check parameters are stored
-        assert result.params['alpha_pos'] == 0.3
-        assert result.params['alpha_neg'] == 0.1
+        assert result.params['alpha'] == 0.3
+        assert result.params['alpha'] == 0.1
         assert result.params['beta'] == 2.0
         assert result.seed == 42
 
@@ -90,8 +90,8 @@ class TestSimulateAgentFixed:
         params = {
             'num_stimuli': 6,
             'num_actions': 3,
-            'alpha_pos': 0.3,
-            'alpha_neg': 0.1,
+            'alpha': 0.3,
+            'alpha': 0.1,
             'beta': 2.0,
             'beta_wm': 3.0,
             'capacity': 4,
@@ -124,8 +124,8 @@ class TestSimulateAgentFixed:
         params = {
             'num_stimuli': 6,
             'num_actions': 3,
-            'alpha_pos': 0.3,
-            'alpha_neg': 0.1,
+            'alpha': 0.3,
+            'alpha': 0.1,
             'beta': 2.0,
             'gamma': 0.0,
             'q_init': 0.5
@@ -146,8 +146,8 @@ class TestSimulateAgentFixed:
         params = {
             'num_stimuli': 6,
             'num_actions': 3,
-            'alpha_pos': 0.3,
-            'alpha_neg': 0.1,
+            'alpha': 0.3,
+            'alpha': 0.1,
             'beta': 2.0,
             'gamma': 0.0,
             'q_init': 0.5
@@ -170,8 +170,8 @@ class TestSimulateAgentSampled:
 
         # Define parameter distributions
         param_distributions = {
-            'alpha_pos': lambda rng: rng.beta(3, 2),
-            'alpha_neg': lambda rng: rng.beta(2, 3),
+            'alpha': lambda rng: rng.beta(3, 2),
+            'alpha': lambda rng: rng.beta(2, 3),
             'beta': lambda rng: rng.gamma(2, 1)
         }
 
@@ -196,8 +196,8 @@ class TestSimulateAgentSampled:
         assert len(results) == 10
 
         # Check each result has different parameters
-        alphas_pos = [r.params['alpha_pos'] for r in results]
-        alphas_neg = [r.params['alpha_neg'] for r in results]
+        alphas_pos = [r.params['alpha'] for r in results]
+        alphas_neg = [r.params['alpha'] for r in results]
         betas = [r.params['beta'] for r in results]
 
         # Parameters should vary across samples
@@ -209,8 +209,8 @@ class TestSimulateAgentSampled:
         for result in results:
             assert isinstance(result, SimulationResult)
             assert len(result.stimuli) == 50
-            assert 0.0 < result.params['alpha_pos'] < 1.0
-            assert 0.0 < result.params['alpha_neg'] < 1.0
+            assert 0.0 < result.params['alpha'] < 1.0
+            assert 0.0 < result.params['alpha'] < 1.0
             assert result.params['beta'] > 0
 
     def test_wmrl_sampled_simulation(self):
@@ -219,8 +219,8 @@ class TestSimulateAgentSampled:
             return create_rlwm_env(set_size=3, seed=seed)
 
         param_distributions = {
-            'alpha_pos': lambda rng: rng.beta(3, 2),
-            'alpha_neg': lambda rng: rng.beta(2, 3),
+            'alpha': lambda rng: rng.beta(3, 2),
+            'alpha': lambda rng: rng.beta(2, 3),
             'beta': lambda rng: rng.gamma(2, 1),
             'beta_wm': lambda rng: rng.gamma(3, 1),
             'capacity': lambda rng: int(rng.integers(2, 7)),
@@ -268,8 +268,8 @@ class TestSimulateAgentSampled:
             return create_rlwm_env(set_size=3, seed=seed)
 
         param_distributions = {
-            'alpha_pos': lambda rng: rng.beta(3, 2),
-            'alpha_neg': lambda rng: rng.beta(2, 3),
+            'alpha': lambda rng: rng.beta(3, 2),
+            'alpha': lambda rng: rng.beta(2, 3),
             'beta': lambda rng: rng.gamma(2, 1)
         }
 
@@ -292,8 +292,8 @@ class TestSimulateAgentSampled:
 
         # Same sampled parameters
         for r1, r2 in zip(results1, results2):
-            assert r1.params['alpha_pos'] == r2.params['alpha_pos']
-            assert r1.params['alpha_neg'] == r2.params['alpha_neg']
+            assert r1.params['alpha'] == r2.params['alpha']
+            assert r1.params['alpha'] == r2.params['alpha']
             assert r1.params['beta'] == r2.params['beta']
 
 
@@ -308,8 +308,7 @@ class TestLikelihoodFunctions:
         action_probs = simulate_qlearning_for_likelihood(
             stimuli=stimuli,
             rewards=rewards,
-            alpha_pos=0.3,
-            alpha_neg=0.1,
+            alpha=0.3,
             beta=2.0
         )
 
@@ -334,8 +333,7 @@ class TestLikelihoodFunctions:
             stimuli=stimuli,
             rewards=rewards,
             set_sizes=set_sizes,
-            alpha_pos=0.3,
-            alpha_neg=0.1,
+            alpha=0.3,
             beta=2.0,
             beta_wm=3.0,
             capacity=4,
@@ -362,8 +360,8 @@ class TestResultsToDataFrame:
         params = {
             'num_stimuli': 6,
             'num_actions': 3,
-            'alpha_pos': 0.3,
-            'alpha_neg': 0.1,
+            'alpha': 0.3,
+            'alpha': 0.1,
             'beta': 2.0,
             'gamma': 0.0,
             'q_init': 0.5
@@ -382,7 +380,7 @@ class TestResultsToDataFrame:
         assert 'stimulus' in df.columns
         assert 'action' in df.columns
         assert 'reward' in df.columns
-        assert 'alpha_pos' in df.columns
+        assert 'alpha' in df.columns
         assert 'beta' in df.columns
 
     def test_multiple_results_to_dataframe(self):
@@ -391,8 +389,8 @@ class TestResultsToDataFrame:
             return create_rlwm_env(set_size=3, seed=seed)
 
         param_distributions = {
-            'alpha_pos': lambda rng: rng.beta(3, 2),
-            'alpha_neg': lambda rng: rng.beta(2, 3),
+            'alpha': lambda rng: rng.beta(3, 2),
+            'alpha': lambda rng: rng.beta(2, 3),
             'beta': lambda rng: rng.gamma(2, 1)
         }
 
@@ -433,8 +431,8 @@ class TestConsistencyAcrossCodePaths:
         params = {
             'num_stimuli': 6,
             'num_actions': 3,
-            'alpha_pos': 0.3,
-            'alpha_neg': 0.1,
+            'alpha': 0.3,
+            'alpha': 0.1,
             'beta': 2.0,
             'gamma': 0.0,
             'q_init': 0.5
@@ -469,8 +467,7 @@ class TestConsistencyAcrossCodePaths:
         action_probs = simulate_qlearning_for_likelihood(
             stimuli=stimuli,
             rewards=rewards,
-            alpha_pos=0.3,
-            alpha_neg=0.1,
+            alpha=0.3,
             beta=2.0
         )
 
@@ -478,8 +475,7 @@ class TestConsistencyAcrossCodePaths:
         agent = QLearningAgent(
             num_stimuli=6,
             num_actions=3,
-            alpha_pos=0.3,
-            alpha_neg=0.1,
+            alpha=0.3,
             beta=2.0,
             gamma=0.0,
             q_init=0.5,

@@ -74,7 +74,7 @@ class TestQLearningConsistency:
 
         # High learning rates (both positive and negative)
         agent_high = QLearningAgent(
-            alpha_pos=0.9, alpha_neg=0.9, beta=3.0,
+            alpha=0.9, beta=3.0,
             num_stimuli=6, num_actions=3,
             seed=42
         )
@@ -82,7 +82,7 @@ class TestQLearningConsistency:
 
         # Low learning rates (both positive and negative)
         agent_low = QLearningAgent(
-            alpha_pos=0.1, alpha_neg=0.1, beta=3.0,
+            alpha=0.1, beta=3.0,
             num_stimuli=6, num_actions=3,
             seed=42
         )
@@ -97,7 +97,7 @@ class TestQLearningConsistency:
 
         # High positive, low negative (optimistic learner)
         agent_optimistic = QLearningAgent(
-            alpha_pos=0.9, alpha_neg=0.1, beta=3.0,
+            alpha=0.9, beta=3.0,
             num_stimuli=6, num_actions=3,
             seed=42
         )
@@ -105,7 +105,7 @@ class TestQLearningConsistency:
 
         # Low positive, high negative (pessimistic learner)
         agent_pessimistic = QLearningAgent(
-            alpha_pos=0.1, alpha_neg=0.9, beta=3.0,
+            alpha=0.1, beta=3.0,
             num_stimuli=6, num_actions=3,
             seed=42
         )
@@ -120,7 +120,7 @@ class TestQLearningConsistency:
 
         # High beta (exploitation)
         agent_exploit = QLearningAgent(
-            alpha_pos=0.3, alpha_neg=0.1, beta=10.0,
+            alpha=0.3, beta=10.0,
             num_stimuli=6, num_actions=3,
             seed=42
         )
@@ -128,7 +128,7 @@ class TestQLearningConsistency:
 
         # Low beta (exploration)
         agent_explore = QLearningAgent(
-            alpha_pos=0.3, alpha_neg=0.1, beta=0.5,
+            alpha=0.3, beta=0.5,
             num_stimuli=6, num_actions=3,
             seed=42
         )
@@ -238,7 +238,7 @@ class TestWMRLConsistency:
 
         # High capacity (omega will be higher)
         agent_high = WMRLHybridAgent(
-            alpha_pos=0.3, alpha_neg=0.1, beta=2.0, beta_wm=3.0,
+            alpha=0.3, beta=2.0, beta_wm=3.0,
             capacity=7, phi=0.1, rho=0.7,
             num_stimuli=6, num_actions=3, seed=42
         )
@@ -246,7 +246,7 @@ class TestWMRLConsistency:
 
         # Low capacity (omega will be lower)
         agent_low = WMRLHybridAgent(
-            alpha_pos=0.3, alpha_neg=0.1, beta=2.0, beta_wm=3.0,
+            alpha=0.3, beta=2.0, beta_wm=3.0,
             capacity=2, phi=0.1, rho=0.7,
             num_stimuli=6, num_actions=3, seed=42
         )
@@ -266,7 +266,7 @@ class TestWMRLConsistency:
 
         # Low WM reliance (rho = 0.1)
         agent_low_rho = WMRLHybridAgent(
-            alpha_pos=0.5, alpha_neg=0.2, beta=2.0, beta_wm=3.0,
+            alpha=0.5, beta=2.0, beta_wm=3.0,
             capacity=4, phi=0.1, rho=0.1,
             num_stimuli=6, num_actions=3, seed=42
         )
@@ -274,7 +274,7 @@ class TestWMRLConsistency:
 
         # High WM reliance (rho = 0.9)
         agent_high_rho = WMRLHybridAgent(
-            alpha_pos=0.5, alpha_neg=0.2, beta=2.0, beta_wm=3.0,
+            alpha=0.5, beta=2.0, beta_wm=3.0,
             capacity=4, phi=0.1, rho=0.9,
             num_stimuli=6, num_actions=3, seed=42
         )
@@ -373,7 +373,7 @@ class TestCrossModelComparison:
 
         # Q-learning
         agent_q = QLearningAgent(
-            alpha_pos=0.3, alpha_neg=0.3, beta=3.0,
+            alpha=0.3, beta=3.0,
             num_stimuli=6, num_actions=3,
             seed=42
         )
@@ -385,7 +385,7 @@ class TestCrossModelComparison:
 
         # WM-RL with rho≈0 (minimal WM influence, omega ≈ 0)
         agent_wmrl = WMRLHybridAgent(
-            alpha_pos=0.3, alpha_neg=0.3, beta=3.0, beta_wm=3.0,
+            alpha=0.3, beta=3.0, beta_wm=3.0,
             capacity=4, phi=0.1, rho=0.01,  # Very low rho
             num_stimuli=6, num_actions=3,
             seed=42

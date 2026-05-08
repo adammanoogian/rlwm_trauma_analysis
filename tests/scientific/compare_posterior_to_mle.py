@@ -23,7 +23,7 @@ Expected patterns (not failure criteria — the point is to *see* the pattern)
 ---------------------------------------------------------------------------
 - Highly-identified parameters (kappa_total, kappa_share on M6b):
   posterior mean within ~1 MLE SE.
-- Poorly-identified parameters (alpha_pos, alpha_neg, phi, rho, capacity):
+- Poorly-identified parameters (alpha, phi, rho, capacity):
   posterior mean shrinks toward the group mean — individual values can
   differ from MLE by 2+ SE.  This is partial pooling working as designed.
 - If a highly-identified parameter drifts far from MLE, investigate:
@@ -51,20 +51,20 @@ if str(_PROJECT_ROOT) not in sys.path:
 from config import load_netcdf_with_validation  # noqa: E402
 
 _MODEL_PARAM_KEYS: dict[str, list[str]] = {
-    "qlearning": ["alpha_pos", "alpha_neg", "epsilon"],
-    "wmrl": ["alpha_pos", "alpha_neg", "phi", "rho", "capacity", "epsilon"],
+    "qlearning": ["alpha", "epsilon"],
+    "wmrl": ["alpha", "phi", "rho", "capacity", "epsilon"],
     "wmrl_m3": [
-        "alpha_pos", "alpha_neg", "phi", "rho", "capacity", "kappa", "epsilon",
+        "alpha", "phi", "rho", "capacity", "kappa", "epsilon",
     ],
     "wmrl_m5": [
-        "alpha_pos", "alpha_neg", "phi", "rho", "capacity",
+        "alpha", "phi", "rho", "capacity",
         "kappa", "phi_rl", "epsilon",
     ],
     "wmrl_m6a": [
-        "alpha_pos", "alpha_neg", "phi", "rho", "capacity", "kappa_s", "epsilon",
+        "alpha", "phi", "rho", "capacity", "kappa_s", "epsilon",
     ],
     "wmrl_m6b": [
-        "alpha_pos", "alpha_neg", "phi", "rho", "capacity",
+        "alpha", "phi", "rho", "capacity",
         "kappa_total", "kappa_share", "epsilon",
     ],
 }

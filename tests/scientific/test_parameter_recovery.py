@@ -5,8 +5,8 @@ Verifies that fitting procedures can recover known parameters
 from synthetic data. This is critical for validating the model
 fitting pipeline.
 
-Updated to use current asymmetric learning rate API (alpha_pos, alpha_neg).
-For these recovery tests we use symmetric rates (alpha_pos == alpha_neg)
+Updated to use current asymmetric learning rate API (alpha, alpha).
+For these recovery tests we use symmetric rates (alpha == alpha)
 to test single-alpha recovery.
 """
 
@@ -47,8 +47,7 @@ class TestQLearningParameterRecovery:
         # Generate synthetic data
         env = create_rlwm_env(set_size=3, seed=42)
         agent = QLearningAgent(
-            alpha_pos=true_alpha,
-            alpha_neg=true_alpha,
+            alpha=true_alpha,
             beta=true_beta,
             num_stimuli=6,
             num_actions=3,
@@ -61,8 +60,7 @@ class TestQLearningParameterRecovery:
         def neg_loglik(params):
             alpha, beta = params
             test_agent = QLearningAgent(
-                alpha_pos=alpha,
-                alpha_neg=alpha,
+                alpha=alpha,
                 beta=beta,
                 num_stimuli=6,
                 num_actions=3
@@ -117,8 +115,7 @@ class TestQLearningParameterRecovery:
         for seed in range(5):  # 5 different datasets
             env = create_rlwm_env(set_size=3, seed=seed)
             agent = QLearningAgent(
-                alpha_pos=true_alpha,
-                alpha_neg=true_alpha,
+                alpha=true_alpha,
                 beta=true_beta,
                 num_stimuli=6,
                 num_actions=3,
@@ -131,7 +128,7 @@ class TestQLearningParameterRecovery:
             def neg_loglik(params):
                 alpha, beta = params
                 test_agent = QLearningAgent(
-                    alpha_pos=alpha, alpha_neg=alpha, beta=beta,
+                    alpha=alpha, beta=beta,
                     num_stimuli=6, num_actions=3
                 )
 
@@ -207,8 +204,7 @@ class TestWMRLParameterRecovery:
         # Generate data
         env = create_rlwm_env(set_size=4, seed=42)
         agent = WMRLHybridAgent(
-            alpha_pos=true_alpha,
-            alpha_neg=true_alpha,
+            alpha=true_alpha,
             beta=true_beta,
             capacity=true_capacity,
             phi=0.1,
@@ -224,8 +220,7 @@ class TestWMRLParameterRecovery:
         def neg_loglik(params):
             alpha, beta, rho = params
             test_agent = WMRLHybridAgent(
-                alpha_pos=alpha,
-                alpha_neg=alpha,
+                alpha=alpha,
                 beta=beta,
                 capacity=true_capacity,  # Fixed
                 phi=0.1,  # Fixed
@@ -307,8 +302,7 @@ class TestRecoveryDiagnostics:
         # Create data where agent never learns (alpha=0)
         env = create_rlwm_env(set_size=2, seed=42)
         agent = QLearningAgent(
-            alpha_pos=0.0,
-            alpha_neg=0.0,
+            alpha=0.0,
             beta=5.0,
             num_stimuli=6,
             num_actions=3,
@@ -339,7 +333,7 @@ class TestRecoveryDiagnostics:
         def neg_loglik(params):
             alpha, beta = params
             test_agent = QLearningAgent(
-                alpha_pos=alpha, alpha_neg=alpha, beta=beta,
+                alpha=alpha, beta=beta,
                 num_stimuli=6, num_actions=3
             )
 

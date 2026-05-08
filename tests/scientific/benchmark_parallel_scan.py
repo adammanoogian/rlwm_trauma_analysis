@@ -83,8 +83,7 @@ _MODEL_REGISTRY: dict[str, dict] = {
         "seq_fn": q_learning_multiblock_likelihood_stacked,
         "pscan_fn": q_learning_multiblock_likelihood_stacked_pscan,
         "params": {
-            "alpha_pos": 0.3,
-            "alpha_neg": 0.2,
+            "alpha": 0.3,
             "epsilon": 0.05,
         },
         "needs_set_sizes": False,
@@ -93,8 +92,7 @@ _MODEL_REGISTRY: dict[str, dict] = {
         "seq_fn": wmrl_multiblock_likelihood_stacked,
         "pscan_fn": wmrl_multiblock_likelihood_stacked_pscan,
         "params": {
-            "alpha_pos": 0.3,
-            "alpha_neg": 0.2,
+            "alpha": 0.3,
             "phi": 0.3,
             "rho": 0.7,
             "capacity": 4.0,
@@ -106,8 +104,7 @@ _MODEL_REGISTRY: dict[str, dict] = {
         "seq_fn": wmrl_m3_multiblock_likelihood_stacked,
         "pscan_fn": wmrl_m3_multiblock_likelihood_stacked_pscan,
         "params": {
-            "alpha_pos": 0.3,
-            "alpha_neg": 0.2,
+            "alpha": 0.3,
             "phi": 0.3,
             "rho": 0.7,
             "capacity": 4.0,
@@ -120,8 +117,7 @@ _MODEL_REGISTRY: dict[str, dict] = {
         "seq_fn": wmrl_m5_multiblock_likelihood_stacked,
         "pscan_fn": wmrl_m5_multiblock_likelihood_stacked_pscan,
         "params": {
-            "alpha_pos": 0.3,
-            "alpha_neg": 0.2,
+            "alpha": 0.3,
             "phi": 0.3,
             "rho": 0.7,
             "capacity": 4.0,
@@ -135,8 +131,7 @@ _MODEL_REGISTRY: dict[str, dict] = {
         "seq_fn": wmrl_m6a_multiblock_likelihood_stacked,
         "pscan_fn": wmrl_m6a_multiblock_likelihood_stacked_pscan,
         "params": {
-            "alpha_pos": 0.3,
-            "alpha_neg": 0.2,
+            "alpha": 0.3,
             "phi": 0.3,
             "rho": 0.7,
             "capacity": 4.0,
@@ -149,8 +144,7 @@ _MODEL_REGISTRY: dict[str, dict] = {
         "seq_fn": wmrl_m6b_multiblock_likelihood_stacked,
         "pscan_fn": wmrl_m6b_multiblock_likelihood_stacked_pscan,
         "params": {
-            "alpha_pos": 0.3,
-            "alpha_neg": 0.2,
+            "alpha": 0.3,
             "phi": 0.3,
             "rho": 0.7,
             "capacity": 4.0,
