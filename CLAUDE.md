@@ -422,8 +422,36 @@ python config.py
 
 # M3 HPC settings for this project
 
-This project runs on Monash M3 (MASSIVE). The `m3-hpc` skill defines the
-overall workflow — this section sets project-specific details. Read both.
+This project runs on Monash M3 (MASSIVE). The `m3-hpc` skill (global,
+in `~/.claude/skills/m3-hpc/`) defines the overall workflow — SSH access
+discipline, sbatch/srun submission patterns, log monitoring, Mutagen
+sync, and the security model around ssh-agent unlock/lock. **Always
+consult that skill before invoking cluster commands**; this section
+only sets project-specific details (paths, env, account).
+
+## When to use the cluster vs local execution
+
+Per the `m3-hpc` skill's "Artifact lifecycle" guidance:
+
+- **Compute jobs > 15 minutes wall-clock → cluster.** Anything that
+  exceeds ~15 min of CPU/GPU time on a workstation should be submitted
+  via `sbatch` (or `srun` for an interactive 15-min debug window).
+  Long local runs are fragile (laptop sleep, OS updates, network
+  disconnects), and the cluster has the right hardware budget anyway.
+- **Local execution → fast iteration only.** Quick smoke tests,
+  unit tests, code edits, single-participant Bayesian fits with tiny
+  warmup/sample budgets (e.g., `--num-warmup 100 --num-samples 100
+  --num-chains 1`). If a local run starts approaching the 15-min
+  threshold, kill it and resubmit as a cluster job.
+- **Sync via Mutagen, not git.** The cluster's working tree is kept
+  in sync with the local repo via Mutagen continuous sync (not
+  `git pull` on the cluster). Edit locally, save, Mutagen propagates;
+  then `sbatch` against the synced tree. The `slurm-autopush` BACKUP
+  pattern exists for collaborators-without-cluster-access edge cases
+  but is not the default for solo work on this project.
+- **Read both skills together** when planning cluster work:
+  `m3-hpc` for the workflow, `slurm-autopush` only if multi-user
+  result return is needed.
 
 ## Project specifics
 
