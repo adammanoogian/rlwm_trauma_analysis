@@ -807,7 +807,7 @@ def _make_bounded_objective_qlearning(
 
     @jax.jit
     def objective(params: jnp.ndarray) -> float:
-        alpha, epsilon = params[0], params[1], params[2]
+        alpha, epsilon = params[0], params[1]  # Phase 33: 2 params (alpha, epsilon)
         log_lik = q_learning_multiblock_likelihood_stacked(
             stimuli_stacked=stimuli_stacked,
             actions_stacked=actions_stacked,
@@ -844,12 +844,12 @@ def _make_bounded_objective_wmrl(
 
     @jax.jit
     def objective(params: jnp.ndarray) -> float:
+        # Phase 33: 5 params — alpha (single), phi, rho, capacity, epsilon
         alpha = params[0]
-        alpha = params[1]
-        phi = params[2]
-        rho = params[3]
-        capacity = params[4]
-        epsilon = params[5]
+        phi = params[1]
+        rho = params[2]
+        capacity = params[3]
+        epsilon = params[4]
         log_lik = wmrl_multiblock_likelihood_stacked(
             stimuli_stacked=stimuli_stacked,
             actions_stacked=actions_stacked,
@@ -892,13 +892,13 @@ def _make_bounded_objective_wmrl_m3(
 
     @jax.jit
     def objective(params: jnp.ndarray) -> float:
+        # Phase 33: 6 params — alpha (single), phi, rho, capacity, kappa, epsilon
         alpha = params[0]
-        alpha = params[1]
-        phi = params[2]
-        rho = params[3]
-        capacity = params[4]
-        kappa = params[5]
-        epsilon = params[6]
+        phi = params[1]
+        rho = params[2]
+        capacity = params[3]
+        kappa = params[4]
+        epsilon = params[5]
         log_lik = wmrl_m3_multiblock_likelihood_stacked(
             stimuli_stacked=stimuli_stacked,
             actions_stacked=actions_stacked,
@@ -944,14 +944,14 @@ def _make_bounded_objective_wmrl_m5(
 
     @jax.jit
     def objective(params: jnp.ndarray) -> float:
+        # Phase 33: 7 params — alpha (single), phi, rho, capacity, kappa, phi_rl, epsilon
         alpha = params[0]
-        alpha = params[1]
-        phi = params[2]
-        rho = params[3]
-        capacity = params[4]
-        kappa = params[5]
-        phi_rl = params[6]
-        epsilon = params[7]
+        phi = params[1]
+        rho = params[2]
+        capacity = params[3]
+        kappa = params[4]
+        phi_rl = params[5]
+        epsilon = params[6]
         log_lik = wmrl_m5_multiblock_likelihood_stacked(
             stimuli_stacked=stimuli_stacked,
             actions_stacked=actions_stacked,
@@ -998,13 +998,13 @@ def _make_bounded_objective_wmrl_m6a(
 
     @jax.jit
     def objective(params: jnp.ndarray) -> float:
+        # Phase 33: 6 params — alpha (single), phi, rho, capacity, kappa_s, epsilon
         alpha = params[0]
-        alpha = params[1]
-        phi = params[2]
-        rho = params[3]
-        capacity = params[4]
-        kappa_s = params[5]
-        epsilon = params[6]
+        phi = params[1]
+        rho = params[2]
+        capacity = params[3]
+        kappa_s = params[4]
+        epsilon = params[5]
         log_lik = wmrl_m6a_multiblock_likelihood_stacked(
             stimuli_stacked=stimuli_stacked,
             actions_stacked=actions_stacked,
@@ -1053,14 +1053,14 @@ def _make_bounded_objective_wmrl_m6b(
 
     @jax.jit
     def objective(params: jnp.ndarray) -> float:
+        # Phase 33: 7 params — alpha (single), phi, rho, capacity, kappa_total, kappa_share, epsilon
         alpha = params[0]
-        alpha = params[1]
-        phi = params[2]
-        rho = params[3]
-        capacity = params[4]
-        kappa_total = params[5]
-        kappa_share = params[6]
-        epsilon = params[7]
+        phi = params[1]
+        rho = params[2]
+        capacity = params[3]
+        kappa_total = params[4]
+        kappa_share = params[5]
+        epsilon = params[6]
         # Stick-breaking decode (kappa_share always [0, 1])
         kappa = kappa_total * kappa_share
         kappa_s = kappa_total * (1 - kappa_share)
@@ -1120,16 +1120,17 @@ def _make_bounded_objective_wmrl_m4(
 
     @jax.jit
     def objective(params: jnp.ndarray) -> float:
+        # Phase 33: 9 params — alpha (single), phi, rho, capacity, kappa,
+        #            v_scale, A, delta, t0  (no epsilon for M4 LBA)
         alpha = params[0]
-        alpha = params[1]
-        phi = params[2]
-        rho = params[3]
-        capacity = params[4]
-        kappa = params[5]
-        v_scale = params[6]
-        A = params[7]
-        delta = params[8]
-        t0 = params[9]
+        phi = params[1]
+        rho = params[2]
+        capacity = params[3]
+        kappa = params[4]
+        v_scale = params[5]
+        A = params[6]
+        delta = params[7]
+        t0 = params[8]
         # b > A decode: b = A + delta
         b = A + delta
         nll = wmrl_m4_multiblock_likelihood_stacked(
@@ -1168,7 +1169,7 @@ def _gpu_objective_qlearning(x, stimuli, actions, rewards, masks):
     Unconstrained objective for Q-learning with data as explicit args.
 
     Args:
-        x: unconstrained parameter vector, shape (3,)
+        x: unconstrained parameter vector, shape (2,) — alpha, epsilon (Phase 33)
         stimuli: shape (n_blocks, max_trials)
         actions: shape (n_blocks, max_trials)
         rewards: shape (n_blocks, max_trials)

@@ -647,11 +647,8 @@ def wmrl_m5_block_likelihood_pscan(
     sa_mask = stim_oh[:, :, None] * act_oh[:, None, :]  # (T, S, A)
     active = sa_mask * mask[:, None, None]  # (T, S, A)
 
-    # Reward-based alpha approximation (same as standard Q scan)
-    alpha_t = jnp.where(
-        rewards[:, None, None] == 1.0,
-        alpha,
-    )  # (T, S, A)
+    # Single learning rate (Phase 33): no reward-conditional branching.
+    alpha_t = alpha  # scalar, broadcast over (T, S, A) below
 
     # Composed coefficients for active (learning) positions:
     #   a = (1-alpha)*(1-phi_rl),  b = (1-alpha)*phi_rl*Q0 + alpha*r
