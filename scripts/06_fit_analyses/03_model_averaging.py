@@ -176,8 +176,7 @@ _COVARIATE_CANONICAL: dict[str, str] = {
 # matching means ``kappa_total``, ``kappa_share``, and ``kappa_s`` are
 # all recognised distinctly from bare ``kappa``.
 _KNOWN_TARGETS: tuple[str, ...] = (
-    "alpha_pos",
-    "alpha_neg",
+    "alpha",
     "phi_rl",
     "phi",
     "rho",

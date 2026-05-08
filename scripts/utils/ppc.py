@@ -131,8 +131,7 @@ def _simulate_qlearning(
     set_sizes_blocks: list[np.ndarray],
     rng: np.random.Generator,
     *,
-    alpha_pos: float,
-    alpha_neg: float,
+    alpha: float,
     epsilon: float,
 ) -> tuple[list[np.ndarray], list[np.ndarray]]:
     """Simulate M1 (Q-learning) actions and rewards given a real trial template.
@@ -145,7 +144,7 @@ def _simulate_qlearning(
         One array of set sizes per block (unused by M1, kept for API symmetry).
     rng : np.random.Generator
         NumPy PRNG.
-    alpha_pos, alpha_neg : float
+    alpha, alpha : float
         Asymmetric learning rates.
     epsilon : float
         Lapse rate.
@@ -174,7 +173,7 @@ def _simulate_qlearning(
             r = 1.0 if a == int(correct_map[s]) else 0.0
 
             delta = r - Q[s, a]
-            alpha = alpha_pos if delta > 0 else alpha_neg
+            alpha = alpha if delta > 0 else alpha
             Q[s, a] += alpha * delta
 
             acts[t] = a
@@ -192,8 +191,7 @@ def _simulate_wmrl_family(
     rng: np.random.Generator,
     *,
     model: str,
-    alpha_pos: float,
-    alpha_neg: float,
+    alpha: float,
     phi: float,
     rho: float,
     capacity: float,
@@ -214,7 +212,7 @@ def _simulate_wmrl_family(
     rng : np.random.Generator
     model : str
         One of ``{"wmrl", "wmrl_m3", "wmrl_m5", "wmrl_m6a", "wmrl_m6b"}``.
-    alpha_pos, alpha_neg : float
+    alpha, alpha : float
         Asymmetric learning rates.
     phi, rho, capacity : float
         WM-RL hybrid parameters (decay, mix, capacity K).
@@ -318,7 +316,7 @@ def _simulate_wmrl_family(
                 Q = Q_eff.copy()
             q_cur = Q[s, a]
             delta = r - q_cur
-            alpha = alpha_pos if delta > 0 else alpha_neg
+            alpha = alpha if delta > 0 else alpha
             Q[s, a] = q_cur + alpha * delta
 
             # 6. Perseveration state updates
@@ -352,7 +350,7 @@ def simulate_from_samples(
     model : str
         Model identifier from :data:`config.ALL_MODELS`.
     params : dict[str, float]
-        Parameter dictionary (uses keys ``alpha_pos``, ``alpha_neg``,
+        Parameter dictionary (uses keys ``alpha``, ``alpha``,
         ``epsilon``; plus ``phi``, ``rho``, ``capacity``, ``kappa``,
         ``kappa_s``, ``phi_rl`` for WM-RL variants).
     stimuli_blocks, set_sizes_blocks : list[np.ndarray]
@@ -368,8 +366,7 @@ def simulate_from_samples(
             stimuli_blocks,
             set_sizes_blocks,
             rng,
-            alpha_pos=params["alpha_pos"],
-            alpha_neg=params["alpha_neg"],
+            alpha=params["alpha"],
             epsilon=params["epsilon"],
         )
     return _simulate_wmrl_family(
@@ -377,8 +374,7 @@ def simulate_from_samples(
         set_sizes_blocks,
         rng,
         model=model,
-        alpha_pos=params["alpha_pos"],
-        alpha_neg=params["alpha_neg"],
+        alpha=params["alpha"],
         phi=params.get("phi", 0.0),
         rho=params.get("rho", 0.0),
         capacity=params.get("capacity", 3.0),

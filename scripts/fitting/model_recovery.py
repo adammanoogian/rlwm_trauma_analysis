@@ -233,8 +233,8 @@ def generate_synthetic_participant(
     rng = np.random.default_rng(seed)
 
     # Extract parameters
-    alpha_pos = params["alpha_pos"]
-    alpha_neg = params["alpha_neg"]
+    alpha = params["alpha"]
+    alpha = params["alpha"]
     # M4 has no epsilon parameter; all other models do
     epsilon = params.get("epsilon", 0.0)
 
@@ -459,7 +459,7 @@ def generate_synthetic_participant(
 
             # Update Q-value
             delta = reward - Q[stimulus, action]
-            alpha = alpha_pos if delta > 0 else alpha_neg
+            alpha = alpha if delta > 0 else alpha
             Q[stimulus, action] = Q[stimulus, action] + alpha * delta
 
             # Update WM (immediate overwrite)

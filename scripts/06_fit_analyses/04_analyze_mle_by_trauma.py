@@ -111,11 +111,10 @@ FIGURES_DIR = REPORTS_FIGURES_DIR / "mle_trauma_analysis"
 GROUP_COLORS = TRAUMA_GROUP_COLORS
 
 # Model parameters
-QLEARNING_PARAMS = ["alpha_pos", "alpha_neg", "epsilon"]
-WMRL_PARAMS = ["alpha_pos", "alpha_neg", "phi", "rho", "capacity", "epsilon"]
+QLEARNING_PARAMS = ["alpha", "epsilon"]
+WMRL_PARAMS = ["alpha", "phi", "rho", "capacity", "epsilon"]
 WMRL_M3_PARAMS = [
-    "alpha_pos",
-    "alpha_neg",
+    "alpha",
     "phi",
     "rho",
     "capacity",
@@ -123,8 +122,7 @@ WMRL_M3_PARAMS = [
     "epsilon",
 ]
 WMRL_M4_PARAMS = [
-    "alpha_pos",
-    "alpha_neg",
+    "alpha",
     "phi",
     "rho",
     "capacity",
@@ -135,8 +133,7 @@ WMRL_M4_PARAMS = [
     "t0",
 ]
 WMRL_M5_PARAMS = [
-    "alpha_pos",
-    "alpha_neg",
+    "alpha",
     "phi",
     "rho",
     "capacity",
@@ -145,8 +142,7 @@ WMRL_M5_PARAMS = [
     "epsilon",
 ]
 WMRL_M6A_PARAMS = [
-    "alpha_pos",
-    "alpha_neg",
+    "alpha",
     "phi",
     "rho",
     "capacity",
@@ -154,8 +150,7 @@ WMRL_M6A_PARAMS = [
     "epsilon",
 ]
 WMRL_M6B_PARAMS = [
-    "alpha_pos",
-    "alpha_neg",
+    "alpha",
     "phi",
     "rho",
     "capacity",
@@ -175,8 +170,7 @@ TRAUMA_PREDICTORS = [
 
 # Parameter display names
 PARAM_NAMES = {
-    "alpha_pos": r"$\alpha_+$",
-    "alpha_neg": r"$\alpha_-$",
+    "alpha": r"$\alpha_+$",
     "epsilon": r"$\varepsilon$",
     "phi": r"$\phi$",
     "rho": r"$\rho$",
@@ -974,7 +968,7 @@ def plot_key_scatter(
     plots = [
         ("ies_intrusion", "epsilon", "Intrusion", r"$\varepsilon$ (Noise)"),
         ("ies_total", "phi", "IES-R Total", r"$\phi$ (WM Decay)"),
-        ("lec_total", "alpha_pos", "LEC Total", r"$\alpha_+$ (Positive LR)"),
+        ("lec_total", "alpha", "LEC Total", r"$\alpha_+$ (Positive LR)"),
     ]
 
     # Filter to plots that exist in params

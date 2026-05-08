@@ -391,8 +391,7 @@ def wmrl_m4_block_likelihood(
     rewards: jnp.ndarray,
     set_sizes: jnp.ndarray,
     rts: jnp.ndarray,
-    alpha_pos: float,
-    alpha_neg: float,
+    alpha: float,
     phi: float,
     rho: float,
     capacity: float,
@@ -428,9 +427,9 @@ def wmrl_m4_block_likelihood(
         Set size for adaptive weighting (int32).
     rts : array, shape (n_trials,)
         Reaction times in seconds (float64). Outliers already filtered by mask.
-    alpha_pos : float
+    alpha : float
         RL learning rate for positive prediction error.
-    alpha_neg : float
+    alpha : float
         RL learning rate for negative prediction error.
     phi : float
         WM decay rate (0-1).
@@ -562,7 +561,7 @@ def wmrl_m4_block_likelihood(
         # ------------------------------------------------------------------
         q_current = Q_table[stimulus, action]
         delta = reward.astype(jnp.float64) - q_current
-        alpha_lr = jnp.where(delta > 0, alpha_pos, alpha_neg)
+        alpha_lr = jnp.where(delta > 0, alpha, alpha)
         q_updated = q_current + alpha_lr * delta
         Q_updated = Q_table.at[stimulus, action].set(
             jnp.where(valid, q_updated, q_current)
@@ -595,8 +594,7 @@ def wmrl_m4_multiblock_likelihood(
     rewards_blocks: list,
     set_sizes_blocks: list,
     rts_blocks: list,
-    alpha_pos: float,
-    alpha_neg: float,
+    alpha: float,
     phi: float,
     rho: float,
     capacity: float,
@@ -654,8 +652,7 @@ def wmrl_m4_multiblock_likelihood(
             rewards=rew,
             set_sizes=ss,
             rts=rt,
-            alpha_pos=alpha_pos,
-            alpha_neg=alpha_neg,
+            alpha=alpha,
             phi=phi,
             rho=rho,
             capacity=capacity,
@@ -683,8 +680,7 @@ def wmrl_m4_multiblock_likelihood_stacked(
     set_sizes_stacked: jnp.ndarray,
     rts_stacked: jnp.ndarray,
     masks_stacked: jnp.ndarray,
-    alpha_pos: float,
-    alpha_neg: float,
+    alpha: float,
     phi: float,
     rho: float,
     capacity: float,
@@ -728,8 +724,7 @@ def wmrl_m4_multiblock_likelihood_stacked(
             rewards=rewards_stacked[block_idx],
             set_sizes=set_sizes_stacked[block_idx],
             rts=rts_stacked[block_idx],
-            alpha_pos=alpha_pos,
-            alpha_neg=alpha_neg,
+            alpha=alpha,
             phi=phi,
             rho=rho,
             capacity=capacity,
@@ -775,8 +770,7 @@ def test_wmrl_m4_single_block():
         rewards=rewards,
         set_sizes=set_sizes,
         rts=rts,
-        alpha_pos=0.3,
-        alpha_neg=0.1,
+        alpha=0.3,
         phi=0.5,
         rho=0.8,
         capacity=4.0,
@@ -822,8 +816,7 @@ def test_wmrl_m4_multiblock():
         rewards_blocks,
         set_sizes_blocks,
         rts_blocks,
-        alpha_pos=0.3,
-        alpha_neg=0.1,
+        alpha=0.3,
         phi=0.5,
         rho=0.8,
         capacity=4.0,

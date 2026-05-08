@@ -410,7 +410,7 @@ def main():
     print("-" * 70)
 
     # Shared parameters across all models
-    shared_params = ["alpha_pos", "alpha_neg", "epsilon"]
+    shared_params = ["alpha", "epsilon"]
     print("\nShared parameters:")
     for param in shared_params:
         param_line = f"  {param:<12} "

@@ -40,12 +40,11 @@ if TYPE_CHECKING:
 # ---------------------------------------------------------------------------
 
 _MODEL_PARAMS: dict[str, list[str]] = {
-    "qlearning": ["alpha_pos", "alpha_neg", "epsilon"],
-    "wmrl": ["alpha_pos", "alpha_neg", "phi", "rho", "capacity", "epsilon"],
-    "wmrl_m3": ["alpha_pos", "alpha_neg", "phi", "rho", "capacity", "kappa", "epsilon"],
+    "qlearning": ["alpha", "epsilon"],
+    "wmrl": ["alpha", "phi", "rho", "capacity", "epsilon"],
+    "wmrl_m3": ["alpha", "phi", "rho", "capacity", "kappa", "epsilon"],
     "wmrl_m5": [
-        "alpha_pos",
-        "alpha_neg",
+        "alpha",
         "phi",
         "rho",
         "capacity",
@@ -54,8 +53,7 @@ _MODEL_PARAMS: dict[str, list[str]] = {
         "epsilon",
     ],
     "wmrl_m6a": [
-        "alpha_pos",
-        "alpha_neg",
+        "alpha",
         "phi",
         "rho",
         "capacity",
@@ -63,8 +61,7 @@ _MODEL_PARAMS: dict[str, list[str]] = {
         "epsilon",
     ],
     "wmrl_m6b": [
-        "alpha_pos",
-        "alpha_neg",
+        "alpha",
         "phi",
         "rho",
         "capacity",
@@ -73,8 +70,7 @@ _MODEL_PARAMS: dict[str, list[str]] = {
         "epsilon",
     ],
     "wmrl_m4": [
-        "alpha_pos",
-        "alpha_neg",
+        "alpha",
         "phi",
         "rho",
         "capacity",
@@ -249,7 +245,7 @@ def write_bayesian_summary(
     summary_df = az.summary(idata, var_names=param_names, hdi_prob=hdi_prob)
 
     # Compute per-participant convergence metrics
-    # summary_df index like "alpha_pos[0]", "alpha_pos[1]", ...
+    # summary_df index like "alpha[0]", "alpha[1]", ...
     # We need: max_rhat, min_ess_bulk per participant
     rhat_per_participant: dict[int, float] = {i: 0.0 for i in range(n_participants)}
     ess_per_participant: dict[int, float] = {
@@ -258,7 +254,7 @@ def write_bayesian_summary(
 
     for row_idx_label, row in summary_df.iterrows():
         row_label = str(row_idx_label)
-        # Extract participant index from label like "alpha_pos[3]"
+        # Extract participant index from label like "alpha[3]"
         if "[" in row_label and row_label.endswith("]"):
             try:
                 part_idx = int(row_label.split("[")[-1].rstrip("]"))

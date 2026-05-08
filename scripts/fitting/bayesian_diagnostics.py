@@ -50,11 +50,10 @@ def _get_param_names(model_name: str) -> list[str]:
         Parameter name keys as stored in ``mcmc.get_samples(group_by_chain=True)``.
     """
     _param_map: dict[str, list[str]] = {
-        "qlearning": ["alpha_pos", "alpha_neg", "epsilon"],
-        "wmrl": ["alpha_pos", "alpha_neg", "phi", "rho", "capacity", "epsilon"],
+        "qlearning": ["alpha", "epsilon"],
+        "wmrl": ["alpha", "phi", "rho", "capacity", "epsilon"],
         "wmrl_m3": [
-            "alpha_pos",
-            "alpha_neg",
+            "alpha",
             "phi",
             "rho",
             "capacity",
@@ -62,8 +61,7 @@ def _get_param_names(model_name: str) -> list[str]:
             "epsilon",
         ],
         "wmrl_m5": [
-            "alpha_pos",
-            "alpha_neg",
+            "alpha",
             "phi",
             "rho",
             "capacity",
@@ -72,8 +70,7 @@ def _get_param_names(model_name: str) -> list[str]:
             "epsilon",
         ],
         "wmrl_m6a": [
-            "alpha_pos",
-            "alpha_neg",
+            "alpha",
             "phi",
             "rho",
             "capacity",
@@ -81,8 +78,7 @@ def _get_param_names(model_name: str) -> list[str]:
             "epsilon",
         ],
         "wmrl_m6b": [
-            "alpha_pos",
-            "alpha_neg",
+            "alpha",
             "phi",
             "rho",
             "capacity",
@@ -164,14 +160,13 @@ def _build_per_participant_fn(
 
     if model_name == "qlearning":
 
-        def _per_sample(alpha_pos, alpha_neg, epsilon):
+        def _per_sample(alpha, epsilon):
             _, pointwise = fn(
                 stimuli_stacked=stimuli_stacked,
                 actions_stacked=actions_stacked,
                 rewards_stacked=rewards_stacked,
                 masks_stacked=masks_stacked,
-                alpha_pos=alpha_pos,
-                alpha_neg=alpha_neg,
+                alpha=alpha,
                 epsilon=epsilon,
                 num_stimuli=num_stimuli,
                 num_actions=num_actions,
@@ -183,15 +178,14 @@ def _build_per_participant_fn(
     elif model_name == "wmrl":
         set_sizes_stacked = pdata["set_sizes_stacked"]
 
-        def _per_sample(alpha_pos, alpha_neg, phi, rho, capacity, epsilon):
+        def _per_sample(alpha, phi, rho, capacity, epsilon):
             _, pointwise = fn(
                 stimuli_stacked=stimuli_stacked,
                 actions_stacked=actions_stacked,
                 rewards_stacked=rewards_stacked,
                 set_sizes_stacked=set_sizes_stacked,
                 masks_stacked=masks_stacked,
-                alpha_pos=alpha_pos,
-                alpha_neg=alpha_neg,
+                alpha=alpha,
                 phi=phi,
                 rho=rho,
                 capacity=capacity,
@@ -206,15 +200,14 @@ def _build_per_participant_fn(
     elif model_name == "wmrl_m3":
         set_sizes_stacked = pdata["set_sizes_stacked"]
 
-        def _per_sample(alpha_pos, alpha_neg, phi, rho, capacity, kappa, epsilon):
+        def _per_sample(alpha, phi, rho, capacity, kappa, epsilon):
             _, pointwise = fn(
                 stimuli_stacked=stimuli_stacked,
                 actions_stacked=actions_stacked,
                 rewards_stacked=rewards_stacked,
                 set_sizes_stacked=set_sizes_stacked,
                 masks_stacked=masks_stacked,
-                alpha_pos=alpha_pos,
-                alpha_neg=alpha_neg,
+                alpha=alpha,
                 phi=phi,
                 rho=rho,
                 capacity=capacity,
@@ -231,7 +224,7 @@ def _build_per_participant_fn(
         set_sizes_stacked = pdata["set_sizes_stacked"]
 
         def _per_sample(
-            alpha_pos, alpha_neg, phi, rho, capacity, kappa, phi_rl, epsilon
+            alpha, phi, rho, capacity, kappa, phi_rl, epsilon
         ):
             _, pointwise = fn(
                 stimuli_stacked=stimuli_stacked,
@@ -239,8 +232,7 @@ def _build_per_participant_fn(
                 rewards_stacked=rewards_stacked,
                 set_sizes_stacked=set_sizes_stacked,
                 masks_stacked=masks_stacked,
-                alpha_pos=alpha_pos,
-                alpha_neg=alpha_neg,
+                alpha=alpha,
                 phi=phi,
                 rho=rho,
                 capacity=capacity,
@@ -257,15 +249,14 @@ def _build_per_participant_fn(
     elif model_name == "wmrl_m6a":
         set_sizes_stacked = pdata["set_sizes_stacked"]
 
-        def _per_sample(alpha_pos, alpha_neg, phi, rho, capacity, kappa_s, epsilon):
+        def _per_sample(alpha, phi, rho, capacity, kappa_s, epsilon):
             _, pointwise = fn(
                 stimuli_stacked=stimuli_stacked,
                 actions_stacked=actions_stacked,
                 rewards_stacked=rewards_stacked,
                 set_sizes_stacked=set_sizes_stacked,
                 masks_stacked=masks_stacked,
-                alpha_pos=alpha_pos,
-                alpha_neg=alpha_neg,
+                alpha=alpha,
                 phi=phi,
                 rho=rho,
                 capacity=capacity,
@@ -282,7 +273,7 @@ def _build_per_participant_fn(
         set_sizes_stacked = pdata["set_sizes_stacked"]
 
         def _per_sample(
-            alpha_pos, alpha_neg, phi, rho, capacity, kappa_total, kappa_share, epsilon
+            alpha, phi, rho, capacity, kappa_total, kappa_share, epsilon
         ):
             # Decode stick-breaking: kappa = kappa_total * kappa_share, kappa_s = kappa_total * (1 - kappa_share)
             kappa = kappa_total * kappa_share
@@ -293,8 +284,7 @@ def _build_per_participant_fn(
                 rewards_stacked=rewards_stacked,
                 set_sizes_stacked=set_sizes_stacked,
                 masks_stacked=masks_stacked,
-                alpha_pos=alpha_pos,
-                alpha_neg=alpha_neg,
+                alpha=alpha,
                 phi=phi,
                 rho=rho,
                 capacity=capacity,

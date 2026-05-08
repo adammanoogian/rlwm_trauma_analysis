@@ -46,7 +46,7 @@ all three L2 tiers are handled uniformly:
 - M6b subscale winner (full 4-covariate design):
   ``beta_{cov}_{param}`` for covariate in
   ``{lec, iesr, iesr_intr_resid, iesr_avd_resid}`` × param in
-  ``{alpha_pos, alpha_neg, phi, rho, capacity, epsilon, kappa_total,
+  ``{alpha, phi, rho, capacity, epsilon, kappa_total,
   kappa_share}``. 32 sites.
 
 - M1/M2 winners (copy-through path): zero beta sites. The script logs
@@ -182,8 +182,7 @@ _COVARIATE_FAMILIES: tuple[str, ...] = (
 # Superset of per-model targets — M6b subscale has all 8; M3/M5/M6a
 # have one each (kappa or kappa_s).
 _KNOWN_TARGETS: tuple[str, ...] = (
-    "alpha_pos",
-    "alpha_neg",
+    "alpha",
     "phi",
     "rho",
     "capacity",

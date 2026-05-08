@@ -111,13 +111,12 @@ def warmup_jit_compilation(model: str = "all", verbose: bool = True):
         start = time.time()
 
         if model_name == "qlearning":
-            # Q-learning: alpha_pos, alpha_neg, epsilon
+            # Q-learning: alpha, epsilon
             _ = q_learning_multiblock_likelihood(
                 stimuli_blocks=stimuli_blocks,
                 actions_blocks=actions_blocks,
                 rewards_blocks=rewards_blocks,
-                alpha_pos=0.3,
-                alpha_neg=0.3,
+                alpha=0.3,
                 epsilon=0.1,
                 num_stimuli=num_stimuli,
                 num_actions=n_actions,
@@ -125,14 +124,13 @@ def warmup_jit_compilation(model: str = "all", verbose: bool = True):
             )
 
         elif model_name == "wmrl":
-            # WM-RL: alpha_pos, alpha_neg, phi, rho, K, epsilon
+            # WM-RL: alpha, phi, rho, K, epsilon
             _ = wmrl_multiblock_likelihood(
                 stimuli_blocks=stimuli_blocks,
                 actions_blocks=actions_blocks,
                 rewards_blocks=rewards_blocks,
                 set_sizes_blocks=set_sizes_blocks,
-                alpha_pos=0.3,
-                alpha_neg=0.3,
+                alpha=0.3,
                 phi=0.8,
                 rho=0.5,
                 capacity=3.0,
@@ -143,14 +141,13 @@ def warmup_jit_compilation(model: str = "all", verbose: bool = True):
             )
 
         elif model_name == "wmrl_m3":
-            # WM-RL M3: alpha_pos, alpha_neg, phi, rho, K, kappa, epsilon
+            # WM-RL M3: alpha, phi, rho, K, kappa, epsilon
             _ = wmrl_m3_multiblock_likelihood(
                 stimuli_blocks=stimuli_blocks,
                 actions_blocks=actions_blocks,
                 rewards_blocks=rewards_blocks,
                 set_sizes_blocks=set_sizes_blocks,
-                alpha_pos=0.3,
-                alpha_neg=0.3,
+                alpha=0.3,
                 phi=0.8,
                 rho=0.5,
                 capacity=3.0,
@@ -168,8 +165,7 @@ def warmup_jit_compilation(model: str = "all", verbose: bool = True):
                 actions_blocks=actions_blocks,
                 rewards_blocks=rewards_blocks,
                 set_sizes_blocks=set_sizes_blocks,
-                alpha_pos=0.3,
-                alpha_neg=0.3,
+                alpha=0.3,
                 phi=0.8,
                 rho=0.5,
                 capacity=3.0,
@@ -188,8 +184,7 @@ def warmup_jit_compilation(model: str = "all", verbose: bool = True):
                 actions_blocks=actions_blocks,
                 rewards_blocks=rewards_blocks,
                 set_sizes_blocks=set_sizes_blocks,
-                alpha_pos=0.3,
-                alpha_neg=0.3,
+                alpha=0.3,
                 phi=0.8,
                 rho=0.5,
                 capacity=3.0,
@@ -209,8 +204,7 @@ def warmup_jit_compilation(model: str = "all", verbose: bool = True):
                 actions_blocks=actions_blocks,
                 rewards_blocks=rewards_blocks,
                 set_sizes_blocks=set_sizes_blocks,
-                alpha_pos=0.3,
-                alpha_neg=0.3,
+                alpha=0.3,
                 phi=0.8,
                 rho=0.5,
                 capacity=3.0,
@@ -237,8 +231,7 @@ def warmup_jit_compilation(model: str = "all", verbose: bool = True):
                 set_sizes_blocks=set_sizes_blocks,
                 rts_blocks=rts_blocks,
                 masks_blocks=masks_blocks,
-                alpha_pos=0.3,
-                alpha_neg=0.3,
+                alpha=0.3,
                 phi=0.8,
                 rho=0.5,
                 capacity=3.0,

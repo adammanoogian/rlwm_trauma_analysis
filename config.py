@@ -224,8 +224,8 @@ MODEL_REGISTRY: dict[str, dict] = {
     'qlearning': {
         'display_name': 'M1: Q-Learning',
         'short_name': 'M1',
-        'params': ['alpha_pos', 'alpha_neg', 'epsilon'],
-        'n_params': 3,
+        'params': ['alpha', 'epsilon'],
+        'n_params': 2,
         'is_choice_only': True,
         'has_wm': False,
         'csv_filename': 'qlearning_individual_fits.csv',
@@ -233,8 +233,8 @@ MODEL_REGISTRY: dict[str, dict] = {
     'wmrl': {
         'display_name': 'M2: WM-RL',
         'short_name': 'M2',
-        'params': ['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'epsilon'],
-        'n_params': 6,
+        'params': ['alpha', 'phi', 'rho', 'capacity', 'epsilon'],
+        'n_params': 5,
         'is_choice_only': True,
         'has_wm': True,
         'csv_filename': 'wmrl_individual_fits.csv',
@@ -242,8 +242,8 @@ MODEL_REGISTRY: dict[str, dict] = {
     'wmrl_m3': {
         'display_name': 'M3: WM-RL+kappa',
         'short_name': 'M3',
-        'params': ['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'kappa', 'epsilon'],
-        'n_params': 7,
+        'params': ['alpha', 'phi', 'rho', 'capacity', 'kappa', 'epsilon'],
+        'n_params': 6,
         'is_choice_only': True,
         'has_wm': True,
         'csv_filename': 'wmrl_m3_individual_fits.csv',
@@ -251,8 +251,8 @@ MODEL_REGISTRY: dict[str, dict] = {
     'wmrl_m5': {
         'display_name': 'M5: WM-RL+phi_rl',
         'short_name': 'M5',
-        'params': ['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'kappa', 'phi_rl', 'epsilon'],
-        'n_params': 8,
+        'params': ['alpha', 'phi', 'rho', 'capacity', 'kappa', 'phi_rl', 'epsilon'],
+        'n_params': 7,
         'is_choice_only': True,
         'has_wm': True,
         'csv_filename': 'wmrl_m5_individual_fits.csv',
@@ -260,8 +260,8 @@ MODEL_REGISTRY: dict[str, dict] = {
     'wmrl_m6a': {
         'display_name': 'M6a: WM-RL+kappa_s',
         'short_name': 'M6a',
-        'params': ['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'kappa_s', 'epsilon'],
-        'n_params': 7,
+        'params': ['alpha', 'phi', 'rho', 'capacity', 'kappa_s', 'epsilon'],
+        'n_params': 6,
         'is_choice_only': True,
         'has_wm': True,
         'csv_filename': 'wmrl_m6a_individual_fits.csv',
@@ -270,10 +270,10 @@ MODEL_REGISTRY: dict[str, dict] = {
         'display_name': 'M6b: WM-RL+dual',
         'short_name': 'M6b',
         'params': [
-            'alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity',
+            'alpha', 'phi', 'rho', 'capacity',
             'kappa_total', 'kappa_share', 'epsilon',
         ],
-        'n_params': 8,
+        'n_params': 7,
         'is_choice_only': True,
         'has_wm': True,
         'csv_filename': 'wmrl_m6b_individual_fits.csv',
@@ -282,10 +282,10 @@ MODEL_REGISTRY: dict[str, dict] = {
         'display_name': 'M4: RLWM-LBA',
         'short_name': 'M4',
         'params': [
-            'alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'kappa',
+            'alpha', 'phi', 'rho', 'capacity', 'kappa',
             'v_scale', 'A', 'delta', 't0',
         ],
-        'n_params': 10,
+        'n_params': 9,
         'is_choice_only': False,  # Joint choice + RT; AIC not comparable to choice-only
         'has_wm': True,
         'csv_filename': 'wmrl_m4_individual_fits.csv',
@@ -328,8 +328,7 @@ _KAPPA_FAMILY_BOUNDS: dict[str, dict[str, tuple[float, float]]] = {
 }
 
 _STATIC_PARAM_BOUNDS: dict[str, tuple[float, float]] = {
-    "alpha_pos": (0.0, 1.0),
-    "alpha_neg": (0.0, 1.0),
+    "alpha": (0.0, 1.0),  # Single learning rate (Phase 33: alpha_neg dropped)
     "epsilon": (0.0, 1.0),
     "phi": (0.0, 1.0),
     "rho": (0.0, 1.0),

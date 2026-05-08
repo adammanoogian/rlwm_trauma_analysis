@@ -86,8 +86,7 @@ SHORT_NAME_BY_MODEL: dict[str, str] = {
 
 # Parameters from the M6b winning model to compare across winner groups.
 M6B_PARAMETER_COLUMNS: list[str] = [
-    "alpha_pos",
-    "alpha_neg",
+    "alpha",
     "phi",
     "rho",
     "capacity",

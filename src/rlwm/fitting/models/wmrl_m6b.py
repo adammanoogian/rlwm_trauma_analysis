@@ -92,7 +92,7 @@ def wmrl_m6b_fully_batched_likelihood(
             "wmrl_m6b_fully_batched_likelihood: use_pscan=True is not supported."
         )
 
-    def _block_ll(stim, act, rew, ss, mask, ap, an, ph, rh, cap, k, ks, e):
+    def _block_ll(stim, act, rew, ss, mask, ap, ph, rh, cap, k, ks, e):
         return wmrl_m6b_block_likelihood(
             stimuli=stim,
             actions=act,
@@ -116,18 +116,18 @@ def wmrl_m6b_fully_batched_likelihood(
 
     _over_blocks = jax.vmap(
         _block_ll,
-        in_axes=(0, 0, 0, 0, 0, None, None, None, None, None, None, None, None),
+        in_axes=(0, 0, 0, 0, 0, None, None, None, None, None, None, None),
         out_axes=0,
     )
 
-    def _participant_ll(stim, act, rew, ss, mask, ap, an, ph, rh, cap, k, ks, e):
+    def _participant_ll(stim, act, rew, ss, mask, ap, ph, rh, cap, k, ks, e):
         return _over_blocks(
-            stim, act, rew, ss, mask, ap, an, ph, rh, cap, k, ks, e,
+            stim, act, rew, ss, mask, ap, ph, rh, cap, k, ks, e,
         ).sum()
 
     _over_participants = jax.vmap(
         _participant_ll,
-        in_axes=(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+        in_axes=(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
         out_axes=0,
     )
     return _over_participants(
@@ -1147,7 +1147,7 @@ def wmrl_m6b_hierarchical_model(
     # Uses hBayesDM non-centered convention locked in Phase 13.
     # ------------------------------------------------------------------
     sampled: dict[str, jnp.ndarray] = {}
-    for param in ["alpha", "alpha", "phi", "rho", "capacity", "epsilon"]:
+    for param in ["alpha", "phi", "rho", "capacity", "epsilon"]:
         defaults = PARAM_PRIOR_DEFAULTS[param]
         sampled[param] = sample_bounded_param(
             param,

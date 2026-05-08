@@ -3,7 +3,7 @@
 Per Baribault & Collins (2023) gate 3 and Hess et al. (2025) stage 4, this
 script validates that identifiable parameters (the kappa family) recover
 with Pearson r >= 0.80 and 95% HDI coverage >= 0.90 under hierarchical
-Bayesian inference.  Non-identifiable parameters (alpha_pos, alpha_neg,
+Bayesian inference.  Non-identifiable parameters (alpha,
 phi, rho, capacity, epsilon) are labelled ``"descriptive only"`` in the
 output — they match the MLE recovery findings (quick-005: r = 0.21 to
 0.77) and serve only as individual-level descriptors.

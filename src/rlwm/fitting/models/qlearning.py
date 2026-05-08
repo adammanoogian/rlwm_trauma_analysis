@@ -644,7 +644,7 @@ def q_learning_fully_batched_likelihood(
             "Issue 1 rollout.  Pass use_pscan=False."
         )
 
-    def _block_ll(stim, act, rew, mask, ap, an, e):
+    def _block_ll(stim, act, rew, mask, ap, e):
         # Scalar log-lik for a single (participant, block).
         return q_learning_block_likelihood(
             stimuli=stim,
@@ -662,18 +662,18 @@ def q_learning_fully_batched_likelihood(
     # Inner vmap: over blocks.  Data args on axis 0, params broadcast (None).
     _over_blocks = jax.vmap(
         _block_ll,
-        in_axes=(0, 0, 0, 0, None, None, None),
+        in_axes=(0, 0, 0, 0, None, None),
         out_axes=0,
     )
 
-    def _participant_ll(stim, act, rew, mask, ap, an, e):
-        block_lls = _over_blocks(stim, act, rew, mask, ap, an, e)
+    def _participant_ll(stim, act, rew, mask, ap, e):
+        block_lls = _over_blocks(stim, act, rew, mask, ap, e)
         return block_lls.sum()
 
     # Outer vmap: over participants.  Everything on axis 0.
     _over_participants = jax.vmap(
         _participant_ll,
-        in_axes=(0, 0, 0, 0, 0, 0, 0),
+        in_axes=(0, 0, 0, 0, 0, 0),
         out_axes=0,
     )
     return _over_participants(

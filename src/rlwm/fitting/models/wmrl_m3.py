@@ -630,7 +630,7 @@ def wmrl_m3_fully_batched_likelihood(
 
     def _block_ll(
         stim, act, rew, ss, mask,
-        ap, an, ph, rh, cap, k, e,
+        ap, ph, rh, cap, k, e,
     ):
         # Scalar log-lik for a single (participant, block).
         return wmrl_m3_block_likelihood(
@@ -656,23 +656,23 @@ def wmrl_m3_fully_batched_likelihood(
     # Inner vmap: over blocks. Data args on axis 0, params broadcast (None).
     _over_blocks = jax.vmap(
         _block_ll,
-        in_axes=(0, 0, 0, 0, 0, None, None, None, None, None, None, None),
+        in_axes=(0, 0, 0, 0, 0, None, None, None, None, None, None),
         out_axes=0,
     )
 
     def _participant_ll(
         stim, act, rew, ss, mask,
-        ap, an, ph, rh, cap, k, e,
+        ap, ph, rh, cap, k, e,
     ):
         block_lls = _over_blocks(
-            stim, act, rew, ss, mask, ap, an, ph, rh, cap, k, e,
+            stim, act, rew, ss, mask, ap, ph, rh, cap, k, e,
         )
         return block_lls.sum()
 
     # Outer vmap: over participants. Everything on axis 0.
     _over_participants = jax.vmap(
         _participant_ll,
-        in_axes=(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+        in_axes=(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
         out_axes=0,
     )
     return _over_participants(
@@ -1141,7 +1141,7 @@ def wmrl_m3_hierarchical_model(
     # Uses hBayesDM non-centered convention locked in Phase 13.
     # ------------------------------------------------------------------
     sampled: dict[str, jnp.ndarray] = {}
-    for param in ["alpha", "alpha", "phi", "rho", "capacity", "epsilon"]:
+    for param in ["alpha", "phi", "rho", "capacity", "epsilon"]:
         defaults = PARAM_PRIOR_DEFAULTS[param]
         sampled[param] = sample_bounded_param(
             param,

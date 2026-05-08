@@ -29,15 +29,13 @@ from scipy.stats import qmc
 
 # Q-Learning parameter bounds
 QLEARNING_BOUNDS = {
-    "alpha_pos": (0.001, 0.999),  # Positive learning rate
-    "alpha_neg": (0.001, 0.999),  # Negative learning rate
+    "alpha": (0.001, 0.999,),  # Single learning rate (Phase 33)
     "epsilon": (0.001, 0.999),  # Noise parameter
 }
 
 # WM-RL parameter bounds
 WMRL_BOUNDS = {
-    "alpha_pos": (0.001, 0.999),
-    "alpha_neg": (0.001, 0.999),
+    "alpha": (0.001, 0.999,),
     "phi": (0.001, 0.999),  # WM decay rate
     "rho": (0.001, 0.999),  # Base WM reliance
     "capacity": (2.0, 6.0),  # WM capacity (K); [2,6] per K-01 identifiability analysis
@@ -46,8 +44,7 @@ WMRL_BOUNDS = {
 
 # WM-RL M3 parameter bounds (includes kappa perseveration)
 WMRL_M3_BOUNDS = {
-    "alpha_pos": (0.001, 0.999),
-    "alpha_neg": (0.001, 0.999),
+    "alpha": (0.001, 0.999,),
     "phi": (0.001, 0.999),
     "rho": (0.001, 0.999),
     "capacity": (2.0, 6.0),
@@ -57,8 +54,7 @@ WMRL_M3_BOUNDS = {
 
 # WM-RL M5 parameter bounds (M3 + phi_rl RL forgetting)
 WMRL_M5_BOUNDS = {
-    "alpha_pos": (0.001, 0.999),
-    "alpha_neg": (0.001, 0.999),
+    "alpha": (0.001, 0.999,),
     "phi": (0.001, 0.999),
     "rho": (0.001, 0.999),
     "capacity": (2.0, 6.0),
@@ -72,8 +68,7 @@ WMRL_M5_BOUNDS = {
 
 # WM-RL M6a parameter bounds (M3 with per-stimulus perseveration; kappa_s replaces kappa)
 WMRL_M6A_BOUNDS = {
-    "alpha_pos": (0.001, 0.999),
-    "alpha_neg": (0.001, 0.999),
+    "alpha": (0.001, 0.999,),
     "phi": (0.001, 0.999),
     "rho": (0.001, 0.999),
     "capacity": (2.0, 6.0),
@@ -83,8 +78,7 @@ WMRL_M6A_BOUNDS = {
 
 # WM-RL M6b parameter bounds (dual perseveration: global + stimulus-specific via stick-breaking)
 WMRL_M6B_BOUNDS = {
-    "alpha_pos": (0.001, 0.999),
-    "alpha_neg": (0.001, 0.999),
+    "alpha": (0.001, 0.999,),
     "phi": (0.001, 0.999),
     "rho": (0.001, 0.999),
     "capacity": (2.0, 6.0),
@@ -102,8 +96,7 @@ WMRL_M6B_BOUNDS = {
 # WM-RL M4 parameter bounds (M3 learning + LBA decision; NO epsilon)
 # b = A + delta reparameterization enforced in objective functions (not here)
 WMRL_M4_BOUNDS = {
-    "alpha_pos": (0.001, 0.999),
-    "alpha_neg": (0.001, 0.999),
+    "alpha": (0.001, 0.999,),
     "phi": (0.001, 0.999),
     "rho": (0.001, 0.999),
     "capacity": (2.0, 6.0),
@@ -115,13 +108,12 @@ WMRL_M4_BOUNDS = {
 }
 
 # Parameter names in order (for array-dict conversion)
-QLEARNING_PARAMS = ["alpha_pos", "alpha_neg", "epsilon"]
-WMRL_PARAMS = ["alpha_pos", "alpha_neg", "phi", "rho", "capacity", "epsilon"]
+QLEARNING_PARAMS = ["alpha", "epsilon"]
+WMRL_PARAMS = ["alpha", "phi", "rho", "capacity", "epsilon"]
 # CRITICAL: Order must match wmrl_m3_multiblock_likelihood() signature
-# Signature: alpha_pos, alpha_neg, phi, rho, capacity, kappa, epsilon
+# Signature: alpha, phi, rho, capacity, kappa, epsilon
 WMRL_M3_PARAMS = [
-    "alpha_pos",
-    "alpha_neg",
+    "alpha",
     "phi",
     "rho",
     "capacity",
@@ -129,10 +121,9 @@ WMRL_M3_PARAMS = [
     "epsilon",
 ]
 # CRITICAL: Order must match wmrl_m5_multiblock_likelihood() signature
-# Signature: alpha_pos, alpha_neg, phi, rho, capacity, kappa, phi_rl, epsilon
+# Signature: alpha, phi, rho, capacity, kappa, phi_rl, epsilon
 WMRL_M5_PARAMS = [
-    "alpha_pos",
-    "alpha_neg",
+    "alpha",
     "phi",
     "rho",
     "capacity",
@@ -141,10 +132,9 @@ WMRL_M5_PARAMS = [
     "epsilon",
 ]
 # CRITICAL: Order must match wmrl_m6a_multiblock_likelihood() signature
-# Signature: alpha_pos, alpha_neg, phi, rho, capacity, kappa_s, epsilon
+# Signature: alpha, phi, rho, capacity, kappa_s, epsilon
 WMRL_M6A_PARAMS = [
-    "alpha_pos",
-    "alpha_neg",
+    "alpha",
     "phi",
     "rho",
     "capacity",
@@ -152,11 +142,10 @@ WMRL_M6A_PARAMS = [
     "epsilon",
 ]
 # CRITICAL: Order must match wmrl_m6b_multiblock_likelihood() objective decode order
-# Signature (decoded): alpha_pos, alpha_neg, phi, rho, capacity, kappa_total, kappa_share, epsilon
+# Signature (decoded): alpha, phi, rho, capacity, kappa_total, kappa_share, epsilon
 # Objective decodes: kappa = kappa_total * kappa_share; kappa_s = kappa_total * (1 - kappa_share)
 WMRL_M6B_PARAMS = [
-    "alpha_pos",
-    "alpha_neg",
+    "alpha",
     "phi",
     "rho",
     "capacity",
@@ -168,8 +157,7 @@ WMRL_M6B_PARAMS = [
 # kappa at index 5; v_scale at index 6; A at index 7; delta at index 8; t0 at index 9
 # NO epsilon. b = A + delta decoded in objective functions.
 WMRL_M4_PARAMS = [
-    "alpha_pos",
-    "alpha_neg",
+    "alpha",
     "phi",
     "rho",
     "capacity",
@@ -258,29 +246,29 @@ def jax_unconstrained_to_params_qlearning(x: jnp.ndarray) -> tuple:
     """
     JAX-compatible parameter transformation for Q-learning.
 
-    Returns tuple (alpha_pos, alpha_neg, epsilon) for direct use in likelihood.
+    Returns tuple (alpha, epsilon) for direct use in likelihood.
+    x[0]=alpha, x[1]=epsilon (2 params; Phase 33: alpha_neg dropped).
     """
     bounds = QLEARNING_BOUNDS
-    alpha_pos = jax_unbounded_to_bounded(x[0], *bounds["alpha_pos"])
-    alpha_neg = jax_unbounded_to_bounded(x[1], *bounds["alpha_neg"])
-    epsilon = jax_unbounded_to_bounded(x[2], *bounds["epsilon"])
-    return alpha_pos, alpha_neg, epsilon
+    alpha = jax_unbounded_to_bounded(x[0], *bounds["alpha"])
+    epsilon = jax_unbounded_to_bounded(x[1], *bounds["epsilon"])
+    return alpha, epsilon
 
 
 def jax_unconstrained_to_params_wmrl(x: jnp.ndarray) -> tuple:
     """
     JAX-compatible parameter transformation for WM-RL.
 
-    Returns tuple (alpha_pos, alpha_neg, phi, rho, capacity, epsilon) for direct use.
+    Returns tuple (alpha, phi, rho, capacity, epsilon) for direct use.
+    x[0]=alpha, x[1]=phi, x[2]=rho, x[3]=capacity, x[4]=epsilon (5 params).
     """
     bounds = WMRL_BOUNDS
-    alpha_pos = jax_unbounded_to_bounded(x[0], *bounds["alpha_pos"])
-    alpha_neg = jax_unbounded_to_bounded(x[1], *bounds["alpha_neg"])
-    phi = jax_unbounded_to_bounded(x[2], *bounds["phi"])
-    rho = jax_unbounded_to_bounded(x[3], *bounds["rho"])
-    capacity = jax_unbounded_to_bounded(x[4], *bounds["capacity"])
-    epsilon = jax_unbounded_to_bounded(x[5], *bounds["epsilon"])
-    return alpha_pos, alpha_neg, phi, rho, capacity, epsilon
+    alpha = jax_unbounded_to_bounded(x[0], *bounds["alpha"])
+    phi = jax_unbounded_to_bounded(x[1], *bounds["phi"])
+    rho = jax_unbounded_to_bounded(x[2], *bounds["rho"])
+    capacity = jax_unbounded_to_bounded(x[3], *bounds["capacity"])
+    epsilon = jax_unbounded_to_bounded(x[4], *bounds["epsilon"])
+    return alpha, phi, rho, capacity, epsilon
 
 
 def jax_unconstrained_to_params_wmrl_m3(
@@ -289,7 +277,7 @@ def jax_unconstrained_to_params_wmrl_m3(
     """
     JAX-compatible parameter transformation for WM-RL M3.
 
-    Returns tuple (alpha_pos, alpha_neg, phi, rho, capacity, kappa, epsilon) for direct use.
+    Returns tuple (alpha, phi, rho, capacity, kappa, epsilon) for direct use.
 
     Phase 32-04: kappa bounds depend on ``kappa_parameterization``.
     Default ``"softmax"`` => kappa in [-1, 1] (Collins 2025);
@@ -297,14 +285,13 @@ def jax_unconstrained_to_params_wmrl_m3(
     """
     bounds = WMRL_M3_BOUNDS
     kappa_lo, kappa_hi = _kappa_bounds(kappa_parameterization)
-    alpha_pos = jax_unbounded_to_bounded(x[0], *bounds["alpha_pos"])
-    alpha_neg = jax_unbounded_to_bounded(x[1], *bounds["alpha_neg"])
-    phi = jax_unbounded_to_bounded(x[2], *bounds["phi"])
-    rho = jax_unbounded_to_bounded(x[3], *bounds["rho"])
-    capacity = jax_unbounded_to_bounded(x[4], *bounds["capacity"])
-    kappa = jax_unbounded_to_bounded(x[5], kappa_lo, kappa_hi)
-    epsilon = jax_unbounded_to_bounded(x[6], *bounds["epsilon"])
-    return alpha_pos, alpha_neg, phi, rho, capacity, kappa, epsilon
+    alpha = jax_unbounded_to_bounded(x[0], *bounds["alpha"])
+    phi = jax_unbounded_to_bounded(x[1], *bounds["phi"])
+    rho = jax_unbounded_to_bounded(x[2], *bounds["rho"])
+    capacity = jax_unbounded_to_bounded(x[3], *bounds["capacity"])
+    kappa = jax_unbounded_to_bounded(x[4], kappa_lo, kappa_hi)
+    epsilon = jax_unbounded_to_bounded(x[5], *bounds["epsilon"])
+    return alpha, phi, rho, capacity, kappa, epsilon
 
 
 # =============================================================================
@@ -329,15 +316,14 @@ def jax_bounded_to_unconstrained_qlearning(x: jnp.ndarray) -> jnp.ndarray:
     Transform bounded Q-learning params to unconstrained space (JAX-compatible).
 
     Inverse of jax_unconstrained_to_params_qlearning.
-    Input: array of shape (3,) with [alpha_pos, alpha_neg, epsilon] in bounded space.
-    Output: array of shape (3,) in unconstrained space.
+    Input: array of shape (2,) with [alpha, epsilon] in bounded space.
+    Output: array of shape (2,) in unconstrained space.
     """
     bounds = QLEARNING_BOUNDS
     return jnp.array(
         [
-            jax_bounded_to_unbounded(x[0], *bounds["alpha_pos"]),
-            jax_bounded_to_unbounded(x[1], *bounds["alpha_neg"]),
-            jax_bounded_to_unbounded(x[2], *bounds["epsilon"]),
+            jax_bounded_to_unbounded(x[0], *bounds["alpha"]),
+            jax_bounded_to_unbounded(x[1], *bounds["epsilon"]),
         ]
     )
 
@@ -347,18 +333,17 @@ def jax_bounded_to_unconstrained_wmrl(x: jnp.ndarray) -> jnp.ndarray:
     Transform bounded WM-RL params to unconstrained space (JAX-compatible).
 
     Inverse of jax_unconstrained_to_params_wmrl.
-    Input: array of shape (6,) in bounded space.
+    Input: array of shape (5,) in bounded space.
     Output: array of shape (6,) in unconstrained space.
     """
     bounds = WMRL_BOUNDS
     return jnp.array(
         [
-            jax_bounded_to_unbounded(x[0], *bounds["alpha_pos"]),
-            jax_bounded_to_unbounded(x[1], *bounds["alpha_neg"]),
-            jax_bounded_to_unbounded(x[2], *bounds["phi"]),
-            jax_bounded_to_unbounded(x[3], *bounds["rho"]),
-            jax_bounded_to_unbounded(x[4], *bounds["capacity"]),
-            jax_bounded_to_unbounded(x[5], *bounds["epsilon"]),
+            jax_bounded_to_unbounded(x[0], *bounds["alpha"]),
+            jax_bounded_to_unbounded(x[1], *bounds["phi"]),
+            jax_bounded_to_unbounded(x[2], *bounds["rho"]),
+            jax_bounded_to_unbounded(x[3], *bounds["capacity"]),
+            jax_bounded_to_unbounded(x[4], *bounds["epsilon"]),
         ]
     )
 
@@ -368,19 +353,18 @@ def jax_bounded_to_unconstrained_wmrl_m3(x: jnp.ndarray) -> jnp.ndarray:
     Transform bounded WM-RL M3 params to unconstrained space (JAX-compatible).
 
     Inverse of jax_unconstrained_to_params_wmrl_m3.
-    Input: array of shape (7,) in bounded space.
+    Input: array of shape (6,) in bounded space.
     Output: array of shape (7,) in unconstrained space.
     """
     bounds = WMRL_M3_BOUNDS
     return jnp.array(
         [
-            jax_bounded_to_unbounded(x[0], *bounds["alpha_pos"]),
-            jax_bounded_to_unbounded(x[1], *bounds["alpha_neg"]),
-            jax_bounded_to_unbounded(x[2], *bounds["phi"]),
-            jax_bounded_to_unbounded(x[3], *bounds["rho"]),
-            jax_bounded_to_unbounded(x[4], *bounds["capacity"]),
-            jax_bounded_to_unbounded(x[5], *bounds["kappa"]),
-            jax_bounded_to_unbounded(x[6], *bounds["epsilon"]),
+            jax_bounded_to_unbounded(x[0], *bounds["alpha"]),
+            jax_bounded_to_unbounded(x[1], *bounds["phi"]),
+            jax_bounded_to_unbounded(x[2], *bounds["rho"]),
+            jax_bounded_to_unbounded(x[3], *bounds["capacity"]),
+            jax_bounded_to_unbounded(x[4], *bounds["kappa"]),
+            jax_bounded_to_unbounded(x[5], *bounds["epsilon"]),
         ]
     )
 
@@ -391,22 +375,21 @@ def jax_unconstrained_to_params_wmrl_m5(
     """
     JAX-compatible parameter transformation for WM-RL M5.
 
-    Returns tuple (alpha_pos, alpha_neg, phi, rho, capacity, kappa, phi_rl, epsilon) for direct use.
+    Returns tuple (alpha, phi, rho, capacity, kappa, phi_rl, epsilon) for direct use.
     x[0..5] same as M3. x[6] = phi_rl. x[7] = epsilon.
 
     Phase 32-04: kappa bounds depend on ``kappa_parameterization``.
     """
     bounds = WMRL_M5_BOUNDS
     kappa_lo, kappa_hi = _kappa_bounds(kappa_parameterization)
-    alpha_pos = jax_unbounded_to_bounded(x[0], *bounds["alpha_pos"])
-    alpha_neg = jax_unbounded_to_bounded(x[1], *bounds["alpha_neg"])
-    phi = jax_unbounded_to_bounded(x[2], *bounds["phi"])
-    rho = jax_unbounded_to_bounded(x[3], *bounds["rho"])
-    capacity = jax_unbounded_to_bounded(x[4], *bounds["capacity"])
-    kappa = jax_unbounded_to_bounded(x[5], kappa_lo, kappa_hi)
-    phi_rl = jax_unbounded_to_bounded(x[6], *bounds["phi_rl"])
-    epsilon = jax_unbounded_to_bounded(x[7], *bounds["epsilon"])
-    return alpha_pos, alpha_neg, phi, rho, capacity, kappa, phi_rl, epsilon
+    alpha = jax_unbounded_to_bounded(x[0], *bounds["alpha"])
+    phi = jax_unbounded_to_bounded(x[1], *bounds["phi"])
+    rho = jax_unbounded_to_bounded(x[2], *bounds["rho"])
+    capacity = jax_unbounded_to_bounded(x[3], *bounds["capacity"])
+    kappa = jax_unbounded_to_bounded(x[4], kappa_lo, kappa_hi)
+    phi_rl = jax_unbounded_to_bounded(x[5], *bounds["phi_rl"])
+    epsilon = jax_unbounded_to_bounded(x[6], *bounds["epsilon"])
+    return alpha, phi, rho, capacity, kappa, phi_rl, epsilon
 
 
 def jax_bounded_to_unconstrained_wmrl_m5(x: jnp.ndarray) -> jnp.ndarray:
@@ -414,20 +397,19 @@ def jax_bounded_to_unconstrained_wmrl_m5(x: jnp.ndarray) -> jnp.ndarray:
     Transform bounded WM-RL M5 params to unconstrained space (JAX-compatible).
 
     Inverse of jax_unconstrained_to_params_wmrl_m5.
-    Input: array of shape (8,) in bounded space.
+    Input: array of shape (7,) in bounded space.
     Output: array of shape (8,) in unconstrained space.
     """
     bounds = WMRL_M5_BOUNDS
     return jnp.array(
         [
-            jax_bounded_to_unbounded(x[0], *bounds["alpha_pos"]),
-            jax_bounded_to_unbounded(x[1], *bounds["alpha_neg"]),
-            jax_bounded_to_unbounded(x[2], *bounds["phi"]),
-            jax_bounded_to_unbounded(x[3], *bounds["rho"]),
-            jax_bounded_to_unbounded(x[4], *bounds["capacity"]),
-            jax_bounded_to_unbounded(x[5], *bounds["kappa"]),
-            jax_bounded_to_unbounded(x[6], *bounds["phi_rl"]),
-            jax_bounded_to_unbounded(x[7], *bounds["epsilon"]),
+            jax_bounded_to_unbounded(x[0], *bounds["alpha"]),
+            jax_bounded_to_unbounded(x[1], *bounds["phi"]),
+            jax_bounded_to_unbounded(x[2], *bounds["rho"]),
+            jax_bounded_to_unbounded(x[3], *bounds["capacity"]),
+            jax_bounded_to_unbounded(x[4], *bounds["kappa"]),
+            jax_bounded_to_unbounded(x[5], *bounds["phi_rl"]),
+            jax_bounded_to_unbounded(x[6], *bounds["epsilon"]),
         ]
     )
 
@@ -438,7 +420,7 @@ def jax_unconstrained_to_params_wmrl_m6a(
     """
     JAX-compatible parameter transformation for WM-RL M6a.
 
-    Returns tuple (alpha_pos, alpha_neg, phi, rho, capacity, kappa_s, epsilon).
+    Returns tuple (alpha, phi, rho, capacity, kappa_s, epsilon).
     x[0..4] same as M3. x[5] = kappa_s. x[6] = epsilon.
     7 parameters total (same count as M3; kappa_s replaces kappa).
 
@@ -446,14 +428,13 @@ def jax_unconstrained_to_params_wmrl_m6a(
     """
     bounds = WMRL_M6A_BOUNDS
     kappa_lo, kappa_hi = _kappa_bounds(kappa_parameterization)
-    alpha_pos = jax_unbounded_to_bounded(x[0], *bounds["alpha_pos"])
-    alpha_neg = jax_unbounded_to_bounded(x[1], *bounds["alpha_neg"])
-    phi = jax_unbounded_to_bounded(x[2], *bounds["phi"])
-    rho = jax_unbounded_to_bounded(x[3], *bounds["rho"])
-    capacity = jax_unbounded_to_bounded(x[4], *bounds["capacity"])
-    kappa_s = jax_unbounded_to_bounded(x[5], kappa_lo, kappa_hi)
-    epsilon = jax_unbounded_to_bounded(x[6], *bounds["epsilon"])
-    return alpha_pos, alpha_neg, phi, rho, capacity, kappa_s, epsilon
+    alpha = jax_unbounded_to_bounded(x[0], *bounds["alpha"])
+    phi = jax_unbounded_to_bounded(x[1], *bounds["phi"])
+    rho = jax_unbounded_to_bounded(x[2], *bounds["rho"])
+    capacity = jax_unbounded_to_bounded(x[3], *bounds["capacity"])
+    kappa_s = jax_unbounded_to_bounded(x[4], kappa_lo, kappa_hi)
+    epsilon = jax_unbounded_to_bounded(x[5], *bounds["epsilon"])
+    return alpha, phi, rho, capacity, kappa_s, epsilon
 
 
 def jax_bounded_to_unconstrained_wmrl_m6a(x: jnp.ndarray) -> jnp.ndarray:
@@ -461,19 +442,18 @@ def jax_bounded_to_unconstrained_wmrl_m6a(x: jnp.ndarray) -> jnp.ndarray:
     Transform bounded WM-RL M6a params to unconstrained space (JAX-compatible).
 
     Inverse of jax_unconstrained_to_params_wmrl_m6a.
-    Input: array of shape (7,) in bounded space.
+    Input: array of shape (6,) in bounded space.
     Output: array of shape (7,) in unconstrained space.
     """
     bounds = WMRL_M6A_BOUNDS
     return jnp.array(
         [
-            jax_bounded_to_unbounded(x[0], *bounds["alpha_pos"]),
-            jax_bounded_to_unbounded(x[1], *bounds["alpha_neg"]),
-            jax_bounded_to_unbounded(x[2], *bounds["phi"]),
-            jax_bounded_to_unbounded(x[3], *bounds["rho"]),
-            jax_bounded_to_unbounded(x[4], *bounds["capacity"]),
-            jax_bounded_to_unbounded(x[5], *bounds["kappa_s"]),
-            jax_bounded_to_unbounded(x[6], *bounds["epsilon"]),
+            jax_bounded_to_unbounded(x[0], *bounds["alpha"]),
+            jax_bounded_to_unbounded(x[1], *bounds["phi"]),
+            jax_bounded_to_unbounded(x[2], *bounds["rho"]),
+            jax_bounded_to_unbounded(x[3], *bounds["capacity"]),
+            jax_bounded_to_unbounded(x[4], *bounds["kappa_s"]),
+            jax_bounded_to_unbounded(x[5], *bounds["epsilon"]),
         ]
     )
 
@@ -484,7 +464,7 @@ def jax_unconstrained_to_params_wmrl_m6b(
     """
     JAX-compatible parameter transformation for WM-RL M6b.
 
-    Returns tuple (alpha_pos, alpha_neg, phi, rho, capacity, kappa_total, kappa_share, epsilon).
+    Returns tuple (alpha, phi, rho, capacity, kappa_total, kappa_share, epsilon).
     x[0..4] same as M3/M6a. x[5] = kappa_total (total perseveration budget).
     x[6] = kappa_share (fraction allocated to global kernel). x[7] = epsilon.
     8 parameters total.
@@ -498,15 +478,14 @@ def jax_unconstrained_to_params_wmrl_m6b(
     """
     bounds = WMRL_M6B_BOUNDS
     kappa_lo, kappa_hi = _kappa_bounds(kappa_parameterization)
-    alpha_pos = jax_unbounded_to_bounded(x[0], *bounds["alpha_pos"])
-    alpha_neg = jax_unbounded_to_bounded(x[1], *bounds["alpha_neg"])
-    phi = jax_unbounded_to_bounded(x[2], *bounds["phi"])
-    rho = jax_unbounded_to_bounded(x[3], *bounds["rho"])
-    capacity = jax_unbounded_to_bounded(x[4], *bounds["capacity"])
-    kappa_total = jax_unbounded_to_bounded(x[5], kappa_lo, kappa_hi)
-    kappa_share = jax_unbounded_to_bounded(x[6], *bounds["kappa_share"])
-    epsilon = jax_unbounded_to_bounded(x[7], *bounds["epsilon"])
-    return alpha_pos, alpha_neg, phi, rho, capacity, kappa_total, kappa_share, epsilon
+    alpha = jax_unbounded_to_bounded(x[0], *bounds["alpha"])
+    phi = jax_unbounded_to_bounded(x[1], *bounds["phi"])
+    rho = jax_unbounded_to_bounded(x[2], *bounds["rho"])
+    capacity = jax_unbounded_to_bounded(x[3], *bounds["capacity"])
+    kappa_total = jax_unbounded_to_bounded(x[4], kappa_lo, kappa_hi)
+    kappa_share = jax_unbounded_to_bounded(x[5], *bounds["kappa_share"])
+    epsilon = jax_unbounded_to_bounded(x[6], *bounds["epsilon"])
+    return alpha, phi, rho, capacity, kappa_total, kappa_share, epsilon
 
 
 def jax_bounded_to_unconstrained_wmrl_m6b(x: jnp.ndarray) -> jnp.ndarray:
@@ -514,20 +493,19 @@ def jax_bounded_to_unconstrained_wmrl_m6b(x: jnp.ndarray) -> jnp.ndarray:
     Transform bounded WM-RL M6b params to unconstrained space (JAX-compatible).
 
     Inverse of jax_unconstrained_to_params_wmrl_m6b.
-    Input: array of shape (8,) in bounded space [kappa_total, kappa_share at index 5, 6].
-    Output: array of shape (8,) in unconstrained space.
+    Input: array of shape (7,) in bounded space (alpha, phi, rho, cap, kt, ks, eps).
+    Output: array of shape (7,) in unconstrained space.
     """
     bounds = WMRL_M6B_BOUNDS
     return jnp.array(
         [
-            jax_bounded_to_unbounded(x[0], *bounds["alpha_pos"]),
-            jax_bounded_to_unbounded(x[1], *bounds["alpha_neg"]),
-            jax_bounded_to_unbounded(x[2], *bounds["phi"]),
-            jax_bounded_to_unbounded(x[3], *bounds["rho"]),
-            jax_bounded_to_unbounded(x[4], *bounds["capacity"]),
-            jax_bounded_to_unbounded(x[5], *bounds["kappa_total"]),
-            jax_bounded_to_unbounded(x[6], *bounds["kappa_share"]),
-            jax_bounded_to_unbounded(x[7], *bounds["epsilon"]),
+            jax_bounded_to_unbounded(x[0], *bounds["alpha"]),
+            jax_bounded_to_unbounded(x[1], *bounds["phi"]),
+            jax_bounded_to_unbounded(x[2], *bounds["rho"]),
+            jax_bounded_to_unbounded(x[3], *bounds["capacity"]),
+            jax_bounded_to_unbounded(x[4], *bounds["kappa_total"]),
+            jax_bounded_to_unbounded(x[5], *bounds["kappa_share"]),
+            jax_bounded_to_unbounded(x[6], *bounds["epsilon"]),
         ]
     )
 
@@ -538,7 +516,7 @@ def jax_unconstrained_to_params_wmrl_m4(
     """
     JAX-compatible parameter transformation for WM-RL M4.
 
-    Returns tuple (alpha_pos, alpha_neg, phi, rho, capacity, kappa, v_scale, A, delta, t0).
+    Returns tuple (alpha, phi, rho, capacity, kappa, v_scale, A, delta, t0).
     x[0..4] same as M3. x[5] = kappa. x[6] = v_scale. x[7] = A. x[8] = delta. x[9] = t0.
     10 parameters total. NO epsilon.
 
@@ -549,17 +527,16 @@ def jax_unconstrained_to_params_wmrl_m4(
     """
     bounds = WMRL_M4_BOUNDS
     kappa_lo, kappa_hi = _kappa_bounds(kappa_parameterization)
-    alpha_pos = jax_unbounded_to_bounded(x[0], *bounds["alpha_pos"])
-    alpha_neg = jax_unbounded_to_bounded(x[1], *bounds["alpha_neg"])
-    phi = jax_unbounded_to_bounded(x[2], *bounds["phi"])
-    rho = jax_unbounded_to_bounded(x[3], *bounds["rho"])
-    capacity = jax_unbounded_to_bounded(x[4], *bounds["capacity"])
-    kappa = jax_unbounded_to_bounded(x[5], kappa_lo, kappa_hi)
-    v_scale = jax_unbounded_to_bounded(x[6], *bounds["v_scale"])
-    A = jax_unbounded_to_bounded(x[7], *bounds["A"])
-    delta = jax_unbounded_to_bounded(x[8], *bounds["delta"])
-    t0 = jax_unbounded_to_bounded(x[9], *bounds["t0"])
-    return alpha_pos, alpha_neg, phi, rho, capacity, kappa, v_scale, A, delta, t0
+    alpha = jax_unbounded_to_bounded(x[0], *bounds["alpha"])
+    phi = jax_unbounded_to_bounded(x[1], *bounds["phi"])
+    rho = jax_unbounded_to_bounded(x[2], *bounds["rho"])
+    capacity = jax_unbounded_to_bounded(x[3], *bounds["capacity"])
+    kappa = jax_unbounded_to_bounded(x[4], kappa_lo, kappa_hi)
+    v_scale = jax_unbounded_to_bounded(x[5], *bounds["v_scale"])
+    A = jax_unbounded_to_bounded(x[6], *bounds["A"])
+    delta = jax_unbounded_to_bounded(x[7], *bounds["delta"])
+    t0 = jax_unbounded_to_bounded(x[8], *bounds["t0"])
+    return alpha, phi, rho, capacity, kappa, v_scale, A, delta, t0
 
 
 def jax_bounded_to_unconstrained_wmrl_m4(x: jnp.ndarray) -> jnp.ndarray:
@@ -567,22 +544,21 @@ def jax_bounded_to_unconstrained_wmrl_m4(x: jnp.ndarray) -> jnp.ndarray:
     Transform bounded WM-RL M4 params to unconstrained space (JAX-compatible).
 
     Inverse of jax_unconstrained_to_params_wmrl_m4.
-    Input: array of shape (10,) in bounded space [kappa at 5, v_scale at 6, A at 7, delta at 8, t0 at 9].
-    Output: array of shape (10,) in unconstrained space.
+    Input: array of shape (9,) in bounded space (alpha, phi, rho, cap, kappa, v_scale, A, delta, t0).
+    Output: array of shape (9,) in unconstrained space.
     """
     bounds = WMRL_M4_BOUNDS
     return jnp.array(
         [
-            jax_bounded_to_unbounded(x[0], *bounds["alpha_pos"]),
-            jax_bounded_to_unbounded(x[1], *bounds["alpha_neg"]),
-            jax_bounded_to_unbounded(x[2], *bounds["phi"]),
-            jax_bounded_to_unbounded(x[3], *bounds["rho"]),
-            jax_bounded_to_unbounded(x[4], *bounds["capacity"]),
-            jax_bounded_to_unbounded(x[5], *bounds["kappa"]),
-            jax_bounded_to_unbounded(x[6], *bounds["v_scale"]),
-            jax_bounded_to_unbounded(x[7], *bounds["A"]),
-            jax_bounded_to_unbounded(x[8], *bounds["delta"]),
-            jax_bounded_to_unbounded(x[9], *bounds["t0"]),
+            jax_bounded_to_unbounded(x[0], *bounds["alpha"]),
+            jax_bounded_to_unbounded(x[1], *bounds["phi"]),
+            jax_bounded_to_unbounded(x[2], *bounds["rho"]),
+            jax_bounded_to_unbounded(x[3], *bounds["capacity"]),
+            jax_bounded_to_unbounded(x[4], *bounds["kappa"]),
+            jax_bounded_to_unbounded(x[5], *bounds["v_scale"]),
+            jax_bounded_to_unbounded(x[6], *bounds["A"]),
+            jax_bounded_to_unbounded(x[7], *bounds["delta"]),
+            jax_bounded_to_unbounded(x[8], *bounds["t0"]),
         ]
     )
 
@@ -676,11 +652,10 @@ def unconstrained_to_params(x: np.ndarray, model: str) -> dict[str, float]:
 def get_default_params(model: str) -> dict[str, float]:
     """Get default starting parameters for a model."""
     if model == "qlearning":
-        return {"alpha_pos": 0.3, "alpha_neg": 0.1, "epsilon": 0.05}
+        return {"alpha": 0.3, "alpha": 0.1, "epsilon": 0.05}
     elif model == "wmrl":
         return {
-            "alpha_pos": 0.3,
-            "alpha_neg": 0.1,
+            "alpha": 0.3,
             "phi": 0.1,
             "rho": 0.7,
             "capacity": 4.0,
@@ -688,8 +663,7 @@ def get_default_params(model: str) -> dict[str, float]:
         }
     elif model == "wmrl_m3":
         return {
-            "alpha_pos": 0.3,
-            "alpha_neg": 0.1,
+            "alpha": 0.3,
             "phi": 0.1,
             "rho": 0.7,
             "capacity": 4.0,
@@ -698,8 +672,7 @@ def get_default_params(model: str) -> dict[str, float]:
         }
     elif model == "wmrl_m5":
         return {
-            "alpha_pos": 0.3,
-            "alpha_neg": 0.1,
+            "alpha": 0.3,
             "phi": 0.1,
             "rho": 0.7,
             "capacity": 4.0,
@@ -709,8 +682,7 @@ def get_default_params(model: str) -> dict[str, float]:
         }
     elif model == "wmrl_m6a":
         return {
-            "alpha_pos": 0.3,
-            "alpha_neg": 0.1,
+            "alpha": 0.3,
             "phi": 0.1,
             "rho": 0.7,
             "capacity": 4.0,
@@ -719,8 +691,7 @@ def get_default_params(model: str) -> dict[str, float]:
         }
     elif model == "wmrl_m6b":
         return {
-            "alpha_pos": 0.3,
-            "alpha_neg": 0.1,
+            "alpha": 0.3,
             "phi": 0.1,
             "rho": 0.7,
             "capacity": 4.0,
@@ -730,8 +701,7 @@ def get_default_params(model: str) -> dict[str, float]:
         }
     elif model == "wmrl_m4":
         return {
-            "alpha_pos": 0.3,
-            "alpha_neg": 0.1,
+            "alpha": 0.3,
             "phi": 0.1,
             "rho": 0.7,
             "capacity": 4.0,
@@ -896,23 +866,24 @@ def compute_aicc(nll: float, k: int, n: int) -> float:
 
 
 def get_n_params(model: str) -> int:
-    """Get number of free parameters for a model."""
+    """Get number of free parameters for a model.
+
+    Phase 33: alpha_neg dropped from all models. Counts updated.
+    """
     if model == "qlearning":
-        return 3  # alpha_pos, alpha_neg, epsilon
+        return 2  # alpha, epsilon
     elif model == "wmrl":
-        return 6  # alpha_pos, alpha_neg, phi, rho, capacity, epsilon
+        return 5  # alpha, phi, rho, capacity, epsilon
     elif model == "wmrl_m3":
-        return 7  # alpha_pos, alpha_neg, phi, rho, capacity, kappa, epsilon
+        return 6  # alpha, phi, rho, capacity, kappa, epsilon
     elif model == "wmrl_m5":
-        return 8  # alpha_pos, alpha_neg, phi, rho, capacity, kappa, phi_rl, epsilon
+        return 7  # alpha, phi, rho, capacity, kappa, phi_rl, epsilon
     elif model == "wmrl_m6a":
-        return 7  # alpha_pos, alpha_neg, phi, rho, capacity, kappa_s, epsilon
+        return 6  # alpha, phi, rho, capacity, kappa_s, epsilon
     elif model == "wmrl_m6b":
-        return 8  # alpha_pos, alpha_neg, phi, rho, capacity, kappa_total, kappa_share, epsilon
+        return 7  # alpha, phi, rho, capacity, kappa_total, kappa_share, epsilon
     elif model == "wmrl_m4":
-        return (
-            10  # alpha_pos, alpha_neg, phi, rho, capacity, kappa, v_scale, A, delta, t0
-        )
+        return 9  # alpha, phi, rho, capacity, kappa, v_scale, A, delta, t0
     else:
         raise ValueError(f"Unknown model: {model}")
 
@@ -1529,7 +1500,7 @@ if __name__ == "__main__":
 
     # Test transformations
     print("\n1. Testing parameter transformations:")
-    test_params_ql = {"alpha_pos": 0.3, "alpha_neg": 0.1, "epsilon": 0.05}
+    test_params_ql = {"alpha": 0.3, "alpha": 0.1, "epsilon": 0.05}
     x = params_to_unconstrained(test_params_ql, "qlearning")
     recovered = unconstrained_to_params(x, "qlearning")
     print(f"   Original: {test_params_ql}")
@@ -1562,7 +1533,7 @@ if __name__ == "__main__":
     # Test group statistics
     print("\n3. Testing group statistics:")
     fake_alpha_pos = np.array([0.25, 0.30, 0.35, 0.28, 0.32, 0.40, 0.22])
-    stats_result = compute_group_statistics(fake_alpha_pos, "alpha_pos")
+    stats_result = compute_group_statistics(fake_alpha_pos, "alpha")
     print(f"   Mean: {stats_result['mean']:.3f}")
     print(f"   SD: {stats_result['sd']:.3f}")
     print(f"   SE: {stats_result['se']:.3f}")

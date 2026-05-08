@@ -254,8 +254,7 @@ def sample_capacity(
 # ---------------------------------------------------------------------------
 
 PARAM_PRIOR_DEFAULTS: dict[str, dict] = {
-    "alpha_pos": {"lower": 0.0, "upper": 1.0, "mu_prior_loc": 0.0},
-    "alpha_neg": {"lower": 0.0, "upper": 1.0, "mu_prior_loc": 0.0},
+    "alpha": {"lower": 0.0, "upper": 1.0, "mu_prior_loc": 0.0},
     "epsilon": {"lower": 0.0, "upper": 1.0, "mu_prior_loc": -2.0},
     "phi": {"lower": 0.0, "upper": 1.0, "mu_prior_loc": 0.0},
     "rho": {"lower": 0.0, "upper": 1.0, "mu_prior_loc": 0.0},
@@ -338,8 +337,7 @@ KAPPA_FAMILY_PARAMS: set[str] = {"kappa", "kappa_s", "kappa_total"}
 # Use via `sample_bounded_param(..., mu_prior_loc=_PRIOR_LEGACY_MLE_CALIBRATED[p])`
 # when reproducing pre-v4.0-refactor fits.
 _PRIOR_LEGACY_MLE_CALIBRATED: dict[str, float] = {
-    "alpha_pos": 0.0,
-    "alpha_neg": 0.0,
+    "alpha": 0.0,
     "epsilon": -2.5,
     "phi": -0.8,
     "rho": 0.8,

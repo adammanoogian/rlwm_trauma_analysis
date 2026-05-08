@@ -187,8 +187,7 @@ def test_likelihood_compilation(
 
     # Test parameters (no beta - it's fixed at 50)
     test_params = {
-        "alpha_pos": 0.3,
-        "alpha_neg": 0.1,
+        "alpha": 0.3,
         "epsilon": 0.05,
     }
 
@@ -202,8 +201,7 @@ def test_likelihood_compilation(
         stimuli_blocks=pdata["stimuli_blocks"],
         actions_blocks=pdata["actions_blocks"],
         rewards_blocks=pdata["rewards_blocks"],
-        alpha_pos=test_params["alpha_pos"],
-        alpha_neg=test_params["alpha_neg"],
+        alpha=test_params["alpha"],
         epsilon=test_params["epsilon"],
         verbose=verbose,
         participant_id=str(first_pid),
@@ -272,7 +270,7 @@ def run_inference(
     ...     num_chains=2
     ... )
     >>> samples = mcmc.get_samples()
-    >>> print(samples['mu_alpha_pos'].mean())
+    >>> print(samples['mu_alpha'].mean())
     """
     # Test compilation first
     if test_compilation and "participant_data" in model_args:
@@ -494,7 +492,7 @@ def samples_to_arviz(mcmc: MCMC, data_df: pd.DataFrame | None = None) -> Any:
     >>> mcmc = run_inference(...)
     >>> idata = samples_to_arviz(mcmc, data_df)
     >>> import arviz as az
-    >>> az.plot_trace(idata, var_names=['mu_alpha_pos'])
+    >>> az.plot_trace(idata, var_names=['mu_alpha'])
     >>> az.summary(idata)
     """
     import arviz as az
@@ -527,18 +525,18 @@ def test_model_with_synthetic_data() -> MCMC:
     # True parameters (what we want to recover)
     # Note: beta is fixed at 50 (not estimated)
     true_params = {
-        "mu_alpha_pos": 0.6,
-        "mu_alpha_neg": 0.4,
+        "mu_alpha": 0.6,
+        "mu_alpha": 0.4,
         "mu_epsilon": 0.05,
         "participants": [
-            {"alpha_pos": 0.55, "alpha_neg": 0.35, "epsilon": 0.04},
-            {"alpha_pos": 0.65, "alpha_neg": 0.45, "epsilon": 0.06},
+            {"alpha": 0.55, "epsilon": 0.04},
+            {"alpha": 0.65, "epsilon": 0.06},
         ],
     }
 
     print("\nTrue parameters:")
-    print(f"  mu_alpha_pos: {true_params['mu_alpha_pos']}")
-    print(f"  mu_alpha_neg: {true_params['mu_alpha_neg']}")
+    print(f"  mu_alpha: {true_params['mu_alpha']}")
+    print(f"  mu_alpha: {true_params['mu_alpha']}")
     print(f"  mu_epsilon: {true_params['mu_epsilon']}")
     print("  beta (fixed): 50")
 
@@ -588,8 +586,8 @@ def test_model_with_synthetic_data() -> MCMC:
 
     print("Model compilation successful!")
     print(f"  Prior samples keys: {list(prior_samples.keys())}")
-    print(f"  mu_alpha_pos shape: {prior_samples['mu_alpha_pos'].shape}")
-    print(f"  alpha_pos shape: {prior_samples['alpha_pos'].shape}")
+    print(f"  mu_alpha shape: {prior_samples['mu_alpha'].shape}")
+    print(f"  alpha shape: {prior_samples['alpha'].shape}")
 
     # Quick inference test (very few samples, just to verify)
     print("\nRunning quick inference test (50 warmup, 50 samples, 1 chain)...")
@@ -606,12 +604,12 @@ def test_model_with_synthetic_data() -> MCMC:
     samples = mcmc.get_samples()
     print("\nPosterior estimates (should be near true values):")
     print(
-        f"  mu_alpha_pos posterior mean: {samples['mu_alpha_pos'].mean():.3f} "
-        f"(true: {true_params['mu_alpha_pos']})"
+        f"  mu_alpha posterior mean: {samples['mu_alpha'].mean():.3f} "
+        f"(true: {true_params['mu_alpha']})"
     )
     print(
-        f"  mu_alpha_neg posterior mean: {samples['mu_alpha_neg'].mean():.3f} "
-        f"(true: {true_params['mu_alpha_neg']})"
+        f"  mu_alpha posterior mean: {samples['mu_alpha'].mean():.3f} "
+        f"(true: {true_params['mu_alpha']})"
     )
     print(
         f"  mu_epsilon posterior mean: {samples['mu_epsilon'].mean():.3f} "

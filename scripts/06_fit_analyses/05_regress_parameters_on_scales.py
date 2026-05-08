@@ -161,19 +161,19 @@ def load_integrated_data(
     # Rename parameter columns to match expected format (add _mean suffix)
     param_rename = {}
     if model_type == "qlearning":
-        if "alpha_pos" in params_df.columns:
-            param_rename["alpha_pos"] = "alpha_pos_mean"
-        if "alpha_neg" in params_df.columns:
-            param_rename["alpha_neg"] = "alpha_neg_mean"
+        if "alpha" in params_df.columns:
+            param_rename["alpha"] = "alpha_pos_mean"
+        if "alpha" in params_df.columns:
+            param_rename["alpha"] = "alpha_neg_mean"
         if "beta" in params_df.columns:
             param_rename["beta"] = "beta_mean"
         if "epsilon" in params_df.columns:
             param_rename["epsilon"] = "epsilon_mean"
     else:  # wmrl, wmrl_m3, or wmrl_m5
-        if "alpha_pos" in params_df.columns:
-            param_rename["alpha_pos"] = "alpha_pos_mean"
-        if "alpha_neg" in params_df.columns:
-            param_rename["alpha_neg"] = "alpha_neg_mean"
+        if "alpha" in params_df.columns:
+            param_rename["alpha"] = "alpha_pos_mean"
+        if "alpha" in params_df.columns:
+            param_rename["alpha"] = "alpha_neg_mean"
         if "phi" in params_df.columns:
             param_rename["phi"] = "phi_mean"
         if "rho" in params_df.columns:

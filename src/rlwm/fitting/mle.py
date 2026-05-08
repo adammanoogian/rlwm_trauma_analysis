@@ -254,8 +254,7 @@ def warmup_jax_compilation(model: str, verbose: bool = True):
             stimuli_blocks,
             actions_blocks,
             rewards_blocks,
-            alpha_pos=0.3,
-            alpha_neg=0.1,
+            alpha=0.3,
             epsilon=0.05,
         )
     elif model == "wmrl":
@@ -264,8 +263,7 @@ def warmup_jax_compilation(model: str, verbose: bool = True):
             actions_blocks,
             rewards_blocks,
             set_sizes_blocks,
-            alpha_pos=0.3,
-            alpha_neg=0.1,
+            alpha=0.3,
             phi=0.1,
             rho=0.7,
             capacity=4.0,
@@ -277,8 +275,7 @@ def warmup_jax_compilation(model: str, verbose: bool = True):
             actions_blocks,
             rewards_blocks,
             set_sizes_blocks,
-            alpha_pos=0.3,
-            alpha_neg=0.1,
+            alpha=0.3,
             phi=0.1,
             rho=0.7,
             capacity=4.0,
@@ -291,8 +288,7 @@ def warmup_jax_compilation(model: str, verbose: bool = True):
             actions_blocks,
             rewards_blocks,
             set_sizes_blocks,
-            alpha_pos=0.3,
-            alpha_neg=0.1,
+            alpha=0.3,
             phi=0.1,
             rho=0.7,
             capacity=4.0,
@@ -306,8 +302,7 @@ def warmup_jax_compilation(model: str, verbose: bool = True):
             actions_blocks,
             rewards_blocks,
             set_sizes_blocks,
-            alpha_pos=0.3,
-            alpha_neg=0.1,
+            alpha=0.3,
             phi=0.1,
             rho=0.7,
             capacity=4.0,
@@ -321,8 +316,7 @@ def warmup_jax_compilation(model: str, verbose: bool = True):
             actions_blocks,
             rewards_blocks,
             set_sizes_blocks,
-            alpha_pos=0.3,
-            alpha_neg=0.1,
+            alpha=0.3,
             phi=0.1,
             rho=0.7,
             capacity=4.0,
@@ -347,8 +341,7 @@ def warmup_jax_compilation(model: str, verbose: bool = True):
             rewards_blocks,
             set_sizes_blocks,
             rts_blocks,
-            alpha_pos=0.3,
-            alpha_neg=0.1,
+            alpha=0.3,
             phi=0.1,
             rho=0.7,
             capacity=4.0,
@@ -399,15 +392,14 @@ def _make_jax_objective_qlearning(
         masks_stacked = jnp.ones((len(stimuli_blocks), stimuli_stacked.shape[1]))
 
     def objective(x: jnp.ndarray) -> float:
-        alpha_pos, alpha_neg, epsilon = jax_unconstrained_to_params_qlearning(x)
+        alpha, epsilon = jax_unconstrained_to_params_qlearning(x)
         # Use stacked version directly - avoids list conversion and restacking
         log_lik = q_learning_multiblock_likelihood_stacked(
             stimuli_stacked=stimuli_stacked,
             actions_stacked=actions_stacked,
             rewards_stacked=rewards_stacked,
             masks_stacked=masks_stacked,
-            alpha_pos=alpha_pos,
-            alpha_neg=alpha_neg,
+            alpha=alpha,
             epsilon=epsilon,
         )
         return -log_lik  # Negative for minimization
@@ -448,7 +440,7 @@ def _make_jax_objective_wmrl(
         masks_stacked = jnp.ones((len(stimuli_blocks), stimuli_stacked.shape[1]))
 
     def objective(x: jnp.ndarray) -> float:
-        alpha_pos, alpha_neg, phi, rho, capacity, epsilon = (
+        alpha, phi, rho, capacity, epsilon = (
             jax_unconstrained_to_params_wmrl(x)
         )
         # Use stacked version directly - avoids list conversion and restacking
@@ -458,8 +450,7 @@ def _make_jax_objective_wmrl(
             rewards_stacked=rewards_stacked,
             set_sizes_stacked=set_sizes_stacked,
             masks_stacked=masks_stacked,
-            alpha_pos=alpha_pos,
-            alpha_neg=alpha_neg,
+            alpha=alpha,
             phi=phi,
             rho=rho,
             capacity=capacity,
@@ -507,7 +498,7 @@ def _make_jax_objective_wmrl_m3(
         masks_stacked = jnp.ones((len(stimuli_blocks), stimuli_stacked.shape[1]))
 
     def objective(x: jnp.ndarray) -> float:
-        alpha_pos, alpha_neg, phi, rho, capacity, kappa, epsilon = (
+        alpha, phi, rho, capacity, kappa, epsilon = (
             jax_unconstrained_to_params_wmrl_m3(x, kappa_parameterization)
         )
         # Use stacked version directly - avoids list conversion and restacking
@@ -517,8 +508,7 @@ def _make_jax_objective_wmrl_m3(
             rewards_stacked=rewards_stacked,
             set_sizes_stacked=set_sizes_stacked,
             masks_stacked=masks_stacked,
-            alpha_pos=alpha_pos,
-            alpha_neg=alpha_neg,
+            alpha=alpha,
             phi=phi,
             rho=rho,
             capacity=capacity,
@@ -566,7 +556,7 @@ def _make_jax_objective_wmrl_m5(
         masks_stacked = jnp.ones((len(stimuli_blocks), stimuli_stacked.shape[1]))
 
     def objective(x: jnp.ndarray) -> float:
-        alpha_pos, alpha_neg, phi, rho, capacity, kappa, phi_rl, epsilon = (
+        alpha, phi, rho, capacity, kappa, phi_rl, epsilon = (
             jax_unconstrained_to_params_wmrl_m5(x, kappa_parameterization)
         )
         # Use stacked version directly - avoids list conversion and restacking
@@ -576,8 +566,7 @@ def _make_jax_objective_wmrl_m5(
             rewards_stacked=rewards_stacked,
             set_sizes_stacked=set_sizes_stacked,
             masks_stacked=masks_stacked,
-            alpha_pos=alpha_pos,
-            alpha_neg=alpha_neg,
+            alpha=alpha,
             phi=phi,
             rho=rho,
             capacity=capacity,
@@ -605,7 +594,7 @@ def _make_jax_objective_wmrl_m6a(
     Create a JAX-compatible objective function for WM-RL M6a (stimulus-specific perseveration).
 
     Returns a JIT-compiled pure function that takes unconstrained parameters
-    and returns NLL. 7 parameters: alpha_pos, alpha_neg, phi, rho, capacity, kappa_s, epsilon.
+    and returns NLL. 7 parameters: alpha, phi, rho, capacity, kappa_s, epsilon.
 
     Args:
         stimuli_blocks: list of stimulus arrays per block
@@ -626,7 +615,7 @@ def _make_jax_objective_wmrl_m6a(
         masks_stacked = jnp.ones((len(stimuli_blocks), stimuli_stacked.shape[1]))
 
     def objective(x: jnp.ndarray) -> float:
-        alpha_pos, alpha_neg, phi, rho, capacity, kappa_s, epsilon = (
+        alpha, phi, rho, capacity, kappa_s, epsilon = (
             jax_unconstrained_to_params_wmrl_m6a(x, kappa_parameterization)
         )
         log_lik = wmrl_m6a_multiblock_likelihood_stacked(
@@ -635,8 +624,7 @@ def _make_jax_objective_wmrl_m6a(
             rewards_stacked=rewards_stacked,
             set_sizes_stacked=set_sizes_stacked,
             masks_stacked=masks_stacked,
-            alpha_pos=alpha_pos,
-            alpha_neg=alpha_neg,
+            alpha=alpha,
             phi=phi,
             rho=rho,
             capacity=capacity,
@@ -663,7 +651,7 @@ def _make_jax_objective_wmrl_m6b(
     Create a JAX-compatible objective function for WM-RL M6b (dual perseveration).
 
     Returns a JIT-compiled pure function that takes unconstrained parameters
-    and returns NLL. 8 parameters: alpha_pos, alpha_neg, phi, rho, capacity,
+    and returns NLL. 8 parameters: alpha, phi, rho, capacity,
     kappa_total, kappa_share, epsilon.
 
     STICK-BREAKING DECODE: kappa = kappa_total * kappa_share;
@@ -689,7 +677,7 @@ def _make_jax_objective_wmrl_m6b(
         masks_stacked = jnp.ones((len(stimuli_blocks), stimuli_stacked.shape[1]))
 
     def objective(x: jnp.ndarray) -> float:
-        alpha_pos, alpha_neg, phi, rho, capacity, kappa_total, kappa_share, epsilon = (
+        alpha, phi, rho, capacity, kappa_total, kappa_share, epsilon = (
             jax_unconstrained_to_params_wmrl_m6b(x, kappa_parameterization)
         )
         # Stick-breaking decode: enforces kappa + kappa_s = kappa_total
@@ -704,8 +692,7 @@ def _make_jax_objective_wmrl_m6b(
             rewards_stacked=rewards_stacked,
             set_sizes_stacked=set_sizes_stacked,
             masks_stacked=masks_stacked,
-            alpha_pos=alpha_pos,
-            alpha_neg=alpha_neg,
+            alpha=alpha,
             phi=phi,
             rho=rho,
             capacity=capacity,
@@ -734,7 +721,7 @@ def _make_jax_objective_wmrl_m4(
     Create a JAX-compatible objective function for WM-RL M4 (LBA joint choice+RT).
 
     Returns a JIT-compiled pure function that takes unconstrained parameters
-    and returns NLL. 10 parameters: alpha_pos, alpha_neg, phi, rho, capacity,
+    and returns NLL. 10 parameters: alpha, phi, rho, capacity,
     kappa, v_scale, A, delta, t0.
 
     B > A DECODE: b = A + delta applied here, NOT in the transform.
@@ -763,7 +750,7 @@ def _make_jax_objective_wmrl_m4(
         )
 
     def objective(x: jnp.ndarray) -> float:
-        alpha_pos, alpha_neg, phi, rho, capacity, kappa, v_scale, A, delta, t0 = (
+        alpha, phi, rho, capacity, kappa, v_scale, A, delta, t0 = (
             jax_unconstrained_to_params_wmrl_m4(x, kappa_parameterization)
         )
         # b > A decode: b = A + delta (enforced structurally because delta > 0)
@@ -775,8 +762,7 @@ def _make_jax_objective_wmrl_m4(
             set_sizes_stacked=set_sizes_stacked,
             rts_stacked=rts_stacked,
             masks_stacked=masks_stacked,
-            alpha_pos=alpha_pos,
-            alpha_neg=alpha_neg,
+            alpha=alpha,
             phi=phi,
             rho=rho,
             capacity=capacity,
@@ -821,14 +807,13 @@ def _make_bounded_objective_qlearning(
 
     @jax.jit
     def objective(params: jnp.ndarray) -> float:
-        alpha_pos, alpha_neg, epsilon = params[0], params[1], params[2]
+        alpha, epsilon = params[0], params[1], params[2]
         log_lik = q_learning_multiblock_likelihood_stacked(
             stimuli_stacked=stimuli_stacked,
             actions_stacked=actions_stacked,
             rewards_stacked=rewards_stacked,
             masks_stacked=masks_stacked,
-            alpha_pos=alpha_pos,
-            alpha_neg=alpha_neg,
+            alpha=alpha,
             epsilon=epsilon,
         )
         return -log_lik
@@ -859,8 +844,8 @@ def _make_bounded_objective_wmrl(
 
     @jax.jit
     def objective(params: jnp.ndarray) -> float:
-        alpha_pos = params[0]
-        alpha_neg = params[1]
+        alpha = params[0]
+        alpha = params[1]
         phi = params[2]
         rho = params[3]
         capacity = params[4]
@@ -871,8 +856,7 @@ def _make_bounded_objective_wmrl(
             rewards_stacked=rewards_stacked,
             set_sizes_stacked=set_sizes_stacked,
             masks_stacked=masks_stacked,
-            alpha_pos=alpha_pos,
-            alpha_neg=alpha_neg,
+            alpha=alpha,
             phi=phi,
             rho=rho,
             capacity=capacity,
@@ -908,8 +892,8 @@ def _make_bounded_objective_wmrl_m3(
 
     @jax.jit
     def objective(params: jnp.ndarray) -> float:
-        alpha_pos = params[0]
-        alpha_neg = params[1]
+        alpha = params[0]
+        alpha = params[1]
         phi = params[2]
         rho = params[3]
         capacity = params[4]
@@ -921,8 +905,7 @@ def _make_bounded_objective_wmrl_m3(
             rewards_stacked=rewards_stacked,
             set_sizes_stacked=set_sizes_stacked,
             masks_stacked=masks_stacked,
-            alpha_pos=alpha_pos,
-            alpha_neg=alpha_neg,
+            alpha=alpha,
             phi=phi,
             rho=rho,
             capacity=capacity,
@@ -948,7 +931,7 @@ def _make_bounded_objective_wmrl_m5(
     Create bounded-space objective for WM-RL M5 (no parameter transforms).
 
     Used with ScipyBoundedMinimize which handles bounds natively via L-BFGS-B.
-    8 parameters: alpha_pos, alpha_neg, phi, rho, capacity, kappa, phi_rl, epsilon
+    8 parameters: alpha, phi, rho, capacity, kappa, phi_rl, epsilon
     """
     stimuli_stacked = jnp.stack(stimuli_blocks)
     actions_stacked = jnp.stack(actions_blocks)
@@ -961,8 +944,8 @@ def _make_bounded_objective_wmrl_m5(
 
     @jax.jit
     def objective(params: jnp.ndarray) -> float:
-        alpha_pos = params[0]
-        alpha_neg = params[1]
+        alpha = params[0]
+        alpha = params[1]
         phi = params[2]
         rho = params[3]
         capacity = params[4]
@@ -975,8 +958,7 @@ def _make_bounded_objective_wmrl_m5(
             rewards_stacked=rewards_stacked,
             set_sizes_stacked=set_sizes_stacked,
             masks_stacked=masks_stacked,
-            alpha_pos=alpha_pos,
-            alpha_neg=alpha_neg,
+            alpha=alpha,
             phi=phi,
             rho=rho,
             capacity=capacity,
@@ -1003,7 +985,7 @@ def _make_bounded_objective_wmrl_m6a(
     Create bounded-space objective for WM-RL M6a (no parameter transforms).
 
     Used with ScipyBoundedMinimize which handles bounds natively via L-BFGS-B.
-    7 parameters: alpha_pos, alpha_neg, phi, rho, capacity, kappa_s, epsilon
+    7 parameters: alpha, phi, rho, capacity, kappa_s, epsilon
     """
     stimuli_stacked = jnp.stack(stimuli_blocks)
     actions_stacked = jnp.stack(actions_blocks)
@@ -1016,8 +998,8 @@ def _make_bounded_objective_wmrl_m6a(
 
     @jax.jit
     def objective(params: jnp.ndarray) -> float:
-        alpha_pos = params[0]
-        alpha_neg = params[1]
+        alpha = params[0]
+        alpha = params[1]
         phi = params[2]
         rho = params[3]
         capacity = params[4]
@@ -1029,8 +1011,7 @@ def _make_bounded_objective_wmrl_m6a(
             rewards_stacked=rewards_stacked,
             set_sizes_stacked=set_sizes_stacked,
             masks_stacked=masks_stacked,
-            alpha_pos=alpha_pos,
-            alpha_neg=alpha_neg,
+            alpha=alpha,
             phi=phi,
             rho=rho,
             capacity=capacity,
@@ -1056,7 +1037,7 @@ def _make_bounded_objective_wmrl_m6b(
     Create bounded-space objective for WM-RL M6b (no parameter transforms).
 
     Used with ScipyBoundedMinimize which handles bounds natively via L-BFGS-B.
-    8 parameters: alpha_pos, alpha_neg, phi, rho, capacity, kappa_total, kappa_share, epsilon
+    8 parameters: alpha, phi, rho, capacity, kappa_total, kappa_share, epsilon
 
     STICK-BREAKING DECODE: kappa = params[5] * params[6];
     kappa_s = params[5] * (1 - params[6]). Applied here, NOT in transforms.
@@ -1072,8 +1053,8 @@ def _make_bounded_objective_wmrl_m6b(
 
     @jax.jit
     def objective(params: jnp.ndarray) -> float:
-        alpha_pos = params[0]
-        alpha_neg = params[1]
+        alpha = params[0]
+        alpha = params[1]
         phi = params[2]
         rho = params[3]
         capacity = params[4]
@@ -1089,8 +1070,7 @@ def _make_bounded_objective_wmrl_m6b(
             rewards_stacked=rewards_stacked,
             set_sizes_stacked=set_sizes_stacked,
             masks_stacked=masks_stacked,
-            alpha_pos=alpha_pos,
-            alpha_neg=alpha_neg,
+            alpha=alpha,
             phi=phi,
             rho=rho,
             capacity=capacity,
@@ -1118,7 +1098,7 @@ def _make_bounded_objective_wmrl_m4(
     Create bounded-space objective for WM-RL M4 (no parameter transforms).
 
     Used with ScipyBoundedMinimize which handles bounds natively via L-BFGS-B.
-    10 parameters: alpha_pos, alpha_neg, phi, rho, capacity, kappa, v_scale, A, delta, t0.
+    10 parameters: alpha, phi, rho, capacity, kappa, v_scale, A, delta, t0.
 
     B > A DECODE: b = params[7] + params[8] (A + delta) applied here.
     NO epsilon.
@@ -1140,8 +1120,8 @@ def _make_bounded_objective_wmrl_m4(
 
     @jax.jit
     def objective(params: jnp.ndarray) -> float:
-        alpha_pos = params[0]
-        alpha_neg = params[1]
+        alpha = params[0]
+        alpha = params[1]
         phi = params[2]
         rho = params[3]
         capacity = params[4]
@@ -1159,8 +1139,7 @@ def _make_bounded_objective_wmrl_m4(
             set_sizes_stacked=set_sizes_stacked,
             rts_stacked=rts_stacked,
             masks_stacked=masks_stacked,
-            alpha_pos=alpha_pos,
-            alpha_neg=alpha_neg,
+            alpha=alpha,
             phi=phi,
             rho=rho,
             capacity=capacity,
@@ -1198,14 +1177,13 @@ def _gpu_objective_qlearning(x, stimuli, actions, rewards, masks):
     Returns:
         Scalar negative log-likelihood
     """
-    alpha_pos, alpha_neg, epsilon = jax_unconstrained_to_params_qlearning(x)
+    alpha, epsilon = jax_unconstrained_to_params_qlearning(x)
     log_lik = q_learning_multiblock_likelihood_stacked(
         stimuli_stacked=stimuli,
         actions_stacked=actions,
         rewards_stacked=rewards,
         masks_stacked=masks,
-        alpha_pos=alpha_pos,
-        alpha_neg=alpha_neg,
+        alpha=alpha,
         epsilon=epsilon,
     )
     return -log_lik
@@ -1223,7 +1201,7 @@ def _gpu_objective_wmrl(x, stimuli, actions, rewards, masks, set_sizes):
     Returns:
         Scalar negative log-likelihood
     """
-    alpha_pos, alpha_neg, phi, rho, capacity, epsilon = (
+    alpha, phi, rho, capacity, epsilon = (
         jax_unconstrained_to_params_wmrl(x)
     )
     log_lik = wmrl_multiblock_likelihood_stacked(
@@ -1232,8 +1210,7 @@ def _gpu_objective_wmrl(x, stimuli, actions, rewards, masks, set_sizes):
         rewards_stacked=rewards,
         set_sizes_stacked=set_sizes,
         masks_stacked=masks,
-        alpha_pos=alpha_pos,
-        alpha_neg=alpha_neg,
+        alpha=alpha,
         phi=phi,
         rho=rho,
         capacity=capacity,
@@ -1254,7 +1231,7 @@ def _gpu_objective_wmrl_m3(x, stimuli, actions, rewards, masks, set_sizes):
     Returns:
         Scalar negative log-likelihood
     """
-    alpha_pos, alpha_neg, phi, rho, capacity, kappa, epsilon = (
+    alpha, phi, rho, capacity, kappa, epsilon = (
         jax_unconstrained_to_params_wmrl_m3(x)
     )
     log_lik = wmrl_m3_multiblock_likelihood_stacked(
@@ -1263,8 +1240,7 @@ def _gpu_objective_wmrl_m3(x, stimuli, actions, rewards, masks, set_sizes):
         rewards_stacked=rewards,
         set_sizes_stacked=set_sizes,
         masks_stacked=masks,
-        alpha_pos=alpha_pos,
-        alpha_neg=alpha_neg,
+        alpha=alpha,
         phi=phi,
         rho=rho,
         capacity=capacity,
@@ -1286,7 +1262,7 @@ def _gpu_objective_wmrl_m5(x, stimuli, actions, rewards, masks, set_sizes):
     Returns:
         Scalar negative log-likelihood
     """
-    alpha_pos, alpha_neg, phi, rho, capacity, kappa, phi_rl, epsilon = (
+    alpha, phi, rho, capacity, kappa, phi_rl, epsilon = (
         jax_unconstrained_to_params_wmrl_m5(x)
     )
     log_lik = wmrl_m5_multiblock_likelihood_stacked(
@@ -1295,8 +1271,7 @@ def _gpu_objective_wmrl_m5(x, stimuli, actions, rewards, masks, set_sizes):
         rewards_stacked=rewards,
         set_sizes_stacked=set_sizes,
         masks_stacked=masks,
-        alpha_pos=alpha_pos,
-        alpha_neg=alpha_neg,
+        alpha=alpha,
         phi=phi,
         rho=rho,
         capacity=capacity,
@@ -1319,7 +1294,7 @@ def _gpu_objective_wmrl_m6a(x, stimuli, actions, rewards, masks, set_sizes):
     Returns:
         Scalar negative log-likelihood
     """
-    alpha_pos, alpha_neg, phi, rho, capacity, kappa_s, epsilon = (
+    alpha, phi, rho, capacity, kappa_s, epsilon = (
         jax_unconstrained_to_params_wmrl_m6a(x)
     )
     log_lik = wmrl_m6a_multiblock_likelihood_stacked(
@@ -1328,8 +1303,7 @@ def _gpu_objective_wmrl_m6a(x, stimuli, actions, rewards, masks, set_sizes):
         rewards_stacked=rewards,
         set_sizes_stacked=set_sizes,
         masks_stacked=masks,
-        alpha_pos=alpha_pos,
-        alpha_neg=alpha_neg,
+        alpha=alpha,
         phi=phi,
         rho=rho,
         capacity=capacity,
@@ -1354,7 +1328,7 @@ def _gpu_objective_wmrl_m6b(x, stimuli, actions, rewards, masks, set_sizes):
     STICK-BREAKING DECODE: kappa = kappa_total * kappa_share;
     kappa_s = kappa_total * (1 - kappa_share). Applied here, NOT in the transform.
     """
-    alpha_pos, alpha_neg, phi, rho, capacity, kappa_total, kappa_share, epsilon = (
+    alpha, phi, rho, capacity, kappa_total, kappa_share, epsilon = (
         jax_unconstrained_to_params_wmrl_m6b(x)
     )
     # Stick-breaking decode: enforces kappa + kappa_s = kappa_total <= 1
@@ -1366,8 +1340,7 @@ def _gpu_objective_wmrl_m6b(x, stimuli, actions, rewards, masks, set_sizes):
         rewards_stacked=rewards,
         set_sizes_stacked=set_sizes,
         masks_stacked=masks,
-        alpha_pos=alpha_pos,
-        alpha_neg=alpha_neg,
+        alpha=alpha,
         phi=phi,
         rho=rho,
         capacity=capacity,
@@ -1397,7 +1370,7 @@ def _gpu_objective_wmrl_m4(x, stimuli, actions, rewards, masks, set_sizes, rts):
     """
     from scripts.fitting.lba_likelihood import wmrl_m4_multiblock_likelihood_stacked
 
-    alpha_pos, alpha_neg, phi, rho, capacity, kappa, v_scale, A, delta, t0 = (
+    alpha, phi, rho, capacity, kappa, v_scale, A, delta, t0 = (
         jax_unconstrained_to_params_wmrl_m4(x)
     )
     # b > A decode
@@ -1409,8 +1382,7 @@ def _gpu_objective_wmrl_m4(x, stimuli, actions, rewards, masks, set_sizes, rts):
         set_sizes_stacked=set_sizes,
         rts_stacked=rts,
         masks_stacked=masks,
-        alpha_pos=alpha_pos,
-        alpha_neg=alpha_neg,
+        alpha=alpha,
         phi=phi,
         rho=rho,
         capacity=capacity,
@@ -2077,7 +2049,7 @@ def fit_participant_mle(
 
     Returns:
         Dictionary with:
-        - Fitted parameters (alpha_pos, alpha_neg, etc.)
+        - Fitted parameters (alpha, etc.)
         - Model fit metrics (nll, aic, bic, aicc, pseudo_r2)
         - Convergence info (converged, n_successful_starts, n_near_best, at_bounds)
         - Diagnostics (grad_norm, hessian_condition, parameter SEs and CIs)
@@ -2132,7 +2104,7 @@ def fit_participant_mle(
         objective = _make_jax_objective_qlearning(
             stimuli_jax, actions_jax, rewards_jax, masks_blocks=masks_jax
         )
-        n_params = 3
+        n_params = 2  # alpha, epsilon (Phase 33: alpha_neg dropped)
         param_names = QLEARNING_PARAMS
         bounds_dict = QLEARNING_BOUNDS
     elif model == "wmrl":
@@ -2145,7 +2117,7 @@ def fit_participant_mle(
         objective = _make_jax_objective_wmrl(
             stimuli_jax, actions_jax, rewards_jax, set_sizes_jax, masks_blocks=masks_jax
         )
-        n_params = 6
+        n_params = 5  # alpha, phi, rho, capacity, epsilon (Phase 33)
         param_names = WMRL_PARAMS
         bounds_dict = WMRL_BOUNDS
     elif model == "wmrl_m3":
@@ -2162,7 +2134,7 @@ def fit_participant_mle(
             masks_blocks=masks_jax,
             kappa_parameterization=kappa_parameterization,
         )
-        n_params = 7
+        n_params = 6  # alpha, phi, rho, capacity, kappa, epsilon (Phase 33)
         param_names = WMRL_M3_PARAMS
         bounds_dict = _kappa_aware_bounds_dict(
             WMRL_M3_BOUNDS, kappa_parameterization
@@ -2181,7 +2153,7 @@ def fit_participant_mle(
             masks_blocks=masks_jax,
             kappa_parameterization=kappa_parameterization,
         )
-        n_params = 8
+        n_params = 7  # alpha, phi, rho, capacity, kappa, phi_rl, epsilon (Phase 33)
         param_names = WMRL_M5_PARAMS
         bounds_dict = _kappa_aware_bounds_dict(
             WMRL_M5_BOUNDS, kappa_parameterization
@@ -2200,7 +2172,7 @@ def fit_participant_mle(
             masks_blocks=masks_jax,
             kappa_parameterization=kappa_parameterization,
         )
-        n_params = 7
+        n_params = 6  # alpha, phi, rho, capacity, kappa_s, epsilon (Phase 33)
         param_names = WMRL_M6A_PARAMS
         bounds_dict = _kappa_aware_bounds_dict(
             WMRL_M6A_BOUNDS, kappa_parameterization
@@ -2219,7 +2191,7 @@ def fit_participant_mle(
             masks_blocks=masks_jax,
             kappa_parameterization=kappa_parameterization,
         )
-        n_params = 8
+        n_params = 7  # alpha, phi, rho, capacity, kappa_total, kappa_share, epsilon (Phase 33)
         param_names = WMRL_M6B_PARAMS
         bounds_dict = _kappa_aware_bounds_dict(
             WMRL_M6B_BOUNDS, kappa_parameterization
@@ -2251,7 +2223,7 @@ def fit_participant_mle(
             masks_blocks=masks_jax,
             kappa_parameterization=kappa_parameterization,
         )
-        n_params = 10
+        n_params = 9  # alpha, phi, rho, capacity, kappa, v_scale, A, delta, t0 (Phase 33)
         param_names = WMRL_M4_PARAMS
         bounds_dict = _kappa_aware_bounds_dict(
             WMRL_M4_BOUNDS, kappa_parameterization

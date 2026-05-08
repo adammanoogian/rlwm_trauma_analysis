@@ -29,7 +29,7 @@ The beta sites in the posterior encode trauma-parameter associations:
 
 For the wmrl_m6b subscale model there are 32 beta sites (8 params x 4 covariates):
   Covariates: lec_total, iesr_total, iesr_intr_resid, iesr_avd_resid
-  Parameters: alpha_pos, alpha_neg, phi, rho, capacity, epsilon,
+  Parameters: alpha, phi, rho, capacity, epsilon,
                kappa_total, kappa_share
 
 Forest plots:

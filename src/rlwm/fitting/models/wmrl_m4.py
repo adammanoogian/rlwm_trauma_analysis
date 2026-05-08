@@ -256,7 +256,7 @@ def wmrl_m4_hierarchical_model(
     # Note: no epsilon in M4 (LBA handles decision noise directly)
     # ------------------------------------------------------------------
     sampled: dict[str, jnp.ndarray] = {}
-    for param in ["alpha", "alpha", "phi", "rho", "capacity", "kappa"]:
+    for param in ["alpha", "phi", "rho", "capacity", "kappa"]:
         defaults = PARAM_PRIOR_DEFAULTS[param]
         if (
             kappa_parameterization == "softmax"
