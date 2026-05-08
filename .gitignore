@@ -1,7 +1,12 @@
 .claude/
-# NOTE: .planning/ is tracked locally (audit trail, decision history) but
-# blocked from `git push` by .git/hooks/pre-push. Keeps planning work
-# private without losing git versioning.
+
+# .planning/ — local-only working notes for the gsd: workflow.
+# Synced to the M3 cluster via Mutagen (NOT git pull on the cluster).
+# Untracked from git 2026-05-08: public audit trail was made redundant
+# by mutagen-as-canonical-cluster-sync; planning churn (RESEARCH /
+# CONTEXT / PLAN / SUMMARY / VERIFICATION per phase) doesn't belong on
+# origin/main.
+.planning/
 
 # Python cache
 __pycache__/

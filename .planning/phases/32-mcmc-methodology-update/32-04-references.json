@@ -1,9 +1,0 @@
-{
-  "REF_M3": -17.76891326904297,
-  "REF_M5": -17.65542221069336,
-  "REF_M6A": -15.698081016540527,
-  "REF_M6B": -17.142436981201172,
-  "_captured_at_sha": "9adc858811a62fc056833d5fc726de727533a65b",
-  "_captured_at_utc": "2026-05-03T14:20:39.293089Z",
-  "_fixture_note": "set_sizes is jnp.full(10, 3) \u2014 10-trial array of constant set size 3 (plan typo: jnp.array(3) does not work as scalar; Rule 1 fix)"
-}
