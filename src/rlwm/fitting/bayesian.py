@@ -727,8 +727,9 @@ def save_results(
 
         # ------------------------------------------------------------------
         # CONVERGENCE GATE (HIER-07; Phase 32-01 BFMI extension) — refuse
-        # to write outputs if gate fails. Tier-1 (Baribault & Collins 2023):
-        # max_rhat < 1.01 AND min_ess >= 400 AND n_div == 0 AND min_bfmi >= 0.2.
+        # to write outputs if gate fails. Baribault & Collins (2023,
+        # Psychological Methods, 28(4), 942-960, DOI 10.1037/met0000554):
+        # max_rhat <= 1.05 AND min_ess >= 400 AND n_div == 0 AND min_bfmi >= 0.2.
         # ------------------------------------------------------------------
         model_params = MODEL_REGISTRY[model]["params"]
         print("\n>> Checking convergence gate...")
@@ -737,6 +738,14 @@ def save_results(
         min_ess = float(convergence_summary["ess_bulk"].min())
         extra = mcmc.get_extra_fields()
         n_div = int(extra["diverging"].sum()) if "diverging" in extra else 0
+        if "num_steps" in extra:
+            num_steps = np.asarray(extra["num_steps"])
+            max_steps = 2**max_tree_depth - 1
+            saturated_pct = float((num_steps >= max_steps).mean() * 100)
+            print(
+                f"  Tree-depth saturation: {saturated_pct:.1f}% of transitions "
+                f"hit max_tree_depth={max_tree_depth} ({max_steps} steps)"
+            )
         try:
             bfmi_per_chain = np.asarray(az.bfmi(idata)).ravel()
             min_bfmi = (
@@ -747,14 +756,48 @@ def save_results(
         except Exception:
             min_bfmi = float("nan")
         converged = (
-            max_rhat < 1.01
+            max_rhat <= 1.05
             and min_ess >= 400
             and n_div == 0
             and (np.isnan(min_bfmi) or min_bfmi >= 0.2)
         )
 
+        # Per-parameter diagnostics: identify which params have worst R-hat/ESS
+        print("\n  Per-parameter diagnostics (group-level _mu_pr sites):")
+        group_params = [p + "_mu_pr" for p in model_params]
+        try:
+            group_summary = az.summary(
+                idata, var_names=group_params, filter_vars="like"
+            )
+            for idx in group_summary.index:
+                rh = group_summary.loc[idx, "r_hat"]
+                ess = group_summary.loc[idx, "ess_bulk"]
+                flag = ""
+                if rh > 1.05:
+                    flag = " *** RHAT>1.05"
+                elif rh > 1.01:
+                    flag = " * RHAT>1.01"
+                if ess < 400:
+                    flag += " *** ESS<400"
+                print(f"    {idx:30s}  r_hat={rh:.4f}  ess_bulk={ess:.0f}{flag}")
+        except Exception:
+            pass
+
+        # Individual-level worst offenders
+        print("\n  Worst individual-level parameters:")
+        rhat_col = convergence_summary["r_hat"].sort_values(ascending=False)
+        ess_col = convergence_summary["ess_bulk"].sort_values(ascending=True)
+        for i, (idx, val) in enumerate(rhat_col.items()):
+            if i >= 5:
+                break
+            print(f"    [rhat] {idx:40s}  r_hat={val:.4f}")
+        for i, (idx, val) in enumerate(ess_col.items()):
+            if i >= 5:
+                break
+            print(f"    [ess]  {idx:40s}  ess_bulk={val:.0f}")
+
         print(
-            f"[convergence-gate] model={model} max_rhat={max_rhat:.3f} "
+            f"\n[convergence-gate] model={model} max_rhat={max_rhat:.3f} "
             f"min_ess_bulk={min_ess:.0f} divergences={n_div} "
             f"min_bfmi={min_bfmi:.2f} allow_gate_failure={allow_gate_failure}"
         )

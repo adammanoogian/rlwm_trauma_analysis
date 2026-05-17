@@ -50,6 +50,8 @@ MAX_TREE_DEPTH="${MAX_TREE_DEPTH:-10}"
 SEED="${SEED:-42}"
 # Optional output subdir (e.g. "33_single_alpha"). Empty = engine default.
 OUT_SUBDIR="${OUT_SUBDIR:-}"
+# Set to "1" to write diagnostic artefacts even when convergence gate fails.
+ALLOW_GATE_FAILURE="${ALLOW_GATE_FAILURE:-}"
 
 _VALID_MODELS=("qlearning" "wmrl" "wmrl_m3" "wmrl_m5" "wmrl_m6a" "wmrl_m6b")
 _MODEL_OK=false
@@ -148,6 +150,9 @@ PYARGS=(
 )
 if [ -n "$OUT_SUBDIR" ]; then
     PYARGS+=(--output-subdir "$OUT_SUBDIR")
+fi
+if [ -n "$ALLOW_GATE_FAILURE" ]; then
+    PYARGS+=(--allow-gate-failure)
 fi
 
 python scripts/04_model_fitting/b_bayesian/fit_bayesian.py "${PYARGS[@]}"

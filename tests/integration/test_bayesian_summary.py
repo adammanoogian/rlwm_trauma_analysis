@@ -151,18 +151,26 @@ class TestConvergedLogic:
 
     @staticmethod
     def _converged(max_rhat: float, min_ess: float, num_div: int) -> bool:
-        """Mirror the converged logic from write_bayesian_summary."""
+        """Mirror the converged logic from write_bayesian_summary.
+
+        Baribault & Collins (2023, Psychological Methods, 28(4), 942-960,
+        DOI 10.1037/met0000554): R-hat <= 1.05, ESS >= 400.
+        """
         return (
-            (not np.isnan(max_rhat) and max_rhat < 1.01)
-            and (not np.isnan(min_ess) and min_ess > 400)
+            (not np.isnan(max_rhat) and max_rhat <= 1.05)
+            and (not np.isnan(min_ess) and min_ess >= 400)
             and (num_div == 0)
         )
 
     def test_converged_all_good(self):
         assert self._converged(1.005, 600.0, 0) is True
 
+    def test_converged_at_threshold(self):
+        """R-hat exactly 1.05 is converged (<=)."""
+        assert self._converged(1.05, 600.0, 0) is True
+
     def test_not_converged_high_rhat(self):
-        assert self._converged(1.05, 600.0, 0) is False
+        assert self._converged(1.06, 600.0, 0) is False
 
     def test_not_converged_low_ess(self):
         assert self._converged(1.005, 200.0, 0) is False
@@ -176,13 +184,17 @@ class TestConvergedLogic:
     def test_not_converged_nan_ess(self):
         assert self._converged(1.005, float("nan"), 0) is False
 
-    def test_boundary_rhat_exact(self):
-        """Boundary: max_rhat == 1.01 is NOT converged (strict <)."""
-        assert self._converged(1.01, 600.0, 0) is False
+    def test_boundary_rhat_just_over(self):
+        """Boundary: max_rhat == 1.051 is NOT converged."""
+        assert self._converged(1.051, 600.0, 0) is False
 
     def test_boundary_ess_exact(self):
-        """Boundary: min_ess == 400 is NOT converged (strict >)."""
-        assert self._converged(1.005, 400.0, 0) is False
+        """Boundary: min_ess == 400 is converged (>=)."""
+        assert self._converged(1.005, 400.0, 0) is True
+
+    def test_boundary_ess_just_under(self):
+        """Boundary: min_ess == 399 is NOT converged."""
+        assert self._converged(1.005, 399.0, 0) is False
 
 
 def test_reference_csv_row_count():

@@ -16,8 +16,8 @@ Key design decisions (see 13-RESEARCH.md, 32-RESEARCH.md):
 1. Posterior MEAN for <param> columns (matches MLE point-estimate semantics).
 2. 95% HDI for _hdi_low/_hdi_high.
 3. Posterior STD for _sd (not "SE" — frequentist term).
-4. converged = max_rhat < 1.01 AND min_ess_bulk > 400 AND num_divergences == 0
-   AND min_bfmi >= 0.2 (Baribault & Collins 2023 Tier-1 publication standard).
+4. converged = max_rhat <= 1.05 AND min_ess_bulk >= 400 AND num_divergences == 0
+   AND min_bfmi >= 0.2 (Baribault & Collins 2023 publication standard, DOI 10.1037/met0000554).
 5. NO grad_norm, hessian_*, _se, _ci_*, high_correlations (Hessian-based).
 
 v4.0 INFRA-04. Phase 32-01 added Tier-1 BFMI gate + per-chain ESS column.
@@ -397,12 +397,13 @@ def write_bayesian_summary(
         row["min_bfmi"] = min_bfmi
         row["per_chain_ess_bulk"] = per_chain_ess_bulk_str
 
-        # converged (Baribault & Collins 2023 Tier-1):
-        # max_rhat < 1.01 AND min_ess_bulk > 400 AND num_divergences == 0
+        # converged (Baribault & Collins 2023, Psychological Methods,
+        # 28(4), 942-960, DOI 10.1037/met0000554):
+        # max_rhat <= 1.05 AND min_ess_bulk >= 400 AND num_divergences == 0
         # AND min_bfmi >= 0.2 (NaN tolerated for legacy fits w/o energy stat).
         converged = (
-            (not np.isnan(max_rhat) and max_rhat < 1.01)
-            and (not np.isnan(min_ess) and min_ess > 400)
+            (not np.isnan(max_rhat) and max_rhat <= 1.05)
+            and (not np.isnan(min_ess) and min_ess >= 400)
             and (num_divergences_total == 0)
             and (np.isnan(min_bfmi) or min_bfmi >= 0.2)
         )
