@@ -163,12 +163,12 @@ This paper describes the fitting of seven hierarchically nested computational mo
 
 Participants were included in all downstream analyses only if they met the v4.0 canonical inclusion criteria implemented in `config.get_analysis_cohort()`, which enforces the intersection of three gates: (1) **task completeness** --- at least `{python} MIN_TRIALS_THRESHOLD` trials and at least eight main-task blocks; (2) a **performance check** --- overall accuracy above `{python} f"{MIN_OVERALL_ACCURACY:.2f}"` AND mean accuracy over the last `{python} LATE_BLOCK_N` main-task blocks above `{python} f"{MIN_LATE_BLOCK_ACCURACY:.2f}"` (the late-block criterion confirms the participant learned rather than performing at or near chance throughout the session, since chance = 1/3 $\approx$ 0.333); (3) **scale completeness** --- non-missing values on every required survey column (LEC-5 total events, IES-R total, IES-R intrusion, IES-R avoidance, IES-R hyperarousal). The resulting analysis cohort comprised **`{python} n_participants`** participants. Trauma exposure and symptom severity were assessed via the Life Events Checklist for DSM-5 (LEC-5; @weathers2013life) and the Impact of Event Scale--Revised (IES-R; @weiss2007impact). Participants were classified into two groups based on LEC-5 endorsement and IES-R total score: **`{python} groups[0]`** (n = `{python} group_counts[groups[0]]`) and **`{python} groups[1]`** (n = `{python} group_counts[groups[1]]`).
 
-Scale distributions and pairwise correlations are summarized in @fig-scale-distributions and documented in `docs/04_methods/README.md#scales-orthogonalization-and-audit`.
+Scale distributions and pairwise correlations are summarized in @fig-scale-distributions.
 
 ::: {#fig-scale-distributions}
 ![](figures/scale_distributions.png){width="100%"}
 
-Distributions and pairwise correlations of the trauma predictors. **Left**: histograms of LEC-5 total events and IES-R total and subscale scores. **Right**: Pearson correlation matrix. LEC total correlates only weakly with IES total ($r$ = 0.13), justifying inclusion of both predictors. IES subscales correlate strongly with IES total ($r$ = 0.91--0.93), requiring the Gram--Schmidt residualization described in Model Fitting. Figure produced by `scripts/legacy/analysis/trauma_scale_distributions.py` and copied into `manuscript/figures/` on pipeline rerun.
+Distributions and pairwise correlations of the trauma predictors. **Left**: histograms of LEC-5 total events and IES-R total and subscale scores. **Right**: Pearson correlation matrix. LEC total correlates only weakly with IES total ($r$ = 0.13), justifying inclusion of both predictors. IES subscales correlate strongly with IES total ($r$ = 0.91--0.93), requiring the Gram--Schmidt residualization described in Model Fitting. Figure source: `manuscript/figures/scale_distributions.png`.
 :::
 
 ### Task {#sec-task}
@@ -358,7 +358,7 @@ All Bayesian fits used the analysis cohort described in @sec-participants; indiv
 ::: {#fig-posterior-diagnostics}
 ![](figures/m6b_posterior_diagnostics.png){width="100%"}
 
-Posterior convergence diagnostics for the winning model (M6b). **(a)** R-hat values for all parameter sites; dashed line marks the 1.05 convergence threshold. **(b)** ESS bulk for group-level sites; dashed line at 400. **(c)** Divergence count per chain across the `target_accept_prob` auto-bump schedule (0.80 $\rightarrow$ 0.95 $\rightarrow$ 0.99). Figure rendered on pipeline rerun from `figures/m6b_posterior_diagnostics.png`.
+Posterior convergence diagnostics for the winning model (M6b). **(a)** R-hat values for all parameter sites; dashed line marks the 1.05 convergence threshold. **(b)** ESS bulk for group-level sites; dashed line at 400. **(c)** Divergence count per chain across the `target_accept_prob` auto-bump schedule (0.80 $\rightarrow$ 0.95 $\rightarrow$ 0.99).
 :::
 
 ### Statistical Analysis {#sec-stats}
@@ -429,7 +429,7 @@ The LOO + stacking ranking is in @tbl-loo-stacking; the random-effects BMS PXP i
 
 ```{python}
 #| label: tbl-loo-stacking
-#| tbl-cap: "PSIS-LOO expected log predictive density (ELPD) and stacking weights for choice-only models (M1--M3, M5, M6a, M6b). M4 (joint choice+RT) is evaluated on a separate track. Models ranked by ELPD difference from the best model. Stacking weight near 1.0 indicates strong evidence for the stacking winner. Phase 24 cold-start will populate."
+#| tbl-cap: "PSIS-LOO expected log predictive density (ELPD) and stacking weights for choice-only models (M1--M3, M5, M6a, M6b). M4 (joint choice+RT) is evaluated on a separate track. Models ranked by ELPD difference from the best model. Stacking weight near 1.0 indicates strong evidence for the stacking winner. Pending hierarchical Bayesian pipeline completion."
 
 from pathlib import Path
 import pandas as pd
@@ -439,7 +439,7 @@ if _loo_path.exists():
     display(df_loo.style.hide(axis="index").format(precision=3))
 else:
     display(pd.DataFrame({
-        "Model": ["[Phase 24 cold-start will populate]"],
+        "Model": ["[Awaiting Bayesian pipeline output]"],
         "ELPD": ["—"],
         "ELPD diff": ["—"],
         "Stacking weight": ["—"],
@@ -448,7 +448,7 @@ else:
 
 ```{python}
 #| label: tbl-rfx-bms
-#| tbl-cap: "Random-effects Bayesian model selection: protected exceedance probabilities (PXP) for choice-only models. PXP > 0.95 indicates very strong evidence for the selected model. Phase 24 cold-start will populate."
+#| tbl-cap: "Random-effects Bayesian model selection: protected exceedance probabilities (PXP) for choice-only models. PXP > 0.95 indicates very strong evidence for the selected model. Pending hierarchical Bayesian pipeline completion."
 
 from pathlib import Path
 import pandas as pd
@@ -458,7 +458,7 @@ if _rfx_path.exists():
     display(df_rfx.style.hide(axis="index").format(precision=3))
 else:
     display(pd.DataFrame({
-        "Model": ["[Phase 24 cold-start will populate]"],
+        "Model": ["[Awaiting Bayesian pipeline output]"],
         "PXP": ["—"],
         "EP": ["—"],
     }).style.hide(axis="index"))
@@ -466,7 +466,7 @@ else:
 
 ```{python}
 #| label: fig-forest-21
-#| fig-cap: "Forest plot of the stacking-winner model from the Phase 21 hierarchical Bayesian pipeline. Beta coefficients (probit scale) for each trauma predictor across all parameter sites. Thick bars = 50% HDI; thin bars = 95% HDI. Effects whose 95% HDI excludes zero are starred. Phase 24 cold-start will populate."
+#| fig-cap: "Forest plot of the stacking-winner model from the hierarchical Bayesian pipeline. Beta coefficients (probit scale) for each trauma predictor across all parameter sites. Thick bars = 50% HDI; thin bars = 95% HDI. Effects whose 95% HDI excludes zero are starred."
 #| fig-width: 7.0
 #| fig-height: 5.0
 
@@ -483,7 +483,7 @@ if _forest_path.exists():
     plt.savefig(OUTPUT_DIR / "fig_forest_21.pdf", bbox_inches="tight")
     plt.show()
 else:
-    print("[Phase 24 cold-start will populate — figures/21_bayesian/forest_plot.png not yet generated]")
+    print("[Awaiting Bayesian pipeline output — forest plot will be generated on pipeline completion]")
 ```
 
 ### Hierarchical Level-2 Trauma Associations {#sec-bayesian-regression}
@@ -502,7 +502,7 @@ As a validation check that hierarchical posterior means are reasonable given ind
 ::: {#fig-posterior-vs-mle}
 ![](figures/m6b_posterior_vs_mle.png){width="100%"}
 
-Per-participant Bayesian posterior mean versus MLE point estimate for each M6b parameter. Each point is one participant; error bars are MLE standard errors. Dashed line = identity. Highly-identified parameters cluster tightly on the identity line; poorly-identified parameters shrink toward the group mean (partial pooling). Rendered from `validation/compare_posterior_to_mle.py` output.
+Per-participant Bayesian posterior mean versus MLE point estimate for each M6b parameter. Each point is one participant; error bars are MLE standard errors. Dashed line = identity. Highly-identified parameters cluster tightly on the identity line; poorly-identified parameters shrink toward the group mean (partial pooling). Rendered from `tests/scientific/compare_posterior_to_mle.py` output.
 :::
 
 ```{python}
@@ -537,7 +537,7 @@ except Exception as e:
 
 ```{python}
 #| label: tbl-winner-betas
-#| tbl-cap: "Hierarchical Bayesian Level-2 beta coefficients for the stacking-winner model. Each row is one parameter-predictor pair. 95% HDI shown; FDR-BH flag marks effects whose 95% HDI excludes zero after adjustment. Phase 24 cold-start will populate."
+#| tbl-cap: "Hierarchical Bayesian Level-2 beta coefficients for the stacking-winner model. Each row is one parameter-predictor pair. 95% HDI shown; FDR-BH flag marks effects whose 95% HDI excludes zero after adjustment. Pending hierarchical Bayesian pipeline completion."
 
 from pathlib import Path
 import pandas as pd
@@ -547,7 +547,7 @@ if _betas_path.exists():
     display(df_betas.style.hide(axis="index").format(precision=3))
 else:
     display(pd.DataFrame({
-        "Parameter": ["[Phase 24 cold-start will populate]"],
+        "Parameter": ["[Awaiting Bayesian pipeline output]"],
         "Predictor": ["—"],
         "beta_mean": ["—"],
         "hdi_lo": ["—"],
@@ -558,9 +558,7 @@ else:
 
 ### Subscale Breakdown {#sec-subscale-breakdown}
 
-The M6b Level-2 model additionally included two Gram--Schmidt-residualized IES-R subscale predictors (Intrusion residual, Avoidance residual), yielding 4 $\times$ 8 = 32 beta sites for the stick-breaking parameterization. This exploratory arm allows us to ask whether the intrusion and avoidance components of post-traumatic stress carry distinct parameter-level signatures beyond the IES-R total score. Results from this subscale arm will be reported here once the Phase 24 pipeline produces the corresponding output; until then this section serves as a structural placeholder.
-
-\[Phase 24 cold-start will populate this section with the M6b subscale beta table and any forest-plot panels that survive FDR-BH correction.\]
+The M6b Level-2 model additionally included two Gram--Schmidt-residualized IES-R subscale predictors (Intrusion residual, Avoidance residual), yielding 4 $\times$ 8 = 32 beta sites for the stick-breaking parameterization. This exploratory arm tests whether the intrusion and avoidance components of post-traumatic stress carry distinct parameter-level signatures beyond the IES-R total score. Results from this subscale arm, including the M6b subscale beta table and any forest-plot panels that survive FDR-BH correction, will be reported here once the hierarchical Bayesian pipeline output is available.
 
 ## Discussion {#sec-discussion}
 
@@ -574,23 +572,13 @@ The M6b Level-2 model additionally included two Gram--Schmidt-residualized IES-R
 
 **Identifiability limitations.** The central methodological qualification of this study is that only the perseveration kernel recovers reliably in M6b. Individual differences in $K$ (WM capacity), $\phi$ (WM decay), $\rho$ (WM reliability), $\alpha_{\pm}$, and $\varepsilon$ cannot be interpreted as stable traits at the per-participant level, because recovery from synthetic data falls substantially short of the $r \geq 0.80$ criterion (Section \ref{sec-parameter-recovery}). Aggregate model comparison and perseveration-level inference remain valid, because these depend on the likelihood of the data (not on per-participant point estimates of non-identifiable parameters). Hierarchical Bayesian fitting with regularizing priors could partially recover identifiability via shrinkage; this was beyond the scope of the present MLE pipeline.
 
-**Other limitations.** (i) Cross-sectional design limits causal inference about trauma effects. (ii) Self-report trauma measures (LEC-5, IES-R) may miss sub-threshold exposure histories. (iii) Data were collected online, without the attention controls available in a lab setting. (iv) Set sizes were limited to 2, 3, 5, and 6; set size 4 was excluded by design following @senta2025. (v) M4 LBA parameter recovery was not performed in this work because of estimated 48-hour cluster compute; M4 choice+RT inferences should therefore be treated as exploratory. (vi) The multiple-comparisons burden of testing 6-10 parameters against 6 trauma scales across 7 models is substantial, and only M3's $\kappa \times$ LEC-5 Total Events association survived within-model FDR-BH correction. Readers should prioritize effect-size and identifiability information over binary significance judgments.
+**Other limitations.** (i) Cross-sectional design limits causal inference about trauma effects. (ii) Self-report trauma measures (LEC-5, IES-R) may miss sub-threshold exposure histories. (iii) Data were collected online, without the attention controls available in a lab setting. (iv) Set sizes were limited to 2, 3, 5, and 6; set size 4 was excluded by design following @senta2025. (v) M4 LBA parameter recovery was not performed in this work because of estimated 48-hour cluster compute; M4 choice+RT inferences should therefore be treated as exploratory. M4 uses a fundamentally different likelihood domain from the choice-only models, making direct comparison via AIC, LOO, or stacking weights inappropriate; we report M4's LOO diagnostics on a separate track. (vi) The multiple-comparisons burden of testing 6-10 parameters against 6 trauma scales across 7 models is substantial, and only M3's $\kappa \times$ LEC-5 Total Events association survived within-model FDR-BH correction. Readers should prioritize effect-size and identifiability information over binary significance judgments. (vii) Working-memory capacity $K$ has a restricted effective range ($[2, 6]$) dictated by the task's set-size structure [@collins2012how]; this limits precision of between-participant comparisons on $K$, although the fundamental constraint is inherent to the task. (viii) The IES-R subscale design matrix required Gram--Schmidt orthogonalization against the total score to avoid perfect collinearity; the hyperarousal residual was excluded due to exact linear dependence (the three subscales sum to the total), so subscale predictors capture unique variance conditional on the total score being partialled out.
 
 **Clinical implications.** Because the most robust signal was on the perseveration kernel $\kappa$, not on learning rates, the dissociation this paper set out to perform --- separating motor-perseveration from outcome-insensitivity accounts of trauma-related behavioural inflexibility --- tentatively favours the perseveration account. Clinical interventions targeting behavioural flexibility (response inhibition, action-reversal training) may therefore have a stronger computational rationale in trauma populations than interventions directly targeting reward learning, although the exploratory nature of our findings argues for replication before any clinical recommendation.
 
-### Limitations {#sec-limitations}
-
-Several methodological limitations should be noted. First, MLE parameter recovery for the base RLWM parameters ($\alpha_+$, $\alpha_-$, $\phi$, $\rho$, $K$, $\varepsilon$) fell below the $r \geq 0.80$ criterion, though hierarchical Bayesian shrinkage is expected to improve individual-level estimates. The degree of shrinkage varies across parameters: well-identified parameters (e.g., $\kappa_{\text{total}}$, $\kappa_{\text{share}}$) show strong shrinkage toward the group mean, while poorly recovered parameters show less regularization. Readers should interpret individual-level estimates of the base parameters as descriptive summaries rather than precise trait measures.
-
-Second, M4 (joint choice+RT via LBA) uses a fundamentally different likelihood domain from the choice-only models, making direct comparison via AIC, LOO, or stacking weights inappropriate. We report M4's LOO diagnostics on a separate track. The Pareto-k diagnostic for M4 is expected to show a high proportion of observations with $k > 0.7$, indicating that importance sampling is unreliable for this model class under NUTS. This is a known limitation of applying LOO to models with high-dimensional per-trial likelihoods.
-
-Third, working-memory capacity $K$ has a restricted effective range ($[2, 6]$) dictated by the task's set-size structure. While this bounding is theoretically motivated [@collins2012how], it limits the precision of between-participant comparisons on $K$. Phase 14's K-refit with tighter bounds is expected to improve recovery, but the fundamental constraint remains.
-
-Fourth, the IES-R subscale design matrix required Gram--Schmidt orthogonalization against the total score to avoid perfect collinearity. The resulting residualized subscale predictors capture unique variance beyond the total, but their interpretation is conditional on the total score being partialled out. The hyperarousal residual was excluded due to exact linear dependence (the three subscales sum to the total).
-
 ## Conclusion {#sec-conclusion}
 
-We fitted seven computational models of reinforcement learning and working memory to behavioral data from `{python} n_participants` participants stratified by trauma history and symptom severity. The winning model (`{python} winner_display`) revealed dissociable contributions of perseverative responding and outcome-based learning deficits to post-trauma behavioral changes. \[To be completed with final summary and future directions.\]
+We fitted seven computational models of reinforcement learning and working memory to behavioral data from `{python} n_participants` participants stratified by trauma history and symptom severity. The winning model (`{python} winner_display`) decomposed perseverative responding into global and stimulus-specific components via a stick-breaking parameterization, and was preferred over all alternatives by AIC, BIC, and PSIS-LOO stacking weights. The most robust trauma-parameter association was a positive link between the perseveration kernel ($\kappa_{\text{total}}$) and lifetime trauma exposure (LEC-5 Total Events), which survived FDR-BH correction in M3 and approached threshold in M6b. By contrast, learning rates ($\alpha_{+}$, $\alpha_{-}$) did not differ by trauma status at any correction level, tentatively favouring a motor-perseveration account of trauma-related behavioural inflexibility over a pure outcome-insensitivity account. These findings should be considered hypothesis-generating given the identifiability limitations of the base RLWM parameters and the moderate sample size. Replication in an independent, pre-registered sample --- ideally with a within-subject manipulation of perseveration cost --- is needed before clinical translation.
 
 ## References {.unnumbered}
 

@@ -1511,7 +1511,7 @@ gets its own LOO with Pareto-k gating:
 ### 11.5 Schema-Parity CSV
 
 `scripts/fitting/bayesian_summary_writer.py` writes individual-level
-Bayesian summaries to `output/bayesian/{model}_individual_fits.csv` with
+Bayesian summaries to `models/bayesian/{model}_individual_fits.csv` with
 column names identical to the MLE CSVs plus:
 
 - `{param}_hdi_low`, `{param}_hdi_high`, `{param}_sd` for each parameter

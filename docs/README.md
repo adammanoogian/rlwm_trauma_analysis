@@ -3,12 +3,10 @@
 ```
 docs/
 ├── 01_project_protocol/
-│   ├── PARTICIPANT_EXCLUSIONS.md        # Exclusion criteria (superseded by 04_methods/README.md §4.1)
 │   └── plotting_config_guide.md         # Figure styling (PlotConfig classes)
 │
 ├── 02_pipeline_guide/
-│   ├── ANALYSIS_PIPELINE.md             # Full pipeline walkthrough (scripts 01-18)
-│   └── PLOTTING_REFERENCE.md            # All scripts/legacy/visualization/* tools (historical)
+│   └── ANALYSIS_PIPELINE.md             # Full pipeline walkthrough (Scheme D, scripts 01–06)
 │
 ├── 03_methods_reference/
 │   ├── MODEL_REFERENCE.md               # Model math (Q-learning, WM-RL, priors, K parameterization)
@@ -22,13 +20,12 @@ docs/
 │   └── README.md                        # Pipeline results index (all artifacts incl. orphaned/supplementary)
 │
 ├── CLUSTER_GPU_LESSONS.md               # JAX/NumPyro/GPU/SLURM lessons and pitfalls
-├── PARALLEL_SCAN_LIKELIHOOD.md          # pscan architecture deep-dive
 │
 └── legacy/                              # Archived superseded docs — see docs/legacy/README.md
 ```
 
 **Start here:**
-- [ANALYSIS_PIPELINE.md](02_pipeline_guide/ANALYSIS_PIPELINE.md) — full pipeline walkthrough
+- [ANALYSIS_PIPELINE.md](02_pipeline_guide/ANALYSIS_PIPELINE.md) — full pipeline walkthrough (Scheme D layout)
 - [04_methods/README.md](04_methods/README.md#hierarchical-bayesian-architecture) — Bayesian architecture + validation checklist
 - [CLUSTER_GPU_LESSONS.md](CLUSTER_GPU_LESSONS.md) — read before writing new cluster code or debugging a slow MCMC run
 

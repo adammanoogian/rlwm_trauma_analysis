@@ -394,7 +394,7 @@ Used by `cluster/13_bayesian_m{1,2,3,5,6a,6b}.slurm`.
 #SBATCH --partition=comp
 
 module load miniforge3
-conda activate ds_env
+mamba activate rlwm_gpu
 
 export JAX_PLATFORMS=cpu
 export NUMPYRO_HOST_DEVICE_COUNT=4
@@ -449,7 +449,7 @@ Key decisions:
 - `NUMPYRO_HOST_DEVICE_COUNT=1` — no CPU host devices needed
 - `--mem=32G` — smaller than CPU template because runtime memory is
   tiny
-- Environment: `rlwm_gpu` (not `ds_env`) has CUDA dependencies
+- Environment: `rlwm_gpu` (`mamba activate rlwm_gpu`) has CUDA dependencies
 
 ### Template C — Multi-GPU, chains parallel via pmap
 

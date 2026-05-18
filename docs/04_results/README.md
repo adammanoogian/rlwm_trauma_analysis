@@ -3,44 +3,50 @@
 Every top-level result category produced by the pipeline, including
 supplementary and orphaned artifacts not shown in manuscript/paper.qmd.
 One row per result with producer + canonical output path + provenance.
-Placeholders are used where artifacts do not yet exist (e.g. Bayesian
-posteriors blocked on cluster runs).
+
+All paths are relative to the project root and follow the CCDS v2 layout:
+`models/` for fitted artifacts, `reports/{figures,tables}/` for outputs.
 
 ## Behavioral
 
 | Result | Producer | Output path | Status |
 |---|---|---|---|
-| Task performance plots | scripts/02_behav_analyses/02_visualize_task_performance.py | figures/behavioral_analysis/ | available |
-| Trauma-group behavioral stats | scripts/02_behav_analyses/03_analyze_trauma_groups.py | figures/trauma_groups/, output/summary_by_trauma.csv | available |
-| Statistical analyses (ANOVA, descriptives) | scripts/02_behav_analyses/04_run_statistical_analyses.py | output/statistical_analyses/ | available |
-| Scale distributions | scripts/legacy/analysis/trauma_scale_distributions.py | figures/scale_distributions.png, figures/trauma_scale_analysis/ | available after pipeline rerun |
+| Task performance plots | scripts/02_behav_analyses/02_visualize_task_performance.py | reports/figures/behavioral_analysis/ | available |
+| Trauma-group behavioral stats | scripts/02_behav_analyses/03_analyze_trauma_groups.py | reports/figures/trauma_groups/, reports/tables/trauma_groups/ | available |
+| Statistical analyses (ANOVA, descriptives) | scripts/02_behav_analyses/04_run_statistical_analyses.py | reports/tables/statistical_analyses/ | available |
+| Scale distributions | scripts/legacy/analysis/trauma_scale_distributions.py | reports/figures/scale_distributions.png | available |
 
 ## Model fitting (MLE)
 
 | Result | Producer | Output path | Status |
 |---|---|---|---|
-| Individual MLE fits (all 7 models) | scripts/04_model_fitting/a_mle/fit_mle.py | output/mle/{model}_individual_fits.csv | available |
-| Model comparison (AIC/BIC) | scripts/06_fit_analyses/01_compare_models.py | output/model_comparison/ | available |
-| Winner heterogeneity | scripts/06_fit_analyses/06_analyze_winner_heterogeneity.py | output/model_comparison/winner_heterogeneity*.csv, figures/model_comparison/winner_heterogeneity_figure.png | available |
+| Individual MLE fits (all 7 models) | scripts/04_model_fitting/a_mle/fit_mle.py | models/mle/{model}_individual_fits.csv | available |
+| Model comparison (AIC/BIC) | scripts/06_fit_analyses/01_compare_models.py | reports/tables/model_comparison/ | available |
+| Winner heterogeneity | scripts/06_fit_analyses/06_analyze_winner_heterogeneity.py | reports/tables/model_comparison/winner_heterogeneity*.csv, reports/figures/model_comparison/ | available |
 
 ## Trauma associations (MLE)
 
 | Result | Producer | Output path | Status |
 |---|---|---|---|
-| Parameter-trauma correlations | scripts/06_fit_analyses/04_analyze_mle_by_trauma.py | output/regressions/{model}/ | available |
-| FDR/Bonferroni-corrected regressions | scripts/06_fit_analyses/05_regress_parameters_on_scales.py | output/regressions/{model}/significance_*.{csv,md} | available |
+| Parameter-trauma correlations | scripts/06_fit_analyses/04_analyze_mle_by_trauma.py | reports/tables/regressions/{model}/ | available |
+| FDR/Bonferroni-corrected regressions | scripts/06_fit_analyses/05_regress_parameters_on_scales.py | reports/tables/regressions/{model}/significance_*.{csv,md} | available |
 
-## Bayesian (blocked on cluster)
+## Bayesian
 
 | Result | Producer | Output path | Status |
 |---|---|---|---|
-| Hierarchical posteriors (6 choice-only models) | scripts/04_model_fitting/b_bayesian/fit_bayesian.py | output/bayesian/{model}_posterior.nc | _placeholder — cluster refit pending_ |
-| M4 LBA posterior | scripts/04_model_fitting/b_bayesian/fit_bayesian.py --model wmrl_m4 | output/bayesian/wmrl_m4_posterior.nc | _placeholder — cluster refit pending_ |
-| Pscan benchmarks | cluster/13_bayesian_pscan.slurm | output/bayesian/pscan_benchmark.json | available |
-| M6b posterior diagnostics | scripts/legacy/visualization/plot_posterior_diagnostics.py | figures/m6b_posterior_diagnostics.png | _placeholder — needs posterior first_ |
-| M6b posterior vs MLE | validation/compare_posterior_to_mle.py | figures/m6b_posterior_vs_mle.png | _placeholder — needs posterior first_ |
-| Level-2 stacking weights | scripts/06_fit_analyses/01_compare_models.py --bayesian-comparison | output/bayesian/level2/stacking_weights.csv | _placeholder — needs posterior first_ |
-| Level-2 forest plots | scripts/06_fit_analyses/07_bayesian_level2_effects.py | output/bayesian/figures/m6b_forest_lec5.png | _placeholder — needs posterior first_ |
+| Hierarchical posteriors (6 choice-only) | scripts/04_model_fitting/b_bayesian/fit_bayesian.py | models/bayesian/{model}_posterior.nc | Phase 33 refit in progress |
+| M4 LBA posterior | scripts/04_model_fitting/b_bayesian/fit_bayesian.py --model wmrl_m4 | models/bayesian/wmrl_m4_posterior.nc | deferred (GPU-intensive) |
+| M6b posterior diagnostics | (generated by fit_bayesian.py post-processing) | reports/figures/21_bayesian/ | Phase 33 refit in progress |
+| M6b posterior vs MLE | validation/compare_posterior_to_mle.py | manuscript/figures/m6b_posterior_vs_mle.png | needs posterior |
+| Level-2 stacking weights | scripts/06_fit_analyses/02_compute_loo_stacking.py | models/bayesian/level2/stacking_weights.csv | needs posteriors |
+| Level-2 forest plots | scripts/06_fit_analyses/07_bayesian_level2_effects.py | reports/figures/bayesian/ | needs posteriors |
 
-Entries marked _placeholder_ will be filled in after the next cluster
-Bayesian fit completes (see .planning/STATE.md for current blocker).
+## Recovery & validation
+
+| Result | Producer | Output path | Status |
+|---|---|---|---|
+| MLE parameter recovery | scripts/03_model_prefitting/03_run_model_recovery.py | models/recovery/ | available |
+| Prior predictive checks | scripts/03_model_prefitting/04_run_prior_predictive.py | models/ppc/ | available |
+| Bayesian parameter recovery | scripts/03_model_prefitting/05_run_bayesian_recovery.py | models/recovery/ | available |
+| Posterior predictive checks | scripts/05_post_fitting_checks/03_run_posterior_ppc.py | models/ppc/ | needs posteriors |

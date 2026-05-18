@@ -1,332 +1,278 @@
 # RLWM Trauma Analysis Pipeline
 
-Complete workflow for the RLWM Trauma Analysis project — from raw jsPsych data to computational model fitting and trauma-parameter regression.
+Complete workflow from raw jsPsych data to computational model fitting,
+hierarchical Bayesian inference, and trauma-parameter regression.
 
 ## Overview
 
-This pipeline processes raw jsPsych behavioral data from a Reinforcement Learning Working Memory (RLWM) task combined with trauma assessment surveys (LEC-5, IES-R). It covers:
+This pipeline processes raw jsPsych behavioral data from a Reinforcement
+Learning Working Memory (RLWM) task combined with trauma assessment surveys
+(LEC-5, IES-R). It follows the **Scheme D** layout (six numbered stage
+folders) under the CCDS v2 directory structure.
 
-1. **Data Processing** (scripts 01-04): Parse, collate, and summarize raw data
-2. **Behavioral Analysis** (scripts 05-08): Descriptive stats, visualizations, trauma grouping, ANOVAs
-3. **Simulations & Validation** (scripts 09-11): Synthetic data, parameter sweeps, model/parameter recovery
-4. **Model Fitting** (scripts 12-14): MLE and Bayesian fitting, model comparison
-5. **Results Analysis** (scripts 15-16): Parameter-trauma relationships, continuous regressions
+| Stage | Folder | Description |
+|-------|--------|-------------|
+| 1 | `scripts/01_data_preprocessing/` | Parse, collate, and summarize raw data |
+| 2 | `scripts/02_behav_analyses/` | Descriptive stats, visualizations, trauma grouping |
+| 3 | `scripts/03_model_prefitting/` | Synthetic data, parameter recovery, prior predictive |
+| 4 | `scripts/04_model_fitting/` | MLE and Bayesian fitting (parallel alternatives) |
+| 5 | `scripts/05_post_fitting_checks/` | Baseline audit, scale audit, posterior PPC |
+| 6 | `scripts/06_fit_analyses/` | Model comparison, trauma regressions, manuscript tables |
 
-**Sample:** N=48 participants (after exclusions from N=54 raw).
+**Sample:** N=154 participants (v4.0 canonical cohort after exclusions).
+See `config.get_analysis_cohort()` for the three-gate inclusion criteria.
 
 ---
 
 ## Environment Setup
 
 ```bash
-# Option 1: Use existing environment
-conda activate ds_env
+# Install the rlwm package in editable mode (required for imports)
+pip install -e .
 
-# Option 2: Create from environment.yml (recommended)
-conda env create -f environment.yml
-conda activate ds_env
+# View current configuration
+python config.py
 ```
 
-For GPU-accelerated model fitting, see [cluster execution](#cluster-execution).
+For GPU-accelerated fitting on the Monash M3 cluster, see
+[Cluster Execution](#cluster-execution).
 
 ---
 
-## Stage 1: Data Processing (Scripts 01-04)
+## Stage 1: Data Processing
 
-Parse raw jsPsych JSON exports into analysis-ready CSV files.
+Parse raw jsPsych JSON exports into analysis-ready CSVs.
 
 ```bash
-python scripts/01_data_preprocessing/01_parse_raw_data.py         # Parse raw jsPsych data
-python scripts/01_data_preprocessing/02_create_collated_csv.py     # Collate all participants (wide format)
-python scripts/01_data_preprocessing/03_create_task_trials_csv.py  # Trial-level data (long format)
-python scripts/01_data_preprocessing/04_create_summary_csv.py      # Summary metrics per participant
+python scripts/01_data_preprocessing/01_parse_raw_data.py
+python scripts/01_data_preprocessing/02_create_collated_csv.py
+python scripts/01_data_preprocessing/03_create_task_trials_csv.py
+python scripts/01_data_preprocessing/04_create_summary_csv.py
 ```
 
-**Outputs:**
+**Outputs (CCDS `data/processed/` tier):**
+
 | File | Description |
 |------|-------------|
-| `output/parsed_demographics.csv` | Demographic information |
-| `output/parsed_survey1.csv` | LEC-5 trauma exposure |
-| `output/parsed_survey2.csv` | IES-R PTSD symptoms |
-| `output/collated_participant_data.csv` | All participants, wide format |
-| `output/task_trials_long.csv` | Main task trials (for fitting) |
-| `output/task_trials_long_all.csv` | All blocks including practice |
-| `output/summary_participant_metrics.csv` | Per-participant aggregates |
+| `data/processed/task_trials_long.csv` | Main task trials (default for fitting) |
+| `data/processed/task_trials_long_all.csv` | All blocks including practice |
+| `data/processed/task_trials_long_all_participants.csv` | Legacy filename (main task only) |
+| `data/processed/summary_participant_metrics.csv` | Per-participant aggregates |
 
-**Block structure:** Blocks 1-2 are practice, blocks 3-23 are main task. By default, `task_trials_long.csv` contains main task only.
+**Block structure:** Blocks 1-2 are practice (static, dynamic), blocks 3-23
+are main task. By default, fitting uses `task_trials_long.csv` (main task only).
 
 ---
 
-## Stage 2: Behavioral Analysis (Scripts 01-04)
+## Stage 2: Behavioral Analysis
 
-Generate descriptive statistics, visualizations, trauma group classifications, and statistical tests.
+Generate descriptive statistics, visualizations, trauma group classifications,
+and statistical tests.
 
 ```bash
-python scripts/02_behav_analyses/01_summarize_behavioral_data.py    # Behavioral summary stats
-python scripts/02_behav_analyses/02_visualize_task_performance.py    # Learning curves, set-size effects
-python scripts/02_behav_analyses/03_analyze_trauma_groups.py         # Trauma grouping + validation
-python scripts/02_behav_analyses/04_run_statistical_analyses.py      # ANOVAs + descriptive tables
+python scripts/02_behav_analyses/01_summarize_behavioral_data.py
+python scripts/02_behav_analyses/02_visualize_task_performance.py
+python scripts/02_behav_analyses/03_analyze_trauma_groups.py
+python scripts/02_behav_analyses/04_run_statistical_analyses.py
 ```
 
-### Trauma Group Methodology
+### Trauma Groups
 
-Script 03 creates hypothesis-driven groups based on median splits of LEC-5 (trauma exposure) and IES-R (PTSD symptoms):
+Participants are classified into two groups based on LEC-5 endorsement
+and IES-R total score:
 
-| Group | LEC-5 | IES-R | Interpretation |
-|-------|-------|-------|----------------|
-| A (Low-Low) | < median | < median | Minimal trauma, baseline |
-| B (High-Low) | >= median | < median | Exposed but resilient |
-| C (High-High) | >= median | >= median | Exposed with symptoms |
+| Group | Criteria | Interpretation |
+|-------|----------|----------------|
+| Trauma-No-Ongoing-Impact | LEC-5 exposure, low IES-R | Exposed but resilient |
+| Trauma-Ongoing-Impact | LEC-5 exposure, high IES-R | Exposed with symptoms |
 
-**Why median splits?** With N=48, clinical cutoffs (e.g., IES-R >= 33 for probable PTSD) may create severely imbalanced groups. Median splits maximize statistical power by creating balanced groups while capturing relative variation within the sample. For confirmatory analyses with larger samples (N > 60), clinical thresholds are preferred.
-
-The script also runs hierarchical clustering (Ward linkage) as a data-driven validation. High concordance between methods suggests robust groupings.
-
-**Outputs:**
-- `output/trauma_groups/group_assignments.csv` — group labels per participant
-- `figures/trauma_groups/` — scatter plots, dendrograms, silhouette plots
+**Outputs:** `reports/tables/trauma_groups/group_assignments.csv`,
+`reports/figures/trauma_groups/`
 
 ---
 
-## Stage 3: Pre-fit Simulations & Validation (Scripts 01-05)
+## Stage 3: Pre-fit Simulations & Validation
 
-Generate synthetic data and validate the fitting pipeline.
+Generate synthetic data and validate the fitting pipeline before committing
+to expensive cluster runs.
 
 ```bash
-python scripts/03_model_prefitting/01_generate_synthetic_data.py  # Synthetic data generation
-python scripts/03_model_prefitting/02_run_parameter_sweep.py       # Systematic parameter exploration
-python scripts/03_model_prefitting/03_run_model_recovery.py        # Parameter/model recovery
-python scripts/03_model_prefitting/04_run_prior_predictive.py --model wmrl_m3  # Prior predictive gate
-python scripts/03_model_prefitting/05_run_bayesian_recovery.py --mode aggregate --model wmrl_m3  # Bayesian recovery aggregate
-
-# Posterior predictive check (after MLE fits land; stage 05):
-python scripts/05_post_fitting_checks/03_run_posterior_ppc.py --model wmrl_m3
+python scripts/03_model_prefitting/01_generate_synthetic_data.py
+python scripts/03_model_prefitting/02_run_parameter_sweep.py
+python scripts/03_model_prefitting/03_run_model_recovery.py
+python scripts/03_model_prefitting/04_run_prior_predictive.py
+python scripts/03_model_prefitting/05_run_bayesian_recovery.py
 ```
 
 **Use cases:**
-- **Parameter recovery:** Fit models to synthetic data with known parameters; verify recovery
-- **Model recovery:** Generate data from each model; verify model comparison selects the true model
-- **Parameter sweeps:** Map how parameters affect accuracy, RT, and set-size effects
+- **Parameter recovery:** Fit models to synthetic data with known parameters;
+  verify recovery (criterion: r >= 0.80)
+- **Model recovery:** Generate data from each model; verify AIC selects the
+  true generating model
+- **Prior predictive:** Baribault & Collins (2023) gate — check that priors
+  produce plausible behavioral patterns before fitting real data
 
 ---
 
-## Stage 4: Model Fitting (Scripts 12-14)
+## Stage 4: Model Fitting
 
-### 4.1 MLE Fitting (Primary)
+Stage 4 uses parallel-alternative subfolders (no intra-stage numbers):
 
-Maximum likelihood estimation with multi-start optimization. Fast, reliable point estimates.
+```
+scripts/04_model_fitting/
+├── a_mle/          # MLE point estimates via L-BFGS-B
+├── b_bayesian/     # Hierarchical MCMC via NumPyro NUTS
+└── c_level2/       # Winner refit with Level-2 trauma covariates
+```
+
+### 4a. MLE Fitting
+
+Maximum likelihood estimation with 50 random restarts per participant.
 
 ```bash
-# Q-learning (M1): alpha_pos, alpha_neg, epsilon
+# All seven models (dispatch via --model flag)
 python scripts/04_model_fitting/a_mle/fit_mle.py --model qlearning
-
-# WM-RL (M2): alpha_pos, alpha_neg, phi, rho, K, epsilon
 python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl
-
-# WM-RL with perseveration (M3): alpha_pos, alpha_neg, phi, rho, K, kappa, epsilon
 python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m3
-
-# WM-RL + RL forgetting (M5): alpha_pos, alpha_neg, phi, rho, K, kappa, phi_rl, epsilon
 python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m5
-
-# WM-RL + stimulus-specific perseveration (M6a): alpha_pos, alpha_neg, phi, rho, K, kappa_s, epsilon
 python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m6a
-
-# WM-RL + dual perseveration (M6b): alpha_pos, alpha_neg, phi, rho, K, kappa_total, kappa_share, epsilon
-# Current winning model (AIC rank 1, Akaike weight ~1.0 across N=154)
 python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m6b
+python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m4  # joint choice+RT
 
-# RLWM-LBA joint choice+RT (M4): alpha_pos, alpha_neg, phi, rho, K, kappa, v_scale, A, delta, t0
-# NOTE: M4 AIC is NOT comparable to choice-only models (M1-M3, M5, M6a, M6b).
-# M4 is the only model requiring GPU (float64 LBA likelihood).
-python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m4
+# Speed options
+python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m5 --n-jobs 16
+python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m5 --use-gpu
 ```
 
-**Speed options:**
+**Outputs:** `models/mle/{model}_individual_fits.csv`
+
+### 4b. Bayesian Fitting
+
+Hierarchical Bayesian models via NumPyro NUTS. Non-centered parameterization
+(hBayesDM convention). Individual-level parameters use probit-bounded priors.
 
 ```bash
-# Parallel CPU (multi-core, ~4-8x speedup)
-python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m3 --n-jobs 16
+# Single model
+python scripts/04_model_fitting/b_bayesian/fit_bayesian.py --model wmrl_m3
 
-# GPU-accelerated (requires rlwm_gpu environment)
-python scripts/04_model_fitting/a_mle/fit_mle.py --model wmrl_m3 --use-gpu
+# Full 9-step afterok pipeline (recommended; runs on cluster)
+bash cluster/21_submit_pipeline.sh
 ```
 
-**With practice data:**
+The full Bayesian pipeline runs nine steps in sequence:
+1. Prior predictive checks
+2. Bayesian parameter recovery
+3. Baseline hierarchical fits (all choice-only models)
+4. Convergence audit (R-hat <= 1.05, ESS >= 400, 0 divergences)
+5. PSIS-LOO + stacking weights
+6. Winner Level-2 refit with trauma covariates
+7. Scale-fit audit
+8. Model-averaged beta coefficients
+9. Manuscript tables
+
+**Outputs:** `models/bayesian/{model}_posterior.nc`, `models/bayesian/level2/`
+
+### 4c. Level-2 Refit
+
+Refit the stacking winner with a Level-2 design matrix of trauma predictors
+(LEC-5 total, IES-R total, residualized IES-R subscales).
 
 ```bash
-python scripts/04_model_fitting/a_mle/fit_mle.py --model qlearning --data output/task_trials_long_all.csv --include-practice
+python scripts/04_model_fitting/c_level2/fit_with_l2.py
 ```
 
-**Outputs:** `output/mle/<model>_mle_results.csv` — per-participant parameter estimates, NLL, AIC, BIC.
+---
 
-### 4.2 Bayesian Fitting (Optional)
-
-Hierarchical Bayesian models via JAX/NumPyro (NUTS sampler).
+## Stage 5: Post-Fitting Checks
 
 ```bash
-python scripts/04_model_fitting/b_bayesian/fit_bayesian.py --model qlearning
-python scripts/04_model_fitting/b_bayesian/fit_bayesian.py --model wmrl --chains 4 --warmup 1000 --samples 2000
+python scripts/05_post_fitting_checks/01_baseline_audit.py
+python scripts/05_post_fitting_checks/02_scale_audit.py
+python scripts/05_post_fitting_checks/03_run_posterior_ppc.py
 ```
 
-**Outputs:** ArviZ InferenceData (`.nc`), parameter summaries (`.csv`), trace plots.
+---
 
-### 4.3 Model Comparison
+## Stage 6: Fit Analyses
+
+Model comparison, trauma associations, and manuscript table generation.
 
 ```bash
-# Compare all fitted MLE models (AIC/BIC)
+# Model comparison (AIC/BIC for MLE; LOO/stacking for Bayesian)
 python scripts/06_fit_analyses/01_compare_models.py
+python scripts/06_fit_analyses/02_compute_loo_stacking.py
+python scripts/06_fit_analyses/03_model_averaging.py
 
-# Compare specific models
-python scripts/06_fit_analyses/01_compare_models.py --models qlearning wmrl wmrl_m3
-
-# With Bayesian criteria (WAIC/LOO)
-python scripts/06_fit_analyses/01_compare_models.py --use-waic
-```
-
-**Outputs:**
-- `output/model_comparison/` — comparison tables, winning model per participant
-- `figures/model_comparison/` — IC bar plots, model weight plots
-
-### Cluster Execution
-
-```bash
-# Parallel CPU (Monash M3 cluster)
-sbatch cluster/run_mle_parallel.slurm
-
-# GPU-accelerated
-sbatch cluster/run_mle_gpu.slurm
-
-# Single model with custom settings
-sbatch --export=MODEL=wmrl_m3,NJOBS=8 cluster/run_mle_parallel.slurm
-```
-
----
-
-## Stage 5: Results Analysis (Scripts 15-16)
-
-Relate fitted model parameters to trauma measures.
-
-```bash
-# Parameter group comparisons (trauma groups × fitted parameters)
+# Trauma associations
 python scripts/06_fit_analyses/04_analyze_mle_by_trauma.py --model all
-
-# Continuous regression (parameters ~ LEC-5 + IES-R subscales)
 python scripts/06_fit_analyses/05_regress_parameters_on_scales.py --model all
-```
-
-### Stage 5b: Winner Heterogeneity (Script 17)
-
-Analyze per-participant model-selection heterogeneity: what fraction of participants are best fit by each model, and how does this vary by trauma group.
-
-```bash
 python scripts/06_fit_analyses/06_analyze_winner_heterogeneity.py
-```
-
-**Inputs:** `output/model_comparison/` (from script 14)
-**Outputs:** `output/model_comparison/winner_heterogeneity*.csv`, `figures/model_comparison/winner_heterogeneity_figure.png`
-
----
-
-### Stage 5c: Bayesian Level-2 Effects (Script 18)
-
-Forest plots of Level-2 regression coefficients (trauma predictors × model parameters) from the hierarchical Bayesian posterior. Runs only after cluster Bayesian fit completes.
-
-```bash
 python scripts/06_fit_analyses/07_bayesian_level2_effects.py
+
+# Manuscript tables
+python scripts/06_fit_analyses/08_manuscript_tables.py
 ```
 
-**Inputs:** `output/bayesian/{model}_posterior.nc` (generated after cluster Bayesian fit)
-**Outputs:** `output/bayesian/figures/m6b_forest_lec5.png` and related forest plots. Gracefully skips if posterior NetCDF files are missing.
-
-**Note:** Outputs marked as placeholder in `docs/04_results/README.md` until the cluster Bayesian fit completes.
+**Outputs:** `reports/tables/model_comparison/`, `reports/tables/regressions/`,
+`reports/figures/model_comparison/`
 
 ---
 
-### Parameter Interpretation
+## Cluster Execution
 
-| Parameter | Range | Clinical Hypothesis |
-|-----------|-------|-------------------|
-| `alpha_pos` | 0-1 | Positive learning rate; may be reduced in PTSD (anhedonia) |
-| `alpha_neg` | 0-1 | Negative learning rate; may be altered (hypervigilance vs. avoidance) |
-| `epsilon` | 0-1 | Random responding / noise |
-| `phi` | 0-1 | WM weight; reliance on working memory vs. RL |
-| `rho` | 0-1 | WM decay; forgetting rate |
-| `K` | 1-7 | WM capacity; number of items maintained |
-| `stick` | 0-1 | Perseveration; tendency to repeat previous action |
-
-### Statistical Considerations
-
-- With N=48, focus on **effect sizes** alongside p-values
-- Show full distributions (violin plots) with individual data points
-- Report confidence intervals prominently
-- For 3 groups × multiple parameters, consider Bonferroni correction or report as exploratory
-
----
-
-## Information Criteria Reference
-
-When comparing models, lower scores indicate better fit (penalized for complexity).
-
-| Criterion | Formula | Best For |
-|-----------|---------|----------|
-| **AIC** | `2k - 2·log(L)` | Moderate complexity penalty |
-| **BIC** | `k·log(n) - 2·log(L)` | Stronger penalty; preferred for large N |
-| **WAIC** | Fully Bayesian | Hierarchical models; uses full posterior |
-| **LOO** | Leave-one-out CV | Gold standard; out-of-sample prediction |
-
-**Interpreting differences (delta between models):**
-
-| Delta | Evidence |
-|-------|----------|
-| < 2 | Weak (models similar) |
-| 2-6 | Positive |
-| 6-10 | Strong |
-| > 10 | Very strong |
-
-**Priority:** LOO > WAIC > BIC > AIC. If all agree, strong conclusion. If BIC disagrees with WAIC/LOO, trust WAIC/LOO for hierarchical models.
-
----
-
-## Configuration
-
-All task parameters and model defaults are centralized in `config.py`:
+All compute jobs >15 minutes wall-clock should run on the Monash M3 cluster.
 
 ```bash
-python config.py  # Print current configuration
+# MLE: all models as independent GPU jobs (recommended)
+bash cluster/12_submit_all_gpu.sh
+
+# MLE: single model
+sbatch --export=MODEL=wmrl_m3,NJOBS=8 cluster/12_mle.slurm
+
+# Bayesian: consolidated template (choice-only models)
+sbatch --export=ALL,MODEL=wmrl_m5 cluster/13_bayesian_choice_only.slurm
+
+# Bayesian: GPU template (M4 LBA only)
+sbatch cluster/13_bayesian_gpu.slurm
+
+# Full Bayesian pipeline (9-step afterok chain)
+bash cluster/21_submit_pipeline.sh
 ```
 
-Key settings: set sizes `[2, 3, 5, 6]`, reversal criterion 12-18 correct, fixed beta=50 during learning, epsilon noise for random responding.
+---
+
+## Parameter Quick Reference
+
+| Parameter | Symbol | Range | Description |
+|-----------|--------|-------|-------------|
+| alpha_pos | alpha+ | [0, 1] | Positive learning rate (reward sensitivity) |
+| alpha_neg | alpha- | [0, 1] | Negative learning rate (error sensitivity) |
+| phi | phi | [0, 1] | WM decay rate (higher = faster forgetting) |
+| rho | rho | [0, 1] | WM reliability (weight of WM in the hybrid policy) |
+| K | K | [2, 6] | WM capacity (number of maintained items) |
+| kappa | kappa | [0, 1] | Global perseveration (repeat last action) |
+| kappa_s | kappa_s | [0, 1] | Stimulus-specific perseveration |
+| kappa_total | kappa_total | [0, 1] | Total perseveration budget (M6b) |
+| kappa_share | kappa_share | [0, 1] | Global vs. stimulus allocation (M6b) |
+| phi_rl | phi_RL | [0, 1] | RL forgetting (Q-value decay, M5 only) |
+| epsilon | epsilon | [0, 1] | Random responding / attentional noise |
+
+**Inverse temperature** beta = 50 is fixed for identifiability.
 
 ---
 
 ## Testing
 
 ```bash
-# Fitting module tests
-python -m pytest scripts/fitting/tests/ -v
+# Fast tier (unit + integration, < 2 min)
+python -m pytest tests/ -m "not slow and not scientific" -v
 
-# Likelihood self-tests
-python scripts/fitting/jax_likelihoods.py
+# Integration tier
+python -m pytest tests/integration/ -v
+
+# Scientific tier (parameter recovery, v4 closure — slow)
+python -m pytest tests/scientific/ -v
 ```
-
----
-
-## Troubleshooting
-
-**Data issues:**
-- Ensure `output/task_trials_long.csv` exists before fitting (run scripts 01-03)
-- Stimuli and actions must be 0-indexed
-- Practice blocks are blocks 1-2; main task is blocks 3-23
-
-**Fitting issues:**
-- High divergences in Bayesian fitting → increase `target_accept_prob` to 0.95
-- MLE stuck at boundary → check parameter bounds in `scripts/fitting/mle_utils.py`
-- GPU not detected → ensure `rlwm_gpu` conda environment is active
-
-**Model comparison:**
-- "No fitted models found" → run `12_fit_mle.py` for each model first
-- Conflicting IC rankings → report all four, prioritize LOO
 
 ---
 
@@ -334,5 +280,6 @@ python scripts/fitting/jax_likelihoods.py
 
 - **Task/Environment:** `docs/03_methods_reference/TASK_AND_ENVIRONMENT.md`
 - **Model Math:** `docs/03_methods_reference/MODEL_REFERENCE.md`
-- **Exclusions:** `docs/01_project_protocol/PARTICIPANT_EXCLUSIONS.md`
+- **Bayesian Architecture:** `docs/04_methods/README.md#hierarchical-bayesian-architecture`
+- **Cluster Lessons:** `docs/CLUSTER_GPU_LESSONS.md`
 - **Senta et al. (2025):** Dual process impairments in RL and WM systems
