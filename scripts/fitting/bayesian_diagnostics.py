@@ -349,9 +349,10 @@ def compute_pointwise_log_lik(
 
     Returns
     -------
-    jnp.ndarray
+    np.ndarray
         Shape ``(chains, samples_per_chain, n_participants, n_blocks * max_trials)``.
         Padded trials carry log_prob = 0.0 (inherited from mask in likelihood).
+        Returned as numpy (CPU) to avoid GPU OOM on large sample counts.
 
     Notes
     -----
@@ -390,21 +391,23 @@ def compute_pointwise_log_lik(
 
         # Result: (chains, samples_per_chain, n_blocks_i * max_trials)
         result = jitted(*param_arrays)
-        per_participant_outputs.append(result)
+        # Move to CPU immediately to avoid GPU OOM when stacking all participants
+        per_participant_outputs.append(np.asarray(result))
 
     # Participants may have different n_blocks (e.g., 12 vs 17), producing
     # different trial-dimension lengths.  Pad shorter arrays with 0.0
-    # (masked trials already contribute 0.0) so jnp.stack succeeds.
+    # (masked trials already contribute 0.0) so np.stack succeeds.
     max_trials_dim = max(arr.shape[-1] for arr in per_participant_outputs)
     padded_outputs = []
     for arr in per_participant_outputs:
         pad_width = max_trials_dim - arr.shape[-1]
         if pad_width > 0:
-            arr = jnp.pad(arr, ((0, 0), (0, 0), (0, pad_width)), constant_values=0.0)
+            arr = np.pad(arr, ((0, 0), (0, 0), (0, pad_width)), constant_values=0.0)
         padded_outputs.append(arr)
 
-    # Stack: (chains, samples_per_chain, n_participants, max_trials_dim)
-    return jnp.stack(padded_outputs, axis=2)
+    # Stack on CPU: (chains, samples_per_chain, n_participants, max_trials_dim)
+    # Stays as numpy to avoid GPU OOM on large sample counts (4×4000×158×1700).
+    return np.stack(padded_outputs, axis=2)
 
 
 def build_inference_data_with_loglik(
