@@ -192,8 +192,6 @@ def test_aggregate_handles_missing(tmp_path: Path) -> None:
         {
             "alpha": {"true": 0.3, "posterior_mean": 0.32,
                           "hdi_low": 0.2, "hdi_high": 0.45, "in_hdi": 1},
-            "alpha": {"true": 0.2, "posterior_mean": 0.25,
-                          "hdi_low": 0.1, "hdi_high": 0.40, "in_hdi": 1},
             "epsilon": {"true": 0.1, "posterior_mean": 0.08,
                         "hdi_low": 0.01, "hdi_high": 0.20, "in_hdi": 1},
         },
@@ -203,8 +201,6 @@ def test_aggregate_handles_missing(tmp_path: Path) -> None:
         {
             "alpha": {"true": 0.7, "posterior_mean": 0.68,
                           "hdi_low": 0.55, "hdi_high": 0.85, "in_hdi": 1},
-            "alpha": {"true": 0.5, "posterior_mean": 0.45,
-                          "hdi_low": 0.30, "hdi_high": 0.60, "in_hdi": 1},
             "epsilon": {"true": 0.4, "posterior_mean": 0.50,
                         "hdi_low": 0.25, "hdi_high": 0.60, "in_hdi": 1},
         },
@@ -266,8 +262,6 @@ def test_aggregate_kappa_pass_and_fail(tmp_path: Path) -> None:
         params = {
             "alpha": {"true": 0.3, "posterior_mean": 0.5,
                           "hdi_low": 0.1, "hdi_high": 0.8, "in_hdi": 1},
-            "alpha": {"true": 0.3, "posterior_mean": 0.5,
-                          "hdi_low": 0.1, "hdi_high": 0.8, "in_hdi": 1},
             "phi": {"true": 0.2, "posterior_mean": 0.3,
                     "hdi_low": 0.05, "hdi_high": 0.55, "in_hdi": 1},
             "rho": {"true": 0.6, "posterior_mean": 0.65,
@@ -312,8 +306,6 @@ def test_aggregate_kappa_fail_low_coverage(tmp_path: Path) -> None:
 
     for idx, (tk, pk) in enumerate(zip(true_kappa, post_kappa), start=1):
         params = {
-            "alpha": {"true": 0.3, "posterior_mean": 0.3,
-                          "hdi_low": 0.2, "hdi_high": 0.4, "in_hdi": 1},
             "alpha": {"true": 0.3, "posterior_mean": 0.3,
                           "hdi_low": 0.2, "hdi_high": 0.4, "in_hdi": 1},
             "phi": {"true": 0.2, "posterior_mean": 0.2,

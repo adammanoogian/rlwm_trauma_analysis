@@ -56,7 +56,6 @@ class TestSimulateAgentFixed:
             'num_stimuli': 6,
             'num_actions': 3,
             'alpha': 0.3,
-            'alpha': 0.1,
             'beta': 2.0,
             'gamma': 0.0,
             'q_init': 0.5
@@ -91,7 +90,6 @@ class TestSimulateAgentFixed:
             'num_stimuli': 6,
             'num_actions': 3,
             'alpha': 0.3,
-            'alpha': 0.1,
             'beta': 2.0,
             'beta_wm': 3.0,
             'capacity': 4,
@@ -125,7 +123,6 @@ class TestSimulateAgentFixed:
             'num_stimuli': 6,
             'num_actions': 3,
             'alpha': 0.3,
-            'alpha': 0.1,
             'beta': 2.0,
             'gamma': 0.0,
             'q_init': 0.5
@@ -147,7 +144,6 @@ class TestSimulateAgentFixed:
             'num_stimuli': 6,
             'num_actions': 3,
             'alpha': 0.3,
-            'alpha': 0.1,
             'beta': 2.0,
             'gamma': 0.0,
             'q_init': 0.5
@@ -171,7 +167,6 @@ class TestSimulateAgentSampled:
         # Define parameter distributions
         param_distributions = {
             'alpha': lambda rng: rng.beta(3, 2),
-            'alpha': lambda rng: rng.beta(2, 3),
             'beta': lambda rng: rng.gamma(2, 1)
         }
 
@@ -220,7 +215,6 @@ class TestSimulateAgentSampled:
 
         param_distributions = {
             'alpha': lambda rng: rng.beta(3, 2),
-            'alpha': lambda rng: rng.beta(2, 3),
             'beta': lambda rng: rng.gamma(2, 1),
             'beta_wm': lambda rng: rng.gamma(3, 1),
             'capacity': lambda rng: int(rng.integers(2, 7)),
@@ -269,7 +263,6 @@ class TestSimulateAgentSampled:
 
         param_distributions = {
             'alpha': lambda rng: rng.beta(3, 2),
-            'alpha': lambda rng: rng.beta(2, 3),
             'beta': lambda rng: rng.gamma(2, 1)
         }
 
@@ -361,7 +354,6 @@ class TestResultsToDataFrame:
             'num_stimuli': 6,
             'num_actions': 3,
             'alpha': 0.3,
-            'alpha': 0.1,
             'beta': 2.0,
             'gamma': 0.0,
             'q_init': 0.5
@@ -390,7 +382,6 @@ class TestResultsToDataFrame:
 
         param_distributions = {
             'alpha': lambda rng: rng.beta(3, 2),
-            'alpha': lambda rng: rng.beta(2, 3),
             'beta': lambda rng: rng.gamma(2, 1)
         }
 
@@ -432,7 +423,6 @@ class TestConsistencyAcrossCodePaths:
             'num_stimuli': 6,
             'num_actions': 3,
             'alpha': 0.3,
-            'alpha': 0.1,
             'beta': 2.0,
             'gamma': 0.0,
             'q_init': 0.5

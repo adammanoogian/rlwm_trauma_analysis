@@ -90,7 +90,6 @@ def sample_qlearning_params(n_samples: int, seed: int = None) -> pd.DataFrame:
 
     params = pd.DataFrame({
         'alpha': np.random.beta(2, 2, n_samples),      # Beta(2, 2) ~ uniform-ish on [0,1]
-        'alpha': np.random.beta(2, 2, n_samples),      # Beta(2, 2)
         'beta': np.random.gamma(2, 1, n_samples),          # Gamma(2, 1) ~ mean=2, allows high values
     })
 
@@ -118,7 +117,6 @@ def sample_wmrl_params(n_samples: int, seed: int = None) -> pd.DataFrame:
         np.random.seed(seed)
 
     params = pd.DataFrame({
-        'alpha': np.random.beta(2, 2, n_samples),
         'alpha': np.random.beta(2, 2, n_samples),
         'beta': np.random.gamma(2, 1, n_samples),
         'beta_wm': np.random.gamma(2, 1, n_samples),
@@ -181,12 +179,10 @@ def _simulate_single_param_set(
             if model_type == 'qlearning':
                 params.update({
                     'alpha': row['alpha'],
-                    'alpha': row['alpha'],
                     'beta': row['beta'],
                 })
             else:  # wmrl
                 params.update({
-                    'alpha': row['alpha'],
                     'alpha': row['alpha'],
                     'beta': row['beta'],
                     'beta_wm': row['beta_wm'],
@@ -393,7 +389,6 @@ def create_pairwise_heatmaps(
             # Labels
             param_labels = {
                 'alpha': 'Alpha+ (Pos PE LR)',
-                'alpha': 'Alpha- (Neg PE LR)',
                 'beta': 'Beta (Inv Temp)',
                 'beta_wm': 'Beta WM (WM Inv Temp)',
                 'capacity': 'Capacity (K)',
@@ -466,7 +461,6 @@ def create_marginal_distributions(
 
     param_labels = {
         'alpha': 'Alpha+ (Positive PE LR)',
-        'alpha': 'Alpha- (Negative PE LR)',
         'beta': 'Beta (Inverse Temperature)',
         'beta_wm': 'Beta WM (WM Inverse Temp)',
         'capacity': 'Capacity (K)',

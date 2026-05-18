@@ -101,11 +101,11 @@ def q_learning_step(
     q_current = Q_table[stimulus, action]
     delta = reward - q_current
 
-    # Asymmetric learning rate (will be parameterized)
-    alpha = jnp.where(delta > 0, 0.3, 0.1)  # Placeholder: alpha, alpha
+    # Single learning rate (Phase 33: alpha_neg dropped)
+    alpha = jnp.where(delta > 0, 0.3, 0.1)  # Placeholder values; parameterized at runtime
 
     # Q-value update (functional - creates new value)
-    q_updated = q_current + alpha_lr * delta
+    q_updated = q_current + alpha * delta
 
     # Create new Q-table with updated value (immutable update)
     Q_table_new = Q_table.at[stimulus, action].set(q_updated)
@@ -948,7 +948,7 @@ def test_padding_equivalence_qlearning():
     key, subkey = jax.random.split(key)
     rewards = jax.random.bernoulli(subkey, 0.7, (n_real_trials,)).astype(jnp.float32)
 
-    params = {"alpha": 0.3, "alpha": 0.1, "epsilon": 0.05}
+    params = {"alpha": 0.3, "epsilon": 0.05}
 
     # Unpadded likelihood (original)
     log_lik_original = q_learning_block_likelihood(stimuli, actions, rewards, **params)

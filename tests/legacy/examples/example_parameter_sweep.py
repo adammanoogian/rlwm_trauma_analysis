@@ -36,15 +36,13 @@ print()
 
 # Q-Learning parameters to test
 qlearning_grid = {
-    'alpha': [0.1, 0.3, 0.5],  # 3 values
-    'alpha': [0.05, 0.1],      # 2 values
+    'alpha': [0.05, 0.1, 0.3, 0.5],  # merged from alpha_pos/alpha_neg (Phase 33)
     'beta': [1.0, 3.0],            # 2 values
 }
 
 # WM-RL parameters to test
 wmrl_grid = {
     'alpha': [0.3],            # 1 value
-    'alpha': [0.1],            # 1 value
     'beta': [2.0],                 # 1 value
     'beta_wm': [3.0],              # 1 value
     'capacity': [3, 4, 5],         # 3 values
@@ -99,7 +97,6 @@ for alpha in qlearning_grid['alpha']:
                         'num_stimuli': 6,
                         'num_actions': 3,
                         'alpha': alpha,
-                        'alpha': alpha,
                         'beta': beta,
                         'gamma': 0.0,
                         'q_init': 0.5
@@ -119,7 +116,6 @@ for alpha in qlearning_grid['alpha']:
                 # Store results
                 qlearning_results.append({
                     'model': 'qlearning',
-                    'alpha': alpha,
                     'alpha': alpha,
                     'beta': beta,
                     'set_size': set_size,
@@ -162,7 +158,6 @@ for capacity in wmrl_grid['capacity']:
                 params = {
                     'num_stimuli': 6,
                     'num_actions': 3,
-                    'alpha': wmrl_grid['alpha'][0],
                     'alpha': wmrl_grid['alpha'][0],
                     'beta': wmrl_grid['beta'][0],
                     'beta_wm': wmrl_grid['beta_wm'][0],

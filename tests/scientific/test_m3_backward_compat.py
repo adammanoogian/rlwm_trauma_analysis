@@ -42,7 +42,6 @@ def wmrl_params():
     """Standard WM-RL parameters for testing."""
     return {
         'alpha': 0.3,
-        'alpha': 0.1,
         'phi': 0.2,
         'rho': 0.7,
         'capacity': 4.0,
@@ -55,15 +54,15 @@ def parameter_variations():
     """Multiple parameter combinations to test edge cases."""
     return [
         # Standard params
-        {'alpha': 0.3, 'alpha': 0.1, 'phi': 0.2, 'rho': 0.7, 'capacity': 4.0, 'epsilon': 0.05},
+        {'alpha': 0.3, 'phi': 0.2, 'rho': 0.7, 'capacity': 4.0, 'epsilon': 0.05},
         # High learning rates
-        {'alpha': 0.9, 'alpha': 0.8, 'phi': 0.5, 'rho': 0.9, 'capacity': 6.0, 'epsilon': 0.01},
+        {'alpha': 0.9, 'phi': 0.5, 'rho': 0.9, 'capacity': 6.0, 'epsilon': 0.01},
         # Low learning rates
-        {'alpha': 0.1, 'alpha': 0.05, 'phi': 0.05, 'rho': 0.3, 'capacity': 2.0, 'epsilon': 0.1},
+        {'alpha': 0.1, 'phi': 0.05, 'rho': 0.3, 'capacity': 2.0, 'epsilon': 0.1},
         # Asymmetric learning
-        {'alpha': 0.8, 'alpha': 0.1, 'phi': 0.3, 'rho': 0.5, 'capacity': 3.0, 'epsilon': 0.02},
+        {'alpha': 0.8, 'phi': 0.3, 'rho': 0.5, 'capacity': 3.0, 'epsilon': 0.02},
         # Edge case: high epsilon noise
-        {'alpha': 0.5, 'alpha': 0.5, 'phi': 0.1, 'rho': 0.6, 'capacity': 5.0, 'epsilon': 0.2}
+        {'alpha': 0.5, 'phi': 0.1, 'rho': 0.6, 'capacity': 5.0, 'epsilon': 0.2}
     ]
 
 
@@ -232,10 +231,10 @@ class TestSingleBlockBackwardCompatibility:
 
     @pytest.mark.parametrize("params", [
         pytest.param(p, id=f"params_{i}") for i, p in enumerate([
-            {'alpha': 0.3, 'alpha': 0.1, 'phi': 0.2, 'rho': 0.7, 'capacity': 4.0, 'epsilon': 0.05},
-            {'alpha': 0.9, 'alpha': 0.8, 'phi': 0.5, 'rho': 0.9, 'capacity': 6.0, 'epsilon': 0.01},
-            {'alpha': 0.1, 'alpha': 0.05, 'phi': 0.05, 'rho': 0.3, 'capacity': 2.0, 'epsilon': 0.1},
-            {'alpha': 0.8, 'alpha': 0.1, 'phi': 0.3, 'rho': 0.5, 'capacity': 3.0, 'epsilon': 0.02}
+            {'alpha': 0.3, 'phi': 0.2, 'rho': 0.7, 'capacity': 4.0, 'epsilon': 0.05},
+            {'alpha': 0.9, 'phi': 0.5, 'rho': 0.9, 'capacity': 6.0, 'epsilon': 0.01},
+            {'alpha': 0.1, 'phi': 0.05, 'rho': 0.3, 'capacity': 2.0, 'epsilon': 0.1},
+            {'alpha': 0.8, 'phi': 0.3, 'rho': 0.5, 'capacity': 3.0, 'epsilon': 0.02}
         ])
     ])
     def test_single_block_parameter_variations(self, params):

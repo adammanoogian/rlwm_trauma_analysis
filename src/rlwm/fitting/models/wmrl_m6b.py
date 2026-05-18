@@ -821,7 +821,6 @@ def test_wmrl_m6b_single_block():
     # kappa_total=0.3, kappa_share=0.667 => kappa=0.2, kappa_s=0.1
     params = {
         'alpha': 0.3,
-        'alpha': 0.1,
         'phi': 0.1,
         'rho': 0.7,
         'capacity': 4.0,
@@ -870,7 +869,6 @@ def test_wmrl_m6b_kappa_share_one_matches_m3():
 
     shared_params = {
         'alpha': 0.3,
-        'alpha': 0.1,
         'phi': 0.1,
         'rho': 0.7,
         'capacity': 4.0,
@@ -939,7 +937,6 @@ def test_wmrl_m6b_kappa_share_zero_matches_m6a():
 
     shared_params = {
         'alpha': 0.3,
-        'alpha': 0.1,
         'phi': 0.1,
         'rho': 0.7,
         'capacity': 4.0,
@@ -1002,7 +999,7 @@ def test_padding_equivalence_wmrl_m6b():
     set_sizes = jnp.full((n_real_trials,), 5, dtype=jnp.int32)
 
     params = {
-        'alpha': 0.3, 'alpha': 0.1, 'phi': 0.1,
+        'alpha': 0.3, 'phi': 0.1,
         'rho': 0.7, 'capacity': 4.0,
         'kappa': 0.2, 'kappa_s': 0.1, 'epsilon': 0.05
     }

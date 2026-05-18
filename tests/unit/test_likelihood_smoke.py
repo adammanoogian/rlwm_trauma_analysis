@@ -256,7 +256,8 @@ class TestWMRLM4Smoke:
 
     def test_module_imports_cleanly(self):
         """wmrl_m4 module must import without errors."""
-        import importlib, sys
+        import importlib
+        import sys
         if "rlwm.fitting.models.wmrl_m4" in sys.modules:
             del sys.modules["rlwm.fitting.models.wmrl_m4"]
         mod = importlib.import_module("rlwm.fitting.models.wmrl_m4")
@@ -266,7 +267,8 @@ class TestWMRLM4Smoke:
 
     def test_no_alpha_in_module(self):
         """wmrl_m4 module must not contain alpha_pos or alpha_neg strings (Phase 33)."""
-        import inspect, sys
+        import inspect
+        import sys
         if "rlwm.fitting.models.wmrl_m4" in sys.modules:
             del sys.modules["rlwm.fitting.models.wmrl_m4"]
         from rlwm.fitting.models import wmrl_m4
@@ -276,8 +278,9 @@ class TestWMRLM4Smoke:
 
     def test_hierarchical_model_callable(self):
         """wmrl_m4_hierarchical_model must be callable (import + introspection)."""
-        from rlwm.fitting.models.wmrl_m4 import wmrl_m4_hierarchical_model
         import inspect
+
+        from rlwm.fitting.models.wmrl_m4 import wmrl_m4_hierarchical_model
         sig = inspect.signature(wmrl_m4_hierarchical_model)
         params = list(sig.parameters.keys())
         assert "participant_data_stacked" in params, (

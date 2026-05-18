@@ -628,6 +628,7 @@ def save_results(
     output_subdir: str | None = None,
     kappa_parameterization: str = "softmax",
     allow_gate_failure: bool = False,
+    max_tree_depth: int = 10,
 ) -> object:
     """Save fitting results to disk.
 

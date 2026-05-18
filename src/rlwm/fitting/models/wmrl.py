@@ -721,7 +721,6 @@ def test_wmrl_single_block():
     # Test parameters (no beta/beta_wm - they're fixed at 50)
     params = {
         'alpha': 0.3,
-        'alpha': 0.1,
         'phi': 0.1,
         'rho': 0.7,
         'capacity': 4.0,
@@ -774,7 +773,6 @@ def test_wmrl_multiblock():
     # Test parameters (no beta/beta_wm - they're fixed at 50)
     params = {
         'alpha': 0.3,
-        'alpha': 0.1,
         'phi': 0.1,
         'rho': 0.7,
         'capacity': 4.0,
@@ -819,7 +817,7 @@ def test_padding_equivalence_wmrl():
     set_sizes = jnp.full((n_real_trials,), 5, dtype=jnp.int32)
 
     params = {
-        'alpha': 0.3, 'alpha': 0.1, 'phi': 0.1,
+        'alpha': 0.3, 'phi': 0.1,
         'rho': 0.7, 'capacity': 4.0, 'epsilon': 0.05
     }
 
@@ -868,7 +866,7 @@ def test_multiblock_padding_equivalence():
         actions_blocks.append(jax.random.randint(k2, (size,), 0, 3))
         rewards_blocks.append(jax.random.bernoulli(k3, 0.7, (size,)).astype(jnp.float32))
 
-    params = {'alpha': 0.3, 'alpha': 0.1, 'epsilon': 0.05}
+    params = {'alpha': 0.3, 'epsilon': 0.05}
 
     # Unpadded multiblock likelihood
     log_lik_original = q_learning_multiblock_likelihood(

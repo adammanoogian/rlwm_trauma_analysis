@@ -526,7 +526,6 @@ def test_model_with_synthetic_data() -> MCMC:
     # Note: beta is fixed at 50 (not estimated)
     true_params = {
         "mu_alpha": 0.6,
-        "mu_alpha": 0.4,
         "mu_epsilon": 0.05,
         "participants": [
             {"alpha": 0.55, "epsilon": 0.04},

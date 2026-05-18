@@ -847,7 +847,6 @@ def test_wmrl_m5_single_block():
 
     params = {
         'alpha': 0.3,
-        'alpha': 0.1,
         'phi': 0.1,
         'rho': 0.7,
         'capacity': 4.0,
@@ -893,7 +892,6 @@ def test_wmrl_m5_backward_compatibility():
     # kappa=0.3 (non-zero to exercise perseveration path in both models)
     params_m3 = {
         'alpha': 0.3,
-        'alpha': 0.1,
         'phi': 0.1,
         'rho': 0.7,
         'capacity': 4.0,
@@ -940,7 +938,7 @@ def test_padding_equivalence_wmrl_m5():
     set_sizes = jnp.full((n_real_trials,), 5, dtype=jnp.int32)
 
     params = {
-        'alpha': 0.3, 'alpha': 0.1, 'phi': 0.1,
+        'alpha': 0.3, 'phi': 0.1,
         'rho': 0.7, 'capacity': 4.0, 'kappa': 0.3,
         'phi_rl': 0.15, 'epsilon': 0.05
     }

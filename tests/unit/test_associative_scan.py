@@ -18,7 +18,6 @@ from jax import lax
 
 from rlwm.fitting.core import associative_scan_q_update
 
-
 # ---------------------------------------------------------------------------
 # Reference sequential implementation (used only in tests)
 # ---------------------------------------------------------------------------

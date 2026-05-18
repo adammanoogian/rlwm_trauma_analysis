@@ -652,7 +652,7 @@ def unconstrained_to_params(x: np.ndarray, model: str) -> dict[str, float]:
 def get_default_params(model: str) -> dict[str, float]:
     """Get default starting parameters for a model."""
     if model == "qlearning":
-        return {"alpha": 0.3, "alpha": 0.1, "epsilon": 0.05}
+        return {"alpha": 0.3, "epsilon": 0.05}
     elif model == "wmrl":
         return {
             "alpha": 0.3,
@@ -1500,7 +1500,7 @@ if __name__ == "__main__":
 
     # Test transformations
     print("\n1. Testing parameter transformations:")
-    test_params_ql = {"alpha": 0.3, "alpha": 0.1, "epsilon": 0.05}
+    test_params_ql = {"alpha": 0.3, "epsilon": 0.05}
     x = params_to_unconstrained(test_params_ql, "qlearning")
     recovered = unconstrained_to_params(x, "qlearning")
     print(f"   Original: {test_params_ql}")

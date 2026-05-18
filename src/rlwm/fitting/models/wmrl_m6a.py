@@ -757,7 +757,6 @@ def test_wmrl_m6a_single_block():
 
     params = {
         'alpha': 0.3,
-        'alpha': 0.1,
         'phi': 0.1,
         'rho': 0.7,
         'capacity': 4.0,
@@ -808,7 +807,6 @@ def test_wmrl_m6a_per_stimulus_tracking():
 
     shared_params = {
         'alpha': 0.3,
-        'alpha': 0.1,
         'phi': 0.1,
         'rho': 0.7,
         'capacity': 4.0,
@@ -862,7 +860,7 @@ def test_padding_equivalence_wmrl_m6a():
     set_sizes = jnp.full((n_real_trials,), 5, dtype=jnp.int32)
 
     params = {
-        'alpha': 0.3, 'alpha': 0.1, 'phi': 0.1,
+        'alpha': 0.3, 'phi': 0.1,
         'rho': 0.7, 'capacity': 4.0, 'kappa_s': 0.3, 'epsilon': 0.05
     }
 
