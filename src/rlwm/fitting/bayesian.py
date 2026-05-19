@@ -874,15 +874,24 @@ def save_results(
             print(f"  (pscan variant — compare with {model}_posterior.nc)")
 
         # WAIC and LOO
+        # arviz >= 0.18 renamed .waic → .elpd_waic, .loo → .elpd_loo
         print("\n>> Computing WAIC and LOO...")
         try:
             waic_result = az.waic(idata)
-            print(f"  WAIC: {waic_result.waic:.2f} (p_waic={waic_result.p_waic:.2f})")
+            elpd_waic = getattr(waic_result, "elpd_waic", None)
+            if elpd_waic is None:
+                elpd_waic = getattr(waic_result, "waic", None)
+            p_waic = waic_result.p_waic
+            print(f"  WAIC (ELPD): {elpd_waic:.2f} (p_waic={p_waic:.2f})")
         except Exception as exc:
             print(f"  WARNING: WAIC failed: {exc}")
         try:
             loo_result = az.loo(idata, pointwise=True)
-            print(f"  LOO: {loo_result.loo:.2f} (p_loo={loo_result.p_loo:.2f})")
+            elpd_loo = getattr(loo_result, "elpd_loo", None)
+            if elpd_loo is None:
+                elpd_loo = getattr(loo_result, "loo", None)
+            p_loo = loo_result.p_loo
+            print(f"  LOO (ELPD): {elpd_loo:.2f} (p_loo={p_loo:.2f})")
         except Exception as exc:
             print(f"  WARNING: LOO failed: {exc}")
 
