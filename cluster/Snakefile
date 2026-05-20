@@ -1,0 +1,77 @@
+"""Root Snakemake workflow for the RLWM Trauma Analysis cluster pipeline.
+
+Replaces the shell-chain orchestrator (cluster/submit_all.sh) with a
+Snakemake DAG while keeping specialized SLURMs (multi-GPU permutation,
+standalone M4 LBA) as standalone submissions.
+
+Usage:
+    # Full pipeline (run inside screen/tmux on login node)
+    snakemake -s cluster/Snakefile --profile cluster/snakemake-profile
+
+    # Dry run
+    snakemake -s cluster/Snakefile -n
+
+    # Validation only
+    snakemake -s cluster/Snakefile --profile cluster/snakemake-profile validate
+
+    # Quick smoke test
+    snakemake -s cluster/Snakefile --profile cluster/snakemake-profile --config quick=True
+
+    # Specific run stamp (parallel versions)
+    snakemake -s cluster/Snakefile --profile cluster/snakemake-profile --config run_stamp=v2.1
+
+    # DAG visualization
+    snakemake -s cluster/Snakefile --dag | dot -Tpng > cluster/pipeline_dag.png
+"""
+
+import yaml
+from pathlib import Path
+
+# --- Configuration ---
+configfile: "cluster/config.yaml"
+
+# --- Resource manifest ---
+manifest_path = Path("cluster/job_manifest.yaml")
+with open(manifest_path) as f:
+    JOB_MANIFEST = yaml.safe_load(f)
+
+
+def lookup_resource(rule_name, key):
+    """Look up SLURM resource from job_manifest.yaml with _defaults fallback.
+
+    Parameters
+    ----------
+    rule_name : str
+        Name of the Snakemake rule.
+    key : str
+        Resource key (partition, mem_mb, cpus_per_task, runtime, gpus).
+
+    Returns
+    -------
+    value
+        Resource value from manifest, or _defaults fallback.
+    """
+    rule_entry = JOB_MANIFEST.get(rule_name, {})
+    if key in rule_entry:
+        return rule_entry[key]
+    return JOB_MANIFEST["_defaults"][key]
+
+
+# --- Rule modules ---
+include: "rules/pipeline.smk"
+include: "rules/validate.smk"
+
+
+# --- Master target ---
+rule all:
+    input:
+        "cluster/results/pipeline_done.flag",
+    localrule: True
+
+
+# --- Handlers ---
+onsuccess:
+    print("Pipeline complete.")
+
+onerror:
+    print(f"Pipeline failed. Check logs in .snakemake/log/")

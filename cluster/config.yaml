@@ -1,0 +1,27 @@
+# cluster/config.yaml -- Snakemake workflow configuration.
+#
+# Override at runtime: snakemake --config key=value
+# Example: snakemake --config run_stamp=v2.1 quick=True
+
+# --- Run identity ---
+run_stamp: "latest"
+
+# --- Execution modes ---
+quick: false          # Reduced iterations/participants for smoke testing the DAG.
+
+# --- Model lists for wildcard expansion ---
+choice_models:
+  - qlearning
+  - wmrl
+  - wmrl_m3
+  - wmrl_m5
+  - wmrl_m6a
+  - wmrl_m6b
+
+# --- Default data paths ---
+data_file: "data/processed/task_trials_long.csv"
+
+# --- MCMC defaults ---
+mcmc_chains: 4
+mcmc_warmup: 1000
+mcmc_samples: 2000

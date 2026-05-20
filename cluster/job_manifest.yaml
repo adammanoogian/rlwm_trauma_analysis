@@ -1,0 +1,125 @@
+# cluster/job_manifest.yaml -- Single source of truth for SLURM resources.
+#
+# Every rule looks up its resources here via lookup_resource() in the Snakefile.
+# Rules not listed fall back to _defaults.
+#
+# Keys:
+#   partition     -- SLURM partition (comp, gpu, short, etc.)
+#   mem_mb        -- Memory in MB
+#   cpus_per_task -- CPU cores
+#   runtime       -- Wall time in minutes
+#   gpus          -- Number of GPUs (0 = no GPU request)
+
+_defaults:
+  partition: comp
+  mem_mb: 16384
+  cpus_per_task: 4
+  runtime: 120
+  gpus: 0
+
+# =============================================================================
+# Stage 1: Data preprocessing (CPU-only, pandas/numpy)
+# =============================================================================
+
+data_processing:
+  runtime: 30
+  mem_mb: 8192
+
+# =============================================================================
+# Stage 2: Behavioral analyses (CPU-only, pandas/matplotlib/seaborn)
+# =============================================================================
+
+behav_analyses:
+  runtime: 60
+  mem_mb: 16384
+
+# =============================================================================
+# Stage 3: Model prefitting (prior predictive, Bayesian recovery)
+# =============================================================================
+
+prefitting:
+  runtime: 240
+  mem_mb: 32768
+  cpus_per_task: 8
+
+# =============================================================================
+# Stage 4a: MLE fitting (GPU-accelerated JAX, per-model)
+# =============================================================================
+
+mle_fit:
+  partition: gpu
+  mem_mb: 32768
+  cpus_per_task: 8
+  runtime: 480
+  gpus: 1
+
+# =============================================================================
+# Stage 4b: Bayesian fitting (multi-GPU pmap, per-model)
+# =============================================================================
+
+bayesian_fit:
+  partition: gpu
+  mem_mb: 65536
+  cpus_per_task: 8
+  runtime: 720
+  gpus: 4
+
+# Stage 4b variant: multi-GPU standalone (kept for specialized submissions)
+bayesian_fit_multigpu:
+  partition: gpu
+  mem_mb: 65536
+  cpus_per_task: 8
+  runtime: 720
+  gpus: 4
+
+# =============================================================================
+# Stage 5: Post-fitting checks (CPU-only ArviZ/pandas/statsmodels)
+# =============================================================================
+
+baseline_audit:
+  partition: comp
+  mem_mb: 65536
+  cpus_per_task: 4
+  runtime: 60
+
+# =============================================================================
+# Stage 6: Fit analyses (CPU-only, ArviZ/pandas/matplotlib)
+# =============================================================================
+
+mle_compare:
+  runtime: 30
+  mem_mb: 16384
+
+loo_stacking:
+  partition: comp
+  mem_mb: 196608
+  cpus_per_task: 4
+  runtime: 120
+
+level2_refit:
+  partition: gpu
+  mem_mb: 65536
+  cpus_per_task: 8
+  runtime: 720
+  gpus: 4
+
+manuscript_tables:
+  runtime: 30
+  mem_mb: 8192
+
+# =============================================================================
+# Validation rules (scientific + integration test tiers)
+# =============================================================================
+
+validate_scientific:
+  partition: gpu
+  mem_mb: 32768
+  cpus_per_task: 4
+  runtime: 60
+  gpus: 1
+
+validate_integration:
+  partition: comp
+  mem_mb: 16384
+  cpus_per_task: 4
+  runtime: 30

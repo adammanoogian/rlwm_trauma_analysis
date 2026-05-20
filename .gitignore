@@ -133,3 +133,7 @@ credentials.json
 
 # Weights & Biases run dir (if ever used)
 wandb/
+
+# Snakemake
+.snakemake/
+cluster/results/

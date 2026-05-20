@@ -1,0 +1,19 @@
+# cluster/snakemake-profile/profile.yaml -- SLURM executor configuration.
+#
+# Requires: pip install snakemake-executor-plugin-slurm
+# Usage: snakemake --profile cluster/snakemake-profile
+#
+# This file tells Snakemake how to submit jobs to SLURM.
+# Per-rule resources come from job_manifest.yaml via lookup_resource().
+
+executor: slurm
+jobs: 10
+latency-wait: 60           # Lustre can be slow
+local-cores: 2
+
+default-resources:
+  slurm_partition: comp
+  mem_mb: 16384
+  cpus_per_task: 4
+  runtime: 120
+  slurm_extra: "'--export=ALL'"
