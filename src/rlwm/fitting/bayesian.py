@@ -47,7 +47,7 @@ from config import (
     ALL_MODELS,
     EXCLUDED_PARTICIPANTS,
     MODEL_REGISTRY,
-    MODELS_BAYESIAN_DIR,
+    MODELS_DIR,
 )
 from rlwm.fitting.core import (
     prepare_stacked_participant_data,
@@ -1132,8 +1132,8 @@ def main() -> None:
     parser.add_argument(
         "--output",
         type=str,
-        default=str(MODELS_BAYESIAN_DIR),
-        help="Output directory for results",
+        default=str(MODELS_DIR),
+        help="Root output directory (models/); posteriors go to models/bayesian/",
     )
     parser.add_argument(
         "--save-plots",

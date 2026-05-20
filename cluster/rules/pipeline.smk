@@ -212,6 +212,7 @@ rule bayesian_fit:
             --chains {config[mcmc_chains]} \
             --warmup {config[mcmc_warmup]} \
             --samples {config[mcmc_samples]} \
+            --output-subdir {config[bayesian_subdir]} \
             --allow-gate-failure
 
         touch {output.flag}
@@ -244,7 +245,7 @@ rule baseline_audit:
         export PYTHONUNBUFFERED=1
 
         python scripts/05_post_fitting_checks/01_baseline_audit.py \
-            --baseline-dir models/bayesian/21_baseline/
+            --baseline-dir models/bayesian/{config[bayesian_subdir]}/
 
         touch {output.flag}
         """
@@ -302,8 +303,8 @@ rule loo_stacking:
         export PYTHONUNBUFFERED=1
 
         python scripts/06_fit_analyses/02_compute_loo_stacking.py \
-            --baseline-dir models/bayesian/21_baseline/ \
-            --output-dir models/bayesian/21_baseline/
+            --baseline-dir models/bayesian/{config[bayesian_subdir]}/ \
+            --output-dir models/bayesian/{config[bayesian_subdir]}/
 
         touch {output.flag}
         """
@@ -332,9 +333,9 @@ rule manuscript_tables:
         mkdir -p reports/tables/model_comparison reports/figures/bayesian/21_bayesian
 
         python scripts/06_fit_analyses/08_manuscript_tables.py \
-            --baseline-dir models/bayesian/21_baseline/ \
+            --baseline-dir models/bayesian/{config[bayesian_subdir]}/ \
             --l2-dir models/bayesian/21_l2/ \
-            --figures-dir reports/figures/bayesian/21_bayesian/ \
+            --figures-dir reports/figures/bayesian/ \
             --tables-dir reports/tables/model_comparison/ \
             --no-paper-edit
 

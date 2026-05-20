@@ -21,6 +21,9 @@ choice_models:
 # --- Default data paths ---
 data_file: "data/processed/task_trials_long.csv"
 
+# --- Bayesian output subdir (under models/bayesian/) ---
+bayesian_subdir: "33_single_alpha"
+
 # --- MCMC defaults ---
 mcmc_chains: 4
 mcmc_warmup: 1000

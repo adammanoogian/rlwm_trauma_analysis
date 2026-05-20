@@ -1366,7 +1366,7 @@ def wmrl_m6b_hierarchical_model_subscale(
     -----
     - Beta coefficient naming: ``beta_{covariate_name}_{param_name}``.
       Example sites: ``beta_lec_total_kappa_total``,
-      ``beta_iesr_intr_resid_alpha_pos``, etc.
+      ``beta_iesr_intr_resid_alpha``, etc.
     - This model has a high-dimensional posterior (group priors + 32 beta
       sites + 8 x n_participants individual parameters).  Use
       ``run_inference_with_bump`` with target_accept_prob up to 0.99 to
