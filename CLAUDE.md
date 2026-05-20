@@ -151,15 +151,7 @@ scripts/
 │   ├── level2_design.py
 │   ├── lba_likelihood.py
 │   ├── warmup_jit.py
-│   ├── compare_mle_models.py
-│   └── tests/
-│       ├── test_v4_closure.py
-│       ├── test_load_side_validation.py
-│       ├── test_loo_stacking.py
-│       ├── test_bayesian_recovery.py
-│       ├── test_mle_quick.py
-│       ├── test_gpu_m4.py
-│       └── conftest.py
+│   └── aggregate_permutation_results.py
 │
 └── legacy/                     # Archived dead folders (plan 29-04)
     ├── analysis/
@@ -191,9 +183,19 @@ scripts/
 ```
 src/rlwm/
 ├── fitting/
-│   ├── jax_likelihoods.py    # Core JAX likelihood functions (authoritative)
-│   ├── numpyro_models.py     # Hierarchical Bayesian models (authoritative)
-│   └── numpyro_helpers.py    # NumPyro sampling utilities
+│   ├── core.py               # Data preparation, stacking, shared utilities
+│   ├── mle.py                # MLE fitting engine (all 7 models)
+│   ├── bayesian.py           # Hierarchical Bayesian engine (NUTS + convergence gate)
+│   ├── sampling.py           # MCMC sampling with auto-bump
+│   ├── numpyro_helpers.py    # NumPyro prior/param utilities
+│   └── models/               # Per-model JAX likelihoods + hierarchical wrappers
+│       ├── qlearning.py      # M1: Q-learning
+│       ├── wmrl.py           # M2: WM-RL
+│       ├── wmrl_m3.py        # M3: WM-RL + kappa (global perseveration)
+│       ├── wmrl_m5.py        # M5: WM-RL + phi_rl (RL forgetting)
+│       ├── wmrl_m6a.py       # M6a: WM-RL + kappa_s (stimulus-specific)
+│       ├── wmrl_m6b.py       # M6b: WM-RL + dual kappa (stick-breaking)
+│       └── wmrl_m4.py        # M4: RLWM-LBA (joint choice+RT)
 ├── envs/
 │   └── rlwm_env.py           # Gym environment
 └── models/
@@ -411,7 +413,7 @@ python -m pytest tests/ -v
 ### Test Likelihoods
 
 ```bash
-python scripts/fitting/jax_likelihoods.py
+python -m pytest tests/unit/test_likelihood_smoke.py -v
 ```
 
 ### View Config
