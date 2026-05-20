@@ -10,13 +10,13 @@ Seven models are implemented for fitting human behavioral data, organized by com
 
 | Model | Description | Free Parameters |
 |-------|-------------|-----------------|
-| **M1: Q-Learning** | Model-free RL baseline with asymmetric learning rates | 3: α₊, α₋, ε |
-| **M2: WM-RL Hybrid** | Combines working memory and RL systems | 6: α₊, α₋, φ, ρ, K, ε |
-| **M3: WM-RL + Perseveration** | M2 + global choice persistence kernel | 7: α₊, α₋, φ, ρ, K, κ, ε |
-| **M5: WM-RL + RL Forgetting** | M3 + Q-value decay toward baseline | 8: α₊, α₋, φ, ρ, K, κ, φ_rl, ε |
-| **M6a: WM-RL + Stim-Specific** | M2 + stimulus-specific perseveration | 7: α₊, α₋, φ, ρ, K, κ_s, ε |
-| **M6b: WM-RL + Dual Perseveration** | M2 + global + stimulus-specific kernels (stick-breaking) | 8: α₊, α₋, φ, ρ, K, κ_total, κ_share, ε |
-| **M4: RLWM-LBA** | M3 learning + Linear Ballistic Accumulator for joint choice+RT | 10: α₊, α₋, φ, ρ, K, κ, v_scale, A, δ, t₀ |
+| **M1: Q-Learning** | Model-free RL baseline | 2: α, ε |
+| **M2: WM-RL Hybrid** | Combines working memory and RL systems | 5: α, φ, ρ, K, ε |
+| **M3: WM-RL + Perseveration** | M2 + global choice persistence kernel | 6: α, φ, ρ, K, κ, ε |
+| **M5: WM-RL + RL Forgetting** | M3 + Q-value decay toward baseline | 7: α, φ, ρ, K, κ, φ_rl, ε |
+| **M6a: WM-RL + Stim-Specific** | M2 + stimulus-specific perseveration | 6: α, φ, ρ, K, κ_s, ε |
+| **M6b: WM-RL + Dual Perseveration** | M2 + global + stimulus-specific kernels (stick-breaking) | 7: α, φ, ρ, K, κ_total, κ_share, ε |
+| **M4: RLWM-LBA** | M3 learning + Linear Ballistic Accumulator for joint choice+RT | 9: α, φ, ρ, K, κ, v_scale, A, δ, t₀ |
 
 > **Note on model numbering:** The numbering gap (M3 to M5) is intentional. M4 is listed last because it is the only joint choice+RT model. Its AIC is not comparable to choice-only models M1-M3, M5, M6a, M6b, because the likelihood domains differ (choice-only vs. joint choice+RT).
 
@@ -26,8 +26,10 @@ Seven models are implemented for fitting human behavioral data, organized by com
 - **Learning phase only**: This task has no separate testing phase
 - **Fixed β = 50**: Inverse temperature fixed during learning for identifiability
 - **Epsilon noise**: Small random exploration term for robustness (choice-only models M1-M6)
-- **Asymmetric learning**: Separate rates for positive/negative prediction errors
+- **Single learning rate**: One α for both positive and negative prediction errors (see note below)
 - **Model hierarchy**: M2 extends M1; M3 extends M2; M5/M6a/M6b/M4 extend M3 or M2
+
+> **Phase 33 revision:** Asymmetric learning rates (α₊, α₋) were collapsed to a single α following empirical evidence that the asymmetric rates were not independently identifiable in this task.
 
 ---
 
@@ -37,13 +39,12 @@ Seven models are implemented for fitting human behavioral data, organized by com
 
 #### Q-Value Update
 
-Temporal difference learning with asymmetric learning rates:
+Temporal difference learning with a single learning rate:
 
 ```
 Prediction Error: δ = r - Q(s,a)
 
-If δ > 0:  Q(s,a) ← Q(s,a) + α₊ · δ  (positive PE, correct trials)
-If δ ≤ 0:  Q(s,a) ← Q(s,a) + α₋ · δ  (negative PE, incorrect trials)
+Q(s,a) ← Q(s,a) + α · δ
 ```
 
 For this task, γ=0 (no bootstrapping), so the update simplifies to learning from immediate rewards only.
@@ -67,18 +68,17 @@ Where:
 
 | Parameter | Symbol | Range | Prior | Description |
 |-----------|--------|-------|-------|-------------|
-| Learning rate (positive PE) | α₊ | [0, 1] | Beta(3, 2) | How quickly Q-values increase from correct trials |
-| Learning rate (negative PE) | α₋ | [0, 1] | Beta(2, 3) | How quickly Q-values decrease from incorrect trials |
+| Learning rate | α | [0, 1] | Beta(3, 2) | How quickly Q-values update from prediction errors |
 | Epsilon noise | ε | [0, 1] | Beta(1, 19) | Random exploration probability |
 | Inverse temperature | β | **50 (fixed)** | — | Exploitation sharpness (not fitted) |
 | Initial Q-value | Q₀ | 0.5 | — | Optimistic initialization (not fitted) |
 
 ### 2.3 Parameter Interpretation
 
-**Asymmetric Learning Rates (α₊, α₋)**
-- **α₊ > α₋**: Optimistic learning (faster from rewards than punishments)
-- **α₊ < α₋**: Pessimistic learning (faster from punishments)
-- **Trauma hypothesis**: May show altered asymmetry (e.g., heightened α₋)
+**Learning Rate (α)**
+- **High α (0.5-1.0)**: Fast learning; Q-values update quickly from each trial
+- **Low α (0.0-0.2)**: Slow learning; Q-values change gradually over many trials
+- **Trauma hypothesis**: May show altered learning rate
 
 **Epsilon Noise (ε)**
 - Captures random errors, lapses in attention, motor noise
@@ -117,10 +117,9 @@ Where β = 50 (fixed).
 
 #### 3.1.2 RL Module
 
-Same asymmetric Q-learning as the standalone model:
+Same Q-learning as the standalone model:
 ```
 δ = r - Q(s,a)
-α = α₊ if δ > 0 else α₋
 Q(s,a) ← Q(s,a) + α · δ
 ```
 
@@ -155,20 +154,19 @@ p(a|s) = ε/nA + (1-ε)·p_hybrid(a|s)
 
 The order of operations within each trial is:
 
-1. **Decay WM**: `WM ← (1-φ)WM + φ·WM₀`
+1. **Decay WM**: `WM <- (1-φ)WM + φ·WM₀`
 2. **Compute hybrid policy**: Use decayed WM and current Q for choice probabilities
-3. **Update WM**: `WM(s,a) ← r` (after observing reward)
-4. **Update Q**: `Q(s,a) ← Q(s,a) + α·(r - Q(s,a))`
+3. **Update WM**: `WM(s,a) <- r` (after observing reward)
+4. **Update Q**: `Q(s,a) <- Q(s,a) + α·(r - Q(s,a))`
 
 ### 3.3 Parameters
 
 | Parameter | Symbol | Range | Prior | Description |
 |-----------|--------|-------|-------|-------------|
-| RL learning rate (positive) | α₊ | [0, 1] | Beta(3, 2) | RL update rate for correct trials |
-| RL learning rate (negative) | α₋ | [0, 1] | Beta(2, 3) | RL update rate for incorrect trials |
+| RL learning rate | α | [0, 1] | Beta(3, 2) | RL update rate for prediction errors |
 | WM decay rate | φ | [0, 1] | Beta(2, 8) | Global decay toward baseline |
 | Base WM reliance | ρ | [0, 1] | Beta(5, 2) | Base WM weight in adaptive formula |
-| WM capacity | K | [1, 7] | TruncNorm(4, 1.5) | Capacity for adaptive weighting |
+| WM capacity | K | [2, 6] | TruncNorm(4, 1.5) | Capacity for adaptive weighting; per Collins (2012, 2014) and Senta et al. (2025) |
 | Epsilon noise | ε | [0, 1] | Beta(1, 19) | Random exploration probability |
 | Inverse temperature | β | **50 (fixed)** | — | Shared by WM and RL (not fitted) |
 | WM baseline | WM₀ | 1/nA | — | Decay target (not fitted) |
@@ -203,8 +201,7 @@ ALGORITHM: Q-Learning Trial Loop
 ════════════════════════════════════════════════════════════════════════
 
 INPUTS:
-    α₊         = learning rate for positive prediction errors
-    α₋         = learning rate for negative prediction errors
+    α          = learning rate
     β          = 50 (fixed inverse temperature)
     ε          = epsilon noise for random exploration
     nA         = 3 (number of actions)
@@ -258,16 +255,11 @@ FOR each trial t:
     └─────────────────────────────────────────────────────────────────┘
 
     ┌─────────────────────────────────────────────────────────────────┐
-    │ STEP 6: Update Q-value with asymmetric learning rate            │
+    │ STEP 6: Update Q-value                                          │
     │─────────────────────────────────────────────────────────────────│
-    │   IF δ > 0:                                                     │
-    │       α = α₊                     # Use positive learning rate   │
-    │   ELSE:                                                         │
-    │       α = α₋                     # Use negative learning rate   │
-    │                                                                 │
     │   Q[s, a_chosen] ← Q[s, a_chosen] + α × δ                       │
     │                                                                 │
-    │   # Example: Q=0.5, r=1, α₊=0.3                                 │
+    │   # Example: Q=0.5, r=1, α=0.3                                   │
     │   #   δ = 1 - 0.5 = 0.5                                         │
     │   #   Q ← 0.5 + 0.3 × 0.5 = 0.65                                │
     └─────────────────────────────────────────────────────────────────┘
@@ -293,8 +285,7 @@ ALGORITHM: WM-RL Hybrid Trial Loop
 ════════════════════════════════════════════════════════════════════════
 
 INPUTS:
-    α₊         = RL learning rate for positive prediction errors
-    α₋         = RL learning rate for negative prediction errors
+    α          = RL learning rate
     β          = 50 (fixed inverse temperature)
     φ          = WM global decay rate
     ρ          = base WM reliance
@@ -408,12 +399,6 @@ FOR each trial t:
     │ STEP 10: Update RL Q-value (prediction error learning)          │
     │─────────────────────────────────────────────────────────────────│
     │   δ = r - Q[s, a_chosen]                                        │
-    │                                                                 │
-    │   IF δ > 0:                                                     │
-    │       α = α₊                                                    │
-    │   ELSE:                                                         │
-    │       α = α₋                                                    │
-    │                                                                 │
     │   Q[s, a_chosen] ← Q[s, a_chosen] + α × δ                       │
     └─────────────────────────────────────────────────────────────────┘
 
@@ -436,7 +421,7 @@ RETURN: sum(log_lik_t) for all trials
 WORKED EXAMPLE: Set size = 2, Stimuli = {0, 1}
 ═══════════════════════════════════════════════════════════════════════
 
-Parameters: α₊=0.3, α₋=0.1, β=50, φ=0.1, ρ=0.8, K=4, ε=0.05
+Parameters: α=0.3, β=50, φ=0.1, ρ=0.8, K=4, ε=0.05
 
 Initial values:
     Q  = [[0.5, 0.5, 0.5], [0.5, 0.5, 0.5], ...]  # All 0.5
@@ -471,11 +456,11 @@ TRIAL 1: stimulus=0, correct_action=1
 
 6. UPDATE Q:
    δ = 0 - 0.5 = -0.5 (negative PE)
-   Q[0,2] = 0.5 + 0.1×(-0.5) = 0.45
+   Q[0,2] = 0.5 + 0.3×(-0.5) = 0.35
 
 State after trial 1:
     WM[0,:] = [0.33, 0.33, 0.00]  ← Updated
-    Q[0,:]  = [0.50, 0.50, 0.45]  ← Updated
+    Q[0,:]  = [0.50, 0.50, 0.35]  ← Updated
 
 ───────────────────────────────────────────────────────────────────────
 TRIAL 2: stimulus=1, correct_action=0
@@ -528,15 +513,15 @@ TRIAL 3: stimulus=0, correct_action=1 (same stimulus as trial 1)
 
    p_WM ≈ [0.50, 0.50, 0.00]  ← Now avoids action 2!
 
-   Q[0,:] = [0.50, 0.50, 0.45]
-   p_RL ≈ [0.37, 0.37, 0.26]  ← Slight bias away from action 2
+   Q[0,:] = [0.50, 0.50, 0.35]
+   p_RL ≈ [0.41, 0.41, 0.18]  ← Bias away from action 2
 
 3. HYBRID + EPSILON:
-   p_hybrid = 0.8×[0.50,0.50,0.00] + 0.2×[0.37,0.37,0.26]
-            = [0.47, 0.47, 0.05]
+   p_hybrid = 0.8×[0.50,0.50,0.00] + 0.2×[0.41,0.41,0.18]
+            = [0.48, 0.48, 0.04]
 
-   p = 0.05/3 + 0.95×[0.47,0.47,0.05]
-     = [0.46, 0.46, 0.07]
+   p = 0.05/3 + 0.95×[0.48,0.48,0.04]
+     = [0.47, 0.47, 0.05]
 
 4. NOW agent is much more likely to avoid action 2!
 
@@ -546,26 +531,41 @@ while RL is still catching up. The hybrid model leverages both systems.
 
 ### 3.6 M3: WM-RL + Perseveration (kappa)
 
-M3 extends M2 with a **choice kernel** that captures the tendency to repeat the last action taken for a given stimulus, independent of value.
+M3 extends M2 with a **choice kernel** that captures the tendency to repeat the last action taken, regardless of the current stimulus (global perseveration).
 
 #### 3.6.1 Perseveration Mechanism
 
-**Choice Kernel:** A one-hot vector C_k tracking the last action taken for each stimulus:
+**Choice Kernel:** A scalar tracking the last action taken on any trial:
 ```
-C_k(a|s) = 1 if a was the last action chosen for stimulus s
-C_k(a|s) = 0 otherwise
+C_k(a) = 1 if a was the last action chosen (on any stimulus)
+C_k(a) = 0 otherwise
 ```
 
-At the first presentation of a stimulus within a block (no prior action), the kernel is not applied (uniform fallback).
+At the first trial within a block (no prior action), the kernel is not applied (uniform fallback).
 
-**Perseveration-augmented policy** (before epsilon noise):
+**Default parameterization (softmax bias; Phase 32-04):**
+
+The default is the Collins (2025) softmax-bias formulation, where the perseveration kernel
+enters as an additive bias in logit space (see Section 3.6.4 for full details):
+
 ```
-p_persist(a|s) = (1 - κ) * p_hybrid(a|s) + κ * C_k(a|s)
+mixed_logits(a|s) = ω · β·WM(s,a) + (1-ω) · β·Q(s,a) + κ · I(a, a_{t-1})
+p_hybrid(a|s) = softmax(mixed_logits)
+```
+
+Where κ is the perseveration strength (κ > 0: action repetition; κ < 0: action avoidance).
+
+**Sensitivity analysis alternative (convex mixture; Senta 2025):**
+
+The pre-Phase-32 convex mixture parameterization is available via `--kappa-parameterization convex`:
+
+```
+p_persist(a|s) = (1 - κ) * p_hybrid(a|s) + κ * C_k(a)
 ```
 
 Where `p_hybrid(a|s)` is the M2 hybrid policy (Section 3.1.3) and κ is the perseveration strength.
 
-**Final policy with epsilon noise:**
+**Final policy with epsilon noise (both parameterizations):**
 ```
 p(a|s) = ε/nA + (1-ε) * p_persist(a|s)
 ```
@@ -584,15 +584,14 @@ p(a|s) = ε/nA + (1-ε) * p_persist(a|s)
 
 | Parameter | Symbol | Range | Description |
 |-----------|--------|-------|-------------|
-| RL learning rate (positive) | α₊ | [0, 1] | RL update rate for correct trials |
-| RL learning rate (negative) | α₋ | [0, 1] | RL update rate for incorrect trials |
+| RL learning rate | α | [0, 1] | RL update rate for prediction errors |
 | WM decay rate | φ | [0, 1] | Global WM decay toward baseline |
 | Base WM reliance | ρ | [0, 1] | Base WM weight in adaptive formula |
-| WM capacity | K | [1, 7] | Capacity for adaptive weighting |
-| Perseveration strength | κ | [0, 1] | Strength of choice persistence; κ=0 reduces to M2 |
+| WM capacity | K | [2, 6] | Capacity for adaptive weighting; per Collins (2012, 2014) and Senta et al. (2025) |
+| Perseveration strength | κ | [-1, 1] (softmax) or [0, 1] (convex) | Strength of choice persistence; κ=0 reduces to M2 |
 | Epsilon noise | ε | [0, 1] | Random exploration probability |
 
-**Code reference:** `WMRL_M3_PARAMS` in `mle_utils.py` — 7 parameters: `['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'kappa', 'epsilon']`
+**Code reference:** `WMRL_M3_PARAMS` in `mle_utils.py` — 6 parameters: `['alpha', 'phi', 'rho', 'capacity', 'kappa', 'epsilon']`
 
 #### 3.6.4 Dual κ-Parameterization (Phase 32-04, 2026-05-03)
 
@@ -683,7 +682,7 @@ M5 extends M3 with **Q-value decay toward baseline** before each delta-rule upda
 
 #### 3.7.1 RL Forgetting Mechanism
 
-Each trial, **before** the standard asymmetric delta-rule update, ALL Q-values decay toward the baseline:
+Each trial, **before** the standard delta-rule update, ALL Q-values decay toward the baseline:
 ```
 For ALL (s,a) pairs:
     Q(s,a) <- (1 - φ_rl) * Q(s,a) + φ_rl * Q_0
@@ -691,10 +690,9 @@ For ALL (s,a) pairs:
 
 Where Q_0 = 1/nA = 0.333 (uniform baseline, matching WM baseline convention).
 
-Then the standard asymmetric delta-rule update is applied for the observed (s,a) pair:
+Then the standard delta-rule update is applied for the observed (s,a) pair:
 ```
 δ = r - Q(s,a)
-α = α₊ if δ > 0 else α₋
 Q(s,a) <- Q(s,a) + α * δ
 ```
 
@@ -715,16 +713,15 @@ Q(s,a) <- Q(s,a) + α * δ
 
 | Parameter | Symbol | Range | Description |
 |-----------|--------|-------|-------------|
-| RL learning rate (positive) | α₊ | [0, 1] | RL update rate for correct trials |
-| RL learning rate (negative) | α₋ | [0, 1] | RL update rate for incorrect trials |
+| RL learning rate | α | [0, 1] | RL update rate for prediction errors |
 | WM decay rate | φ | [0, 1] | Global WM decay toward baseline |
 | Base WM reliance | ρ | [0, 1] | Base WM weight in adaptive formula |
-| WM capacity | K | [1, 7] | Capacity for adaptive weighting |
-| Perseveration strength | κ | [0, 1] | Global choice persistence (inherited from M3) |
+| WM capacity | K | [2, 6] | Capacity for adaptive weighting; per Collins (2012, 2014) and Senta et al. (2025) |
+| Perseveration strength | κ | [-1, 1] (softmax) or [0, 1] (convex) | Global choice persistence (inherited from M3) |
 | RL forgetting rate | φ_rl | [0, 1] | Q-value decay rate toward Q_0; φ_rl=0 reduces to M3 |
 | Epsilon noise | ε | [0, 1] | Random exploration probability |
 
-**Code reference:** `WMRL_M5_PARAMS` in `mle_utils.py` — 8 parameters: `['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'kappa', 'phi_rl', 'epsilon']`
+**Code reference:** `WMRL_M5_PARAMS` in `mle_utils.py` — 7 parameters: `['alpha', 'phi', 'rho', 'capacity', 'kappa', 'phi_rl', 'epsilon']`
 
 ### 3.8 M6a: WM-RL + Stimulus-Specific Perseveration (kappa_s)
 
@@ -751,21 +748,20 @@ After action: last_actions[s] = a_chosen  (unconditional update)
 
 M3 uses a single global `last_action` scalar: whatever action was taken on the previous trial (regardless of stimulus). M6a tracks per-stimulus, so perseveration only reflects repeating the action most recently taken for *that specific stimulus*.
 
-M6a has the same number of free parameters as M3 (7) but a different perseveration mechanism.
+M6a has the same number of free parameters as M3 (6) but a different perseveration mechanism.
 
 #### 3.8.3 Parameters
 
 | Parameter | Symbol | Range | Description |
 |-----------|--------|-------|-------------|
-| RL learning rate (positive) | α₊ | [0, 1] | RL update rate for correct trials |
-| RL learning rate (negative) | α₋ | [0, 1] | RL update rate for incorrect trials |
+| RL learning rate | α | [0, 1] | RL update rate for prediction errors |
 | WM decay rate | φ | [0, 1] | Global WM decay toward baseline |
 | Base WM reliance | ρ | [0, 1] | Base WM weight in adaptive formula |
-| WM capacity | K | [1, 7] | Capacity for adaptive weighting |
-| Stimulus-specific perseveration | κ_s | [0, 1] | Per-stimulus choice persistence; κ_s=0 reduces to M2 |
+| WM capacity | K | [2, 6] | Capacity for adaptive weighting; per Collins (2012, 2014) and Senta et al. (2025) |
+| Stimulus-specific perseveration | κ_s | [-1, 1] (softmax) or [0, 1] (convex) | Per-stimulus choice persistence; κ_s=0 reduces to M2 |
 | Epsilon noise | ε | [0, 1] | Random exploration probability |
 
-**Code reference:** `WMRL_M6A_PARAMS` in `mle_utils.py` — 7 parameters: `['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'kappa_s', 'epsilon']`
+**Code reference:** `WMRL_M6A_PARAMS` in `mle_utils.py` — 6 parameters: `['alpha', 'phi', 'rho', 'capacity', 'kappa_s', 'epsilon']`
 
 ### 3.9 M6b: WM-RL + Dual Perseveration (stick-breaking)
 
@@ -820,16 +816,15 @@ Where:
 
 | Parameter | Symbol | Range | Description |
 |-----------|--------|-------|-------------|
-| RL learning rate (positive) | α₊ | [0, 1] | RL update rate for correct trials |
-| RL learning rate (negative) | α₋ | [0, 1] | RL update rate for incorrect trials |
+| RL learning rate | α | [0, 1] | RL update rate for prediction errors |
 | WM decay rate | φ | [0, 1] | Global WM decay toward baseline |
 | Base WM reliance | ρ | [0, 1] | Base WM weight in adaptive formula |
-| WM capacity | K | [1, 7] | Capacity for adaptive weighting |
-| Total perseveration budget | κ_total | [0, 1] | Combined perseveration strength |
+| WM capacity | K | [2, 6] | Capacity for adaptive weighting; per Collins (2012, 2014) and Senta et al. (2025) |
+| Total perseveration budget | κ_total | [-1, 1] (softmax) or [0, 1] (convex) | Combined perseveration strength |
 | Global share | κ_share | [0, 1] | Proportion of κ_total for global kernel |
 | Epsilon noise | ε | [0, 1] | Random exploration probability |
 
-**Code reference:** `WMRL_M6B_PARAMS` in `mle_utils.py` — 8 parameters: `['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'kappa_total', 'kappa_share', 'epsilon']`
+**Code reference:** `WMRL_M6B_PARAMS` in `mle_utils.py` — 7 parameters: `['alpha', 'phi', 'rho', 'capacity', 'kappa_total', 'kappa_share', 'epsilon']`
 
 > **Note:** The stick-breaking decode (κ = κ_total * κ_share; κ_s = κ_total * (1 - κ_share)) is performed in objective functions only, not in transform functions. The block likelihood function receives decoded κ and κ_s.
 
@@ -896,18 +891,17 @@ Where φ is the standard normal PDF and Φ is the standard normal CDF.
 
 | Parameter | Symbol | Range | Description |
 |-----------|--------|-------|-------------|
-| RL learning rate (positive) | α₊ | [0, 1] | RL update rate for correct trials |
-| RL learning rate (negative) | α₋ | [0, 1] | RL update rate for incorrect trials |
+| RL learning rate | α | [0, 1] | RL update rate for prediction errors |
 | WM decay rate | φ | [0, 1] | Global WM decay toward baseline |
 | Base WM reliance | ρ | [0, 1] | Base WM weight in adaptive formula |
-| WM capacity | K | [1, 7] | Capacity for adaptive weighting |
-| Perseveration strength | κ | [0, 1] | Global choice persistence (inherited from M3) |
+| WM capacity | K | [2, 6] | Capacity for adaptive weighting; per Collins (2012, 2014) and Senta et al. (2025) |
+| Perseveration strength | κ | [-1, 1] (softmax) or [0, 1] (convex) | Global choice persistence (inherited from M3) |
 | Drift rate scaling | v_scale | [0.1, 20] | Scales hybrid policy into drift rates |
 | Max start point | A | [0.001, 2] | Uniform start-point variability (seconds) |
 | Threshold gap | δ | [0.001, 2] | b - A gap; b = A + δ (decoded in objectives) |
 | Non-decision time | t₀ | [0.05, 0.3] | Motor/encoding time (seconds) |
 
-**Code reference:** `WMRL_M4_PARAMS` in `mle_utils.py` — 10 parameters: `['alpha_pos', 'alpha_neg', 'phi', 'rho', 'capacity', 'kappa', 'v_scale', 'A', 'delta', 't0']`
+**Code reference:** `WMRL_M4_PARAMS` in `mle_utils.py` — 9 parameters: `['alpha', 'phi', 'rho', 'capacity', 'kappa', 'v_scale', 'A', 'delta', 't0']`
 
 > **Reference:** Brown, S. D., & Heathcote, A. (2008). The simplest complete model of choice response time: Linear ballistic accumulation. *Cognitive Psychology*, 57(3), 153-178.
 
@@ -925,7 +919,7 @@ This implementation is based on Senta et al. (2025), "Dual process impairments i
 | WM Decay | (1-φ)WM + φ·baseline | (1-φ)WM + φ·WM₀ | ✓ |
 | Adaptive Weight | ω = ρ · min(1, K/ns) | ω = ρ · min(1, K/Ns) | ✓ |
 | Hybrid Policy | ω·p_WM + (1-ω)·p_RL | ω·p_WM + (1-ω)·p_RL | ✓ |
-| Asymmetric Learning | α₊ for δ>0, α₋ for δ≤0 | Same | ✓ |
+| Learning Rate | α₊ for δ>0, α₋ for δ≤0 | Single α (Phase 33: asymmetric rates not identifiable) | Simplified |
 | Fixed β | β = 50 during learning | β = 50 | ✓ |
 | Epsilon Noise | ε/nA + (1-ε)·p | ε/nA + (1-ε)·p | ✓ |
 
@@ -1143,8 +1137,7 @@ log_lik = q_learning_block_likelihood(
     stimuli=jnp.array([0, 1, 0, 2, 1]),
     actions=jnp.array([0, 1, 0, 2, 1]),
     rewards=jnp.array([1.0, 0.0, 1.0, 1.0, 0.0]),
-    alpha_pos=0.3,
-    alpha_neg=0.1,
+    alpha=0.3,
     beta=50.0,
     epsilon=0.05
 )
@@ -1159,8 +1152,7 @@ log_lik = wmrl_block_likelihood(
     actions=act_array,
     rewards=rew_array,
     set_sizes=set_array,
-    alpha_pos=0.3,
-    alpha_neg=0.1,
+    alpha=0.3,
     beta=50.0,  # Fixed
     phi=0.1,
     rho=0.7,
@@ -1200,6 +1192,8 @@ python scripts/fitting/fit_both_models.py \
 
 ### 5.5 Programmatic Usage
 
+> **Legacy model note:** The legacy loop-based hierarchical models (`qlearning_hierarchical_model`, `wmrl_hierarchical_model`) use different prior structures (e.g., Beta(3,2) priors, K bounds [1, 7]) and are deprecated. All production fits use the stacked models via `STACKED_MODEL_DISPATCH`.
+
 ```python
 from scripts.fitting.numpyro_models import (
     qlearning_hierarchical_model,
@@ -1224,8 +1218,7 @@ mcmc = run_inference(
 
 # Get samples
 samples = mcmc.get_samples()
-print(f"μ_α₊: {samples['mu_alpha_pos'].mean():.3f}")
-print(f"μ_α₋: {samples['mu_alpha_neg'].mean():.3f}")
+print(f"μ_α: {samples['mu_alpha'].mean():.3f}")
 print(f"μ_ε: {samples['mu_epsilon'].mean():.3f}")
 
 # Save results
@@ -1239,23 +1232,21 @@ idata.to_netcdf('models/bayesian/posterior.nc')
 **Q-Learning Model Priors:**
 ```python
 # Group-level
-mu_alpha_pos ~ Beta(3, 2)        # Mean ~ 0.6
-mu_alpha_neg ~ Beta(2, 3)        # Mean ~ 0.4
+mu_alpha ~ Beta(3, 2)            # Mean ~ 0.6
 mu_epsilon ~ Beta(1, 19)         # Mean ~ 0.05
-sigma_alpha_pos ~ HalfNormal(0.3)
-sigma_alpha_neg ~ HalfNormal(0.3)
+sigma_alpha ~ HalfNormal(0.3)
 sigma_epsilon ~ HalfNormal(0.1)
 
 # Individual-level (non-centered)
 z_i ~ Normal(0, 1)
-alpha_pos_i = logit⁻¹(logit(mu_alpha_pos) + sigma_alpha_pos * z_i)
+alpha_i = logit⁻¹(logit(mu_alpha) + sigma_alpha * z_i)
 ```
 
 **WM-RL Additional Priors:**
 ```python
 mu_phi ~ Beta(2, 8)              # Mean ~ 0.2 (slow decay)
 mu_rho ~ Beta(5, 2)              # Mean ~ 0.7 (WM preference)
-mu_capacity ~ TruncNorm(4, 1.5, low=1, high=7)
+mu_capacity ~ TruncNorm(4, 1.5, low=2, high=6)
 ```
 
 ---
@@ -1306,7 +1297,7 @@ from simulations.generate_data import generate_dataset
 from scripts.fitting.numpyro_models import qlearning_hierarchical_model
 
 # Generate synthetic data with known parameters
-true_params = {'alpha_pos': 0.3, 'alpha_neg': 0.1, 'epsilon': 0.05}
+true_params = {'alpha': 0.3, 'epsilon': 0.05}
 synthetic_data = generate_dataset(n_participants=50, model='qlearning', params=true_params)
 
 # Fit model
@@ -1314,8 +1305,8 @@ mcmc = run_inference(qlearning_hierarchical_model, {'participant_data': syntheti
 
 # Compare recovered vs true
 samples = mcmc.get_samples()
-recovered_alpha_pos = samples['mu_alpha_pos'].mean()
-print(f"True α₊: {true_params['alpha_pos']:.3f}, Recovered: {recovered_alpha_pos:.3f}")
+recovered_alpha = samples['mu_alpha'].mean()
+print(f"True α: {true_params['alpha']:.3f}, Recovered: {recovered_alpha:.3f}")
 ```
 
 ---
@@ -1326,8 +1317,7 @@ Based on the literature, we predict the following parameter differences in traum
 
 | Parameter | Hypothesis | Mechanism |
 |-----------|------------|-----------|
-| α₊ | Decreased | Reduced learning from positive outcomes (anhedonia) |
-| α₋ | Increased | Heightened sensitivity to negative outcomes (hypervigilance) |
+| α (learning rate) | Decreased | Reduced learning rate (Senta et al. 2025 finding) |
 | K (capacity) | Decreased | WM impairments associated with PTSD |
 | ρ (WM reliance) | Decreased | Less confidence in WM, more reliance on slow RL |
 | φ (decay) | Increased | Faster forgetting, consolidation deficits |
@@ -1425,7 +1415,7 @@ The prior location `mu_prior_loc` is parameter-specific (see
 
 | Parameter | mu_prior_loc | Bounds | Rationale |
 |-----------|-------------|--------|-----------|
-| alpha_pos, alpha_neg | 0.0 | [0, 1] | Centered on 0.5 on probability scale |
+| alpha | 0.0 | [0, 1] | Centered on 0.5 on probability scale |
 | phi | -0.8 | [0, 1] | Prior expectation of moderate forgetting |
 | rho | 0.5 | [0, 1] | Prior toward higher WM reliability |
 | capacity (K) | 0.0 | [2, 6] | Centered; see [K Parameterization](#k-parameterization) |
@@ -1609,7 +1599,7 @@ v4.0-K[2,6]-phiapprox
 
 Downstream scripts (`scripts/06_fit_analyses/04_analyze_mle_by_trauma.py`, `scripts/06_fit_analyses/05_regress_parameters_on_scales.py`)
 validate this column on load and raise a `ValueError` if the string does not match,
-preventing accidental mixing of v3.0 MLE fits (which use K in [1, 7]) with v4.0 fits.
+preventing accidental mixing of legacy v3.0 MLE fits (which used K in [1, 7]) with v4.0+ fits.
 
 ### Historical Collins-Lab K Conventions
 
@@ -1645,7 +1635,7 @@ is therefore not merely a convention but a structural identifiability requiremen
 task's minimum set size.
 
 **3. Breaking change acknowledgment.**
-The v3.0 MLE pipeline used K in [1, 7].  This IS a breaking change.
+The legacy v3.0 MLE pipeline used K in [1, 7].  This was a breaking change.
 Phase 14 (requirements K-02, K-03) refits all models with the new [2, 6] bounds so that
 the v4.0 MLE and Bayesian pipelines share the same convention.  The
 `parameterization_version` column enforces this at runtime.
