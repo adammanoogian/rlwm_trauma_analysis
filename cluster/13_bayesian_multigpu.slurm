@@ -91,10 +91,6 @@ if conda activate rlwm_gpu 2>/dev/null; then
     echo "Activated rlwm_gpu by name"
 elif conda activate /scratch/fc37/$USER/conda/envs/rlwm_gpu 2>/dev/null; then
     echo "Activated rlwm_gpu from /scratch/fc37/$USER/"
-elif conda activate rlwm_gpu 2>/dev/null; then
-    echo "Activated rlwm_gpu by name"
-elif conda activate /scratch/fc37/$USER/conda/envs/rlwm_gpu 2>/dev/null; then
-    echo "Activated rlwm_gpu from /scratch/fc37/$USER/"
 elif conda activate /scratch/${PROJECT:-fc37}/$USER/conda/envs/rlwm_gpu 2>/dev/null; then
     echo "Activated rlwm_gpu from /scratch/${PROJECT:-fc37}/$USER/"
 else

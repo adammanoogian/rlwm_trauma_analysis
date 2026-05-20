@@ -412,7 +412,7 @@ def compute_pointwise_log_lik(
 
 def build_inference_data_with_loglik(
     mcmc: MCMC,
-    pointwise_log_lik: jnp.ndarray,
+    pointwise_log_lik: np.ndarray,
     *,
     participant_ids: list | None = None,
 ) -> az.InferenceData:
@@ -800,28 +800,35 @@ def run_posterior_predictive_check(
         (len(draw_indices), n_participants, max_n_blocks), np.nan, dtype=np.float32
     )
 
+    # Pre-build per-participant closures outside the draw loop.  The closure
+    # is identical per participant across draws (it only closes over pdata and
+    # task constants), so building it once per participant and reusing across
+    # all draws avoids redundant work.
+    per_participant_fns: list[tuple] = []  # (per_sample_fn, n_blocks_i, mask_blocks)
+    for pid in participant_ids:
+        pdata = participant_data_stacked[pid]
+        n_blocks_i = pdata["masks_stacked"].shape[0]
+        mask_blocks = np.array(pdata["masks_stacked"], dtype=np.float32)
+        per_sample_fn = _build_per_participant_fn(
+            model_name, pdata, num_stimuli, num_actions, q_init
+        )
+        per_participant_fns.append((per_sample_fn, n_blocks_i, mask_blocks))
+
     for draw_i, draw_idx in enumerate(draw_indices):
         for p_idx, pid in enumerate(participant_ids):
-            pdata = participant_data_stacked[pid]
-            n_blocks_i = pdata["masks_stacked"].shape[0]
+            per_sample_fn, n_blocks_i, mask_blocks = per_participant_fns[p_idx]
 
             # Extract scalar params for this draw and participant
             param_scalars = [
                 float(flat_params[name][draw_idx, p_idx]) for name in param_names
             ]
 
-            per_sample_fn = _build_per_participant_fn(
-                model_name, pdata, num_stimuli, num_actions, q_init
-            )
             # pointwise: (n_blocks_i * max_trials,) — log P(observed_action | params)
             pointwise = per_sample_fn(*param_scalars)  # type: ignore[arg-type]
             pointwise_np = np.array(pointwise, dtype=np.float32)
 
             # Reshape back to (n_blocks_i, max_trials)
             pointwise_blocks = pointwise_np.reshape(n_blocks_i, max_trials)
-            mask_blocks = np.array(
-                pdata["masks_stacked"], dtype=np.float32
-            )  # (n_blocks_i, max_trials)
 
             # exp(log_prob) = P(observed action | params)
             prob_blocks = np.exp(pointwise_blocks)

@@ -109,9 +109,7 @@ def wmrl_m3_block_likelihood(
     set_sizes : array, shape (n_trials,)
         Set size for each trial (for adaptive weighting)
     alpha : float
-        RL learning rate for positive PE
-    alpha : float
-        RL learning rate for negative PE
+        RL learning rate
     phi : float
         WM decay rate (0-1)
     rho : float
@@ -341,9 +339,7 @@ def wmrl_m3_multiblock_likelihood(
     set_sizes_blocks : list of arrays
         Set sizes per trial per block
     alpha : float
-        RL learning rate for positive PE
-    alpha : float
-        RL learning rate for negative PE
+        RL learning rate
     phi : float
         WM decay rate (0-1)
     rho : float
@@ -586,9 +582,7 @@ def wmrl_m3_fully_batched_likelihood(
     masks : jnp.ndarray
         Shape (N, B, T) float32. Padded blocks have mask entirely 0.0.
     alpha : jnp.ndarray
-        Shape (N,) float32 per-participant positive learning rates.
-    alpha : jnp.ndarray
-        Shape (N,) float32 per-participant negative learning rates.
+        Shape (N,) float32 per-participant learning rates.
     phi : jnp.ndarray
         Shape (N,) float32 per-participant WM forgetting rates.
     rho : jnp.ndarray

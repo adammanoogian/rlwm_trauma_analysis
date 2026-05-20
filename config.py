@@ -7,6 +7,7 @@ and analysis settings to ensure consistency across all scripts.
 
 from __future__ import annotations
 
+import functools
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -395,39 +396,6 @@ def get_param_bounds(
 
 
 # ============================================================================
-# PYMC SAMPLING PARAMETERS
-# ============================================================================
-
-class PyMCParams:
-    """Parameters for Bayesian model fitting with PyMC."""
-
-    # MCMC sampling
-    NUM_CHAINS = 4  # Number of parallel MCMC chains
-    NUM_SAMPLES = 2000  # Samples per chain (after warmup)
-    NUM_TUNE = 1000  # Warmup/tuning samples
-    TARGET_ACCEPT = 0.95  # Target acceptance rate for NUTS
-
-    # Hierarchical priors (group-level)
-    # Learning rate (alpha) ~ Normal(mu_alpha, sigma_alpha)
-    ALPHA_MU_PRIOR = 0.3  # Group mean learning rate
-    ALPHA_SIGMA_PRIOR = 0.2  # Group std learning rate
-
-    # Inverse temperature (beta) ~ Gamma(alpha, beta)
-    BETA_ALPHA_PRIOR = 2.0  # Shape parameter
-    BETA_BETA_PRIOR = 1.0  # Rate parameter
-
-    # Working memory capacity ~ TruncatedNormal(mu, sigma, low=1, high=7)
-    WM_CAPACITY_MU_PRIOR = 4.0
-    WM_CAPACITY_SIGMA_PRIOR = 1.5
-
-    # Model comparison
-    USE_WAIC = True  # Compute WAIC (Watanabe-Akaike IC)
-    USE_LOO = True  # Compute LOO (Leave-One-Out CV)
-
-    # Posterior predictive checks
-    NUM_POSTERIOR_SAMPLES = 100  # Samples for posterior predictive
-
-# ============================================================================
 # DATA PROCESSING
 # ============================================================================
 
@@ -502,13 +470,11 @@ class AnalysisParams:
     # Random seed for reproducibility
     RANDOM_SEED = 42
 
-    # Set numpy random seed
-    np.random.seed(RANDOM_SEED)
-
 # ============================================================================
 # DYNAMIC EXCLUSION COMPUTATION
 # ============================================================================
 
+@functools.lru_cache(maxsize=4)
 def get_excluded_participants(data_path: Path | None = None) -> list[int]:
     """
     Compute participant exclusion list from data quality thresholds.
@@ -542,7 +508,7 @@ def get_excluded_participants(data_path: Path | None = None) -> list[int]:
     return sorted(set(auto_excluded) | set(MANUAL_EXCLUSIONS))
 
 
-# Computed on import — automatically updates when data changes
+# Computed on import — reads CSV once; subsequent calls hit lru_cache.
 EXCLUDED_PARTICIPANTS = get_excluded_participants()
 
 
@@ -672,9 +638,6 @@ def get_analysis_cohort(
         min_b = max_b - late_block_n + 1
         return float(group.loc[group["block"] >= min_b, "correct"].mean())
 
-    late_acc = df.groupby("sona_id").apply(_late_block_mean, include_groups=False) \
-        if "include_groups" in getattr(df.groupby("sona_id").apply, "__kwdefaults__", {}) or True \
-        else df.groupby("sona_id").apply(_late_block_mean)
     # Robustness: pandas warns about include_groups; fall back cleanly.
     try:
         late_acc = df.groupby("sona_id").apply(_late_block_mean, include_groups=False)
@@ -806,10 +769,6 @@ def print_config_summary():
     print(f"  - WM Capacity (K): {ModelParams.WM_CAPACITY_DEFAULT}")
     print(f"  - WM Decay (φ): {ModelParams.PHI_DEFAULT}")
     print(f"  - WM Reliance (ρ): {ModelParams.RHO_DEFAULT}")
-    print("\nPyMC Sampling:")
-    print(f"  - Chains: {PyMCParams.NUM_CHAINS}")
-    print(f"  - Samples: {PyMCParams.NUM_SAMPLES}")
-    print(f"  - Tune: {PyMCParams.NUM_TUNE}")
     print("=" * 80)
 
 # ============================================================================

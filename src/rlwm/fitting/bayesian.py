@@ -189,8 +189,16 @@ def load_and_prepare_data(
     print(f"  Total trials: {len(df)}")
     print(f"  Trials per participant: {len(df) / df['sona_id'].nunique():.0f}")
 
-    # Per-participant summary
-    for pid in sorted(df["sona_id"].unique()):
+    # Per-participant summary (first 5 + last 5 to reduce log clutter)
+    sorted_pids = sorted(df["sona_id"].unique())
+    n_pids = len(sorted_pids)
+    if n_pids <= 10:
+        show_pids = sorted_pids
+    else:
+        show_pids = list(sorted_pids[:5]) + list(sorted_pids[-5:])
+    for i, pid in enumerate(show_pids):
+        if i == 5 and n_pids > 10:
+            print(f"    ... ({n_pids} total) ...")
         pdata = df[df["sona_id"] == pid]
         print(
             f"    Participant {int(pid)}: {len(pdata)} trials, "

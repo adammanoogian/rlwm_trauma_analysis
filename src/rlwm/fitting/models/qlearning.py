@@ -5,8 +5,8 @@ should import directly from this module; the legacy
 ``rlwm.fitting.jax_likelihoods`` / ``rlwm.fitting.numpyro_models``
 re-export shims were deleted in the v5.0 shim cleanup.
 
-Senta et al. (2025) M1: Q-learning with asymmetric learning rates
-``(alpha, alpha)`` and epsilon noise.
+Senta et al. (2025) M1: Q-learning with single learning rate
+``alpha`` and epsilon noise.
 """
 
 from __future__ import annotations
@@ -153,9 +153,7 @@ def q_learning_block_likelihood(
     rewards : array, shape (n_trials,)
         Reward sequence for this block
     alpha : float
-        Learning rate for positive prediction errors
-    alpha : float
-        Learning rate for negative prediction errors
+        Learning rate
     epsilon : float
         Epsilon noise parameter (probability of random action)
     num_stimuli : int
@@ -296,9 +294,7 @@ def q_learning_multiblock_likelihood(
     rewards_blocks : list of arrays
         List of reward sequences, one per block
     alpha : float
-        Learning rate for positive prediction errors
-    alpha : float
-        Learning rate for negative prediction errors
+        Learning rate
     epsilon : float
         Epsilon noise parameter (probability of random action)
     num_stimuli, num_actions : int
@@ -612,9 +608,7 @@ def q_learning_fully_batched_likelihood(
     masks : jnp.ndarray
         Shape (N, B, T) float32.  Padded blocks have mask entirely 0.0.
     alpha : jnp.ndarray
-        Shape (N,) float32 per-participant positive learning rates.
-    alpha : jnp.ndarray
-        Shape (N,) float32 per-participant negative learning rates.
+        Shape (N,) float32 per-participant learning rates.
     epsilon : jnp.ndarray
         Shape (N,) float32 per-participant random-response rates.
     num_stimuli : int
@@ -715,7 +709,7 @@ def q_learning_block_likelihood_pscan(
     stimuli : array, shape (n_trials,)
     actions : array, shape (n_trials,)
     rewards : array, shape (n_trials,)
-    alpha, alpha : float
+    alpha : float
     epsilon : float
     num_stimuli, num_actions : int
     q_init : float
@@ -849,7 +843,6 @@ def test_single_block():
     rewards = jax.random.bernoulli(key, 0.7, (n_trials,)).astype(jnp.float32)
 
     # Test parameters (no beta - it's fixed at 50)
-    alpha = 0.3
     alpha = 0.1
     epsilon = 0.05
 
@@ -897,7 +890,6 @@ def test_multiblock():
         )
 
     # Test parameters (no beta - it's fixed at 50)
-    alpha = 0.3
     alpha = 0.1
     epsilon = 0.05
 
