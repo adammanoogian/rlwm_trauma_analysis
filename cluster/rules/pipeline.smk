@@ -334,7 +334,7 @@ rule manuscript_tables:
 
         python scripts/06_fit_analyses/08_manuscript_tables.py \
             --baseline-dir models/bayesian/{config[bayesian_subdir]}/ \
-            --l2-dir models/bayesian/21_l2/ \
+            --l2-dir models/bayesian/{config[l2_subdir]}/ \
             --figures-dir reports/figures/bayesian/ \
             --tables-dir reports/tables/model_comparison/ \
             --no-paper-edit

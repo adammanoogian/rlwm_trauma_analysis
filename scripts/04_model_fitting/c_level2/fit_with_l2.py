@@ -123,11 +123,8 @@ _BETA_TARGET: dict[str, str] = {
     "wmrl_m6a": "kappa_s",
 }
 
-# Subdirectory under ``models/bayesian/`` where all step 21.6 artefacts land.
-# DO NOT CHANGE without also updating the master pipeline orchestrator
-# (plan 21-10) and step 21.7.
-L2_SUBDIR: str = "21_l2"
-BASELINE_SUBDIR: str = "21_baseline"
+L2_SUBDIR_DEFAULT: str = "21_l2"
+BASELINE_SUBDIR_DEFAULT: str = "21_baseline"
 
 
 def _parse_winners_file(winners_path: Path) -> list[str]:
@@ -180,8 +177,10 @@ def _parse_winners_file(winners_path: Path) -> list[str]:
 def _copy_baseline_posterior(
     model: str,
     output_root: Path,
+    baseline_subdir: str = BASELINE_SUBDIR_DEFAULT,
+    l2_subdir: str = L2_SUBDIR_DEFAULT,
 ) -> Path:
-    """Copy baseline posterior NetCDF to the 21_l2 subdir (M1/M2 pass-through).
+    """Copy baseline posterior NetCDF to the L2 subdir (M1/M2 pass-through).
 
     Parameters
     ----------
@@ -189,11 +188,15 @@ def _copy_baseline_posterior(
         Internal model id (``"qlearning"`` or ``"wmrl"``).
     output_root : Path
         Output root directory (typically ``models/``).
+    baseline_subdir : str
+        Baseline subdirectory name under ``models/bayesian/``.
+    l2_subdir : str
+        L2 output subdirectory name under ``models/bayesian/``.
 
     Returns
     -------
     Path
-        Destination NetCDF path (``models/bayesian/21_l2/{model}_posterior.nc``).
+        Destination NetCDF path.
 
     Raises
     ------
@@ -201,8 +204,8 @@ def _copy_baseline_posterior(
         If the baseline NetCDF source file is missing (upstream 21.3 did not
         produce a converged posterior for this model).
     """
-    src = output_root / "bayesian" / BASELINE_SUBDIR / f"{model}_posterior.nc"
-    dst_dir = output_root / "bayesian" / L2_SUBDIR
+    src = output_root / "bayesian" / baseline_subdir / f"{model}_posterior.nc"
+    dst_dir = output_root / "bayesian" / l2_subdir
     dst_dir.mkdir(parents=True, exist_ok=True)
     dst = dst_dir / f"{model}_posterior.nc"
 
@@ -227,6 +230,7 @@ def _copy_baseline_posterior(
 def _fit_two_covariate_l2(
     model: str,
     args: argparse.Namespace,
+    l2_subdir: str = L2_SUBDIR_DEFAULT,
 ) -> Path:
     """Fit M3/M5/M6a with 2-covariate L2 (LEC + IES-R totals, z-scored).
 
@@ -356,10 +360,10 @@ def _fit_two_covariate_l2(
         save_plots=False,
         participant_data_stacked=participant_data_stacked,
         use_pscan=False,
-        output_subdir=L2_SUBDIR,
+        output_subdir=l2_subdir,
     )
 
-    expected = Path(args.output) / "bayesian" / L2_SUBDIR / f"{model}_posterior.nc"
+    expected = Path(args.output) / "bayesian" / l2_subdir / f"{model}_posterior.nc"
     return expected
 
 
@@ -403,12 +407,15 @@ def _verify_two_covariate_sites(model: str, expected: Path) -> int:
     return len(found)
 
 
-def _fit_subscale(model: str, args: argparse.Namespace) -> Path:
+def _fit_subscale(
+    model: str,
+    args: argparse.Namespace,
+    l2_subdir: str = L2_SUBDIR_DEFAULT,
+) -> Path:
     """Fit M6b with the 4-covariate subscale design via fit_bayesian.main().
 
     Delegates to :func:`scripts.fitting.fit_bayesian.main` by rewriting
-    ``sys.argv`` with ``--subscale`` + ``--output-subdir 21_l2``. Matches
-    the Phase-16 M6b subscale pattern; requires no shim.
+    ``sys.argv`` with ``--subscale`` + ``--output-subdir <l2_subdir>``.
 
     Parameters
     ----------
@@ -416,6 +423,8 @@ def _fit_subscale(model: str, args: argparse.Namespace) -> Path:
         Must be ``"wmrl_m6b"``.
     args : argparse.Namespace
         Parsed CLI arguments.
+    l2_subdir : str
+        L2 output subdirectory name under ``models/bayesian/``.
 
     Returns
     -------
@@ -446,12 +455,12 @@ def _fit_subscale(model: str, args: argparse.Namespace) -> Path:
         "--output",
         args.output,
         "--output-subdir",
-        L2_SUBDIR,
+        l2_subdir,
         "--subscale",
     ]
     fit_main()
 
-    expected = Path(args.output) / "bayesian" / L2_SUBDIR / f"{model}_posterior.nc"
+    expected = Path(args.output) / "bayesian" / l2_subdir / f"{model}_posterior.nc"
     return expected
 
 
@@ -529,15 +538,33 @@ def main() -> None:
     )
     parser.add_argument(
         "--winners-file",
-        default="models/bayesian/21_baseline/winners.txt",
+        default=f"models/bayesian/{BASELINE_SUBDIR_DEFAULT}/winners.txt",
         help=(
             "Path to winners.txt from step 21.5 (default: "
-            "models/bayesian/21_baseline/winners.txt). "
+            f"models/bayesian/{BASELINE_SUBDIR_DEFAULT}/winners.txt). "
             "File must contain comma-separated display names "
             "(e.g. 'M3,M6b')."
         ),
     )
+    parser.add_argument(
+        "--l2-subdir",
+        default=L2_SUBDIR_DEFAULT,
+        help=(
+            "Output subdirectory under models/bayesian/ for L2 artefacts "
+            f"(default: {L2_SUBDIR_DEFAULT})."
+        ),
+    )
+    parser.add_argument(
+        "--baseline-subdir",
+        default=BASELINE_SUBDIR_DEFAULT,
+        help=(
+            "Baseline subdirectory under models/bayesian/ for M1/M2 "
+            f"copy-through (default: {BASELINE_SUBDIR_DEFAULT})."
+        ),
+    )
     args = parser.parse_args()
+    l2_subdir = args.l2_subdir
+    baseline_subdir = args.baseline_subdir
 
     # ------------------------------------------------------------------
     # Banner
@@ -551,7 +578,7 @@ def main() -> None:
     print(f"  Chains/Warmup/Samples: {args.chains}/{args.warmup}/{args.samples}")
     print(f"  Seed: {args.seed}")
     print(f"  Max tree depth: {args.max_tree_depth}")
-    print(f"  Output: {args.output}/bayesian/{L2_SUBDIR}/")
+    print(f"  Output: {args.output}/bayesian/{l2_subdir}/")
     print("=" * 80)
 
     # ------------------------------------------------------------------
@@ -595,9 +622,10 @@ def main() -> None:
     beta_count: int
 
     if model_internal in _COPY_BASELINE_MODELS:
-        # M1/M2 pass-through: copy baseline posterior into 21_l2/.
         try:
-            _copy_baseline_posterior(model_internal, output_root)
+            _copy_baseline_posterior(
+                model_internal, output_root, baseline_subdir, l2_subdir,
+            )
         except FileNotFoundError as exc:
             print(f"[FAIL] {exc}", file=sys.stderr)
             sys.exit(1)
@@ -606,7 +634,7 @@ def main() -> None:
     elif model_internal in _TWO_COV_MODELS:
         # M3/M5/M6a: 2-covariate L2 (LEC + IES-R totals) via covariate_iesr.
         try:
-            expected = _fit_two_covariate_l2(model_internal, args)
+            expected = _fit_two_covariate_l2(model_internal, args, l2_subdir)
         except FileNotFoundError as exc:
             print(f"[FAIL] {exc}", file=sys.stderr)
             sys.exit(1)
@@ -627,7 +655,7 @@ def main() -> None:
 
     elif model_internal in _SUBSCALE_MODELS:
         # M6b: full 4-covariate subscale L2 via fit_bayesian.main().
-        expected = _fit_subscale(model_internal, args)
+        expected = _fit_subscale(model_internal, args, l2_subdir)
         if not expected.exists():
             print(
                 f"[CONVERGENCE GATE FAIL] Expected NetCDF missing: {expected}. "
@@ -654,7 +682,7 @@ def main() -> None:
     # Step C: Final expected-file check (load-bearing) + summary.
     # ------------------------------------------------------------------
     final_expected = (
-        output_root / "bayesian" / L2_SUBDIR / f"{model_internal}_posterior.nc"
+        output_root / "bayesian" / l2_subdir / f"{model_internal}_posterior.nc"
     )
     if not final_expected.exists():
         print(
