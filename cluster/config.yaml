@@ -25,6 +25,10 @@ data_file: "data/processed/task_trials_long.csv"
 bayesian_subdir: "33_single_alpha"
 l2_subdir: "33_l2"
 
+# --- Participant exclusions (convergence-problematic, per Phase 33 triage) ---
+# Comma-separated sona_ids. Applied via --exclude-participants to Bayesian fits.
+exclude_participants: "10130"
+
 # --- MCMC defaults ---
 mcmc_chains: 4
 mcmc_warmup: 1000

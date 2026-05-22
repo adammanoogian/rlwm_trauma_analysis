@@ -291,6 +291,20 @@ def _fit_two_covariate_l2(
     # ------------------------------------------------------------------
     print("\n>> Loading trial data (canonical v4.0 cohort)...")
     data = load_and_prepare_data(Path(args.data), use_cohort=True)
+
+    # Ad-hoc participant exclusion (mirrors bayesian.main()).
+    exclude_arg = getattr(args, "exclude_participants", None)
+    if exclude_arg:
+        exclude_ids = [
+            int(s.strip()) for s in exclude_arg.split(",") if s.strip()
+        ]
+        n_before = data["sona_id"].nunique()
+        data = data[~data["sona_id"].astype(int).isin(exclude_ids)].copy()
+        n_after = data["sona_id"].nunique()
+        print(f"  Excluded {n_before - n_after} participant(s) via "
+              f"--exclude-participants: {exclude_ids}")
+        print(f"  Final sample: {n_after} participants")
+
     participant_data_stacked = prepare_stacked_participant_data(
         data,
         participant_col="sona_id",
@@ -458,6 +472,9 @@ def _fit_subscale(
         l2_subdir,
         "--subscale",
     ]
+    exclude_arg = getattr(args, "exclude_participants", None)
+    if exclude_arg:
+        sys.argv.extend(["--exclude-participants", exclude_arg])
     fit_main()
 
     expected = Path(args.output) / "bayesian" / l2_subdir / f"{model}_posterior.nc"
@@ -560,6 +577,16 @@ def main() -> None:
         help=(
             "Baseline subdirectory under models/bayesian/ for M1/M2 "
             f"copy-through (default: {BASELINE_SUBDIR_DEFAULT})."
+        ),
+    )
+    parser.add_argument(
+        "--exclude-participants",
+        type=str,
+        default=None,
+        metavar="IDS",
+        help=(
+            "Comma-separated sona_ids to exclude AFTER cohort filtering. "
+            "Threaded to both 2-covariate and subscale L2 paths."
         ),
     )
     args = parser.parse_args()

@@ -191,6 +191,16 @@ def main() -> None:
             "the master pipeline's --dependency=afterok chains rely on."
         ),
     )
+    parser.add_argument(
+        "--exclude-participants",
+        type=str,
+        default=None,
+        metavar="IDS",
+        help=(
+            "Comma-separated sona_ids to exclude AFTER cohort filtering. "
+            "Threaded to the inner engine's --exclude-participants flag."
+        ),
+    )
     args = parser.parse_args()
 
     print("=" * 80)
@@ -240,6 +250,8 @@ def main() -> None:
     ]
     if args.allow_gate_failure:
         sys.argv.append("--allow-gate-failure")
+    if args.exclude_participants:
+        sys.argv.extend(["--exclude-participants", args.exclude_participants])
     fit_main()
 
     # ------------------------------------------------------------------

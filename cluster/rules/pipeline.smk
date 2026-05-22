@@ -206,6 +206,11 @@ rule bayesian_fit:
 
         mkdir -p models/bayesian
 
+        EXCLUDE_FLAG=""
+        if [ -n "{config[exclude_participants]}" ]; then
+            EXCLUDE_FLAG="--exclude-participants {config[exclude_participants]}"
+        fi
+
         python scripts/04_model_fitting/b_bayesian/fit_bayesian.py \
             --model {wildcards.model} \
             --data {config[data_file]} \
@@ -213,7 +218,8 @@ rule bayesian_fit:
             --warmup {config[mcmc_warmup]} \
             --samples {config[mcmc_samples]} \
             --output-subdir {config[bayesian_subdir]} \
-            --allow-gate-failure
+            --allow-gate-failure \
+            $EXCLUDE_FLAG
 
         touch {output.flag}
         """

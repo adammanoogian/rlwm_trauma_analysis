@@ -44,7 +44,8 @@ model") is DOCUMENTED, not ENFORCED-VIA-AUTOKILL.
 
 Winner determination
 --------------------
-Three-tier decision over ranked stacking weights ``w``:
+When PSIS-LOO is reliable (Pareto-k < 50% high per model), uses a three-tier
+decision over ranked stacking weights ``w``:
 
 - ``w.iloc[0] >= --stacking-winner-threshold`` (default 0.5) ->
   ``DOMINANT_SINGLE``: exit 0, single winner advances to 21.7.
@@ -54,6 +55,11 @@ Three-tier decision over ranked stacking weights ``w``:
   ``w >= --weak-winner-threshold`` (default 0.10); exit 2 so the pipeline
   SLURM ``--dependency=afterok`` chain blocks and the user reviews
   ``winner_report.md`` before rerunning with ``--force-winners``.
+
+When Pareto-k catastrophe is detected (any model >= 50% high-k observations),
+falls back to RFX-BMS PXP as primary ranking: PXP >= 0.95 ->
+``DOMINANT_SINGLE``; else top-2 by PXP (both > 0.10) -> ``TOP_TWO``. LOO
+results are still computed and reported but do not drive the winner verdict.
 
 Outputs
 -------
@@ -152,6 +158,11 @@ MODEL_TO_DISPLAY: dict[str, str] = {
 # Minimum number of convergence-eligible models needed for stacking to be
 # meaningful. PXP over a singleton is not meaningful either.
 MIN_MODELS_FOR_STACKING: int = 2
+
+# When ANY model has more than this % of observations with Pareto k > 0.7,
+# PSIS-LOO stacking weights are unreliable and winner determination falls
+# back to RFX-BMS PXP as the primary ranking signal.
+PARETO_K_CATASTROPHE_PCT: float = 50.0
 
 
 # ---------------------------------------------------------------------------
@@ -319,7 +330,26 @@ def compute_loo_stacking_bms(
     bms_result = rfx_bms(log_evidence_matrix)
 
     # -----------------------------------------------------------------
-    # Winner determination (three-tier) + optional --force-winners override.
+    # Pareto-k catastrophe detection: when any model has >50% of
+    # observations with k > 0.7, PSIS-LOO stacking weights cannot
+    # drive winner determination. RFX-BMS PXP becomes primary.
+    # -----------------------------------------------------------------
+    pareto_k_catastrophe = any(
+        pct >= PARETO_K_CATASTROPHE_PCT
+        for pct in pct_high_per_model.values()
+    )
+    if pareto_k_catastrophe:
+        print(
+            f"[PARETO-K CATASTROPHE] >= {PARETO_K_CATASTROPHE_PCT}% high-k "
+            f"observations detected. PSIS-LOO stacking weights UNRELIABLE. "
+            f"Using RFX-BMS PXP as PRIMARY winner determination.",
+            file=sys.stderr,
+        )
+
+    ranking_method = "BMS_PXP" if pareto_k_catastrophe else "LOO_STACKING"
+
+    # -----------------------------------------------------------------
+    # Winner determination + optional --force-winners override.
     # -----------------------------------------------------------------
     if force_winners is not None:
         unknown = [w for w in force_winners if w not in compare_dict]
@@ -330,9 +360,32 @@ def compute_loo_stacking_bms(
             )
         winners = list(force_winners)
         winner_type = "FORCED"
+    elif pareto_k_catastrophe:
+        # BMS-primary path: rank by protected exceedance probability.
+        pxp = np.asarray(bms_result["pxp"])
+        bms_ranking = sorted(
+            enumerate(model_order), key=lambda x: pxp[x[0]], reverse=True,
+        )
+        top_idx, top_model = bms_ranking[0]
+        top_pxp = float(pxp[top_idx])
+
+        if top_pxp >= 0.95:
+            winners = [top_model]
+            winner_type = "DOMINANT_SINGLE"
+        elif len(bms_ranking) >= 2:
+            second_idx, second_model = bms_ranking[1]
+            second_pxp = float(pxp[second_idx])
+            if top_pxp > 0.10 and second_pxp > 0.10:
+                winners = [top_model, second_model]
+                winner_type = "TOP_TWO"
+            else:
+                winners = [top_model]
+                winner_type = "DOMINANT_SINGLE"
+        else:
+            winners = [top_model]
+            winner_type = "DOMINANT_SINGLE"
     else:
-        # Sort by 'rank' column (0 = best). Stacking weights are in the
-        # 'weight' column.
+        # LOO-stacking primary path (original logic).
         comp_sorted = comparison.sort_values("rank")
         weights_sorted = comp_sorted["weight"]
         top_model = str(weights_sorted.index[0])
@@ -355,7 +408,6 @@ def compute_loo_stacking_bms(
                 ]
                 winner_type = "INCONCLUSIVE_MULTIPLE"
         else:
-            # Only one model — already gated upstream, but defensive branch.
             winners = [top_model]
             winner_type = "DOMINANT_SINGLE"
 
@@ -365,6 +417,8 @@ def compute_loo_stacking_bms(
         "pct_high_per_model": pct_high_per_model,
         "winners": winners,
         "winner_type": winner_type,
+        "ranking_method": ranking_method,
+        "pareto_k_catastrophe": pareto_k_catastrophe,
         "participant_ids": reference_ppts,
         "model_order": model_order,
     }
@@ -427,6 +481,7 @@ def _write_winner_report(
     pct_high_per_model: dict[str, float],
     winners: list[str],
     winner_type: str,
+    ranking_method: str,
     model_order: list[str],
     participant_ids: np.ndarray,
     pareto_k_threshold: float,
@@ -441,15 +496,27 @@ def _write_winner_report(
     lines: list[str] = []
     lines.append("# Step 21.5 — Model Comparison Winner Report")
     lines.append("")
-    lines.append(
-        "Primary ranking: LOO + stacking weights (Yao et al. 2018, "
-        "DOI 10.1214/17-BA1091)."
-    )
-    lines.append(
-        "Secondary ranking: RFX-BMS with protected exceedance probability "
-        "(Stephan et al. 2009, DOI 10.1016/j.neuroimage.2009.03.025; "
-        "Rigoux et al. 2014, DOI 10.1016/j.neuroimage.2013.08.065)."
-    )
+    if ranking_method == "BMS_PXP":
+        lines.append(
+            "**Ranking method: RFX-BMS PXP** (primary — Pareto-k catastrophe "
+            "renders PSIS-LOO stacking weights unreliable; see Vehtari et al. "
+            "2017, DOI 10.1007/s11222-016-9696-4)."
+        )
+        lines.append(
+            "RFX-BMS with protected exceedance probability "
+            "(Stephan et al. 2009, DOI 10.1016/j.neuroimage.2009.03.025; "
+            "Rigoux et al. 2014, DOI 10.1016/j.neuroimage.2013.08.065)."
+        )
+    else:
+        lines.append(
+            "Primary ranking: LOO + stacking weights (Yao et al. 2018, "
+            "DOI 10.1214/17-BA1091)."
+        )
+        lines.append(
+            "Secondary ranking: RFX-BMS with protected exceedance probability "
+            "(Stephan et al. 2009, DOI 10.1016/j.neuroimage.2009.03.025; "
+            "Rigoux et al. 2014, DOI 10.1016/j.neuroimage.2013.08.065)."
+        )
     lines.append("")
 
     # --- Summary ---
@@ -554,6 +621,7 @@ def _write_winner_report(
     lines.append("")
     verdict_line = f"**{winner_type}** — winners: **{', '.join(winners)}**"
     lines.append(verdict_line)
+    lines.append(f"Ranking method: **{ranking_method}**")
     lines.append("")
 
     lines.append("## Pipeline action")
@@ -847,6 +915,7 @@ def main(argv: list[str] | None = None) -> int:
     pct_high_per_model = result["pct_high_per_model"]
     winners = result["winners"]
     winner_type = result["winner_type"]
+    ranking_method = result["ranking_method"]
     participant_ids = result["participant_ids"]
     model_order = result["model_order"]
 
@@ -858,7 +927,8 @@ def main(argv: list[str] | None = None) -> int:
     for i, name in enumerate(model_order):
         print(f"  {name}: {float(np.asarray(bms_result['pxp'])[i]):.4f}")
 
-    print(f"\nWinner type: {winner_type}")
+    print(f"\nRanking method: {ranking_method}")
+    print(f"Winner type: {winner_type}")
     print(f"Winners: {winners}")
 
     # Write outputs.
@@ -871,6 +941,7 @@ def main(argv: list[str] | None = None) -> int:
         pct_high_per_model,
         winners,
         winner_type,
+        ranking_method,
         model_order,
         participant_ids,
         args.pareto_k_threshold,

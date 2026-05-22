@@ -1241,6 +1241,17 @@ def main() -> None:
             "diagnostic runs where the failure mode itself is the data."
         ),
     )
+    parser.add_argument(
+        "--exclude-participants",
+        type=str,
+        default=None,
+        metavar="IDS",
+        help=(
+            "Comma-separated sona_ids to exclude AFTER cohort filtering. "
+            "For ad-hoc removal of convergence-problematic participants "
+            "(e.g., --exclude-participants 10130)."
+        ),
+    )
 
     args = parser.parse_args()
 
@@ -1278,6 +1289,8 @@ def main() -> None:
     if args.output_subdir:
         print(f"  Output subdir: bayesian/{args.output_subdir}/ (Phase 21 layout)")
     print(f"  Kappa parameterization: {args.kappa_parameterization}")
+    if args.exclude_participants:
+        print(f"  Exclude participants: {args.exclude_participants}")
 
     # Validate --subscale
     if args.subscale and args.model != "wmrl_m6b":
@@ -1304,6 +1317,29 @@ def main() -> None:
         min_block=min_block,
         use_cohort=not args.no_cohort,
     )
+
+    # Ad-hoc participant exclusion (stacks on top of cohort gate).
+    if args.exclude_participants:
+        exclude_ids = [
+            int(s.strip())
+            for s in args.exclude_participants.split(",")
+            if s.strip()
+        ]
+        n_before = data["sona_id"].nunique()
+        present = set(exclude_ids) & set(data["sona_id"].astype(int).unique())
+        data = data[~data["sona_id"].astype(int).isin(exclude_ids)].copy()
+        n_after = data["sona_id"].nunique()
+        print(f"\n>> Ad-hoc participant exclusion (--exclude-participants):")
+        print(f"  Requested: {exclude_ids}")
+        print(f"  Found in post-cohort data: {sorted(present)}")
+        print(f"  Dropped: {n_before - n_after} participant(s)")
+        print(f"  Final sample: {n_after} participants")
+        not_found = set(exclude_ids) - present
+        if not_found:
+            print(
+                f"  Note: {sorted(not_found)} not in data "
+                f"(already removed by cohort gate or absent)"
+            )
 
     # ------------------------------------------------------------------
     # PERMUTATION NULL TEST PATH
