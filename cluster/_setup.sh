@@ -44,6 +44,24 @@ activate_env "$ENV_NAME"
 PKG_NAME="rlwm"
 LOCK="/tmp/${ENV_NAME}_install.lock"
 
+# --- Job header with provenance ---
+print_job_header() {
+    local stage_name="${1:-unknown}"
+    echo "========================================================================"
+    echo "  ${stage_name}"
+    echo "========================================================================"
+    echo "  Job ID:     ${SLURM_JOB_ID:-local}"
+    echo "  Job Name:   ${SLURM_JOB_NAME:-local}"
+    echo "  Node:       ${SLURMD_NODENAME:-$(hostname)}"
+    echo "  Started:    $(date '+%Y-%m-%d %H:%M:%S')"
+    echo "  Git commit: $(git rev-parse --short HEAD 2>/dev/null || echo 'n/a')"
+    echo "  Git dirty:  $(git diff --quiet 2>/dev/null && echo 'no' || echo 'YES')"
+    echo "  Data N:     $(head -1 data/processed/task_trials_long.csv 2>/dev/null | wc -c > /dev/null && wc -l < data/processed/task_trials_long.csv 2>/dev/null | xargs -I{} echo '{} lines' || echo 'n/a')"
+    echo "  Python:     $(python --version 2>&1)"
+    echo "  Conda env:  ${CONDA_DEFAULT_ENV:-unknown}"
+    echo "========================================================================"
+}
+
 if ! python -c "import ${PKG_NAME}" 2>/dev/null; then
     (
         flock -w 120 200 || { echo "WARNING: flock timeout, skipping install"; exit 0; }
