@@ -242,6 +242,7 @@ def compute_loo_stacking_bms(
     # do NOT exclude from compare_dict. Plan-checker Issue #8 Option B.
     # -----------------------------------------------------------------
     pct_high_per_model: dict[str, float] = {}
+    pareto_k_per_participant: dict[str, pd.DataFrame] = {}
     for display_name, idata in compare_dict.items():
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")  # pareto-k warnings inline-handled
@@ -259,25 +260,80 @@ def compute_loo_stacking_bms(
                 file=sys.stderr,
             )
 
+        # Per-participant Pareto-k aggregation.
+        # pareto_k shape: (n_observations,) flattened, or (participant, trial)
+        # if dims are preserved. Reconstruct per-participant from idata coords.
+        ppt_coord = np.asarray(idata.log_likelihood.participant.values)
+        n_ppt = len(ppt_coord)
+        n_trial = pareto_k.shape[0] // n_ppt if pareto_k.ndim == 1 else pareto_k.shape[-1]
+        k_2d = pareto_k.reshape(n_ppt, n_trial) if pareto_k.ndim == 1 else pareto_k
+
+        # Replace padding NaNs (masked trials) before aggregation
+        ppt_k_rows = []
+        for i, pid in enumerate(ppt_coord):
+            k_row = k_2d[i]
+            k_valid = k_row[~np.isnan(k_row)]
+            ppt_k_rows.append(
+                {
+                    "sona_id": int(pid),
+                    "model": display_name,
+                    "pareto_k_mean": float(np.mean(k_valid)) if len(k_valid) > 0 else np.nan,
+                    "pareto_k_max": float(np.max(k_valid)) if len(k_valid) > 0 else np.nan,
+                    "pareto_k_median": float(np.median(k_valid)) if len(k_valid) > 0 else np.nan,
+                    "pct_high_k": float(np.mean(k_valid > pareto_k_threshold) * 100.0) if len(k_valid) > 0 else np.nan,
+                    "n_observations": len(k_valid),
+                }
+            )
+        pareto_k_per_participant[display_name] = pd.DataFrame(ppt_k_rows)
+
     # -----------------------------------------------------------------
     # Primary — LOO + stacking weights.
     # -----------------------------------------------------------------
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")  # pareto-k warnings already surfaced
-        comparison = az.compare(compare_dict, ic="loo", method="stacking")
-
-    weight_sum = float(comparison["weight"].sum())
-    if abs(weight_sum - 1.0) >= 0.01:
-        # ArviZ GitHub #2359 — stacking weight sum can drift outside [1-tol,
-        # 1+tol] when the LBFGS optimiser bails early on a degenerate
-        # problem. Log and proceed rather than assert-crash, since the
-        # relative ranking is still the primary decision input.
+    loo_failed = False
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")  # pareto-k warnings already surfaced
+            comparison = az.compare(compare_dict, ic="loo", method="stacking")
+    except ValueError as exc:
+        # Observation-count mismatch across models (e.g., participant
+        # exclusion applied to one model but not others). LOO comparison
+        # is already unusable due to Pareto-k catastrophe in RL models,
+        # so produce a NaN comparison table and fall through to BMS.
         print(
-            f"[WARNING] stacking weights sum to {weight_sum:.6f} (expected "
-            f"1.0 +/- 0.01). This is a known ArviZ numerical tolerance "
-            f"issue (GitHub #2359). Proceeding with comparison as-is.",
+            f"[LOO FAILED] az.compare raised ValueError: {exc}\n"
+            f"  Producing NaN comparison table. BMS will be primary.",
             file=sys.stderr,
         )
+        loo_failed = True
+        comparison = pd.DataFrame(
+            {
+                "rank": range(len(compare_dict)),
+                "elpd_loo": np.nan,
+                "p_loo": np.nan,
+                "elpd_diff": np.nan,
+                "weight": 1.0 / len(compare_dict),
+                "se": np.nan,
+                "dse": np.nan,
+                "warning": True,
+                "scale": "log",
+            },
+            index=list(compare_dict.keys()),
+        )
+
+    if not loo_failed:
+        weight_sum = float(comparison["weight"].sum())
+        if abs(weight_sum - 1.0) >= 0.01:
+            # ArviZ GitHub #2359 — stacking weight sum can drift outside
+            # [1-tol, 1+tol] when the LBFGS optimiser bails early on a
+            # degenerate problem. Log and proceed rather than assert-crash,
+            # since the relative ranking is still the primary decision input.
+            print(
+                f"[WARNING] stacking weights sum to {weight_sum:.6f} "
+                f"(expected 1.0 +/- 0.01). This is a known ArviZ numerical "
+                f"tolerance issue (GitHub #2359). Proceeding with comparison "
+                f"as-is.",
+                file=sys.stderr,
+            )
 
     # Attach per-model Pareto-k percentages as a new column for CSV export.
     # ArviZ indexes comparison rows by display name, so we can map directly.
@@ -314,17 +370,39 @@ def compute_loo_stacking_bms(
         ppt_coord = np.asarray(idata.log_likelihood.participant.values)
         participant_ids_list.append(np.sort(ppt_coord))
 
-    # Verify participant lists agree across models (sorted). A diff implies
-    # the models were fit on different cohort slices — bms over mismatched
-    # participants would be meaningless.
-    reference_ppts = participant_ids_list[0]
-    for dn, ppts in zip(model_order[1:], participant_ids_list[1:], strict=True):
-        if not np.array_equal(reference_ppts, ppts):
-            raise ValueError(
-                f"Participant mismatch between {model_order[0]} "
-                f"({len(reference_ppts)} ppts) and {dn} "
-                f"({len(ppts)} ppts). RFX-BMS requires identical cohorts."
-            )
+    # Verify participant lists agree across models (sorted). When models
+    # were fit on slightly different cohorts (e.g., participant exclusion
+    # for convergence on one model), restrict BMS to the intersection.
+    common_ppts = set(participant_ids_list[0])
+    for ppts in participant_ids_list[1:]:
+        common_ppts &= set(ppts)
+    common_ppts_sorted = np.sort(np.array(list(common_ppts)))
+
+    any_mismatch = any(
+        len(ppts) != len(common_ppts_sorted) for ppts in participant_ids_list
+    )
+    if any_mismatch:
+        for dn, ppts in zip(model_order, participant_ids_list, strict=True):
+            n_dropped = len(ppts) - len(common_ppts_sorted)
+            if n_dropped > 0:
+                excluded = set(ppts) - common_ppts
+                print(
+                    f"[BMS] {dn}: dropping {n_dropped} participant(s) "
+                    f"not in intersection: {sorted(excluded)}",
+                    file=sys.stderr,
+                )
+        print(
+            f"[BMS] Restricting to {len(common_ppts_sorted)} common "
+            f"participants across all {len(model_order)} models.",
+            file=sys.stderr,
+        )
+        filtered_cols = []
+        for ppts, evidence in zip(
+            participant_ids_list, log_evidence_cols, strict=True,
+        ):
+            mask = np.isin(ppts, common_ppts_sorted)
+            filtered_cols.append(evidence[mask])
+        log_evidence_cols = filtered_cols
 
     log_evidence_matrix = np.column_stack(log_evidence_cols)
     bms_result = rfx_bms(log_evidence_matrix)
@@ -334,7 +412,7 @@ def compute_loo_stacking_bms(
     # observations with k > 0.7, PSIS-LOO stacking weights cannot
     # drive winner determination. RFX-BMS PXP becomes primary.
     # -----------------------------------------------------------------
-    pareto_k_catastrophe = any(
+    pareto_k_catastrophe = loo_failed or any(
         pct >= PARETO_K_CATASTROPHE_PCT
         for pct in pct_high_per_model.values()
     )
@@ -415,11 +493,12 @@ def compute_loo_stacking_bms(
         "comparison": comparison,
         "bms_result": bms_result,
         "pct_high_per_model": pct_high_per_model,
+        "pareto_k_per_participant": pareto_k_per_participant,
         "winners": winners,
         "winner_type": winner_type,
         "ranking_method": ranking_method,
         "pareto_k_catastrophe": pareto_k_catastrophe,
-        "participant_ids": reference_ppts,
+        "participant_ids": common_ppts_sorted,
         "model_order": model_order,
     }
 
@@ -913,6 +992,7 @@ def main(argv: list[str] | None = None) -> int:
     comparison = result["comparison"]
     bms_result = result["bms_result"]
     pct_high_per_model = result["pct_high_per_model"]
+    pareto_k_per_participant = result["pareto_k_per_participant"]
     winners = result["winners"]
     winner_type = result["winner_type"]
     ranking_method = result["ranking_method"]
@@ -949,6 +1029,29 @@ def main(argv: list[str] | None = None) -> int:
         out_dir / "winner_report.md",
     )
     (out_dir / "winners.txt").write_text(",".join(winners) + "\n", encoding="utf-8")
+
+    # Per-participant Pareto-k diagnostics (all models stacked).
+    ppt_k_frames = list(pareto_k_per_participant.values())
+    if ppt_k_frames:
+        ppt_k_all = pd.concat(ppt_k_frames, ignore_index=True)
+        ppt_k_path = out_dir / "pareto_k_per_participant.csv"
+        ppt_k_all.to_csv(ppt_k_path, index=False)
+        print(f"Wrote {ppt_k_path}")
+
+        # Summary: worst participants across the winning model(s)
+        for w in winners:
+            w_df = ppt_k_all[ppt_k_all["model"] == w].sort_values(
+                "pareto_k_mean", ascending=False,
+            )
+            top5 = w_df.head(5)
+            print(f"\n[Pareto-k] {w} — top 5 worst participants by mean k:")
+            for _, row in top5.iterrows():
+                print(
+                    f"  sona_id={int(row['sona_id'])}: "
+                    f"mean_k={row['pareto_k_mean']:.3f}, "
+                    f"max_k={row['pareto_k_max']:.3f}, "
+                    f"pct_high={row['pct_high_k']:.1f}%"
+                )
 
     print(f"\nWrote {out_dir / 'loo_stacking_results.csv'}")
     print(f"Wrote {out_dir / 'rfx_bms_pxp.csv'}")

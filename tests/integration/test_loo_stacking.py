@@ -243,30 +243,27 @@ def test_rfx_bms_integration() -> None:
     np.testing.assert_allclose(pxp, (1.0 - bor) * xp + bor / k, atol=1e-12)
 
 
-def test_loo_stacking_participant_mismatch_raises() -> None:
-    """Different participant sets across models raises ValueError.
+def test_loo_stacking_participant_mismatch_intersects() -> None:
+    """Different participant sets across models intersects to common set.
 
-    RFX-BMS requires an identical cohort across all models — the
-    per-participant log-evidence matrix must have consistent row
-    ordering. Two paths reject a mismatched cohort:
+    When models are fit on slightly different cohorts (e.g., participant
+    exclusion for convergence on one model), BMS restricts to the
+    intersection. LOO comparison may fail (different observation counts)
+    and degrades to BMS-primary via the Pareto-k catastrophe path.
 
-    1. ArviZ's ``az.compare`` short-circuits with
-       "The number of observations should be the same across all models"
-       because its LOO matrix assembly refuses unequal-row-count inputs.
-    2. If a cohort mismatch somehow slipped past ArviZ (e.g., same
-       observation count but different participant labels), the
-       orchestrator's explicit post-loop participant-ID check would
-       raise ``Participant mismatch ...``.
-
-    Either path is an acceptable reject; we match with a regex union.
+    A has participants 0..7 (8 ppts), B has 0..5 (6 ppts).
+    Intersection: 0..5 (6 common participants).
     """
     mod = _load_orchestrator_module()
 
     idata_A = _make_stub_idata(log_lik_mean=-0.2, seed=0, n_ppt=8)
     idata_B = _make_stub_idata(log_lik_mean=-5.0, seed=1, n_ppt=6)
 
-    with pytest.raises(
-        ValueError,
-        match=r"(Participant mismatch|number of observations should be the same)",
-    ):
-        mod.compute_loo_stacking_bms({"A": idata_A, "B": idata_B})
+    result = mod.compute_loo_stacking_bms({"A": idata_A, "B": idata_B})
+
+    # BMS ran on the 6 common participants.
+    np.testing.assert_array_equal(
+        result["participant_ids"], np.arange(6, dtype=int)
+    )
+    assert result["winners"] == ["A"]
+    assert result["bms_result"] is not None

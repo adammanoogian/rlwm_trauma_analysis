@@ -21,6 +21,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 # Add project root to path for config import
@@ -28,7 +29,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 # Import config CCDS constants + DataParams + excluded participants
 # (CCDS constants landed in plan 31-01; physical files moved in plan 31-02)
-from config import EXCLUDED_PARTICIPANTS, INTERIM_DIR, PROCESSED_DIR, DataParams
+from config import (
+    EXCLUDED_PARTICIPANTS,
+    INTERIM_DIR,
+    LATE_BLOCK_N,
+    MIN_LATE_BLOCK_ACCURACY,
+    PROCESSED_DIR,
+    DataParams,
+)
 
 # Add utils to path
 sys.path.append(str(Path(__file__).resolve().parents[1] / "utils"))
@@ -81,6 +89,8 @@ def main():
     print("Checking data quality thresholds...")
     print(f"  MIN_BLOCKS: {DataParams.MIN_BLOCKS}")
     print(f"  MIN_TRIALS: {DataParams.MIN_TRIALS}")
+    print(f"  MIN_ACCURACY: {DataParams.MIN_ACCURACY}")
+    print(f"  MIN_LATE_BLOCK_ACCURACY: {MIN_LATE_BLOCK_ACCURACY}")
     print()
 
     # Get participant block counts (main task only, blocks >= 3)
@@ -89,6 +99,26 @@ def main():
     ]
     block_counts = main_task_trials.groupby("sona_id")["block"].nunique()
     trial_counts = main_task_trials.groupby("sona_id").size()
+
+    # Per-participant accuracy (main task only)
+    accuracy_per_ppt = main_task_trials.groupby("sona_id")["correct"].mean()
+
+    # Late-block accuracy (last LATE_BLOCK_N blocks per participant)
+    late_block_acc: dict[int, float] = {}
+    for sona_id, ppt_df in main_task_trials.groupby("sona_id"):
+        blocks_sorted = sorted(ppt_df["block"].unique())
+        late_blocks = blocks_sorted[-LATE_BLOCK_N:]
+        late_trials = ppt_df[ppt_df["block"].isin(late_blocks)]
+        late_block_acc[sona_id] = float(late_trials["correct"].mean())
+
+    # Response entropy per participant (detects button-mashing / fixed-key)
+    response_entropy: dict[int, float] = {}
+    n_actions = 3
+    max_entropy = np.log(n_actions)
+    for sona_id, ppt_df in main_task_trials.groupby("sona_id"):
+        counts = ppt_df["key_press"].value_counts(normalize=True).values
+        entropy = -np.sum(counts * np.log(counts + 1e-12))
+        response_entropy[sona_id] = float(entropy / max_entropy)
 
     # Load corrupted participants surfaced by 01_parse_raw_data.py (if any)
     # File is gitignored (data/interim/*); absence means no parse failures.
@@ -109,6 +139,8 @@ def main():
         | corrupted_ids
     )
 
+    min_entropy = 0.50  # normalized entropy; catches near-uniform or fixed-key
+
     inclusion_rows: list[dict] = []
     for sona_id in all_parsed_ids:
         reasons: list[str] = []
@@ -117,10 +149,19 @@ def main():
         else:
             n_trials = trial_counts.get(sona_id, 0)
             n_blocks = block_counts.get(sona_id, 0)
+            acc = accuracy_per_ppt.get(sona_id, 0.0)
+            late_acc = late_block_acc.get(sona_id, 0.0)
+            ent = response_entropy.get(sona_id, 0.0)
             if n_trials < DataParams.MIN_TRIALS:
                 reasons.append(f"low_trial_count_{DataParams.MIN_TRIALS}")
             if n_blocks < DataParams.MIN_BLOCKS:
                 reasons.append(f"low_block_count_{DataParams.MIN_BLOCKS}")
+            if acc < DataParams.MIN_ACCURACY:
+                reasons.append(f"below_chance_accuracy_{acc:.3f}")
+            if late_acc < MIN_LATE_BLOCK_ACCURACY:
+                reasons.append(f"low_late_block_accuracy_{late_acc:.3f}")
+            if ent < min_entropy:
+                reasons.append(f"low_response_entropy_{ent:.3f}")
             if sona_id in EXCLUDED_PARTICIPANTS:
                 reasons.append("manual_excluded_list")
         inclusion_rows.append(
@@ -128,6 +169,9 @@ def main():
                 "sona_id": sona_id,
                 "included_in_analysis": len(reasons) == 0,
                 "exclusion_reason": "|".join(reasons),
+                "gate_accuracy": float(accuracy_per_ppt.get(sona_id, np.nan)),
+                "gate_late_block_accuracy": late_block_acc.get(sona_id, np.nan),
+                "gate_response_entropy": response_entropy.get(sona_id, np.nan),
             }
         )
 
@@ -256,7 +300,13 @@ def main():
     # Define column order groups
     id_cols = ["sona_id"]
     # Inclusion gate — immediately after ID for discoverability
-    inclusion_cols = ["included_in_analysis", "exclusion_reason"]
+    inclusion_cols = [
+        "included_in_analysis",
+        "exclusion_reason",
+        "gate_accuracy",
+        "gate_late_block_accuracy",
+        "gate_response_entropy",
+    ]
 
     demographic_cols = [
         col
@@ -340,6 +390,30 @@ def main():
     print("-" * 60)
     print(f"[OK] SAVED: {output_path}")
     print(f"  {len(summary)} participants × {len(summary.columns)} columns")
+    print()
+
+    # ======================================================================
+    # HARD GATE — rewrite task_trials_long.csv to exclude flagged participants.
+    # This is the canonical fitting input; downstream scripts should not need
+    # to re-filter.
+    # ======================================================================
+    included_ids = set(
+        inclusion_df.loc[
+            inclusion_df["included_in_analysis"] == True, "sona_id"  # noqa: E712
+        ].tolist()
+    )
+
+    for csv_path in [DataParams.TASK_TRIALS_LONG, DataParams.TASK_TRIALS_ALL]:
+        if not csv_path.exists():
+            continue
+        trials_df = pd.read_csv(csv_path)
+        n_before = trials_df["sona_id"].nunique()
+        trials_df = trials_df[trials_df["sona_id"].isin(included_ids)]
+        n_after = trials_df["sona_id"].nunique()
+        trials_df.to_csv(csv_path, index=False)
+        dropped = n_before - n_after
+        print(f"[HARD GATE] {csv_path.name}: {n_before} → {n_after} participants"
+              f" ({dropped} excluded)")
     print()
 
     # Display sample

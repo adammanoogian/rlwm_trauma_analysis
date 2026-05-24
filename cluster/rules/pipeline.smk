@@ -251,7 +251,8 @@ rule baseline_audit:
         export PYTHONUNBUFFERED=1
 
         python scripts/05_post_fitting_checks/01_baseline_audit.py \
-            --baseline-dir models/bayesian/{config[bayesian_subdir]}/
+            --baseline-dir models/bayesian/{config[bayesian_subdir]}/ \
+            --output-dir models/bayesian/{config[bayesian_subdir]}/
 
         touch {output.flag}
         """

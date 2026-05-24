@@ -950,21 +950,75 @@ def run_posterior_predictive_check(
         f"by 95% PPC envelope"
     )
 
-    if ppc_output_dir is not None:
-        bayesian_out = Path(ppc_output_dir)
-        bayesian_out.mkdir(parents=True, exist_ok=True)
-        ppc_csv = bayesian_out / f"{model_name}_ppc_results.csv"
+    # ------------------------------------------------------------------
+    # Per-participant PPC: for each participant, check how many of THEIR
+    # blocks fall within their own [2.5, 97.5] posterior predictive
+    # interval. Flags participants the model cannot explain.
+    # ------------------------------------------------------------------
+    ppt_ppc_rows: list[dict] = []
+    for p_idx, pid in enumerate(participant_ids):
+        pid_blocks = sorted(
+            data_df[data_df[participant_col] == pid][block_col].unique()
+        )
+        pdata = participant_data_stacked[pid]
+        n_blocks_i = pdata["masks_stacked"].shape[0]
+
+        ppt_covered = 0
+        ppt_total = 0
+        for b_local, block in enumerate(pid_blocks):
+            if b_local >= n_blocks_i:
+                break
+            block_obs = data_df[
+                (data_df[participant_col] == pid)
+                & (data_df[block_col] == block)
+            ]
+            if len(block_obs) == 0 or "correct" not in data_df.columns:
+                continue
+            obs_acc = float(block_obs["correct"].mean())
+
+            ppc_vals = predicted_acc[:, p_idx, b_local]
+            ppc_vals = ppc_vals[~np.isnan(ppc_vals)]
+            if len(ppc_vals) == 0:
+                continue
+
+            lo = float(np.percentile(ppc_vals, 2.5))
+            hi = float(np.percentile(ppc_vals, 97.5))
+            ppt_total += 1
+            if lo <= obs_acc <= hi:
+                ppt_covered += 1
+
+        coverage = ppt_covered / ppt_total if ppt_total > 0 else np.nan
+        ppt_ppc_rows.append(
+            {
+                "sona_id": pid,
+                "ppc_blocks_covered": ppt_covered,
+                "ppc_blocks_total": ppt_total,
+                "ppc_coverage": coverage,
+            }
+        )
+
+    ppt_ppc_df = pd.DataFrame(ppt_ppc_rows)
+    n_poor = int((ppt_ppc_df["ppc_coverage"] < 0.5).sum())
+    print(
+        f"[PPC] Per-participant: {n_poor}/{len(ppt_ppc_df)} participants "
+        f"with <50% block coverage"
+    )
+
+    save_dir = Path(ppc_output_dir) if ppc_output_dir is not None else (
+        Path(output_dir) / "bayesian" if output_dir is not None else None
+    )
+    if save_dir is not None:
+        save_dir.mkdir(parents=True, exist_ok=True)
+        ppc_csv = save_dir / f"{model_name}_ppc_results.csv"
         ppc_df.to_csv(ppc_csv, index=False)
         print(f"[PPC] Results saved: {ppc_csv}")
-    elif output_dir is not None:
-        bayesian_out = Path(output_dir) / "bayesian"
-        bayesian_out.mkdir(parents=True, exist_ok=True)
-        ppc_csv = bayesian_out / f"{model_name}_ppc_results.csv"
-        ppc_df.to_csv(ppc_csv, index=False)
-        print(f"[PPC] Results saved: {ppc_csv}")
+        ppt_ppc_csv = save_dir / f"{model_name}_ppc_per_participant.csv"
+        ppt_ppc_df.to_csv(ppt_ppc_csv, index=False)
+        print(f"[PPC] Per-participant saved: {ppt_ppc_csv}")
 
     return {
         "covered_count": covered_count,
         "total_blocks": total_blocks_evaluated,
         "ppc_results_df": ppc_df,
+        "ppc_per_participant_df": ppt_ppc_df,
     }
