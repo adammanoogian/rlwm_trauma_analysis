@@ -16,4 +16,3 @@ default-resources:
   mem_mb: 16384
   cpus_per_task: 4
   runtime: 120
-  slurm_extra: "'--export=ALL'"

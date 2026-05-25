@@ -20,14 +20,14 @@ rule validate_scientific:
         flag="cluster/results/validate_scientific_done.flag",
         report="cluster/results/validate_scientific_report.xml",
     resources:
-        partition=lambda wc, attempt: lookup_resource("validate_scientific", "partition"),
+        slurm_partition=lambda wc, attempt: lookup_resource("validate_scientific", "partition"),
         mem_mb=lambda wc, attempt: lookup_resource("validate_scientific", "mem_mb"),
         cpus_per_task=lambda wc, attempt: lookup_resource("validate_scientific", "cpus_per_task"),
         runtime=lambda wc, attempt: lookup_resource("validate_scientific", "runtime"),
-        slurm_extra=lambda wc, attempt: (
-            f"'--gres=gpu:{lookup_resource('validate_scientific', 'gpus')}'"
+        gres=lambda wc, attempt: (
+            f"gpu:{lookup_resource('validate_scientific', 'gpus')}"
             if lookup_resource("validate_scientific", "gpus") > 0
-            else "''"
+            else ""
         ),
     shell:
         """
@@ -50,7 +50,7 @@ rule validate_integration:
         flag="cluster/results/validate_integration_done.flag",
         report="cluster/results/validate_integration_report.xml",
     resources:
-        partition=lambda wc, attempt: lookup_resource("validate_integration", "partition"),
+        slurm_partition=lambda wc, attempt: lookup_resource("validate_integration", "partition"),
         mem_mb=lambda wc, attempt: lookup_resource("validate_integration", "mem_mb"),
         cpus_per_task=lambda wc, attempt: lookup_resource("validate_integration", "cpus_per_task"),
         runtime=lambda wc, attempt: lookup_resource("validate_integration", "runtime"),

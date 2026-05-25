@@ -35,7 +35,7 @@ rule data_processing:
     output:
         flag="cluster/results/data_processing.done",
     resources:
-        partition=lambda wc, attempt: lookup_resource("data_processing", "partition"),
+        slurm_partition=lambda wc, attempt: lookup_resource("data_processing", "partition"),
         mem_mb=lambda wc, attempt: lookup_resource("data_processing", "mem_mb"),
         cpus_per_task=lambda wc, attempt: lookup_resource("data_processing", "cpus_per_task"),
         runtime=lambda wc, attempt: lookup_resource("data_processing", "runtime"),
@@ -78,7 +78,7 @@ rule behav_analyses:
     output:
         flag="cluster/results/behav_analyses.done",
     resources:
-        partition=lambda wc, attempt: lookup_resource("behav_analyses", "partition"),
+        slurm_partition=lambda wc, attempt: lookup_resource("behav_analyses", "partition"),
         mem_mb=lambda wc, attempt: lookup_resource("behav_analyses", "mem_mb"),
         cpus_per_task=lambda wc, attempt: lookup_resource("behav_analyses", "cpus_per_task"),
         runtime=lambda wc, attempt: lookup_resource("behav_analyses", "runtime"),
@@ -112,7 +112,7 @@ rule prefitting:
     output:
         flag="cluster/results/prefitting.done",
     resources:
-        partition=lambda wc, attempt: lookup_resource("prefitting", "partition"),
+        slurm_partition=lambda wc, attempt: lookup_resource("prefitting", "partition"),
         mem_mb=lambda wc, attempt: lookup_resource("prefitting", "mem_mb"),
         cpus_per_task=lambda wc, attempt: lookup_resource("prefitting", "cpus_per_task"),
         runtime=lambda wc, attempt: lookup_resource("prefitting", "runtime"),
@@ -145,14 +145,14 @@ rule mle_fit:
     output:
         flag="cluster/results/mle/{model}.done",
     resources:
-        partition=lambda wc, attempt: lookup_resource("mle_fit", "partition"),
+        slurm_partition=lambda wc, attempt: lookup_resource("mle_fit", "partition"),
         mem_mb=lambda wc, attempt: lookup_resource("mle_fit", "mem_mb"),
         cpus_per_task=lambda wc, attempt: lookup_resource("mle_fit", "cpus_per_task"),
         runtime=lambda wc, attempt: lookup_resource("mle_fit", "runtime"),
-        slurm_extra=lambda wc, attempt: (
-            f"'--gres=gpu:{lookup_resource('mle_fit', 'gpus')}'"
+        gres=lambda wc, attempt: (
+            f"gpu:{lookup_resource('mle_fit', 'gpus')}"
             if lookup_resource("mle_fit", "gpus") > 0
-            else "''"
+            else ""
         ),
     shell:
         """
@@ -186,14 +186,14 @@ rule bayesian_fit:
     output:
         flag="cluster/results/bayesian/{model}.done",
     resources:
-        partition=lambda wc, attempt: lookup_resource("bayesian_fit", "partition"),
+        slurm_partition=lambda wc, attempt: lookup_resource("bayesian_fit", "partition"),
         mem_mb=lambda wc, attempt: lookup_resource("bayesian_fit", "mem_mb"),
         cpus_per_task=lambda wc, attempt: lookup_resource("bayesian_fit", "cpus_per_task"),
         runtime=lambda wc, attempt: lookup_resource("bayesian_fit", "runtime"),
-        slurm_extra=lambda wc, attempt: (
-            f"'--gres=gpu:{lookup_resource('bayesian_fit', 'gpus')}'"
+        gres=lambda wc, attempt: (
+            f"gpu:{lookup_resource('bayesian_fit', 'gpus')}"
             if lookup_resource("bayesian_fit", "gpus") > 0
-            else "''"
+            else ""
         ),
     shell:
         """
@@ -240,7 +240,7 @@ rule baseline_audit:
     output:
         flag="cluster/results/baseline_audit.done",
     resources:
-        partition=lambda wc, attempt: lookup_resource("baseline_audit", "partition"),
+        slurm_partition=lambda wc, attempt: lookup_resource("baseline_audit", "partition"),
         mem_mb=lambda wc, attempt: lookup_resource("baseline_audit", "mem_mb"),
         cpus_per_task=lambda wc, attempt: lookup_resource("baseline_audit", "cpus_per_task"),
         runtime=lambda wc, attempt: lookup_resource("baseline_audit", "runtime"),
@@ -273,7 +273,7 @@ rule mle_compare:
     output:
         flag="cluster/results/mle_compare.done",
     resources:
-        partition=lambda wc, attempt: lookup_resource("mle_compare", "partition"),
+        slurm_partition=lambda wc, attempt: lookup_resource("mle_compare", "partition"),
         mem_mb=lambda wc, attempt: lookup_resource("mle_compare", "mem_mb"),
         cpus_per_task=lambda wc, attempt: lookup_resource("mle_compare", "cpus_per_task"),
         runtime=lambda wc, attempt: lookup_resource("mle_compare", "runtime"),
@@ -299,7 +299,7 @@ rule loo_stacking:
     output:
         flag="cluster/results/loo_stacking.done",
     resources:
-        partition=lambda wc, attempt: lookup_resource("loo_stacking", "partition"),
+        slurm_partition=lambda wc, attempt: lookup_resource("loo_stacking", "partition"),
         mem_mb=lambda wc, attempt: lookup_resource("loo_stacking", "mem_mb"),
         cpus_per_task=lambda wc, attempt: lookup_resource("loo_stacking", "cpus_per_task"),
         runtime=lambda wc, attempt: lookup_resource("loo_stacking", "runtime"),
@@ -327,7 +327,7 @@ rule manuscript_tables:
     output:
         flag="cluster/results/manuscript_tables.done",
     resources:
-        partition=lambda wc, attempt: lookup_resource("manuscript_tables", "partition"),
+        slurm_partition=lambda wc, attempt: lookup_resource("manuscript_tables", "partition"),
         mem_mb=lambda wc, attempt: lookup_resource("manuscript_tables", "mem_mb"),
         cpus_per_task=lambda wc, attempt: lookup_resource("manuscript_tables", "cpus_per_task"),
         runtime=lambda wc, attempt: lookup_resource("manuscript_tables", "runtime"),
