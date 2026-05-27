@@ -54,15 +54,17 @@ mle_fit:
   gpus: 1
 
 # =============================================================================
-# Stage 4b: Bayesian fitting (multi-GPU pmap, per-model)
+# Stage 4b: Bayesian fitting (1-GPU vectorized chains, per-model)
+# QOS normal allows max 4 GPUs/user → 1 GPU/job lets 4 models run concurrently.
+# sampling.py auto-selects chain_method="vectorized" (vmap) when devices < chains.
 # =============================================================================
 
 bayesian_fit:
   partition: gpu
-  mem_mb: 65536
+  mem_mb: 49152
   cpus_per_task: 8
-  runtime: 720
-  gpus: 4
+  runtime: 840
+  gpus: 1
 
 # Stage 4b variant: multi-GPU standalone (kept for specialized submissions)
 bayesian_fit_multigpu:
@@ -90,18 +92,23 @@ mle_compare:
   runtime: 30
   mem_mb: 16384
 
-loo_stacking:
+# loo_stacking: REMOVED — PSIS-LOO not usable (Pareto-k > 0.7 for 58-60%
+# of observations). RFX-BMS is computed inside 02_compute_loo_stacking.py
+# and is the sole Bayesian model selection criterion.
+# The script still runs as "model_selection" but no downstream consumer
+# reads the LOO stacking weights.
+model_selection:
   partition: comp
-  mem_mb: 196608
+  mem_mb: 32768
   cpus_per_task: 4
-  runtime: 120
+  runtime: 60
 
 level2_refit:
   partition: gpu
-  mem_mb: 65536
+  mem_mb: 49152
   cpus_per_task: 8
-  runtime: 720
-  gpus: 4
+  runtime: 840
+  gpus: 1
 
 manuscript_tables:
   runtime: 30

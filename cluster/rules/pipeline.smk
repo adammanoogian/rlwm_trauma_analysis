@@ -174,10 +174,12 @@ rule mle_fit:
 
 
 # =============================================================================
-# Stage 4b: Bayesian Fitting (per-model wildcard, multi-GPU pmap)
+# Stage 4b: Bayesian Fitting (per-model wildcard, 1-GPU vectorized)
 # =============================================================================
-# One SLURM job per choice-only model. 4 GPUs for chain_method=parallel via
-# pmap (NumPyro auto-selects parallel when jax.local_device_count() >= chains).
+# One SLURM job per choice-only model. 1 GPU with chain_method="vectorized"
+# (vmap, 4 chains on 1 device). QOS normal caps at 4 GPUs/user, so 1 GPU/job
+# lets 4 models run concurrently (~18h total vs ~42h serialized at 4 GPU/job).
+# sampling.py:_select_chain_method auto-selects vectorized when devices < chains.
 # --allow-gate-failure writes diagnostics even when convergence gate fails.
 
 rule bayesian_fit:
@@ -291,22 +293,26 @@ rule mle_compare:
         """
 
 
-# --- 6.2: LOO Stacking ---
-# PSIS-LOO + Bayesian model stacking (Yao 2018). Requires 192 GB RAM.
-rule loo_stacking:
+# --- 6.2: Bayesian Model Selection (RFX-BMS) ---
+# Random-effects BMS with PXP (Stephan 2009; Rigoux 2014). The script also
+# computes PSIS-LOO internally but those results are NOT used — Pareto-k
+# diagnostics showed 58-60% of observations > 0.7, making importance
+# sampling unreliable. Only the RFX-BMS output (rfx_bms_pxp.csv) is
+# consumed downstream. Memory reduced from 192 GB (LOO-era) to 32 GB.
+rule model_selection:
     input:
         "cluster/results/baseline_audit.done",
     output:
-        flag="cluster/results/loo_stacking.done",
+        flag="cluster/results/model_selection.done",
     resources:
-        slurm_partition=lambda wc, attempt: lookup_resource("loo_stacking", "partition"),
-        mem_mb=lambda wc, attempt: lookup_resource("loo_stacking", "mem_mb"),
-        cpus_per_task=lambda wc, attempt: lookup_resource("loo_stacking", "cpus_per_task"),
-        runtime=lambda wc, attempt: lookup_resource("loo_stacking", "runtime"),
+        slurm_partition=lambda wc, attempt: lookup_resource("model_selection", "partition"),
+        mem_mb=lambda wc, attempt: lookup_resource("model_selection", "mem_mb"),
+        cpus_per_task=lambda wc, attempt: lookup_resource("model_selection", "cpus_per_task"),
+        runtime=lambda wc, attempt: lookup_resource("model_selection", "runtime"),
     shell:
         """
         source cluster/_setup.sh
-        print_job_header "Stage 6.2: LOO Stacking"
+        print_job_header "Stage 6.2: Bayesian Model Selection (RFX-BMS)"
         export PYTHONUNBUFFERED=1
 
         python scripts/06_fit_analyses/02_compute_loo_stacking.py \
@@ -322,7 +328,7 @@ rule loo_stacking:
 # (Bayesian track) and MLE comparison (frequentist track).
 rule manuscript_tables:
     input:
-        "cluster/results/loo_stacking.done",
+        "cluster/results/model_selection.done",
         "cluster/results/mle_compare.done",
     output:
         flag="cluster/results/manuscript_tables.done",

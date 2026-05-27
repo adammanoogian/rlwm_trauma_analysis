@@ -222,15 +222,16 @@ done
 sbatch cluster/04a_mle_gpu.slurm                                    # all models
 sbatch --export=MODEL=wmrl_m3 cluster/04a_mle_gpu.slurm             # single model
 
-# Stage 04b Bayesian (CPU for choice-only)
+# Stage 04b Bayesian — preferred: Snakemake pipeline (1 GPU/job, auto-chains)
+snakemake --profile cluster/snakemake-profile --configfile cluster/config.yaml \
+  --snakefile cluster/Snakefile
+
+# Stage 04b Bayesian — standalone (1 GPU, vectorized chains)
 sbatch --export=ALL,MODEL=wmrl_m3 cluster/04b_bayesian_cpu.slurm
 sbatch --time=36:00:00 --export=ALL,MODEL=wmrl_m6b cluster/04b_bayesian_cpu.slurm
-sbatch --time=12:00:00 --mem=48G \
-  --export=ALL,MODEL=wmrl_m6b,SUBSCALE=1 cluster/04b_bayesian_cpu.slurm
 
-# Stage 04b Bayesian (GPU — M4 LBA only)
-sbatch --time=48:00:00 --gres=gpu:a100:1 --mem=96G \
-  --export=ALL,MODEL=wmrl_m4 cluster/04b_bayesian_gpu.slurm
+# Stage 04b Bayesian — multi-GPU pmap (specialized, not default)
+sbatch --export=MODEL=wmrl_m6b cluster/13_bayesian_multigpu.slurm
 
 # Stage 04c Level-2 refit
 sbatch --export=MODEL=wmrl_m3 cluster/04c_level2.slurm

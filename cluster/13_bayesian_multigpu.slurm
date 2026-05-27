@@ -2,8 +2,10 @@
 # =============================================================================
 # SLURM Batch Script: Multi-GPU Hierarchical Bayesian Fit (chains via pmap)
 # =============================================================================
-# Production variant of 13_bayesian_*.slurm that allocates one GPU per chain
-# and lets NumPyro's chain_method="parallel" pmap the chains across devices.
+# SPECIALIZED variant — NOT the default. The Snakemake pipeline uses 1 GPU/job
+# with chain_method="vectorized" (see job_manifest.yaml bayesian_fit.gpus=1).
+# This script allocates one GPU per chain for chain_method="parallel" via pmap.
+# Use only when wall time per model must drop below what vectorized achieves.
 #
 # After the Issue 1 fully-batched rollout (commit c54ee6c), the
 # participant-level for-loop bottleneck is gone and single-GPU MCMC runs at

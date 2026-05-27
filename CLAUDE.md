@@ -349,13 +349,13 @@ bash cluster/12_submit_all_gpu.sh
 # MLE: single model with custom settings
 sbatch --export=MODEL=wmrl_m3,NJOBS=8 cluster/12_mle.slurm
 
-# Bayesian: consolidated template (choice-only models)
-sbatch --export=ALL,MODEL=wmrl_m3 cluster/13_bayesian_choice_only.slurm
-sbatch --export=ALL,MODEL=wmrl_m5 cluster/13_bayesian_choice_only.slurm
-sbatch --time=36:00:00 --export=ALL,MODEL=wmrl_m6b cluster/13_bayesian_choice_only.slurm
+# Bayesian: Snakemake pipeline (recommended — auto-chains audit + BMS)
+# Uses 1 GPU/job, vectorized chains; 4 models run concurrently within QOS.
+snakemake --profile cluster/snakemake-profile --configfile cluster/config.yaml \
+  --snakefile cluster/Snakefile
 
-# Bayesian: GPU template (M4 LBA only)
-sbatch cluster/13_bayesian_gpu.slurm
+# Bayesian: multi-GPU pmap (specialized, not default)
+sbatch --export=MODEL=wmrl_m6b cluster/13_bayesian_multigpu.slurm
 ```
 
 ### Run Bayesian Fitting (Hierarchical, Posterior Distributions)
