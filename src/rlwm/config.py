@@ -74,17 +74,13 @@ class ModelParams:
     - Epsilon noise captures random responding
     """
 
-    ALPHA_POS_DEFAULT = 0.3
-    ALPHA_NEG_DEFAULT = 0.1
+    ALPHA_DEFAULT = 0.3
+    ALPHA_POS_DEFAULT = ALPHA_DEFAULT  # Alias for backwards compatibility
     ALPHA_MIN = 0.0
     ALPHA_MAX = 1.0
 
     BETA_FIXED = 50.0
     BETA_DEFAULT = 50.0
-
-    GAMMA_DEFAULT = 0.0
-    GAMMA_MIN = 0.0
-    GAMMA_MAX = 1.0
 
     EPSILON_DEFAULT = 0.05
     EPSILON_MIN = 0.0

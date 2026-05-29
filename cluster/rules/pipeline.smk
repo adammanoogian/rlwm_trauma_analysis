@@ -124,8 +124,6 @@ rule prefitting:
 
         mkdir -p models/recovery models/parameter_exploration
 
-        python scripts/03_model_prefitting/01_generate_synthetic_data.py
-        python scripts/03_model_prefitting/02_run_parameter_sweep.py
         python scripts/03_model_prefitting/03_run_model_recovery.py
         python scripts/03_model_prefitting/04_run_prior_predictive.py
         python scripts/03_model_prefitting/05_run_bayesian_recovery.py
@@ -168,6 +166,44 @@ rule mle_fit:
             --model {wildcards.model} \
             --data {config[data_file]} \
             --use-gpu
+
+        touch {output.flag}
+        """
+
+
+# =============================================================================
+# Stage 4a-M4: MLE Fitting for M4 LBA (separate track, GPU, float64)
+# =============================================================================
+# M4 uses a joint choice+RT LBA likelihood. Its AIC is NOT comparable to
+# choice-only models. Runs independently from the choice-only wildcard.
+
+rule mle_fit_m4:
+    input:
+        "cluster/results/data_processing.done",
+    output:
+        flag="cluster/results/mle/wmrl_m4.done",
+    resources:
+        slurm_partition=lambda wc, attempt: lookup_resource("mle_fit_m4", "partition"),
+        mem_mb=lambda wc, attempt: lookup_resource("mle_fit_m4", "mem_mb"),
+        cpus_per_task=lambda wc, attempt: lookup_resource("mle_fit_m4", "cpus_per_task"),
+        runtime=lambda wc, attempt: lookup_resource("mle_fit_m4", "runtime"),
+        gres=lambda wc, attempt: (
+            f"gpu:{lookup_resource('mle_fit_m4', 'gpus')}"
+            if lookup_resource("mle_fit_m4", "gpus") > 0
+            else ""
+        ),
+    shell:
+        """
+        source cluster/_setup.sh
+        print_job_header "Stage 4a-M4: MLE Fit -- wmrl_m4 (LBA separate track)"
+        export PYTHONUNBUFFERED=1
+
+        mkdir -p models/mle
+
+        python scripts/04_model_fitting/a_mle/fit_mle.py \
+            --model wmrl_m4 \
+            --data {config[data_file]} \
+            --n-jobs {resources.cpus_per_task}
 
         touch {output.flag}
         """
@@ -261,6 +297,122 @@ rule baseline_audit:
 
 
 # =============================================================================
+# Stage 5b: Posterior Predictive Checks (MLE track, per-model)
+# =============================================================================
+# Generates synthetic data from fitted params and compares to real data.
+# Runs after MLE fits complete. CPU-parallel (no GPU).
+
+rule ppc:
+    input:
+        expand(
+            "cluster/results/mle/{model}.done",
+            model=config["choice_models"],
+        ),
+    output:
+        flag="cluster/results/ppc.done",
+    resources:
+        slurm_partition=lambda wc, attempt: lookup_resource("ppc", "partition"),
+        mem_mb=lambda wc, attempt: lookup_resource("ppc", "mem_mb"),
+        cpus_per_task=lambda wc, attempt: lookup_resource("ppc", "cpus_per_task"),
+        runtime=lambda wc, attempt: lookup_resource("ppc", "runtime"),
+    shell:
+        """
+        source cluster/_setup.sh
+        print_job_header "Stage 5b: Posterior Predictive Checks"
+        export PYTHONUNBUFFERED=1
+
+        mkdir -p models/ppc reports/figures/ppc
+
+        python scripts/05_post_fitting_checks/03_run_posterior_ppc.py \
+            --model all --skip-model-recovery --n-jobs {resources.cpus_per_task}
+
+        touch {output.flag}
+        """
+
+
+# =============================================================================
+# Stage 5c: Level-2 Winner Refit (Bayesian track)
+# =============================================================================
+# Refits the BMS winner(s) with Level-2 trauma scale predictors.
+# Reads winners.txt from model_selection step.
+
+rule level2_refit:
+    input:
+        "cluster/results/model_selection.done",
+    output:
+        flag="cluster/results/level2_refit.done",
+    resources:
+        slurm_partition=lambda wc, attempt: lookup_resource("level2_refit", "partition"),
+        mem_mb=lambda wc, attempt: lookup_resource("level2_refit", "mem_mb"),
+        cpus_per_task=lambda wc, attempt: lookup_resource("level2_refit", "cpus_per_task"),
+        runtime=lambda wc, attempt: lookup_resource("level2_refit", "runtime"),
+        gres=lambda wc, attempt: (
+            f"gpu:{lookup_resource('level2_refit', 'gpus')}"
+            if lookup_resource("level2_refit", "gpus") > 0
+            else ""
+        ),
+    shell:
+        """
+        source cluster/_setup.sh
+        print_job_header "Stage 5c: Level-2 Winner Refit"
+        setup_jax_cache gpu
+        verify_gpu
+        export PYTHONUNBUFFERED=1
+
+        WINNERS=$(cat models/bayesian/{config[bayesian_subdir]}/winners.txt)
+        for WINNER_DISPLAY in $(echo "$WINNERS" | tr ',' ' '); do
+            # Map display name (M6b) to internal key (wmrl_m6b)
+            WINNER_KEY=$(python -c "
+from config import MODEL_REGISTRY
+for k,v in MODEL_REGISTRY.items():
+    if v['short_name'] == '$WINNER_DISPLAY':
+        print(k); break
+")
+            echo "Refitting winner: $WINNER_DISPLAY ($WINNER_KEY)"
+            python scripts/04_model_fitting/c_level2/fit_with_l2.py \
+                --model "$WINNER_KEY" \
+                --data {config[data_file]} \
+                --chains {config[mcmc_chains]} \
+                --warmup {config[mcmc_warmup]} \
+                --samples {config[mcmc_samples]} \
+                --l2-subdir {config[l2_subdir]} \
+                --baseline-subdir {config[bayesian_subdir]}
+        done
+
+        touch {output.flag}
+        """
+
+
+# =============================================================================
+# Stage 5d: Scale Audit (Bayesian track)
+# =============================================================================
+# Validates L2 refit posteriors: beta HDIs, ESS degradation vs baseline.
+
+rule scale_audit:
+    input:
+        "cluster/results/level2_refit.done",
+    output:
+        flag="cluster/results/scale_audit.done",
+    resources:
+        slurm_partition=lambda wc, attempt: lookup_resource("scale_audit", "partition"),
+        mem_mb=lambda wc, attempt: lookup_resource("scale_audit", "mem_mb"),
+        cpus_per_task=lambda wc, attempt: lookup_resource("scale_audit", "cpus_per_task"),
+        runtime=lambda wc, attempt: lookup_resource("scale_audit", "runtime"),
+    shell:
+        """
+        source cluster/_setup.sh
+        print_job_header "Stage 5d: Scale Audit"
+        export PYTHONUNBUFFERED=1
+
+        python scripts/05_post_fitting_checks/02_scale_audit.py \
+            --l2-dir models/bayesian/{config[l2_subdir]}/ \
+            --baseline-dir models/bayesian/{config[bayesian_subdir]}/
+
+        touch {output.flag}
+        """
+
+
+# =============================================================================
 # Stage 6: Fit Analyses
 # =============================================================================
 
@@ -323,7 +475,103 @@ rule model_selection:
         """
 
 
-# --- 6.3: Manuscript Tables ---
+# --- 6.3: MLE Trauma Analysis ---
+# Group comparisons + correlations between model parameters and trauma measures.
+rule mle_trauma:
+    input:
+        "cluster/results/mle_compare.done",
+    output:
+        flag="cluster/results/mle_trauma.done",
+    resources:
+        slurm_partition=lambda wc, attempt: lookup_resource("mle_trauma", "partition"),
+        mem_mb=lambda wc, attempt: lookup_resource("mle_trauma", "mem_mb"),
+        cpus_per_task=lambda wc, attempt: lookup_resource("mle_trauma", "cpus_per_task"),
+        runtime=lambda wc, attempt: lookup_resource("mle_trauma", "runtime"),
+    shell:
+        """
+        source cluster/_setup.sh
+        print_job_header "Stage 6.3: MLE Trauma Analysis"
+        export PYTHONUNBUFFERED=1
+
+        python scripts/06_fit_analyses/04_analyze_mle_by_trauma.py --model all
+
+        touch {output.flag}
+        """
+
+
+# --- 6.4: MLE Regression on Scales ---
+# Univariate + multiple regressions of model parameters on trauma scales.
+rule mle_regression:
+    input:
+        "cluster/results/mle_trauma.done",
+    output:
+        flag="cluster/results/mle_regression.done",
+    resources:
+        slurm_partition=lambda wc, attempt: lookup_resource("mle_regression", "partition"),
+        mem_mb=lambda wc, attempt: lookup_resource("mle_regression", "mem_mb"),
+        cpus_per_task=lambda wc, attempt: lookup_resource("mle_regression", "cpus_per_task"),
+        runtime=lambda wc, attempt: lookup_resource("mle_regression", "runtime"),
+    shell:
+        """
+        source cluster/_setup.sh
+        print_job_header "Stage 6.4: MLE Regression on Scales"
+        export PYTHONUNBUFFERED=1
+
+        python scripts/06_fit_analyses/05_regress_parameters_on_scales.py --model all
+
+        touch {output.flag}
+        """
+
+
+# --- 6.5: Winner Heterogeneity ---
+# Per-participant winner analysis using M6b as reference frame.
+rule winner_heterogeneity:
+    input:
+        "cluster/results/mle_compare.done",
+    output:
+        flag="cluster/results/winner_heterogeneity.done",
+    resources:
+        slurm_partition=lambda wc, attempt: lookup_resource("winner_heterogeneity", "partition"),
+        mem_mb=lambda wc, attempt: lookup_resource("winner_heterogeneity", "mem_mb"),
+        cpus_per_task=lambda wc, attempt: lookup_resource("winner_heterogeneity", "cpus_per_task"),
+        runtime=lambda wc, attempt: lookup_resource("winner_heterogeneity", "runtime"),
+    shell:
+        """
+        source cluster/_setup.sh
+        print_job_header "Stage 6.5: Winner Heterogeneity"
+        export PYTHONUNBUFFERED=1
+
+        python scripts/06_fit_analyses/06_analyze_winner_heterogeneity.py
+
+        touch {output.flag}
+        """
+
+
+# --- 6.6: Cross-Model Significance Heatmap ---
+# Parameter x trauma association matrix across M3, M5, M6a, M6b.
+rule cross_model_heatmap:
+    input:
+        "cluster/results/mle_regression.done",
+    output:
+        flag="cluster/results/cross_model_heatmap.done",
+    resources:
+        slurm_partition=lambda wc, attempt: lookup_resource("cross_model_heatmap", "partition"),
+        mem_mb=lambda wc, attempt: lookup_resource("cross_model_heatmap", "mem_mb"),
+        cpus_per_task=lambda wc, attempt: lookup_resource("cross_model_heatmap", "cpus_per_task"),
+        runtime=lambda wc, attempt: lookup_resource("cross_model_heatmap", "runtime"),
+    shell:
+        """
+        source cluster/_setup.sh
+        print_job_header "Stage 6.6: Cross-Model Significance Heatmap"
+        export PYTHONUNBUFFERED=1
+
+        python scripts/06_fit_analyses/09_plot_cross_model_significance.py
+
+        touch {output.flag}
+        """
+
+
+# --- 6.7: Manuscript Tables ---
 # Final tables + figures for the manuscript. Depends on both LOO stacking
 # (Bayesian track) and MLE comparison (frequentist track).
 rule manuscript_tables:
@@ -356,6 +604,69 @@ rule manuscript_tables:
         """
 
 
+# --- 6.8: Model Averaging ---
+# Stacking-weighted averaging of L2 beta posteriors across winners.
+rule model_averaging:
+    input:
+        "cluster/results/scale_audit.done",
+    output:
+        flag="cluster/results/model_averaging.done",
+    resources:
+        slurm_partition=lambda wc, attempt: lookup_resource("model_averaging", "partition"),
+        mem_mb=lambda wc, attempt: lookup_resource("model_averaging", "mem_mb"),
+        cpus_per_task=lambda wc, attempt: lookup_resource("model_averaging", "cpus_per_task"),
+        runtime=lambda wc, attempt: lookup_resource("model_averaging", "runtime"),
+    shell:
+        """
+        source cluster/_setup.sh
+        print_job_header "Stage 6.8: Model Averaging"
+        export PYTHONUNBUFFERED=1
+
+        python scripts/06_fit_analyses/03_model_averaging.py \
+            --l2-dir models/bayesian/{config[l2_subdir]}/ \
+            --stacking-results models/bayesian/{config[bayesian_subdir]}/loo_stacking_results.csv
+
+        touch {output.flag}
+        """
+
+
+# --- 6.9: Bayesian Level-2 Effects ---
+# Forest plots for L2 beta coefficients from winner's L2-refit posterior.
+rule level2_effects:
+    input:
+        "cluster/results/scale_audit.done",
+    output:
+        flag="cluster/results/level2_effects.done",
+    resources:
+        slurm_partition=lambda wc, attempt: lookup_resource("level2_effects", "partition"),
+        mem_mb=lambda wc, attempt: lookup_resource("level2_effects", "mem_mb"),
+        cpus_per_task=lambda wc, attempt: lookup_resource("level2_effects", "cpus_per_task"),
+        runtime=lambda wc, attempt: lookup_resource("level2_effects", "runtime"),
+    shell:
+        """
+        source cluster/_setup.sh
+        print_job_header "Stage 6.9: Bayesian Level-2 Effects"
+        export PYTHONUNBUFFERED=1
+
+        mkdir -p reports/figures/bayesian
+
+        WINNERS=$(cat models/bayesian/{config[bayesian_subdir]}/winners.txt)
+        for WINNER_DISPLAY in $(echo "$WINNERS" | tr ',' ' '); do
+            WINNER_KEY=$(python -c "
+from config import MODEL_REGISTRY
+for k,v in MODEL_REGISTRY.items():
+    if v['short_name'] == '$WINNER_DISPLAY':
+        print(k); break
+")
+            python scripts/06_fit_analyses/07_bayesian_level2_effects.py \
+                --model "$WINNER_KEY" \
+                --posterior-path models/bayesian/{config[l2_subdir]}/"$WINNER_KEY"_posterior.nc
+        done
+
+        touch {output.flag}
+        """
+
+
 # =============================================================================
 # Pipeline completion sentinel
 # =============================================================================
@@ -366,6 +677,13 @@ rule pipeline_done:
         "cluster/results/manuscript_tables.done",
         "cluster/results/behav_analyses.done",
         "cluster/results/prefitting.done",
+        "cluster/results/ppc.done",
+        "cluster/results/mle_trauma.done",
+        "cluster/results/mle_regression.done",
+        "cluster/results/winner_heterogeneity.done",
+        "cluster/results/cross_model_heatmap.done",
+        "cluster/results/model_averaging.done",
+        "cluster/results/level2_effects.done",
     output:
         "cluster/results/pipeline_done.flag",
     shell:

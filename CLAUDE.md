@@ -58,16 +58,16 @@ invariants live in `tests/integration/test_v5_phase29_structure.py`
 
 | Model | Free Parameters |
 |-------|-----------------|
-| M1: Q-Learning | α₊, α₋, ε |
-| M2: WM-RL | α₊, α₋, φ, ρ, K, ε |
-| M3: WM-RL+kappa | α₊, α₋, φ, ρ, K, κ, ε |
-| M5: WM-RL+phi_rl | α₊, α₋, φ, ρ, K, κ, φ_rl, ε |
-| M6a: WM-RL+kappa_s | α₊, α₋, φ, ρ, K, κ_s, ε |
-| M6b: WM-RL+dual | α₊, α₋, φ, ρ, K, κ_total, κ_share, ε |
-| M4: RLWM-LBA | α₊, α₋, φ, ρ, K, κ, v_scale, A, δ, t₀ |
+| M1: Q-Learning | α, ε |
+| M2: WM-RL | α, φ, ρ, K, ε |
+| M3: WM-RL+kappa | α, φ, ρ, K, κ, ε |
+| M5: WM-RL+phi_rl | α, φ, ρ, K, κ, φ_rl, ε |
+| M6a: WM-RL+kappa_s | α, φ, ρ, K, κ_s, ε |
+| M6b: WM-RL+dual | α, φ, ρ, K, κ_total, κ_share, ε |
+| M4: RLWM-LBA | α, φ, ρ, K, κ, v_scale, A, δ, t₀ |
 
 > M4 is the only joint choice+RT model. Its AIC is not comparable to choice-only models.
-> M5 is the current winning model among choice-only models (dAIC=435.6 over M3).
+> M6b is the current winning model per Bayesian model selection (BMS/PXP).
 
 ---
 

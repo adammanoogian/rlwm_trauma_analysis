@@ -1718,7 +1718,7 @@ def run_tests():
     print(f"   Sampled {len(params_list)} parameter sets")
     print(f"   First params: {params_list[0]}")
     assert len(params_list) == 3
-    assert len(params_list[0]) == 7  # M3 has 7 parameters
+    assert len(params_list[0]) == 6  # M3 has 6 parameters (alpha, phi, rho, capacity, kappa, epsilon)
     print("   ✓ PASSED")
 
     # Test 2: Synthetic data generation
@@ -1746,8 +1746,8 @@ def run_tests():
     print(f"   Results shape: {results.shape}")
     print(f"   Columns: {list(results.columns)}")
     assert results.shape[0] == 2  # 2 subjects
-    assert "true_alpha_pos" in results.columns
-    assert "recovered_alpha_pos" in results.columns
+    assert "true_alpha" in results.columns
+    assert "recovered_alpha" in results.columns
     print("   ✓ PASSED")
 
     # Test 4: Metrics computation
@@ -1756,7 +1756,7 @@ def run_tests():
     print(f"   Metrics:\n{metrics}")
     assert "pearson_r" in metrics.columns
     assert "pass_fail" in metrics.columns
-    assert len(metrics) == 3  # Q-learning has 3 parameters
+    assert len(metrics) == 2  # Q-learning has 2 parameters (alpha, epsilon)
     print("   ✓ PASSED")
 
     print("\n" + "=" * 80)

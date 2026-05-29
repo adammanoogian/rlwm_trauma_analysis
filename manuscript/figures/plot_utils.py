@@ -108,8 +108,7 @@ Keys are the internal model identifiers used in CSV filenames and
 # ── Parameter display names (LaTeX-formatted) ─────────────────────────────────
 
 PARAM_DISPLAY_NAMES: dict[str, str] = {
-    "alpha_pos": r"$\alpha_+$",
-    "alpha_neg": r"$\alpha_-$",
+    "alpha": r"$\alpha$",
     "phi": r"$\phi$",
     "rho": r"$\rho$",
     "K": r"$K$",

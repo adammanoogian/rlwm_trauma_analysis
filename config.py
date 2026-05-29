@@ -177,19 +177,15 @@ class ModelParams:
     - Epsilon noise captures random responding (motor noise, lapses)
     """
 
-    # Q-learning parameters (asymmetric learning rates)
-    ALPHA_POS_DEFAULT = 0.3  # Learning rate for positive PE (correct trials)
-    ALPHA_NEG_DEFAULT = 0.1  # Learning rate for negative PE (incorrect trials)
+    # Learning rate (Phase 33: single alpha — dual-alpha dropped)
+    ALPHA_DEFAULT = 0.3
+    ALPHA_POS_DEFAULT = ALPHA_DEFAULT  # Alias for backwards compatibility
     ALPHA_MIN = 0.0
     ALPHA_MAX = 1.0
 
     # Inverse temperature - FIXED at 50 for identifiability (Senta et al., 2025)
     BETA_FIXED = 50.0  # Fixed inverse temperature during learning
     BETA_DEFAULT = 50.0  # Alias for backwards compatibility
-
-    GAMMA_DEFAULT = 0.0  # Discount factor (fixed at 0 for this task)
-    GAMMA_MIN = 0.0
-    GAMMA_MAX = 1.0
 
     # Epsilon noise parameter (Senta et al., 2025)
     # Captures random responding: p_noisy = ε/nA + (1-ε)*p
@@ -761,11 +757,9 @@ def print_config_summary():
     print(f"  - Reversal Range: [{TaskParams.REVERSAL_MIN}, {TaskParams.REVERSAL_MAX}]")
     print(f"  - Reward: Correct={TaskParams.REWARD_CORRECT}, Incorrect={TaskParams.REWARD_INCORRECT}")
     print("\nModel Defaults (Senta et al., 2025):")
-    print(f"  - Learning Rate (α_pos): {ModelParams.ALPHA_POS_DEFAULT}")
-    print(f"  - Learning Rate (α_neg): {ModelParams.ALPHA_NEG_DEFAULT}")
+    print(f"  - Learning Rate (α): {ModelParams.ALPHA_DEFAULT}")
     print(f"  - Inverse Temperature (β): {ModelParams.BETA_FIXED} (FIXED)")
     print(f"  - Epsilon Noise (ε): {ModelParams.EPSILON_DEFAULT}")
-    print(f"  - Discount Factor (γ): {ModelParams.GAMMA_DEFAULT}")
     print(f"  - WM Capacity (K): {ModelParams.WM_CAPACITY_DEFAULT}")
     print(f"  - WM Decay (φ): {ModelParams.PHI_DEFAULT}")
     print(f"  - WM Reliance (ρ): {ModelParams.RHO_DEFAULT}")

@@ -461,7 +461,7 @@ def generate_table1_loo_stacking(
         df=df,
         caption=(
             "Table 1. PSIS-LOO + stacking weights across six choice-only "
-            "models (N=138). Winner(s) marked in bold."
+            "models. Winner(s) marked in bold."
         ),
         label="tbl-loo-stacking",
         bold_rows=bold_rows,

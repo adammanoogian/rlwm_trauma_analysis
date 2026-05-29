@@ -1,3 +1,0 @@
-participant_id,n_trials,n_blocks,fit_time_s,is_first_fit,memory_before_mb,memory_after_mb,nll,converged
-10000,988,17,2.984281539916992,True,279.87109375,334.37109375,866.0711669921875,True
-9187,990,17,2.6589694023132324,False,334.37109375,345.93359375,970.060791015625,True

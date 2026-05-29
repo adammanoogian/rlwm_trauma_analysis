@@ -1,10 +1,7 @@
 Parameter,Predictor,β,SE,95% CI,t,p
-alpha_pos_mean,ies_intrusion,0.014,0.006,"[0.002, 0.026]",2.27,0.025*
-alpha_pos_mean,ies_avoidance,-0.005,0.005,"[-0.014, 0.004]",-1.06,0.292
-alpha_pos_mean,ies_hyperarousal,-0.009,0.006,"[-0.021, 0.003]",-1.51,0.134
-alpha_neg_mean,ies_intrusion,0.005,0.005,"[-0.006, 0.015]",0.90,0.368
-alpha_neg_mean,ies_avoidance,-0.006,0.004,"[-0.014, 0.002]",-1.52,0.131
-alpha_neg_mean,ies_hyperarousal,-0.000,0.005,"[-0.011, 0.010]",-0.08,0.938
-epsilon_mean,ies_intrusion,0.001,0.003,"[-0.004, 0.007]",0.51,0.612
-epsilon_mean,ies_avoidance,-0.001,0.002,"[-0.005, 0.003]",-0.40,0.691
-epsilon_mean,ies_hyperarousal,0.003,0.003,"[-0.002, 0.008]",1.06,0.289
+alpha_mean,ies_intrusion,0.004,0.006,"[-0.007, 0.015]",0.72,0.470
+alpha_mean,ies_avoidance,-0.004,0.004,"[-0.012, 0.005]",-0.87,0.384
+alpha_mean,ies_hyperarousal,-0.005,0.006,"[-0.016, 0.006]",-0.91,0.363
+epsilon_mean,ies_intrusion,-0.002,0.003,"[-0.008, 0.003]",-0.75,0.455
+epsilon_mean,ies_avoidance,0.001,0.002,"[-0.003, 0.006]",0.68,0.497
+epsilon_mean,ies_hyperarousal,0.002,0.003,"[-0.004, 0.008]",0.69,0.493

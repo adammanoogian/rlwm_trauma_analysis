@@ -6,7 +6,7 @@
 Regression analysis of model parameters on continuous trauma scales.
 
 Performs linear regression analyses testing associations between:
-- Fitted RL model parameters (α+, α-, β)
+- Fitted RL model parameters (α, β)
 - Trauma exposure measures (LEC-5)
 - PTSD symptom measures (IES-R total and subscales)
 
@@ -29,8 +29,8 @@ Predictors:
     - Demographics (optional: age, etc.)
 
 Outcome Variables:
-    Q-Learning: α₊, α₋, ε
-    WM-RL: α₊, α₋, φ, ρ, K, ε, (κ for M3)
+    Q-Learning: α, ε
+    WM-RL: α, φ, ρ, K, ε, (κ for M3)
 
 Statistical Approach:
     - OLS regression with robust standard errors
@@ -162,18 +162,14 @@ def load_integrated_data(
     param_rename = {}
     if model_type == "qlearning":
         if "alpha" in params_df.columns:
-            param_rename["alpha"] = "alpha_pos_mean"
-        if "alpha" in params_df.columns:
-            param_rename["alpha"] = "alpha_neg_mean"
+            param_rename["alpha"] = "alpha_mean"
         if "beta" in params_df.columns:
             param_rename["beta"] = "beta_mean"
         if "epsilon" in params_df.columns:
             param_rename["epsilon"] = "epsilon_mean"
     else:  # wmrl, wmrl_m3, or wmrl_m5
         if "alpha" in params_df.columns:
-            param_rename["alpha"] = "alpha_pos_mean"
-        if "alpha" in params_df.columns:
-            param_rename["alpha"] = "alpha_neg_mean"
+            param_rename["alpha"] = "alpha_mean"
         if "phi" in params_df.columns:
             param_rename["phi"] = "phi_mean"
         if "rho" in params_df.columns:
@@ -324,7 +320,7 @@ def load_integrated_data(
     df = params_df.merge(participant_data[merge_cols], on="sona_id", how="inner")
 
     print(f"\nLoaded data for {len(df)} participants")
-    print(f"  {df['alpha_pos_mean'].notna().sum()} with fitted parameters")
+    print(f"  {df['alpha_mean'].notna().sum()} with fitted parameters")
 
     return df
 
@@ -646,9 +642,8 @@ def plot_regression_scatter(
 def format_label(col_name: str) -> str:
     """Format column name for plotting."""
     label_map = {
-        # Q-learning parameters
-        "alpha_pos_mean": "alpha+ (Positive Learning Rate)",
-        "alpha_neg_mean": "alpha- (Negative Learning Rate)",
+        # Learning rate
+        "alpha_mean": "alpha (Learning Rate)",
         "beta_mean": "beta (Inverse Temperature)",
         "epsilon_mean": "epsilon (Random Responding)",
         # WM-RL parameters
@@ -683,7 +678,7 @@ def plot_regression_matrix(
 
     # Default param_cols for backwards compatibility
     if param_cols is None:
-        param_cols = ["alpha_pos_mean", "alpha_neg_mean", "beta_mean"]
+        param_cols = ["alpha_mean", "beta_mean"]
 
     # Filter to available params
     param_cols = [p for p in param_cols if p in df.columns]
@@ -926,10 +921,14 @@ def main():
                 )
                 continue
 
-        # Load data
-        df = load_integrated_data(
-            params_path, model, args.min_accuracy, args.max_epsilon
-        )
+        # Load data (catch stale pre-Phase-33 files gracefully)
+        try:
+            df = load_integrated_data(
+                params_path, model, args.min_accuracy, args.max_epsilon
+            )
+        except ValueError as e:
+            print(f"  [SKIP] {model}: {e}")
+            continue
 
         # Validate color-by column if specified
         color_palette = None
@@ -955,11 +954,10 @@ def main():
 
         # Define parameter columns based on model
         if model == "qlearning":
-            param_cols = ["alpha_pos_mean", "alpha_neg_mean", "epsilon_mean"]
+            param_cols = ["alpha_mean", "epsilon_mean"]
         elif model == "wmrl":
             param_cols = [
-                "alpha_pos_mean",
-                "alpha_neg_mean",
+                "alpha_mean",
                 "phi_mean",
                 "rho_mean",
                 "wm_capacity_mean",
@@ -967,8 +965,7 @@ def main():
             ]
         elif model == "wmrl_m3":
             param_cols = [
-                "alpha_pos_mean",
-                "alpha_neg_mean",
+                "alpha_mean",
                 "phi_mean",
                 "rho_mean",
                 "wm_capacity_mean",
@@ -977,8 +974,7 @@ def main():
             ]
         elif model == "wmrl_m5":
             param_cols = [
-                "alpha_pos_mean",
-                "alpha_neg_mean",
+                "alpha_mean",
                 "phi_mean",
                 "rho_mean",
                 "wm_capacity_mean",
@@ -988,8 +984,7 @@ def main():
             ]
         elif model == "wmrl_m6a":
             param_cols = [
-                "alpha_pos_mean",
-                "alpha_neg_mean",
+                "alpha_mean",
                 "phi_mean",
                 "rho_mean",
                 "wm_capacity_mean",
@@ -998,8 +993,7 @@ def main():
             ]
         elif model == "wmrl_m6b":
             param_cols = [
-                "alpha_pos_mean",
-                "alpha_neg_mean",
+                "alpha_mean",
                 "phi_mean",
                 "rho_mean",
                 "wm_capacity_mean",
@@ -1010,8 +1004,7 @@ def main():
         elif model == "wmrl_m4":
             # M4: LBA joint choice+RT model (no epsilon; has v_scale, A, delta, t0)
             param_cols = [
-                "alpha_pos_mean",
-                "alpha_neg_mean",
+                "alpha_mean",
                 "phi_mean",
                 "rho_mean",
                 "wm_capacity_mean",

@@ -1,6 +1,8 @@
-winner,No Ongoing Impact,Ongoing Impact,All
-M3,2,2,4
-M5,3,7,10
-M6a,8,5,13
-M6b,13,5,18
-All,26,19,45
+winner,No Trauma,Trauma - No Ongoing Impact,Trauma - Ongoing Impact,All
+M1,0,0,1,1
+M2,0,3,1,4
+M3,0,8,11,19
+M5,0,15,24,39
+M6a,1,23,40,64
+M6b,0,11,24,35
+All,1,60,101,162

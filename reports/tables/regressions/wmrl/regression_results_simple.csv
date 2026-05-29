@@ -1,37 +1,31 @@
 Section,Parameter,Predictor,N,β,SE,t,p,R²,95% CI,r,p_fdr,sig_fdr,shapiro_w,shapiro_p,residuals_normal,bp_stat,bp_p,homoscedastic
-K (WM Capacity) ~ IES-R Avoidance,wm_capacity_mean,ies_avoidance,154,-0.008,0.013,-0.59,0.557,0.002,"[-0.033, 0.018]",-0.048,0.743,False,0.898,0.0000,False,1.235,0.2665,True
-K (WM Capacity) ~ IES-R Hyperarousal,wm_capacity_mean,ies_hyperarousal,154,0.012,0.015,0.78,0.434,0.004,"[-0.018, 0.041]",0.063,0.652,False,0.909,0.0000,False,3.085,0.0790,True
-K (WM Capacity) ~ IES-R Intrusion,wm_capacity_mean,ies_intrusion,154,0.004,0.015,0.26,0.796,0.000,"[-0.025, 0.033]",0.021,0.891,False,0.902,0.0000,False,1.840,0.1750,True
-K (WM Capacity) ~ IES-R Total Score,wm_capacity_mean,ies_total,154,0.001,0.005,0.12,0.901,0.000,"[-0.009, 0.011]",0.010,0.927,False,0.901,0.0000,False,2.262,0.1326,True
-K (WM Capacity) ~ LEC-5 Personal Events,wm_capacity_mean,lec_personal_events,154,-0.063,0.041,-1.51,0.133,0.015,"[-0.144, 0.019]",-0.122,0.369,False,0.911,0.0000,False,0.592,0.4417,True
-K (WM Capacity) ~ LEC-5 Total Events,wm_capacity_mean,lec_total_events,154,-0.017,0.029,-0.59,0.556,0.002,"[-0.073, 0.040]",-0.048,0.743,False,0.902,0.0000,False,0.044,0.8334,True
-alpha+ (Positive Learning Rate) ~ IES-R Avoidance,alpha_pos_mean,ies_avoidance,154,-0.001,0.001,-0.97,0.334,0.006,"[-0.004, 0.001]",-0.078,0.546,False,0.242,0.0000,False,1.127,0.2884,True
-alpha+ (Positive Learning Rate) ~ IES-R Hyperarousal,alpha_pos_mean,ies_hyperarousal,154,-0.002,0.002,-1.13,0.261,0.008,"[-0.005, 0.001]",-0.091,0.495,False,0.245,0.0000,False,1.294,0.2554,True
-alpha+ (Positive Learning Rate) ~ IES-R Intrusion,alpha_pos_mean,ies_intrusion,154,-0.001,0.001,-0.84,0.403,0.005,"[-0.004, 0.002]",-0.068,0.631,False,0.233,0.0000,False,0.708,0.4001,True
-alpha+ (Positive Learning Rate) ~ IES-R Total Score,alpha_pos_mean,ies_total,154,-0.001,0.001,-1.06,0.290,0.007,"[-0.002, 0.000]",-0.086,0.507,False,0.243,0.0000,False,1.207,0.2720,True
-alpha+ (Positive Learning Rate) ~ LEC-5 Personal Events,alpha_pos_mean,lec_personal_events,154,0.000,0.004,0.00,0.997,0.000,"[-0.008, 0.008]",0.000,0.997,False,0.216,0.0000,False,0.003,0.9581,True
-alpha+ (Positive Learning Rate) ~ LEC-5 Total Events,alpha_pos_mean,lec_total_events,154,-0.004,0.003,-1.33,0.187,0.011,"[-0.010, 0.002]",-0.107,0.396,False,0.252,0.0000,False,1.111,0.2918,True
-alpha- (Negative Learning Rate) ~ IES-R Avoidance,alpha_neg_mean,ies_avoidance,154,-0.000,0.001,-0.13,0.893,0.000,"[-0.002, 0.002]",-0.011,0.927,False,0.089,0.0000,False,0.165,0.6843,True
-alpha- (Negative Learning Rate) ~ IES-R Hyperarousal,alpha_neg_mean,ies_hyperarousal,154,-0.000,0.001,-0.23,0.817,0.000,"[-0.002, 0.002]",-0.019,0.891,False,0.092,0.0000,False,0.190,0.6627,True
-alpha- (Negative Learning Rate) ~ IES-R Intrusion,alpha_neg_mean,ies_intrusion,154,-0.000,0.001,-0.31,0.756,0.001,"[-0.002, 0.002]",-0.025,0.891,False,0.095,0.0000,False,0.241,0.6232,True
-alpha- (Negative Learning Rate) ~ IES-R Total Score,alpha_neg_mean,ies_total,154,-0.000,0.000,-0.24,0.810,0.000,"[-0.001, 0.001]",-0.019,0.891,False,0.093,0.0000,False,0.231,0.6309,True
-alpha- (Negative Learning Rate) ~ LEC-5 Personal Events,alpha_neg_mean,lec_personal_events,154,-0.003,0.003,-1.27,0.204,0.011,"[-0.009, 0.002]",-0.103,0.409,False,0.140,0.0000,False,1.579,0.2088,True
-alpha- (Negative Learning Rate) ~ LEC-5 Total Events,alpha_neg_mean,lec_total_events,154,-0.005,0.002,-2.83,0.005**,0.050,"[-0.009, -0.002]",-0.224,0.094,False,0.226,0.0000,False,6.959,0.0083,False
-epsilon (Random Responding) ~ IES-R Avoidance,epsilon_mean,ies_avoidance,154,0.001,0.001,1.42,0.157,0.013,"[-0.001, 0.003]",0.115,0.396,False,0.758,0.0000,False,2.920,0.0875,True
-epsilon (Random Responding) ~ IES-R Hyperarousal,epsilon_mean,ies_hyperarousal,154,0.002,0.001,1.66,0.099,0.018,"[-0.000, 0.004]",0.133,0.336,False,0.771,0.0000,False,5.317,0.0211,False
-epsilon (Random Responding) ~ IES-R Intrusion,epsilon_mean,ies_intrusion,154,0.002,0.001,1.34,0.182,0.012,"[-0.001, 0.004]",0.108,0.396,False,0.767,0.0000,False,6.701,0.0096,False
-epsilon (Random Responding) ~ IES-R Total Score,epsilon_mean,ies_total,154,0.001,0.000,1.60,0.112,0.017,"[-0.000, 0.001]",0.129,0.336,False,0.769,0.0000,False,5.504,0.0190,False
-epsilon (Random Responding) ~ LEC-5 Personal Events,epsilon_mean,lec_personal_events,154,-0.006,0.003,-1.86,0.065,0.022,"[-0.013, 0.000]",-0.149,0.326,False,0.738,0.0000,False,0.018,0.8927,True
-epsilon (Random Responding) ~ LEC-5 Total Events,epsilon_mean,lec_total_events,154,-0.004,0.002,-1.63,0.106,0.017,"[-0.008, 0.001]",-0.131,0.336,False,0.730,0.0000,False,0.115,0.7347,True
-phi (WM Decay Rate) ~ IES-R Avoidance,phi_mean,ies_avoidance,154,0.004,0.002,2.20,0.030*,0.031,"[0.000, 0.008]",0.175,0.178,False,0.890,0.0000,False,0.848,0.3571,True
-phi (WM Decay Rate) ~ IES-R Hyperarousal,phi_mean,ies_hyperarousal,154,0.006,0.002,2.93,0.004**,0.053,"[0.002, 0.011]",0.231,0.094,False,0.904,0.0000,False,3.296,0.0695,True
-phi (WM Decay Rate) ~ IES-R Intrusion,phi_mean,ies_intrusion,154,0.005,0.002,2.26,0.025*,0.033,"[0.001, 0.009]",0.181,0.178,False,0.896,0.0000,False,2.112,0.1462,True
-phi (WM Decay Rate) ~ IES-R Total Score,phi_mean,ies_total,154,0.002,0.001,2.66,0.009**,0.045,"[0.001, 0.003]",0.211,0.103,False,0.898,0.0000,False,2.169,0.1409,True
-phi (WM Decay Rate) ~ LEC-5 Personal Events,phi_mean,lec_personal_events,154,0.004,0.006,0.62,0.533,0.003,"[-0.008, 0.016]",0.051,0.743,False,0.878,0.0000,False,1.027,0.3108,True
-phi (WM Decay Rate) ~ LEC-5 Total Events,phi_mean,lec_total_events,154,0.002,0.004,0.50,0.620,0.002,"[-0.006, 0.010]",0.040,0.798,False,0.880,0.0000,False,0.243,0.6219,True
-rho (WM Weight) ~ IES-R Avoidance,rho_mean,ies_avoidance,154,-0.002,0.002,-1.05,0.296,0.007,"[-0.007, 0.002]",-0.085,0.507,False,0.828,0.0000,False,0.116,0.7339,True
-rho (WM Weight) ~ IES-R Hyperarousal,rho_mean,ies_hyperarousal,154,-0.006,0.003,-2.45,0.015*,0.038,"[-0.012, -0.001]",-0.195,0.139,False,0.845,0.0000,False,1.014,0.3141,True
-rho (WM Weight) ~ IES-R Intrusion,rho_mean,ies_intrusion,154,-0.004,0.003,-1.61,0.110,0.017,"[-0.009, 0.001]",-0.129,0.336,False,0.834,0.0000,False,0.272,0.6019,True
-rho (WM Weight) ~ IES-R Total Score,rho_mean,ies_total,154,-0.002,0.001,-1.81,0.073,0.021,"[-0.003, 0.000]",-0.145,0.326,False,0.836,0.0000,False,0.406,0.5238,True
-rho (WM Weight) ~ LEC-5 Personal Events,rho_mean,lec_personal_events,154,-0.002,0.008,-0.24,0.814,0.000,"[-0.017, 0.013]",-0.019,0.891,False,0.822,0.0000,False,0.073,0.7877,True
-rho (WM Weight) ~ LEC-5 Total Events,rho_mean,lec_total_events,154,-0.007,0.005,-1.37,0.172,0.012,"[-0.017, 0.003]",-0.111,0.396,False,0.835,0.0000,False,1.190,0.2753,True
+K (WM Capacity) ~ IES-R Avoidance,wm_capacity_mean,ies_avoidance,162,0.018,0.012,1.50,0.136,0.014,"[-0.006, 0.042]",0.118,0.479,False,0.923,0.0000,False,1.136,0.2866,True
+K (WM Capacity) ~ IES-R Hyperarousal,wm_capacity_mean,ies_hyperarousal,162,0.027,0.014,1.90,0.059,0.022,"[-0.001, 0.056]",0.149,0.441,False,0.929,0.0000,False,3.724,0.0536,True
+K (WM Capacity) ~ IES-R Intrusion,wm_capacity_mean,ies_intrusion,162,0.030,0.014,2.13,0.035*,0.028,"[0.002, 0.058]",0.166,0.441,False,0.929,0.0000,False,2.320,0.1278,True
+K (WM Capacity) ~ IES-R Total Score,wm_capacity_mean,ies_total,162,0.010,0.005,1.99,0.049*,0.024,"[0.000, 0.019]",0.155,0.441,False,0.930,0.0000,False,2.664,0.1027,True
+K (WM Capacity) ~ LEC-5 Personal Events,wm_capacity_mean,lec_personal_events,162,0.063,0.040,1.57,0.118,0.015,"[-0.016, 0.142]",0.123,0.479,False,0.918,0.0000,False,0.575,0.4484,True
+K (WM Capacity) ~ LEC-5 Total Events,wm_capacity_mean,lec_total_events,162,0.026,0.029,0.89,0.372,0.005,"[-0.031, 0.082]",0.071,0.777,False,0.907,0.0000,False,0.044,0.8335,True
+alpha (Learning Rate) ~ IES-R Avoidance,alpha_mean,ies_avoidance,162,-0.002,0.001,-1.60,0.112,0.016,"[-0.004, 0.000]",-0.125,0.479,False,0.241,0.0000,False,1.489,0.2224,True
+alpha (Learning Rate) ~ IES-R Hyperarousal,alpha_mean,ies_hyperarousal,162,-0.001,0.001,-1.07,0.286,0.007,"[-0.004, 0.001]",-0.084,0.714,False,0.220,0.0000,False,0.479,0.4888,True
+alpha (Learning Rate) ~ IES-R Intrusion,alpha_mean,ies_intrusion,162,-0.000,0.001,-0.39,0.695,0.001,"[-0.003, 0.002]",-0.031,0.844,False,0.206,0.0000,False,0.003,0.9545,True
+alpha (Learning Rate) ~ IES-R Total Score,alpha_mean,ies_total,162,-0.000,0.000,-1.14,0.257,0.008,"[-0.001, 0.000]",-0.090,0.714,False,0.222,0.0000,False,0.482,0.4875,True
+alpha (Learning Rate) ~ LEC-5 Personal Events,alpha_mean,lec_personal_events,162,0.003,0.004,0.76,0.448,0.004,"[-0.004, 0.010]",0.060,0.790,False,0.212,0.0000,False,0.711,0.3991,True
+alpha (Learning Rate) ~ LEC-5 Total Events,alpha_mean,lec_total_events,162,0.002,0.003,0.64,0.525,0.003,"[-0.003, 0.007]",0.050,0.815,False,0.210,0.0000,False,0.219,0.6397,True
+epsilon (Random Responding) ~ IES-R Avoidance,epsilon_mean,ies_avoidance,162,0.000,0.001,0.47,0.641,0.001,"[-0.001, 0.002]",0.037,0.844,False,0.790,0.0000,False,0.455,0.4998,True
+epsilon (Random Responding) ~ IES-R Hyperarousal,epsilon_mean,ies_hyperarousal,162,0.001,0.001,0.86,0.389,0.005,"[-0.001, 0.003]",0.068,0.777,False,0.793,0.0000,False,0.870,0.3511,True
+epsilon (Random Responding) ~ IES-R Intrusion,epsilon_mean,ies_intrusion,162,0.000,0.001,0.44,0.659,0.001,"[-0.001, 0.002]",0.035,0.844,False,0.790,0.0000,False,0.394,0.5301,True
+epsilon (Random Responding) ~ IES-R Total Score,epsilon_mean,ies_total,162,0.000,0.000,0.63,0.527,0.003,"[-0.000, 0.001]",0.050,0.815,False,0.792,0.0000,False,0.647,0.4212,True
+epsilon (Random Responding) ~ LEC-5 Personal Events,epsilon_mean,lec_personal_events,162,-0.004,0.002,-1.52,0.131,0.014,"[-0.009, 0.001]",-0.119,0.479,False,0.796,0.0000,False,0.311,0.5772,True
+epsilon (Random Responding) ~ LEC-5 Total Events,epsilon_mean,lec_total_events,162,-0.001,0.002,-0.34,0.731,0.001,"[-0.004, 0.003]",-0.027,0.844,False,0.786,0.0000,False,1.274,0.2591,True
+phi (WM Decay Rate) ~ IES-R Avoidance,phi_mean,ies_avoidance,162,-0.001,0.002,-0.56,0.578,0.002,"[-0.004, 0.002]",-0.044,0.825,False,0.860,0.0000,False,4.253,0.0392,False
+phi (WM Decay Rate) ~ IES-R Hyperarousal,phi_mean,ies_hyperarousal,162,-0.001,0.002,-0.36,0.718,0.001,"[-0.004, 0.003]",-0.029,0.844,False,0.856,0.0000,False,1.857,0.1730,True
+phi (WM Decay Rate) ~ IES-R Intrusion,phi_mean,ies_intrusion,162,-0.001,0.002,-0.76,0.447,0.004,"[-0.005, 0.002]",-0.060,0.790,False,0.863,0.0000,False,3.237,0.0720,True
+phi (WM Decay Rate) ~ IES-R Total Score,phi_mean,ies_total,162,-0.000,0.001,-0.61,0.543,0.002,"[-0.002, 0.001]",-0.048,0.815,False,0.861,0.0000,False,3.615,0.0573,True
+phi (WM Decay Rate) ~ LEC-5 Personal Events,phi_mean,lec_personal_events,162,0.010,0.005,2.06,0.041*,0.026,"[0.000, 0.020]",0.161,0.441,False,0.871,0.0000,False,0.459,0.4980,True
+phi (WM Decay Rate) ~ LEC-5 Total Events,phi_mean,lec_total_events,162,0.005,0.004,1.47,0.144,0.013,"[-0.002, 0.012]",0.115,0.479,False,0.868,0.0000,False,0.675,0.4113,True
+rho (WM Weight) ~ IES-R Avoidance,rho_mean,ies_avoidance,162,-0.000,0.002,-0.10,0.921,0.000,"[-0.005, 0.004]",-0.008,0.951,False,0.845,0.0000,False,2.569,0.1090,True
+rho (WM Weight) ~ IES-R Hyperarousal,rho_mean,ies_hyperarousal,162,-0.000,0.003,-0.07,0.946,0.000,"[-0.005, 0.005]",-0.005,0.951,False,0.845,0.0000,False,1.753,0.1855,True
+rho (WM Weight) ~ IES-R Intrusion,rho_mean,ies_intrusion,162,-0.000,0.003,-0.06,0.951,0.000,"[-0.005, 0.005]",-0.005,0.951,False,0.845,0.0000,False,3.318,0.0685,True
+rho (WM Weight) ~ IES-R Total Score,rho_mean,ies_total,162,-0.000,0.001,-0.08,0.933,0.000,"[-0.002, 0.002]",-0.007,0.951,False,0.845,0.0000,False,2.966,0.0850,True
+rho (WM Weight) ~ LEC-5 Personal Events,rho_mean,lec_personal_events,162,-0.008,0.007,-1.13,0.262,0.008,"[-0.022, 0.006]",-0.089,0.714,False,0.853,0.0000,False,0.149,0.6998,True
+rho (WM Weight) ~ LEC-5 Total Events,rho_mean,lec_total_events,162,-0.005,0.005,-0.98,0.326,0.006,"[-0.015, 0.005]",-0.078,0.753,False,0.861,0.0000,False,2.161,0.1416,True

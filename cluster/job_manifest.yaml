@@ -53,6 +53,13 @@ mle_fit:
   runtime: 480
   gpus: 1
 
+mle_fit_m4:
+  partition: comp
+  mem_mb: 65536
+  cpus_per_task: 16
+  runtime: 720
+  gpus: 0
+
 # =============================================================================
 # Stage 4b: Bayesian fitting (1-GPU vectorized chains, per-model)
 # QOS normal allows max 4 GPUs/user → 1 GPU/job lets 4 models run concurrently.
@@ -88,6 +95,30 @@ baseline_audit:
 # Stage 6: Fit analyses (CPU-only, ArviZ/pandas/matplotlib)
 # =============================================================================
 
+ppc:
+  partition: comp
+  mem_mb: 32768
+  cpus_per_task: 8
+  runtime: 120
+
+scale_audit:
+  partition: comp
+  mem_mb: 32768
+  cpus_per_task: 4
+  runtime: 30
+
+model_averaging:
+  partition: comp
+  mem_mb: 32768
+  cpus_per_task: 4
+  runtime: 30
+
+level2_effects:
+  partition: comp
+  mem_mb: 16384
+  cpus_per_task: 4
+  runtime: 30
+
 mle_compare:
   runtime: 30
   mem_mb: 16384
@@ -99,7 +130,7 @@ mle_compare:
 # reads the LOO stacking weights.
 model_selection:
   partition: comp
-  mem_mb: 32768
+  mem_mb: 131072
   cpus_per_task: 4
   runtime: 60
 
@@ -109,6 +140,22 @@ level2_refit:
   cpus_per_task: 8
   runtime: 840
   gpus: 1
+
+mle_trauma:
+  runtime: 60
+  mem_mb: 16384
+
+mle_regression:
+  runtime: 60
+  mem_mb: 16384
+
+winner_heterogeneity:
+  runtime: 30
+  mem_mb: 8192
+
+cross_model_heatmap:
+  runtime: 30
+  mem_mb: 8192
 
 manuscript_tables:
   runtime: 30

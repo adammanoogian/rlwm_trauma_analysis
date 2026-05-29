@@ -297,7 +297,7 @@ def main() -> None:
     # Resolve paths relative to project root
     if args.posterior_path is None:
         posterior_path = (
-            project_root / "output" / "bayesian" / f"{args.model}_posterior.nc"
+            project_root / "models" / "bayesian" / f"{args.model}_posterior.nc"
         )
     else:
         posterior_path = Path(args.posterior_path)
@@ -308,7 +308,7 @@ def main() -> None:
     if not output_dir.is_absolute():
         output_dir = project_root / output_dir
 
-    level2_dir = project_root / "output" / "bayesian" / "level2"
+    level2_dir = project_root / "models" / "bayesian" / "level2"
 
     print("=" * 70)
     print("BAYESIAN LEVEL-2 FOREST PLOTS")

@@ -41,7 +41,7 @@ def main():
     demographics_path = DataParams.PARSED_DEMOGRAPHICS
     survey1_path = DataParams.PARSED_SURVEY1
     survey2_path = DataParams.PARSED_SURVEY2
-    task_path = DataParams.PARSED_TASK_TRIALS
+    task_path = DataParams.TASK_TRIALS_ALL
 
     # Check if parsed files exist
     for path in [demographics_path, survey1_path, survey2_path, task_path]:

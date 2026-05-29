@@ -108,12 +108,12 @@ except ImportError:
 
 # NetCDF paths for all 6 choice-only hierarchical Bayesian models
 BAYESIAN_NETCDF_MAP: dict[str, str] = {
-    "M1": str(MODELS_BAYESIAN_DIR / "qlearning_posterior.nc"),
-    "M2": str(MODELS_BAYESIAN_DIR / "wmrl_posterior.nc"),
-    "M3": str(MODELS_BAYESIAN_DIR / "wmrl_m3_posterior.nc"),
-    "M5": str(MODELS_BAYESIAN_DIR / "wmrl_m5_posterior.nc"),
-    "M6a": str(MODELS_BAYESIAN_DIR / "wmrl_m6a_posterior.nc"),
-    "M6b": str(MODELS_BAYESIAN_DIR / "wmrl_m6b_posterior.nc"),
+    "M1": str(MODELS_BAYESIAN_DIR / "21_baseline" / "qlearning_posterior.nc"),
+    "M2": str(MODELS_BAYESIAN_DIR / "21_baseline" / "wmrl_posterior.nc"),
+    "M3": str(MODELS_BAYESIAN_DIR / "21_baseline" / "wmrl_m3_posterior.nc"),
+    "M5": str(MODELS_BAYESIAN_DIR / "21_baseline" / "wmrl_m5_posterior.nc"),
+    "M6a": str(MODELS_BAYESIAN_DIR / "21_baseline" / "wmrl_m6a_posterior.nc"),
+    "M6b": str(MODELS_BAYESIAN_DIR / "21_baseline" / "wmrl_m6b_posterior.nc"),
 }
 
 # M4 parameter names derived from central registry (for per-param summary in separate track)
@@ -149,7 +149,7 @@ def compute_aggregate_ic(fits_df: pd.DataFrame, metric: str = "aic") -> float:
       from the generating process in the large-N limit).
     - BIC favors parsimonious truth recovery (consistent model selection
       under the assumption that one of the candidates is the true model).
-    - For N=154 with k in 3..8 and per-ppt n_trials ~727, BIC's stronger
+    - For moderate N with k in 2..7 and per-ppt n_trials ~727, BIC's stronger
       parsimony penalty can flip the winner toward simpler models. We
       report BOTH. The dominant model is the one that wins both rankings.
     - AIC remains the standard in RLWM literature (Collins, Senta), so we
@@ -790,17 +790,15 @@ def run_bayesian_comparison(output_dir: Path) -> None:
     else:
         top_weight = float("nan")
 
-    if top_model == "M6b" and top_weight >= 0.5:
-        verdict = f"M6b is the preferred model (stacking weight = {top_weight:.3f})"
-    elif top_model == "M6b":
+    if top_weight >= 0.5:
         verdict = (
-            f"M6b has highest LOO but marginal stacking weight {top_weight:.3f} < 0.5. "
-            "INCONCLUSIVE — inspect per-participant LOO."
+            f"{top_model} is the preferred model "
+            f"(stacking weight = {top_weight:.3f})"
         )
     else:
         verdict = (
-            f"INCONCLUSIVE: top model by LOO is {top_model} "
-            f"(weight={top_weight:.3f}), not M6b."
+            f"{top_model} has highest LOO but marginal stacking weight "
+            f"{top_weight:.3f} < 0.5. INCONCLUSIVE — inspect per-participant LOO."
         )
 
     print(f"\nVerdict: {verdict}")
@@ -836,7 +834,7 @@ def run_bayesian_comparison(output_dir: Path) -> None:
         "",
         verdict,
         "",
-        "> M6b weight >= 0.5 indicates M6b is the preferred hierarchical model.",
+        "> Stacking weight >= 0.5 indicates a clearly preferred hierarchical model.",
         "> Pareto-k > 0.7 for > 10% of observations signals unreliable LOO — "
         "consider Pareto-smoothed IS or WAIC fallback.",
     ]
@@ -887,7 +885,7 @@ def run_bayesian_comparison(output_dir: Path) -> None:
             lines.append(f"| {wname} | {wvals['waic']:.1f} | {wvals['p_waic']:.1f} |")
 
     # ---- M4 Separate Track (CMP-02) ----
-    m4_path = MODELS_BAYESIAN_DIR / "wmrl_m4_posterior.nc"
+    m4_path = MODELS_BAYESIAN_DIR / "21_baseline" / "wmrl_m4_posterior.nc"
     m4_section_lines: list[str] = []
     if m4_path.exists():
         print("\n--- M4 Separate Track (Joint Choice+RT) ---")

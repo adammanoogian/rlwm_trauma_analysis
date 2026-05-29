@@ -20,9 +20,9 @@ Key Analyses:
     4. Hypothesis-specific tests (e.g., WM capacity × trauma)
 
 Parameters Analyzed:
-    Q-Learning (M1): α₊, α₋, ε
-    WM-RL (M2): α₊, α₋, φ, ρ, K, ε
-    WM-RL+κ (M3): α₊, α₋, φ, ρ, K, κ, ε
+    Q-Learning (M1): α, ε
+    WM-RL (M2): α, φ, ρ, K, ε
+    WM-RL+κ (M3): α, φ, ρ, K, κ, ε
 
 Trauma Measures:
     - LEC-5/LESS Total Events (exposure count)
@@ -170,7 +170,7 @@ TRAUMA_PREDICTORS = [
 
 # Parameter display names
 PARAM_NAMES = {
-    "alpha": r"$\alpha_+$",
+    "alpha": r"$\alpha$",
     "epsilon": r"$\varepsilon$",
     "phi": r"$\phi$",
     "rho": r"$\rho$",
@@ -266,15 +266,17 @@ def load_data(fits_dir: Path = OUTPUT_DIR) -> tuple:
         else None
     )
 
-    # M4: load defensively (file may not exist)
+    # M4: load defensively (file may not exist or may be stale pre-Phase-33)
     wmrl_m4_path = fits_dir / "wmrl_m4_individual_fits.csv"
     if is_mle_source and not wmrl_m4_path.exists():
         wmrl_m4_path = PROJECT_ROOT / "output" / "wmrl_m4_individual_fits.csv"
-    wmrl_m4 = (
-        load_fits_with_validation(wmrl_m4_path, "wmrl_m4")
-        if wmrl_m4_path.exists()
-        else None
-    )
+    wmrl_m4 = None
+    if wmrl_m4_path.exists():
+        try:
+            wmrl_m4 = load_fits_with_validation(wmrl_m4_path, "wmrl_m4")
+        except ValueError as e:
+            print(f"  [SKIP] M4: {e}")
+            wmrl_m4 = None
 
     # Convert participant_id to string for consistent merging
     qlearning["participant_id"] = qlearning["participant_id"].astype(str)
@@ -968,7 +970,7 @@ def plot_key_scatter(
     plots = [
         ("ies_intrusion", "epsilon", "Intrusion", r"$\varepsilon$ (Noise)"),
         ("ies_total", "phi", "IES-R Total", r"$\phi$ (WM Decay)"),
-        ("lec_total", "alpha", "LEC Total", r"$\alpha_+$ (Positive LR)"),
+        ("lec_total", "alpha", "LEC Total", r"$\alpha$ (Learning Rate)"),
     ]
 
     # Filter to plots that exist in params

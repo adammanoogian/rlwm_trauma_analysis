@@ -34,7 +34,7 @@ def main():
     print()
 
     # Paths — CCDS tiered (interim source → processed destination)
-    task_path = DataParams.PARSED_TASK_TRIALS
+    task_path = DataParams.TASK_TRIALS_ALL
 
     # Check if parsed file exists
     if not Path(task_path).exists():

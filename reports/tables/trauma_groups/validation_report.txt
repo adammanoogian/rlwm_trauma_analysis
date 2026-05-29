@@ -7,14 +7,14 @@ HYPOTHESIS-DRIVEN GROUPS
 
 Outcome: Overall Accuracy
   Test: Kruskal-Wallis H
-  Statistic: 1.445
-  p-value: 0.4856
+  Statistic: 1.474
+  p-value: 0.4786
   Significant: No
 
 Outcome: Mean RT (ms)
   Test: Kruskal-Wallis H
-  Statistic: 0.387
-  p-value: 0.8241
+  Statistic: 1.364
+  p-value: 0.5057
   Significant: No
 
 ================================================================================

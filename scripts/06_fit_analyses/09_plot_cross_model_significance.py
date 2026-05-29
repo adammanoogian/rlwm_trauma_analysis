@@ -57,8 +57,7 @@ PARAM_ORDER: dict[str, list[str]] = {
         "phi_mean",
         "rho_mean",
         "wm_capacity_mean",
-        "alpha_pos_mean",
-        "alpha_neg_mean",
+        "alpha_mean",
         "epsilon_mean",
     ],
     "wmrl_m5": [
@@ -67,8 +66,7 @@ PARAM_ORDER: dict[str, list[str]] = {
         "phi_mean",
         "rho_mean",
         "wm_capacity_mean",
-        "alpha_pos_mean",
-        "alpha_neg_mean",
+        "alpha_mean",
         "epsilon_mean",
     ],
     "wmrl_m6a": [
@@ -76,8 +74,7 @@ PARAM_ORDER: dict[str, list[str]] = {
         "phi_mean",
         "rho_mean",
         "wm_capacity_mean",
-        "alpha_pos_mean",
-        "alpha_neg_mean",
+        "alpha_mean",
         "epsilon_mean",
     ],
     "wmrl_m6b": [
@@ -86,8 +83,7 @@ PARAM_ORDER: dict[str, list[str]] = {
         "phi_mean",
         "rho_mean",
         "wm_capacity_mean",
-        "alpha_pos_mean",
-        "alpha_neg_mean",
+        "alpha_mean",
         "epsilon_mean",
     ],
 }
@@ -101,8 +97,7 @@ PARAM_LABELS = {
     "phi_rl_mean": "φ_rl (RL forgetting)",
     "rho_mean": "ρ (WM weight)",
     "wm_capacity_mean": "K (WM capacity)",
-    "alpha_pos_mean": "α+ (pos. learning)",
-    "alpha_neg_mean": "α− (neg. learning)",
+    "alpha_mean": "α (learning rate)",
     "epsilon_mean": "ε (noise)",
 }
 
@@ -271,7 +266,7 @@ def main() -> None:
     )
 
     fig.suptitle(
-        "Cross-Model Parameter × Trauma Association Matrix (MLE, N = 154)",
+        "Cross-Model Parameter × Trauma Association Matrix (MLE, N = 162)",
         fontsize=13, fontweight="bold", y=0.98,
     )
 
