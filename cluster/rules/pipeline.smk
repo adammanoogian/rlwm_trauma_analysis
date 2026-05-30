@@ -376,7 +376,8 @@ for k,v in MODEL_REGISTRY.items():
                 --warmup {config[mcmc_warmup]} \
                 --samples {config[mcmc_samples]} \
                 --l2-subdir {config[l2_subdir]} \
-                --baseline-subdir {config[bayesian_subdir]}
+                --baseline-subdir {config[bayesian_subdir]} \
+                --winners-file models/bayesian/{config[bayesian_subdir]}/winners.txt
         done
 
         touch {output.flag}
@@ -406,7 +407,8 @@ rule scale_audit:
 
         python scripts/05_post_fitting_checks/02_scale_audit.py \
             --l2-dir models/bayesian/{config[l2_subdir]}/ \
-            --baseline-dir models/bayesian/{config[bayesian_subdir]}/
+            --baseline-dir models/bayesian/{config[bayesian_subdir]}/ \
+            --winners-file models/bayesian/{config[bayesian_subdir]}/winners.txt
 
         touch {output.flag}
         """
@@ -624,7 +626,8 @@ rule model_averaging:
 
         python scripts/06_fit_analyses/03_model_averaging.py \
             --l2-dir models/bayesian/{config[l2_subdir]}/ \
-            --stacking-results models/bayesian/{config[bayesian_subdir]}/loo_stacking_results.csv
+            --stacking-results models/bayesian/{config[bayesian_subdir]}/loo_stacking_results.csv \
+            --winners-file models/bayesian/{config[bayesian_subdir]}/winners.txt
 
         touch {output.flag}
         """
