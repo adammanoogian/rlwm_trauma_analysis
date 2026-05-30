@@ -1396,7 +1396,6 @@ def wmrl_m6b_hierarchical_model_subscale(
     # All 8 M6b parameters in canonical order
     param_names = [
         "alpha",
-        "alpha",
         "phi",
         "rho",
         "capacity",
