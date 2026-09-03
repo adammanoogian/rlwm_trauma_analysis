@@ -1,0 +1,14 @@
+Activated: rlwm_gpu (by name)
+========================================================================
+Phase 21 Step 21.5 — LOO + stacking + RFX-BMS
+========================================================================
+Baseline dir: models/bayesian/33_single_alpha
+Output dir:   models/bayesian/33_single_alpha
+Pareto-k threshold: 0.7
+Pareto-k pct threshold: 1.0%
+Stacking winner threshold: 0.5
+Combined winner threshold: 0.8
+Weak winner threshold: 0.1
+========================================================================
+
+Found 5 model(s) flagged PROCEED_TO_LOO: ['wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b']

@@ -1,0 +1,153 @@
+  0%|          | 0/3000 [00:00<?, ?it/s]Compiling.. :   0%|          | 0/3000 [00:00<?, ?it/s]
+  0%|          | 0/3000 [00:00<?, ?it/s][A
+Compiling.. :   0%|          | 0/3000 [00:00<?, ?it/s][A
+
+  0%|          | 0/3000 [00:00<?, ?it/s][A[A
+
+Compiling.. :   0%|          | 0/3000 [00:00<?, ?it/s][A[A
+
+
+  0%|          | 0/3000 [00:00<?, ?it/s][A[A[A
+
+
+Compiling.. :   0%|          | 0/3000 [00:00<?, ?it/s][A[A[ARunning chain 0:   0%|          | 0/3000 [00:50<?, ?it/s]
+Running chain 1:   0%|          | 0/3000 [00:50<?, ?it/s][A
+
+Running chain 2:   0%|          | 0/3000 [00:50<?, ?it/s][A[A
+
+
+Running chain 3:   0%|          | 0/3000 [00:50<?, ?it/s][A[A[A
+
+
+Running chain 3:   5%|▌         | 150/3000 [21:15<6:27:53,  8.17s/it][A[A[ARunning chain 0:   5%|▌         | 150/3000 [22:01<6:42:41,  8.48s/it]
+
+Running chain 2:   5%|▌         | 150/3000 [22:14<6:46:38,  8.56s/it][A[A
+Running chain 1:   5%|▌         | 150/3000 [23:08<7:03:38,  8.92s/it][A
+
+
+Running chain 3:  10%|█         | 300/3000 [27:04<3:32:57,  4.73s/it][A[A[A
+
+Running chain 2:  10%|█         | 300/3000 [27:18<3:32:19,  4.72s/it][A[A
+Running chain 1:  10%|█         | 300/3000 [28:11<3:38:50,  4.86s/it][ARunning chain 0:  10%|█         | 300/3000 [28:36<3:46:38,  5.04s/it]
+
+
+Running chain 3:  15%|█▌        | 450/3000 [31:37<2:24:35,  3.40s/it][A[A[A
+
+Running chain 2:  15%|█▌        | 450/3000 [32:00<2:25:22,  3.42s/it][A[A
+Running chain 1:  15%|█▌        | 450/3000 [33:18<2:31:56,  3.58s/it][ARunning chain 0:  15%|█▌        | 450/3000 [33:48<2:36:42,  3.69s/it]
+
+Running chain 2:  20%|██        | 600/3000 [37:20<1:56:30,  2.91s/it][A[A
+
+
+Running chain 3:  20%|██        | 600/3000 [37:27<1:59:14,  2.98s/it][A[A[A
+Running chain 1:  20%|██        | 600/3000 [39:21<2:04:47,  3.12s/it][ARunning chain 0:  20%|██        | 600/3000 [39:47<2:07:03,  3.18s/it]
+
+Running chain 2:  25%|██▌       | 750/3000 [41:28<1:32:10,  2.46s/it][A[A
+
+
+Running chain 3:  25%|██▌       | 750/3000 [42:15<1:37:26,  2.60s/it][A[A[A
+Running chain 1:  25%|██▌       | 750/3000 [44:09<1:40:45,  2.69s/it][ARunning chain 0:  25%|██▌       | 750/3000 [44:55<1:43:54,  2.77s/it]
+
+Running chain 2:  30%|███       | 900/3000 [46:01<1:18:27,  2.24s/it][A[A
+
+
+Running chain 3:  30%|███       | 900/3000 [47:39<1:25:43,  2.45s/it][A[A[A
+Running chain 1:  30%|███       | 900/3000 [49:30<1:27:31,  2.50s/it][ARunning chain 0:  30%|███       | 900/3000 [49:56<1:27:55,  2.51s/it]
+
+Running chain 2:  35%|███▌      | 1050/3000 [51:09<1:10:53,  2.18s/it][A[A
+
+
+Running chain 3:  35%|███▌      | 1050/3000 [52:41<1:14:56,  2.31s/it][A[A[A
+Running chain 1:  35%|███▌      | 1050/3000 [54:02<1:14:00,  2.28s/it][ARunning chain 0:  35%|███▌      | 1050/3000 [54:46<1:15:28,  2.32s/it]
+
+Running chain 2:  40%|████      | 1200/3000 [54:59<59:12,  1.97s/it]  [A[A
+
+
+Running chain 3:  40%|████      | 1200/3000 [56:29<1:01:39,  2.06s/it][A[A[A
+Running chain 1:  40%|████      | 1200/3000 [57:52<1:01:10,  2.04s/it][ARunning chain 0:  40%|████      | 1200/3000 [58:34<1:02:02,  2.07s/it]
+
+Running chain 2:  45%|████▌     | 1350/3000 [58:49<50:31,  1.84s/it][A[A
+
+
+Running chain 3:  45%|████▌     | 1350/3000 [1:00:16<51:54,  1.89s/it][A[A[A
+Running chain 1:  45%|████▌     | 1350/3000 [1:01:41<51:41,  1.88s/it][ARunning chain 0:  45%|████▌     | 1350/3000 [1:02:23<52:11,  1.90s/it]
+
+Running chain 2:  50%|█████     | 1500/3000 [1:02:38<43:32,  1.74s/it][A[A
+
+
+Running chain 3:  50%|█████     | 1500/3000 [1:04:04<44:20,  1.77s/it][A[A[A
+Running chain 1:  50%|█████     | 1500/3000 [1:05:30<44:16,  1.77s/it][ARunning chain 0:  50%|█████     | 1500/3000 [1:06:12<44:33,  1.78s/it]
+
+Running chain 2:  55%|█████▌    | 1650/3000 [1:06:28<37:42,  1.68s/it][A[A
+
+
+Running chain 3:  55%|█████▌    | 1650/3000 [1:07:52<38:08,  1.70s/it][A[A[A
+Running chain 1:  55%|█████▌    | 1650/3000 [1:09:20<38:10,  1.70s/it][ARunning chain 0:  55%|█████▌    | 1650/3000 [1:10:00<38:19,  1.70s/it]
+
+Running chain 2:  60%|██████    | 1800/3000 [1:10:17<32:37,  1.63s/it][A[A
+
+
+Running chain 3:  60%|██████    | 1800/3000 [1:11:39<32:49,  1.64s/it][A[A[A
+Running chain 1:  60%|██████    | 1800/3000 [1:13:09<32:54,  1.65s/it][ARunning chain 0:  60%|██████    | 1800/3000 [1:13:49<32:58,  1.65s/it]
+
+Running chain 2:  65%|██████▌   | 1950/3000 [1:14:06<28:00,  1.60s/it][A[A
+
+
+Running chain 3:  65%|██████▌   | 1950/3000 [1:15:27<28:03,  1.60s/it][A[A[A
+Running chain 1:  65%|██████▌   | 1950/3000 [1:16:58<28:10,  1.61s/it][ARunning chain 0:  65%|██████▌   | 1950/3000 [1:17:38<28:11,  1.61s/it]
+
+Running chain 2:  70%|███████   | 2100/3000 [1:17:55<23:40,  1.58s/it][A[A
+
+
+Running chain 3:  70%|███████   | 2100/3000 [1:19:15<23:39,  1.58s/it][A[A[A
+Running chain 1:  70%|███████   | 2100/3000 [1:20:47<23:47,  1.59s/it][ARunning chain 0:  70%|███████   | 2100/3000 [1:21:26<23:46,  1.58s/it]
+
+Running chain 2:  75%|███████▌  | 2250/3000 [1:21:46<19:34,  1.57s/it][A[A
+
+
+Running chain 3:  75%|███████▌  | 2250/3000 [1:23:02<19:29,  1.56s/it][A[A[A
+Running chain 1:  75%|███████▌  | 2250/3000 [1:24:37<19:36,  1.57s/it][ARunning chain 0:  75%|███████▌  | 2250/3000 [1:25:15<19:34,  1.57s/it]
+
+Running chain 2:  80%|████████  | 2400/3000 [1:25:35<15:32,  1.55s/it][A[A
+
+
+Running chain 3:  80%|████████  | 2400/3000 [1:26:50<15:28,  1.55s/it][A[A[A
+Running chain 1:  80%|████████  | 2400/3000 [1:28:26<15:33,  1.56s/it][ARunning chain 0:  80%|████████  | 2400/3000 [1:29:03<15:32,  1.55s/it]
+
+Running chain 2:  85%|████████▌ | 2550/3000 [1:29:26<11:37,  1.55s/it][A[A
+
+
+Running chain 3:  85%|████████▌ | 2550/3000 [1:30:38<11:32,  1.54s/it][A[A[A
+Running chain 1:  85%|████████▌ | 2550/3000 [1:32:15<11:36,  1.55s/it][ARunning chain 0:  85%|████████▌ | 2550/3000 [1:32:52<11:35,  1.54s/it]
+
+Running chain 2:  90%|█████████ | 2700/3000 [1:33:20<07:45,  1.55s/it][A[A
+
+
+Running chain 3:  90%|█████████ | 2700/3000 [1:34:25<07:39,  1.53s/it][A[A[A
+Running chain 1:  90%|█████████ | 2700/3000 [1:36:04<07:42,  1.54s/it][ARunning chain 0:  90%|█████████ | 2700/3000 [1:36:40<07:41,  1.54s/it]
+
+Running chain 2:  95%|█████████▌| 2850/3000 [1:37:10<03:52,  1.55s/it][A[A
+
+
+Running chain 3:  95%|█████████▌| 2850/3000 [1:38:13<03:49,  1.53s/it][A[A[A
+Running chain 1:  95%|█████████▌| 2850/3000 [1:39:54<03:50,  1.54s/it][ARunning chain 0:  95%|█████████▌| 2850/3000 [1:40:29<03:50,  1.53s/it]
+
+Running chain 2: 100%|██████████| 3000/3000 [1:40:59<00:00,  1.54s/it][A[ARunning chain 2: 100%|██████████| 3000/3000 [1:40:59<00:00,  2.02s/it]
+
+
+
+Running chain 3: 100%|██████████| 3000/3000 [1:42:00<00:00,  1.52s/it][A[A[ARunning chain 3: 100%|██████████| 3000/3000 [1:42:00<00:00,  2.04s/it]
+
+Running chain 1: 100%|██████████| 3000/3000 [1:43:43<00:00,  1.53s/it][ARunning chain 1: 100%|██████████| 3000/3000 [1:43:43<00:00,  2.07s/it]
+Running chain 0: 100%|██████████| 3000/3000 [1:44:18<00:00,  1.53s/it]Running chain 0: 100%|██████████| 3000/3000 [1:44:18<00:00,  2.09s/it]
+arviz - WARNING - Shape validation failed: input_shape: (1, 2000), minimum_shape: (chains=2, draws=4)
+arviz - WARNING - Shape validation failed: input_shape: (1, 2000), minimum_shape: (chains=2, draws=4)
+arviz - WARNING - Shape validation failed: input_shape: (1, 2000), minimum_shape: (chains=2, draws=4)
+arviz - WARNING - Shape validation failed: input_shape: (1, 2000), minimum_shape: (chains=2, draws=4)
+/scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/site-packages/xarray/core/nputils.py:242: RuntimeWarning: Degrees of freedom <= 0 for slice.
+  result = getattr(npmodule, name)(values, axis=axis, **kwargs)
+/scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/site-packages/arviz/stats/stats.py:1652: UserWarning: For one or more samples the posterior variance of the log predictive densities exceeds 0.4. This could be indication of WAIC starting to fail. 
+See http://arxiv.org/abs/1507.04544 for details
+  warnings.warn(
+/scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/site-packages/arviz/stats/stats.py:782: UserWarning: Estimated shape parameter of Pareto distribution is greater than 0.70 for one or more samples. You should consider using a more robust model, this is because importance sampling is less likely to work well if the marginal posterior and LOO posterior are very different. This is more likely to happen with a non-robust model and highly influential observations.
+  warnings.warn(

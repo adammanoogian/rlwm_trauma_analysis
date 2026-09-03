@@ -1,0 +1,5 @@
+Model,rank,elpd_loo,elpd_diff,SE,dse,weight,pct_pareto_k_gt_07,warning
+M2,1,,,,,0.25,60.07,True
+M3,2,,,,,0.25,57.9,True
+M6a,3,,,,,0.25,60.06,True
+M6b,4,,,,,0.25,57.92,True

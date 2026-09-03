@@ -1,0 +1,186 @@
+Activated: rlwm_gpu (by name)
+JAX cache: /scratch/fc37/aman0087/.jax_cache_gpu
+
+GPU verification:
+  JAX: gpu:0 -- Tesla T4
+  JAX: gpu:1 -- Tesla T4
+  JAX: gpu:2 -- Tesla T4
+  JAX: gpu:3 -- Tesla T4
+================================================================================
+BAYESIAN WMRL_M6B FIT WITH JAX/NUMPYRO
+================================================================================
+
+Settings:
+  Model: wmrl_m6b
+  Data: data/processed/task_trials_long.csv
+  Min block: 3 (excludes practice)
+  Chains: 4
+  Warmup: 1000
+  Samples: 2000
+  Max tree depth: 10
+  Output: /fs04/fc37/adam/projects/rlwm_trauma_analysis/models
+  Seed: 42
+  Output subdir: bayesian/33_single_alpha/ (Phase 21 layout)
+  Kappa parameterization: softmax
+  Exclude participants: 10130
+  JAX devices: 4
+
+>> Loading data from: data/processed/task_trials_long.csv
+Analysis cohort breakdown (total observed N=178):
+  Task-complete (>= 400 trials, >= 8 blocks): 178
+  Overall accuracy >= 0.4: 176
+  Late-block accuracy >= 0.5 (last 5): 158
+  Both performance gates: 158
+  Scale-complete (5 cols): 186
+  Final cohort (intersection − manual exclusions): 158
+  Analysis cohort (v4.0): task-complete + performance-check + scale-complete
+  Loaded 114872 trials from 178 participants
+  Excluded 20 participants outside cohort
+  Final sample: 158 participants
+  Filtered to blocks >= 3: 114872 trials remain
+  Dropped NaN values in critical columns: 114872 trials remain
+
+>> Data summary:
+  Participants: 158
+  Blocks: 21
+  Total trials: 114872
+  Trials per participant: 727
+    Participant 9187: 990 trials, 17 blocks
+    Participant 10000: 988 trials, 17 blocks
+    Participant 10002: 986 trials, 17 blocks
+    Participant 10003: 973 trials, 17 blocks
+    Participant 10004: 990 trials, 17 blocks
+    ... (158 total) ...
+    Participant 10242: 719 trials, 12 blocks
+    Participant 10243: 711 trials, 12 blocks
+    Participant 10245: 719 trials, 12 blocks
+    Participant 10246: 715 trials, 12 blocks
+    Participant 10248: 718 trials, 12 blocks
+
+>> Ad-hoc participant exclusion (--exclude-participants):
+  Requested: [10130]
+  Found in post-cohort data: [10130]
+  Dropped: 1 participant(s)
+  Final sample: 157 participants
+
+================================================================================
+FITTING WMRL-M6B HIERARCHICAL MODEL
+================================================================================
+
+>> Preparing stacked participant data...
+  Prepared 157 participants (sorted by ID)
+  LEC covariate loaded: mean=9.87, std=3.46, n=157
+
+>> Running MCMC inference (NUTS + convergence auto-bump)...
+>> Starting MCMC sampling with convergence auto-bump...
+   Chains: 4
+   Host devices: 4
+   Warmup: 1000
+   Samples: 2000
+   Max tree depth: 10
+   Total iterations per chain: 3000
+   Acceptance probability schedule: (0.8, 0.95, 0.99)
+
+============================================================
+>> JAX / NumPyro configuration
+   backend            : gpu
+   devices            : [CudaDevice(id=0), CudaDevice(id=1), CudaDevice(id=2), CudaDevice(id=3)]
+   local_device_count : 4
+   x64 enabled        : False
+   chain_method       : parallel
+   num_chains         : 4
+   NUMPYRO_HOST_DEVICE_COUNT        = 4
+   XLA_PYTHON_CLIENT_PREALLOCATE    = <unset>
+   XLA_PYTHON_CLIENT_MEM_FRACTION   = <unset>
+   JAX_COMPILATION_CACHE_DIR        = /scratch/fc37/aman0087/.jax_cache_gpu
+   JAX_PERSISTENT_CACHE_MIN_ENTRY_SIZE_BYTES = 0
+   CUDA_VISIBLE_DEVICES             = 0,1,2,3
+============================================================
+
+   Backend: gpu | chain_method: parallel
+[timing] target_accept_prob=0.80 wall=8644.2s
+[convergence-gate] target_accept_prob=0.80 divergences=0
+[convergence-gate] Zero divergences — accepting this run.
+
+================================================================================
+WMRL-M6B POSTERIOR ESTIMATES — GROUP LEVEL
+================================================================================
+  alpha_mu_pr: -2.479 +/- 0.023
+  capacity_mu_pr: -1.125 +/- 0.140
+  epsilon_mu_pr: -1.442 +/- 0.028
+  kappa_share_mu_pr: -0.846 +/- 0.132
+  kappa_total_mu_pr: 1.300 +/- 0.129
+  phi_mu_pr: -1.118 +/- 0.037
+  rho_mu_pr: -0.787 +/- 0.040
+  beta_lec_kappa_share: mean=0.2880 +/- 0.1308, 95% HDI=[0.0278, 0.5309]
+    HDI excludes zero (positive direction)
+  beta_lec_kappa_total: mean=0.1056 +/- 0.0649, 95% HDI=[-0.0175, 0.2398]
+    HDI includes zero
+
+================================================================================
+SAVING RESULTS
+================================================================================
+
+>> Computing pointwise log-likelihoods...
+  Pointwise log-lik shape: (4, 2000, 157, 1700)
+  Padding positions set to NaN for WAIC/LOO.
+
+>> Building ArviZ InferenceData...
+
+>> Checking convergence gate...
+
+  Per-parameter diagnostics (group-level _mu_pr sites):
+    alpha_mu_pr                     r_hat=1.0000  ess_bulk=1692
+    capacity_mu_pr                  r_hat=1.0000  ess_bulk=5121
+    epsilon_mu_pr                   r_hat=1.0000  ess_bulk=2252
+    kappa_share_mu_pr               r_hat=1.0000  ess_bulk=2045
+    kappa_total_mu_pr               r_hat=1.0000  ess_bulk=2926
+    phi_mu_pr                       r_hat=1.0000  ess_bulk=2430
+    rho_mu_pr                       r_hat=1.0000  ess_bulk=3724
+
+  Worst individual-level parameters:
+    [rhat] alpha[0]                                  r_hat=1.0000
+    [rhat] alpha[1]                                  r_hat=1.0000
+    [rhat] alpha[2]                                  r_hat=1.0000
+    [rhat] alpha[3]                                  r_hat=1.0000
+    [rhat] alpha[4]                                  r_hat=1.0000
+    [ess]  kappa_total[56]                           ess_bulk=2201
+    [ess]  kappa_total[28]                           ess_bulk=2214
+    [ess]  kappa_total[113]                          ess_bulk=2331
+    [ess]  capacity[45]                              ess_bulk=2439
+    [ess]  kappa_total[69]                           ess_bulk=2633
+
+[convergence-gate] model=wmrl_m6b max_rhat=1.000 min_ess_bulk=2201 divergences=0 min_bfmi=0.71 allow_gate_failure=True
+
+[CONVERGENCE GATE PASSED] max_rhat=1.0000, min_ess_bulk=2201, divergences=0, min_bfmi=0.706
+
+>> Writing schema-parity CSV...
+  Saved: /fs04/fc37/adam/projects/rlwm_trauma_analysis/models/bayesian/33_single_alpha/wmrl_m6b_individual_fits.csv
+  Saved posterior NetCDF: /fs04/fc37/adam/projects/rlwm_trauma_analysis/models/bayesian/33_single_alpha/wmrl_m6b_posterior.nc
+
+>> Computing WAIC and LOO...
+  WAIC (ELPD): nan (p_waic=nan)
+  LOO (ELPD): nan (p_loo=nan)
+
+>> Computing shrinkage diagnostic...
+  Shrinkage values:
+    alpha: 0.678 (identified)
+    phi: 0.709 (identified)
+    rho: 0.498 (identified)
+    capacity: 0.096 (WARNING: poorly identified)
+    kappa_total: 0.562 (identified)
+    kappa_share: 0.889 (identified)
+    epsilon: 0.735 (identified)
+  Saved: /fs04/fc37/adam/projects/rlwm_trauma_analysis/models/bayesian/33_single_alpha/wmrl_m6b_shrinkage_report.md
+
+>> Running posterior predictive check...
+
+[PPC] 17/17 blocks covered by 95% PPC envelope
+[PPC] Results saved: /fs04/fc37/adam/projects/rlwm_trauma_analysis/models/bayesian/33_single_alpha/wmrl_m6b_ppc_results.csv
+  PPC: 17/17 blocks covered by 95% envelope
+
+>> All results saved successfully!
+
+================================================================================
+FITTING COMPLETE!
+================================================================================

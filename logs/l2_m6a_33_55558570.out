@@ -1,0 +1,138 @@
+Activated: rlwm_gpu (by name)
+================================================================
+  L2 refit M6a (33, parallel chains)
+================================================================
+  Job ID:     55558570
+  Job name:   l2_m6a_33
+  Node:       m3e106
+  Partition:  comp
+  CPUs:       8
+  Commit:     b9a27ed [113 dirty]
+  Start:      Thu May 21 09:16:22 PM AEST 2026
+================================================================
+
+================================================================================
+STEP 21.6 — WINNER REFIT WITH L2 SCALES
+================================================================================
+  Model: wmrl_m6a
+  Data: data/processed/task_trials_long.csv
+  Winners file: models/bayesian/33_single_alpha/winners.txt
+  Chains/Warmup/Samples: 4/1000/2000
+  Seed: 42
+  Max tree depth: 10
+  Output: models//bayesian/33_l2/
+================================================================================
+
+>> Winners parsed from models/bayesian/33_single_alpha/winners.txt: ['M6a'] -> ['wmrl_m6a']
+
+>> Loading trial data (canonical v4.0 cohort)...
+
+>> Loading data from: data/processed/task_trials_long.csv
+Analysis cohort breakdown (total observed N=178):
+  Task-complete (>= 400 trials, >= 8 blocks): 178
+  Overall accuracy >= 0.4: 176
+  Late-block accuracy >= 0.5 (last 5): 158
+  Both performance gates: 158
+  Scale-complete (5 cols): 186
+  Final cohort (intersection − manual exclusions): 158
+  Analysis cohort (v4.0): task-complete + performance-check + scale-complete
+  Loaded 114872 trials from 178 participants
+  Excluded 20 participants outside cohort
+  Final sample: 158 participants
+  Filtered to blocks >= 3: 114872 trials remain
+  Dropped NaN values in critical columns: 114872 trials remain
+
+>> Data summary:
+  Participants: 158
+  Blocks: 21
+  Total trials: 114872
+  Trials per participant: 727
+    Participant 9187: 990 trials, 17 blocks
+    Participant 10000: 988 trials, 17 blocks
+    Participant 10002: 986 trials, 17 blocks
+    Participant 10003: 973 trials, 17 blocks
+    Participant 10004: 990 trials, 17 blocks
+    ... (158 total) ...
+    Participant 10242: 719 trials, 12 blocks
+    Participant 10243: 711 trials, 12 blocks
+    Participant 10245: 719 trials, 12 blocks
+    Participant 10246: 715 trials, 12 blocks
+    Participant 10248: 718 trials, 12 blocks
+  158 participants (sorted by id).
+
+>> Loading 2-covariate L2 design matrix from /fs04/fc37/adam/projects/rlwm_trauma_analysis/data/processed/summary_participant_metrics.csv...
+  Design shape: (158, 2), covariates: ['lec_total', 'iesr_total']
+
+>> Running MCMC inference (NUTS + convergence auto-bump)...
+>> Starting MCMC sampling with convergence auto-bump...
+   Chains: 4
+   Host devices: 4
+   Warmup: 1000
+   Samples: 2000
+   Max tree depth: 10
+   Total iterations per chain: 3000
+   Acceptance probability schedule: (0.8, 0.95, 0.99)
+
+============================================================
+>> JAX / NumPyro configuration
+   backend            : cpu
+   devices            : [CpuDevice(id=0), CpuDevice(id=1), CpuDevice(id=2), CpuDevice(id=3)]
+   local_device_count : 4
+   x64 enabled        : False
+   chain_method       : parallel
+   num_chains         : 4
+   NUMPYRO_HOST_DEVICE_COUNT        = <unset>
+   XLA_PYTHON_CLIENT_PREALLOCATE    = <unset>
+   XLA_PYTHON_CLIENT_MEM_FRACTION   = <unset>
+   JAX_COMPILATION_CACHE_DIR        = <unset>
+   JAX_PERSISTENT_CACHE_MIN_ENTRY_SIZE_BYTES = <unset>
+   CUDA_VISIBLE_DEVICES             = <unset>
+============================================================
+
+   Backend: cpu | chain_method: parallel
+[timing] target_accept_prob=0.80 wall=8.7s
+[convergence-gate] target_accept_prob=0.80 divergences=0
+[convergence-gate] Zero divergences — accepting this run.
+
+================================================================================
+SAVING RESULTS
+================================================================================
+
+>> Computing pointwise log-likelihoods...
+  Pointwise log-lik shape: (4, 2000, 158, 1700)
+  Padding positions set to NaN for WAIC/LOO.
+
+>> Building ArviZ InferenceData...
+
+>> Checking convergence gate...
+
+  Per-parameter diagnostics (group-level _mu_pr sites):
+    alpha_mu_pr                     r_hat=1.0000  ess_bulk=2034
+    capacity_mu_pr                  r_hat=1.0000  ess_bulk=4967
+    epsilon_mu_pr                   r_hat=1.0000  ess_bulk=1961
+    kappa_s_mu_pr                   r_hat=1.0000  ess_bulk=2802
+    phi_mu_pr                       r_hat=1.0000  ess_bulk=3033
+    rho_mu_pr                       r_hat=1.0000  ess_bulk=3234
+
+  Worst individual-level parameters:
+    [rhat] alpha[0]                                  r_hat=1.0000
+    [rhat] alpha[1]                                  r_hat=1.0000
+    [rhat] alpha[2]                                  r_hat=1.0000
+    [rhat] alpha[3]                                  r_hat=1.0000
+    [rhat] alpha[4]                                  r_hat=1.0000
+    [ess]  capacity[61]                              ess_bulk=2503
+    [ess]  capacity[47]                              ess_bulk=2688
+    [ess]  capacity[45]                              ess_bulk=3532
+    [ess]  capacity[7]                               ess_bulk=3556
+    [ess]  capacity[122]                             ess_bulk=3947
+
+[convergence-gate] model=wmrl_m6a max_rhat=1.000 min_ess_bulk=2503 divergences=0 min_bfmi=0.70 allow_gate_failure=False
+
+[CONVERGENCE GATE PASSED] max_rhat=1.0000, min_ess_bulk=2503, divergences=0, min_bfmi=0.701
+
+>> Writing schema-parity CSV...
+  Saved: models/bayesian/33_l2/wmrl_m6a_individual_fits.csv
+  Saved posterior NetCDF: models/bayesian/33_l2/wmrl_m6a_posterior.nc
+
+>> Computing WAIC and LOO...
+  WAIC (ELPD): nan (p_waic=nan)

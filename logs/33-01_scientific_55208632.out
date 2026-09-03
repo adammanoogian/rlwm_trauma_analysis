@@ -1,0 +1,260 @@
+============================================================
+Phase 33 Scientific-Tier Test Gate
+============================================================
+Job ID: 55208632
+Node: m3t100
+Project: /fs04/fc37/adam/projects/rlwm_trauma_analysis
+Commit: fb16fc4 [5 dirty] — fix(33-01): wire OUT_SUBDIR through 13_bayesian_multigpu.slurm
+Start time: Sat May  9 03:48:37 AM AEST 2026
+============================================================
+Activated rlwm_gpu (mamba)
+JAX 0.9.0 devices: [CudaDevice(id=0)]
+
+
+[Sat May  9 03:49:00 AM AEST 2026] Starting scientific-tier tests
+Tests: tests/scientific/
+
+============================= test session starts ==============================
+platform linux -- Python 3.11.15, pytest-9.0.3, pluggy-1.6.0 -- /scratch/fc37/aman0087/conda/envs/rlwm_gpu/bin/python
+cachedir: .pytest_cache
+rootdir: /fs04/fc37/adam/projects/rlwm_trauma_analysis
+configfile: pytest.ini (WARNING: ignoring pytest config in pyproject.toml!)
+collecting ... collected 41 items / 1 skipped
+
+tests/scientific/test_m3_backward_compat.py::TestSingleBlockBackwardCompatibility::test_single_block_multiple_seeds[42] FAILED [  2%]
+tests/scientific/test_m3_backward_compat.py::TestSingleBlockBackwardCompatibility::test_single_block_multiple_seeds[123] FAILED [  4%]
+tests/scientific/test_m3_backward_compat.py::TestSingleBlockBackwardCompatibility::test_single_block_multiple_seeds[456] FAILED [  7%]
+tests/scientific/test_m3_backward_compat.py::TestSingleBlockBackwardCompatibility::test_single_block_multiple_seeds[789] FAILED [  9%]
+tests/scientific/test_m3_backward_compat.py::TestSingleBlockBackwardCompatibility::test_single_block_multiple_seeds[1011] FAILED [ 12%]
+tests/scientific/test_m3_backward_compat.py::TestSingleBlockBackwardCompatibility::test_single_block_parameter_variations[params_0] FAILED [ 14%]
+tests/scientific/test_m3_backward_compat.py::TestSingleBlockBackwardCompatibility::test_single_block_parameter_variations[params_1] FAILED [ 17%]
+tests/scientific/test_m3_backward_compat.py::TestSingleBlockBackwardCompatibility::test_single_block_parameter_variations[params_2] FAILED [ 19%]
+tests/scientific/test_m3_backward_compat.py::TestSingleBlockBackwardCompatibility::test_single_block_parameter_variations[params_3] FAILED [ 21%]
+tests/scientific/test_m3_backward_compat.py::TestSingleBlockBackwardCompatibility::test_single_block_long_sequence FAILED [ 24%]
+tests/scientific/test_m3_backward_compat.py::TestMultiBlockBackwardCompatibility::test_three_blocks FAILED [ 26%]
+tests/scientific/test_m3_backward_compat.py::TestMultiBlockBackwardCompatibility::test_realistic_23_blocks FAILED [ 29%]
+tests/scientific/test_m3_backward_compat.py::TestMultiBlockBackwardCompatibility::test_varying_block_counts[1] FAILED [ 31%]
+tests/scientific/test_m3_backward_compat.py::TestMultiBlockBackwardCompatibility::test_varying_block_counts[5] FAILED [ 34%]
+tests/scientific/test_m3_backward_compat.py::TestMultiBlockBackwardCompatibility::test_varying_block_counts[10] FAILED [ 36%]
+tests/scientific/test_m3_backward_compat.py::TestMultiBlockBackwardCompatibility::test_varying_block_counts[21] FAILED [ 39%]
+tests/scientific/test_m3_backward_compat.py::TestKappaEffect::test_kappa_nonzero_differs_from_zero PASSED [ 41%]
+tests/scientific/test_m3_backward_compat.py::TestKappaEffect::test_high_kappa_increases_likelihood_for_repetitive_actions PASSED [ 43%]
+tests/scientific/test_m3_backward_compat.py::TestKappaEffect::test_kappa_range_produces_valid_likelihoods[0.0] PASSED [ 46%]
+tests/scientific/test_m3_backward_compat.py::TestKappaEffect::test_kappa_range_produces_valid_likelihoods[0.2] PASSED [ 48%]
+tests/scientific/test_m3_backward_compat.py::TestKappaEffect::test_kappa_range_produces_valid_likelihoods[0.5] PASSED [ 51%]
+tests/scientific/test_m3_backward_compat.py::TestKappaEffect::test_kappa_range_produces_valid_likelihoods[0.8] PASSED [ 53%]
+tests/scientific/test_m3_backward_compat.py::TestKappaEffect::test_kappa_range_produces_valid_likelihoods[1.0] PASSED [ 56%]
+tests/scientific/test_m3_backward_compat.py::TestKappaEffect::test_kappa_monotonic_with_repetition PASSED [ 58%]
+tests/scientific/test_model_consistency.py::TestQLearningConsistency::test_deterministic_behavior PASSED [ 60%]
+tests/scientific/test_model_consistency.py::TestQLearningConsistency::test_reset_behavior PASSED [ 63%]
+tests/scientific/test_model_consistency.py::TestQLearningConsistency::test_parameter_effects_alpha PASSED [ 65%]
+tests/scientific/test_model_consistency.py::TestQLearningConsistency::test_asymmetric_learning PASSED [ 68%]
+tests/scientific/test_model_consistency.py::TestQLearningConsistency::test_parameter_effects_beta PASSED [ 70%]
+tests/scientific/test_model_consistency.py::TestQLearningConsistency::test_q_value_bounds PASSED [ 73%]
+tests/scientific/test_model_consistency.py::TestQLearningConsistency::test_action_prob_validity PASSED [ 75%]
+tests/scientific/test_model_consistency.py::TestWMRLConsistency::test_deterministic_behavior PASSED [ 78%]
+tests/scientific/test_model_consistency.py::TestWMRLConsistency::test_wm_capacity_effects PASSED [ 80%]
+tests/scientific/test_model_consistency.py::TestWMRLConsistency::test_wm_weight_effects PASSED [ 82%]
+tests/scientific/test_model_consistency.py::TestWMRLConsistency::test_wm_matrix_structure PASSED [ 85%]
+tests/scientific/test_model_consistency.py::TestWMRLConsistency::test_hybrid_probs_validity PASSED [ 87%]
+tests/scientific/test_model_consistency.py::TestCrossModelComparison::test_wmrl_with_zero_rho_approaches_qlearning PASSED [ 90%]
+tests/scientific/test_parameter_recovery.py::TestQLearningParameterRecovery::test_recovery_with_scipy_mle PASSED [ 92%]
+tests/scientific/test_parameter_recovery.py::TestQLearningParameterRecovery::test_recovery_multiple_datasets PASSED [ 95%]
+tests/scientific/test_parameter_recovery.py::TestWMRLParameterRecovery::test_recovery_with_fixed_capacity PASSED [ 97%]
+tests/scientific/test_parameter_recovery.py::TestRecoveryDiagnostics::test_identifiability_beta_with_uniform_q PASSED [100%]
+
+=================================== FAILURES ===================================
+__ TestSingleBlockBackwardCompatibility.test_single_block_multiple_seeds[42] ___
+tests/scientific/test_m3_backward_compat.py:230: in test_single_block_multiple_seeds
+    assert jnp.allclose(m2_log_lik, m3_log_lik, rtol=1e-5, atol=1e-8), \
+E   AssertionError: Seed 42: M2=-68.621887, M3(κ=0)=-82.034752, diff=1.34e+01
+E   assert Array(False, dtype=bool)
+E    +  where Array(False, dtype=bool) = <PjitFunction of <function allclose at 0x7fb8934f5440>>(Array(-68.62189, dtype=float32), Array(-82.03475, dtype=float32), rtol=1e-05, atol=1e-08)
+E    +    where <PjitFunction of <function allclose at 0x7fb8934f5440>> = jnp.allclose
+__ TestSingleBlockBackwardCompatibility.test_single_block_multiple_seeds[123] __
+tests/scientific/test_m3_backward_compat.py:230: in test_single_block_multiple_seeds
+    assert jnp.allclose(m2_log_lik, m3_log_lik, rtol=1e-5, atol=1e-8), \
+E   AssertionError: Seed 123: M2=-66.211761, M3(κ=0)=-74.558136, diff=8.35e+00
+E   assert Array(False, dtype=bool)
+E    +  where Array(False, dtype=bool) = <PjitFunction of <function allclose at 0x7fb8934f5440>>(Array(-66.21176, dtype=float32), Array(-74.558136, dtype=float32), rtol=1e-05, atol=1e-08)
+E    +    where <PjitFunction of <function allclose at 0x7fb8934f5440>> = jnp.allclose
+__ TestSingleBlockBackwardCompatibility.test_single_block_multiple_seeds[456] __
+tests/scientific/test_m3_backward_compat.py:230: in test_single_block_multiple_seeds
+    assert jnp.allclose(m2_log_lik, m3_log_lik, rtol=1e-5, atol=1e-8), \
+E   AssertionError: Seed 456: M2=-73.542831, M3(κ=0)=-90.137016, diff=1.66e+01
+E   assert Array(False, dtype=bool)
+E    +  where Array(False, dtype=bool) = <PjitFunction of <function allclose at 0x7fb8934f5440>>(Array(-73.54283, dtype=float32), Array(-90.13702, dtype=float32), rtol=1e-05, atol=1e-08)
+E    +    where <PjitFunction of <function allclose at 0x7fb8934f5440>> = jnp.allclose
+__ TestSingleBlockBackwardCompatibility.test_single_block_multiple_seeds[789] __
+tests/scientific/test_m3_backward_compat.py:230: in test_single_block_multiple_seeds
+    assert jnp.allclose(m2_log_lik, m3_log_lik, rtol=1e-5, atol=1e-8), \
+E   AssertionError: Seed 789: M2=-56.532982, M3(κ=0)=-63.467693, diff=6.93e+00
+E   assert Array(False, dtype=bool)
+E    +  where Array(False, dtype=bool) = <PjitFunction of <function allclose at 0x7fb8934f5440>>(Array(-56.53298, dtype=float32), Array(-63.467693, dtype=float32), rtol=1e-05, atol=1e-08)
+E    +    where <PjitFunction of <function allclose at 0x7fb8934f5440>> = jnp.allclose
+_ TestSingleBlockBackwardCompatibility.test_single_block_multiple_seeds[1011] __
+tests/scientific/test_m3_backward_compat.py:230: in test_single_block_multiple_seeds
+    assert jnp.allclose(m2_log_lik, m3_log_lik, rtol=1e-5, atol=1e-8), \
+E   AssertionError: Seed 1011: M2=-74.118675, M3(κ=0)=-93.308647, diff=1.92e+01
+E   assert Array(False, dtype=bool)
+E    +  where Array(False, dtype=bool) = <PjitFunction of <function allclose at 0x7fb8934f5440>>(Array(-74.118675, dtype=float32), Array(-93.30865, dtype=float32), rtol=1e-05, atol=1e-08)
+E    +    where <PjitFunction of <function allclose at 0x7fb8934f5440>> = jnp.allclose
+_ TestSingleBlockBackwardCompatibility.test_single_block_parameter_variations[params_0] _
+tests/scientific/test_m3_backward_compat.py:266: in test_single_block_parameter_variations
+    assert jnp.allclose(m2_log_lik, m3_log_lik, rtol=1e-5, atol=1e-8), \
+E   AssertionError: M2=-87.581116, M3(κ=0)=-108.273994, diff=2.07e+01
+E   assert Array(False, dtype=bool)
+E    +  where Array(False, dtype=bool) = <PjitFunction of <function allclose at 0x7fb8934f5440>>(Array(-87.581116, dtype=float32), Array(-108.273994, dtype=float32), rtol=1e-05, atol=1e-08)
+E    +    where <PjitFunction of <function allclose at 0x7fb8934f5440>> = jnp.allclose
+_ TestSingleBlockBackwardCompatibility.test_single_block_parameter_variations[params_1] _
+tests/scientific/test_m3_backward_compat.py:266: in test_single_block_parameter_variations
+    assert jnp.allclose(m2_log_lik, m3_log_lik, rtol=1e-5, atol=1e-8), \
+E   AssertionError: M2=-100.366783, M3(κ=0)=-117.644707, diff=1.73e+01
+E   assert Array(False, dtype=bool)
+E    +  where Array(False, dtype=bool) = <PjitFunction of <function allclose at 0x7fb8934f5440>>(Array(-100.36678, dtype=float32), Array(-117.64471, dtype=float32), rtol=1e-05, atol=1e-08)
+E    +    where <PjitFunction of <function allclose at 0x7fb8934f5440>> = jnp.allclose
+_ TestSingleBlockBackwardCompatibility.test_single_block_parameter_variations[params_2] _
+tests/scientific/test_m3_backward_compat.py:266: in test_single_block_parameter_variations
+    assert jnp.allclose(m2_log_lik, m3_log_lik, rtol=1e-5, atol=1e-8), \
+E   AssertionError: M2=-64.749489, M3(κ=0)=-86.832161, diff=2.21e+01
+E   assert Array(False, dtype=bool)
+E    +  where Array(False, dtype=bool) = <PjitFunction of <function allclose at 0x7fb8934f5440>>(Array(-64.74949, dtype=float32), Array(-86.83216, dtype=float32), rtol=1e-05, atol=1e-08)
+E    +    where <PjitFunction of <function allclose at 0x7fb8934f5440>> = jnp.allclose
+_ TestSingleBlockBackwardCompatibility.test_single_block_parameter_variations[params_3] _
+tests/scientific/test_m3_backward_compat.py:266: in test_single_block_parameter_variations
+    assert jnp.allclose(m2_log_lik, m3_log_lik, rtol=1e-5, atol=1e-8), \
+E   AssertionError: M2=-86.872581, M3(κ=0)=-104.827049, diff=1.80e+01
+E   assert Array(False, dtype=bool)
+E    +  where Array(False, dtype=bool) = <PjitFunction of <function allclose at 0x7fb8934f5440>>(Array(-86.87258, dtype=float32), Array(-104.82705, dtype=float32), rtol=1e-05, atol=1e-08)
+E    +    where <PjitFunction of <function allclose at 0x7fb8934f5440>> = jnp.allclose
+_____ TestSingleBlockBackwardCompatibility.test_single_block_long_sequence _____
+tests/scientific/test_m3_backward_compat.py:294: in test_single_block_long_sequence
+    assert jnp.allclose(m2_log_lik, m3_log_lik, rtol=1e-5, atol=1e-8), \
+E   AssertionError: M2=-193.017334, M3(κ=0)=-249.541031, diff=5.65e+01
+E   assert Array(False, dtype=bool)
+E    +  where Array(False, dtype=bool) = <PjitFunction of <function allclose at 0x7fb8934f5440>>(Array(-193.01733, dtype=float32), Array(-249.54103, dtype=float32), rtol=1e-05, atol=1e-08)
+E    +    where <PjitFunction of <function allclose at 0x7fb8934f5440>> = jnp.allclose
+____________ TestMultiBlockBackwardCompatibility.test_three_blocks _____________
+tests/scientific/test_m3_backward_compat.py:330: in test_three_blocks
+    assert jnp.allclose(m2_log_lik, m3_log_lik, rtol=1e-5, atol=1e-8), \
+E   AssertionError: 3 blocks: M2=-201.578766, M3(κ=0)=-219.406906, diff=1.78e+01
+E   assert Array(False, dtype=bool)
+E    +  where Array(False, dtype=bool) = <PjitFunction of <function allclose at 0x7fb8934f5440>>(Array(-201.57877, dtype=float32), Array(-219.4069, dtype=float32), rtol=1e-05, atol=1e-08)
+E    +    where <PjitFunction of <function allclose at 0x7fb8934f5440>> = jnp.allclose
+_________ TestMultiBlockBackwardCompatibility.test_realistic_23_blocks _________
+tests/scientific/test_m3_backward_compat.py:358: in test_realistic_23_blocks
+    assert jnp.allclose(m2_log_lik, m3_log_lik, rtol=1e-5, atol=1e-8), \
+E   AssertionError: 23 blocks: M2=-1926.556885, M3(κ=0)=-2271.611572, diff=3.45e+02
+E   assert Array(False, dtype=bool)
+E    +  where Array(False, dtype=bool) = <PjitFunction of <function allclose at 0x7fb8934f5440>>(Array(-1926.5569, dtype=float32), Array(-2271.6116, dtype=float32), rtol=1e-05, atol=1e-08)
+E    +    where <PjitFunction of <function allclose at 0x7fb8934f5440>> = jnp.allclose
+_______ TestMultiBlockBackwardCompatibility.test_varying_block_counts[1] _______
+tests/scientific/test_m3_backward_compat.py:387: in test_varying_block_counts
+    assert jnp.allclose(m2_log_lik, m3_log_lik, rtol=1e-5, atol=1e-8), \
+E   AssertionError: 1 blocks: M2=-64.916542, M3(κ=0)=-76.381340, diff=1.15e+01
+E   assert Array(False, dtype=bool)
+E    +  where Array(False, dtype=bool) = <PjitFunction of <function allclose at 0x7fb8934f5440>>(Array(-64.91654, dtype=float32), Array(-76.38134, dtype=float32), rtol=1e-05, atol=1e-08)
+E    +    where <PjitFunction of <function allclose at 0x7fb8934f5440>> = jnp.allclose
+_______ TestMultiBlockBackwardCompatibility.test_varying_block_counts[5] _______
+tests/scientific/test_m3_backward_compat.py:387: in test_varying_block_counts
+    assert jnp.allclose(m2_log_lik, m3_log_lik, rtol=1e-5, atol=1e-8), \
+E   AssertionError: 5 blocks: M2=-312.374207, M3(κ=0)=-363.920654, diff=5.15e+01
+E   assert Array(False, dtype=bool)
+E    +  where Array(False, dtype=bool) = <PjitFunction of <function allclose at 0x7fb8934f5440>>(Array(-312.3742, dtype=float32), Array(-363.92065, dtype=float32), rtol=1e-05, atol=1e-08)
+E    +    where <PjitFunction of <function allclose at 0x7fb8934f5440>> = jnp.allclose
+______ TestMultiBlockBackwardCompatibility.test_varying_block_counts[10] _______
+tests/scientific/test_m3_backward_compat.py:387: in test_varying_block_counts
+    assert jnp.allclose(m2_log_lik, m3_log_lik, rtol=1e-5, atol=1e-8), \
+E   AssertionError: 10 blocks: M2=-632.334534, M3(κ=0)=-728.189453, diff=9.59e+01
+E   assert Array(False, dtype=bool)
+E    +  where Array(False, dtype=bool) = <PjitFunction of <function allclose at 0x7fb8934f5440>>(Array(-632.33453, dtype=float32), Array(-728.18945, dtype=float32), rtol=1e-05, atol=1e-08)
+E    +    where <PjitFunction of <function allclose at 0x7fb8934f5440>> = jnp.allclose
+______ TestMultiBlockBackwardCompatibility.test_varying_block_counts[21] _______
+tests/scientific/test_m3_backward_compat.py:387: in test_varying_block_counts
+    assert jnp.allclose(m2_log_lik, m3_log_lik, rtol=1e-5, atol=1e-8), \
+E   AssertionError: 21 blocks: M2=-1304.795044, M3(κ=0)=-1505.501221, diff=2.01e+02
+E   assert Array(False, dtype=bool)
+E    +  where Array(False, dtype=bool) = <PjitFunction of <function allclose at 0x7fb8934f5440>>(Array(-1304.795, dtype=float32), Array(-1505.5012, dtype=float32), rtol=1e-05, atol=1e-08)
+E    +    where <PjitFunction of <function allclose at 0x7fb8934f5440>> = jnp.allclose
+============================= slowest 10 durations =============================
+13.62s call     tests/scientific/test_m3_backward_compat.py::TestMultiBlockBackwardCompatibility::test_realistic_23_blocks
+11.36s call     tests/scientific/test_m3_backward_compat.py::TestMultiBlockBackwardCompatibility::test_varying_block_counts[21]
+5.35s call     tests/scientific/test_m3_backward_compat.py::TestMultiBlockBackwardCompatibility::test_varying_block_counts[10]
+3.99s call     tests/scientific/test_m3_backward_compat.py::TestSingleBlockBackwardCompatibility::test_single_block_multiple_seeds[42]
+2.65s call     tests/scientific/test_m3_backward_compat.py::TestMultiBlockBackwardCompatibility::test_varying_block_counts[5]
+2.18s call     tests/scientific/test_m3_backward_compat.py::TestKappaEffect::test_high_kappa_increases_likelihood_for_repetitive_actions
+1.74s call     tests/scientific/test_m3_backward_compat.py::TestMultiBlockBackwardCompatibility::test_varying_block_counts[1]
+1.71s call     tests/scientific/test_m3_backward_compat.py::TestSingleBlockBackwardCompatibility::test_single_block_long_sequence
+1.69s call     tests/scientific/test_m3_backward_compat.py::TestSingleBlockBackwardCompatibility::test_single_block_parameter_variations[params_0]
+1.67s call     tests/scientific/test_m3_backward_compat.py::TestMultiBlockBackwardCompatibility::test_three_blocks
+=========================== short test summary info ============================
+FAILED tests/scientific/test_m3_backward_compat.py::TestSingleBlockBackwardCompatibility::test_single_block_multiple_seeds[42] - AssertionError: Seed 42: M2=-68.621887, M3(κ=0)=-82.034752, diff=1.34e+01
+assert Array(False, dtype=bool)
+ +  where Array(False, dtype=bool) = <PjitFunction of <function allclose at 0x7fb8934f5440>>(Array(-68.62189, dtype=float32), Array(-82.03475, dtype=float32), rtol=1e-05, atol=1e-08)
+ +    where <PjitFunction of <function allclose at 0x7fb8934f5440>> = jnp.allclose
+FAILED tests/scientific/test_m3_backward_compat.py::TestSingleBlockBackwardCompatibility::test_single_block_multiple_seeds[123] - AssertionError: Seed 123: M2=-66.211761, M3(κ=0)=-74.558136, diff=8.35e+00
+assert Array(False, dtype=bool)
+ +  where Array(False, dtype=bool) = <PjitFunction of <function allclose at 0x7fb8934f5440>>(Array(-66.21176, dtype=float32), Array(-74.558136, dtype=float32), rtol=1e-05, atol=1e-08)
+ +    where <PjitFunction of <function allclose at 0x7fb8934f5440>> = jnp.allclose
+FAILED tests/scientific/test_m3_backward_compat.py::TestSingleBlockBackwardCompatibility::test_single_block_multiple_seeds[456] - AssertionError: Seed 456: M2=-73.542831, M3(κ=0)=-90.137016, diff=1.66e+01
+assert Array(False, dtype=bool)
+ +  where Array(False, dtype=bool) = <PjitFunction of <function allclose at 0x7fb8934f5440>>(Array(-73.54283, dtype=float32), Array(-90.13702, dtype=float32), rtol=1e-05, atol=1e-08)
+ +    where <PjitFunction of <function allclose at 0x7fb8934f5440>> = jnp.allclose
+FAILED tests/scientific/test_m3_backward_compat.py::TestSingleBlockBackwardCompatibility::test_single_block_multiple_seeds[789] - AssertionError: Seed 789: M2=-56.532982, M3(κ=0)=-63.467693, diff=6.93e+00
+assert Array(False, dtype=bool)
+ +  where Array(False, dtype=bool) = <PjitFunction of <function allclose at 0x7fb8934f5440>>(Array(-56.53298, dtype=float32), Array(-63.467693, dtype=float32), rtol=1e-05, atol=1e-08)
+ +    where <PjitFunction of <function allclose at 0x7fb8934f5440>> = jnp.allclose
+FAILED tests/scientific/test_m3_backward_compat.py::TestSingleBlockBackwardCompatibility::test_single_block_multiple_seeds[1011] - AssertionError: Seed 1011: M2=-74.118675, M3(κ=0)=-93.308647, diff=1.92e+01
+assert Array(False, dtype=bool)
+ +  where Array(False, dtype=bool) = <PjitFunction of <function allclose at 0x7fb8934f5440>>(Array(-74.118675, dtype=float32), Array(-93.30865, dtype=float32), rtol=1e-05, atol=1e-08)
+ +    where <PjitFunction of <function allclose at 0x7fb8934f5440>> = jnp.allclose
+FAILED tests/scientific/test_m3_backward_compat.py::TestSingleBlockBackwardCompatibility::test_single_block_parameter_variations[params_0] - AssertionError: M2=-87.581116, M3(κ=0)=-108.273994, diff=2.07e+01
+assert Array(False, dtype=bool)
+ +  where Array(False, dtype=bool) = <PjitFunction of <function allclose at 0x7fb8934f5440>>(Array(-87.581116, dtype=float32), Array(-108.273994, dtype=float32), rtol=1e-05, atol=1e-08)
+ +    where <PjitFunction of <function allclose at 0x7fb8934f5440>> = jnp.allclose
+FAILED tests/scientific/test_m3_backward_compat.py::TestSingleBlockBackwardCompatibility::test_single_block_parameter_variations[params_1] - AssertionError: M2=-100.366783, M3(κ=0)=-117.644707, diff=1.73e+01
+assert Array(False, dtype=bool)
+ +  where Array(False, dtype=bool) = <PjitFunction of <function allclose at 0x7fb8934f5440>>(Array(-100.36678, dtype=float32), Array(-117.64471, dtype=float32), rtol=1e-05, atol=1e-08)
+ +    where <PjitFunction of <function allclose at 0x7fb8934f5440>> = jnp.allclose
+FAILED tests/scientific/test_m3_backward_compat.py::TestSingleBlockBackwardCompatibility::test_single_block_parameter_variations[params_2] - AssertionError: M2=-64.749489, M3(κ=0)=-86.832161, diff=2.21e+01
+assert Array(False, dtype=bool)
+ +  where Array(False, dtype=bool) = <PjitFunction of <function allclose at 0x7fb8934f5440>>(Array(-64.74949, dtype=float32), Array(-86.83216, dtype=float32), rtol=1e-05, atol=1e-08)
+ +    where <PjitFunction of <function allclose at 0x7fb8934f5440>> = jnp.allclose
+FAILED tests/scientific/test_m3_backward_compat.py::TestSingleBlockBackwardCompatibility::test_single_block_parameter_variations[params_3] - AssertionError: M2=-86.872581, M3(κ=0)=-104.827049, diff=1.80e+01
+assert Array(False, dtype=bool)
+ +  where Array(False, dtype=bool) = <PjitFunction of <function allclose at 0x7fb8934f5440>>(Array(-86.87258, dtype=float32), Array(-104.82705, dtype=float32), rtol=1e-05, atol=1e-08)
+ +    where <PjitFunction of <function allclose at 0x7fb8934f5440>> = jnp.allclose
+FAILED tests/scientific/test_m3_backward_compat.py::TestSingleBlockBackwardCompatibility::test_single_block_long_sequence - AssertionError: M2=-193.017334, M3(κ=0)=-249.541031, diff=5.65e+01
+assert Array(False, dtype=bool)
+ +  where Array(False, dtype=bool) = <PjitFunction of <function allclose at 0x7fb8934f5440>>(Array(-193.01733, dtype=float32), Array(-249.54103, dtype=float32), rtol=1e-05, atol=1e-08)
+ +    where <PjitFunction of <function allclose at 0x7fb8934f5440>> = jnp.allclose
+FAILED tests/scientific/test_m3_backward_compat.py::TestMultiBlockBackwardCompatibility::test_three_blocks - AssertionError: 3 blocks: M2=-201.578766, M3(κ=0)=-219.406906, diff=1.78e+01
+assert Array(False, dtype=bool)
+ +  where Array(False, dtype=bool) = <PjitFunction of <function allclose at 0x7fb8934f5440>>(Array(-201.57877, dtype=float32), Array(-219.4069, dtype=float32), rtol=1e-05, atol=1e-08)
+ +    where <PjitFunction of <function allclose at 0x7fb8934f5440>> = jnp.allclose
+FAILED tests/scientific/test_m3_backward_compat.py::TestMultiBlockBackwardCompatibility::test_realistic_23_blocks - AssertionError: 23 blocks: M2=-1926.556885, M3(κ=0)=-2271.611572, diff=3.45e+02
+assert Array(False, dtype=bool)
+ +  where Array(False, dtype=bool) = <PjitFunction of <function allclose at 0x7fb8934f5440>>(Array(-1926.5569, dtype=float32), Array(-2271.6116, dtype=float32), rtol=1e-05, atol=1e-08)
+ +    where <PjitFunction of <function allclose at 0x7fb8934f5440>> = jnp.allclose
+FAILED tests/scientific/test_m3_backward_compat.py::TestMultiBlockBackwardCompatibility::test_varying_block_counts[1] - AssertionError: 1 blocks: M2=-64.916542, M3(κ=0)=-76.381340, diff=1.15e+01
+assert Array(False, dtype=bool)
+ +  where Array(False, dtype=bool) = <PjitFunction of <function allclose at 0x7fb8934f5440>>(Array(-64.91654, dtype=float32), Array(-76.38134, dtype=float32), rtol=1e-05, atol=1e-08)
+ +    where <PjitFunction of <function allclose at 0x7fb8934f5440>> = jnp.allclose
+FAILED tests/scientific/test_m3_backward_compat.py::TestMultiBlockBackwardCompatibility::test_varying_block_counts[5] - AssertionError: 5 blocks: M2=-312.374207, M3(κ=0)=-363.920654, diff=5.15e+01
+assert Array(False, dtype=bool)
+ +  where Array(False, dtype=bool) = <PjitFunction of <function allclose at 0x7fb8934f5440>>(Array(-312.3742, dtype=float32), Array(-363.92065, dtype=float32), rtol=1e-05, atol=1e-08)
+ +    where <PjitFunction of <function allclose at 0x7fb8934f5440>> = jnp.allclose
+FAILED tests/scientific/test_m3_backward_compat.py::TestMultiBlockBackwardCompatibility::test_varying_block_counts[10] - AssertionError: 10 blocks: M2=-632.334534, M3(κ=0)=-728.189453, diff=9.59e+01
+assert Array(False, dtype=bool)
+ +  where Array(False, dtype=bool) = <PjitFunction of <function allclose at 0x7fb8934f5440>>(Array(-632.33453, dtype=float32), Array(-728.18945, dtype=float32), rtol=1e-05, atol=1e-08)
+ +    where <PjitFunction of <function allclose at 0x7fb8934f5440>> = jnp.allclose
+FAILED tests/scientific/test_m3_backward_compat.py::TestMultiBlockBackwardCompatibility::test_varying_block_counts[21] - AssertionError: 21 blocks: M2=-1304.795044, M3(κ=0)=-1505.501221, diff=2.01e+02
+assert Array(False, dtype=bool)
+ +  where Array(False, dtype=bool) = <PjitFunction of <function allclose at 0x7fb8934f5440>>(Array(-1304.795, dtype=float32), Array(-1505.5012, dtype=float32), rtol=1e-05, atol=1e-08)
+ +    where <PjitFunction of <function allclose at 0x7fb8934f5440>> = jnp.allclose
+============= 16 failed, 25 passed, 1 skipped in 61.89s (0:01:01) ==============
+
+============================================================
+[Sat May  9 03:50:25 AM AEST 2026] Scientific-tier gate finished (exit code: 1)
+VERDICT: FAIL — see above for failures
+============================================================

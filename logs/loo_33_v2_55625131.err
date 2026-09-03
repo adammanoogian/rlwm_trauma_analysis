@@ -1,0 +1,23 @@
+/fs04/fc37/adam/projects/rlwm_trauma_analysis/scripts/06_fit_analyses/02_compute_loo_stacking.py:885: DeprecationWarning: models/bayesian/33_single_alpha/wmrl_posterior.nc has no 'parameterization_version' attr — cannot hard-validate against EXPECTED_PARAMETERIZATION. v4.0 NetCDF write sites do not emit this attr; retrofit tracked as a v5.1 item. Model: 'wmrl'.
+  compare_dict[display_name] = load_netcdf_with_validation(nc_path, model)
+/fs04/fc37/adam/projects/rlwm_trauma_analysis/scripts/06_fit_analyses/02_compute_loo_stacking.py:885: DeprecationWarning: models/bayesian/33_single_alpha/wmrl_m3_posterior.nc has no 'parameterization_version' attr — cannot hard-validate against EXPECTED_PARAMETERIZATION. v4.0 NetCDF write sites do not emit this attr; retrofit tracked as a v5.1 item. Model: 'wmrl_m3'.
+  compare_dict[display_name] = load_netcdf_with_validation(nc_path, model)
+/fs04/fc37/adam/projects/rlwm_trauma_analysis/scripts/06_fit_analyses/02_compute_loo_stacking.py:885: DeprecationWarning: models/bayesian/33_single_alpha/wmrl_m5_posterior.nc has no 'parameterization_version' attr — cannot hard-validate against EXPECTED_PARAMETERIZATION. v4.0 NetCDF write sites do not emit this attr; retrofit tracked as a v5.1 item. Model: 'wmrl_m5'.
+  compare_dict[display_name] = load_netcdf_with_validation(nc_path, model)
+/fs04/fc37/adam/projects/rlwm_trauma_analysis/scripts/06_fit_analyses/02_compute_loo_stacking.py:885: DeprecationWarning: models/bayesian/33_single_alpha/wmrl_m6a_posterior.nc has no 'parameterization_version' attr — cannot hard-validate against EXPECTED_PARAMETERIZATION. v4.0 NetCDF write sites do not emit this attr; retrofit tracked as a v5.1 item. Model: 'wmrl_m6a'.
+  compare_dict[display_name] = load_netcdf_with_validation(nc_path, model)
+/fs04/fc37/adam/projects/rlwm_trauma_analysis/scripts/06_fit_analyses/02_compute_loo_stacking.py:885: DeprecationWarning: models/bayesian/33_single_alpha/wmrl_m6b_posterior.nc has no 'parameterization_version' attr — cannot hard-validate against EXPECTED_PARAMETERIZATION. v4.0 NetCDF write sites do not emit this attr; retrofit tracked as a v5.1 item. Model: 'wmrl_m6b'.
+  compare_dict[display_name] = load_netcdf_with_validation(nc_path, model)
+[WARNING] M2: 60.12% of observations have pareto_k > 0.7 (threshold: 1.0%). Flagged for human review at Wave 4 checkpoint. NOT auto-excluded per plan-checker Issue #8 Option B.
+[WARNING] M3: 57.96% of observations have pareto_k > 0.7 (threshold: 1.0%). Flagged for human review at Wave 4 checkpoint. NOT auto-excluded per plan-checker Issue #8 Option B.
+[WARNING] M5: 57.96% of observations have pareto_k > 0.7 (threshold: 1.0%). Flagged for human review at Wave 4 checkpoint. NOT auto-excluded per plan-checker Issue #8 Option B.
+[WARNING] M6a: 60.11% of observations have pareto_k > 0.7 (threshold: 1.0%). Flagged for human review at Wave 4 checkpoint. NOT auto-excluded per plan-checker Issue #8 Option B.
+[WARNING] M6b: 57.96% of observations have pareto_k > 0.7 (threshold: 1.0%). Flagged for human review at Wave 4 checkpoint. NOT auto-excluded per plan-checker Issue #8 Option B.
+[LOO FAILED] az.compare raised ValueError: The number of observations should be the same across all models
+  Producing NaN comparison table. BMS will be primary.
+[BMS] M2: dropping 1 participant(s) not in intersection: [np.int64(10130)]
+[BMS] M3: dropping 1 participant(s) not in intersection: [np.int64(10130)]
+[BMS] M5: dropping 1 participant(s) not in intersection: [np.int64(10130)]
+[BMS] M6a: dropping 1 participant(s) not in intersection: [np.int64(10130)]
+[BMS] Restricting to 157 common participants across all 5 models.
+[PARETO-K CATASTROPHE] >= 50.0% high-k observations detected. PSIS-LOO stacking weights UNRELIABLE. Using RFX-BMS PXP as PRIMARY winner determination.

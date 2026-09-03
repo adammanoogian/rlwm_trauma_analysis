@@ -1,0 +1,41 @@
+Activated: rlwm_gpu (by name)
+========================================================================
+Phase 21 Step 21.5 — LOO + stacking + RFX-BMS
+========================================================================
+Baseline dir: models/bayesian/33_single_alpha
+Output dir:   models/bayesian/33_single_alpha
+Pareto-k threshold: 0.7
+Pareto-k pct threshold: 1.0%
+Stacking winner threshold: 0.5
+Combined winner threshold: 0.8
+Weak winner threshold: 0.1
+========================================================================
+
+Found 5 model(s) flagged PROCEED_TO_LOO: ['wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b']
+
+LOO + stacking weights (primary):
+     rank  elpd_loo  p_loo  elpd_diff  weight  se  dse  warning scale  pct_high_pareto_k
+M2      0       NaN    NaN        NaN     0.2 NaN  NaN     True   log          60.118764
+M3      1       NaN    NaN        NaN     0.2 NaN  NaN     True   log          57.956069
+M5      2       NaN    NaN        NaN     0.2 NaN  NaN     True   log          57.955696
+M6a     3       NaN    NaN        NaN     0.2 NaN  NaN     True   log          60.113924
+M6b     4       NaN    NaN        NaN     0.2 NaN  NaN     True   log          57.961409
+
+RFX-BMS BOR: 0.0000
+PXP per model:
+  M2: 0.0000
+  M3: 0.0000
+  M5: 0.0000
+  M6a: 0.0000
+  M6b: 1.0000
+
+Ranking method: BMS_PXP
+Winner type: DOMINANT_SINGLE
+Winners: ['M6b']
+
+Wrote models/bayesian/33_single_alpha/loo_stacking_results.csv
+Wrote models/bayesian/33_single_alpha/rfx_bms_pxp.csv
+Wrote models/bayesian/33_single_alpha/winner_report.md
+Wrote models/bayesian/33_single_alpha/winners.txt (M6b)
+
+[OK] Winner verdict decisive — exit code 0.

@@ -1,0 +1,79 @@
+================================================================================
+STEP 21.6 — WINNER REFIT WITH L2 SCALES
+================================================================================
+  Model: wmrl_m6a
+  Data: data/processed/task_trials_long.csv
+  Winners file: models/bayesian/33_single_alpha/winners.txt
+  Chains/Warmup/Samples: 4/1000/2000
+  Seed: 42
+  Max tree depth: 10
+  Output: models//bayesian/33_l2/
+================================================================================
+
+>> Winners parsed from models/bayesian/33_single_alpha/winners.txt: ['M6a'] -> ['wmrl_m6a']
+
+>> Loading trial data (canonical v4.0 cohort)...
+
+>> Loading data from: data/processed/task_trials_long.csv
+Analysis cohort breakdown (total observed N=178):
+  Task-complete (>= 400 trials, >= 8 blocks): 178
+  Overall accuracy >= 0.4: 176
+  Late-block accuracy >= 0.5 (last 5): 158
+  Both performance gates: 158
+  Scale-complete (5 cols): 186
+  Final cohort (intersection − manual exclusions): 158
+  Analysis cohort (v4.0): task-complete + performance-check + scale-complete
+  Loaded 114872 trials from 178 participants
+  Excluded 20 participants outside cohort
+  Final sample: 158 participants
+  Filtered to blocks >= 3: 114872 trials remain
+  Dropped NaN values in critical columns: 114872 trials remain
+
+>> Data summary:
+  Participants: 158
+  Blocks: 21
+  Total trials: 114872
+  Trials per participant: 727
+    Participant 9187: 990 trials, 17 blocks
+    Participant 10000: 988 trials, 17 blocks
+    Participant 10002: 986 trials, 17 blocks
+    Participant 10003: 973 trials, 17 blocks
+    Participant 10004: 990 trials, 17 blocks
+    ... (158 total) ...
+    Participant 10242: 719 trials, 12 blocks
+    Participant 10243: 711 trials, 12 blocks
+    Participant 10245: 719 trials, 12 blocks
+    Participant 10246: 715 trials, 12 blocks
+    Participant 10248: 718 trials, 12 blocks
+  158 participants (sorted by id).
+
+>> Loading 2-covariate L2 design matrix from /fs04/fc37/adam/projects/rlwm_trauma_analysis/data/processed/summary_participant_metrics.csv...
+  Design shape: (158, 2), covariates: ['lec_total', 'iesr_total']
+
+>> Running MCMC inference (NUTS + convergence auto-bump)...
+>> Starting MCMC sampling with convergence auto-bump...
+   Chains: 4
+   Host devices: 1
+   Warmup: 1000
+   Samples: 2000
+   Max tree depth: 10
+   Total iterations per chain: 3000
+   Acceptance probability schedule: (0.8, 0.95, 0.99)
+
+============================================================
+>> JAX / NumPyro configuration
+   backend            : cpu
+   devices            : [CpuDevice(id=0)]
+   local_device_count : 1
+   x64 enabled        : False
+   chain_method       : sequential
+   num_chains         : 4
+   NUMPYRO_HOST_DEVICE_COUNT        = 4
+   XLA_PYTHON_CLIENT_PREALLOCATE    = <unset>
+   XLA_PYTHON_CLIENT_MEM_FRACTION   = <unset>
+   JAX_COMPILATION_CACHE_DIR        = <unset>
+   JAX_PERSISTENT_CACHE_MIN_ENTRY_SIZE_BYTES = <unset>
+   CUDA_VISIBLE_DEVICES             = <unset>
+============================================================
+
+   Backend: cpu | chain_method: sequential

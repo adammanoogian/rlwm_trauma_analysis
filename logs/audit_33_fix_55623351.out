@@ -1,0 +1,39 @@
+Activated: rlwm_gpu (by name)
+================================================================================
+STEP 21.4 — BASELINE CONVERGENCE AUDIT
+================================================================================
+  Baseline dir: models/bayesian/33_single_alpha
+  Output dir: models/bayesian/33_single_alpha
+  R-hat threshold: <= 1.05
+  ESS_bulk threshold: >= 400.0
+  BFMI threshold: >= 0.2
+  Divergence threshold: == 0
+================================================================================
+
+[audit] qlearning ...
+[audit] qlearning: FAIL (action=EXCLUDED_RHAT, R-hat=1.7300, ESS=6, div=0, BFMI=0.605)
+
+[audit] wmrl ...
+[audit] wmrl: PASS (action=PROCEED_TO_LOO, R-hat=1.0000, ESS=1377, div=0, BFMI=0.660)
+
+[audit] wmrl_m3 ...
+[audit] wmrl_m3: PASS (action=PROCEED_TO_LOO, R-hat=1.0000, ESS=3707, div=0, BFMI=0.639)
+
+[audit] wmrl_m5 ...
+[audit] wmrl_m5: PASS (action=PROCEED_TO_LOO, R-hat=1.0100, ESS=1045, div=0, BFMI=0.741)
+
+[audit] wmrl_m6a ...
+[audit] wmrl_m6a: PASS (action=PROCEED_TO_LOO, R-hat=1.0000, ESS=3215, div=0, BFMI=0.676)
+
+[audit] wmrl_m6b ...
+[audit] wmrl_m6b: PASS (action=PROCEED_TO_LOO, R-hat=1.0000, ESS=2201, div=0, BFMI=0.706)
+
+[audit] Wrote models/bayesian/33_single_alpha/convergence_table.csv
+[audit] Wrote models/bayesian/33_single_alpha/convergence_report.md
+
+================================================================================
+  n_passing = 5
+  n_excluded = 1
+================================================================================
+
+[STEP 21.4 COMPLETE] 5 models proceeding to LOO + stacking: ['wmrl', 'wmrl_m3', 'wmrl_m5', 'wmrl_m6a', 'wmrl_m6b']

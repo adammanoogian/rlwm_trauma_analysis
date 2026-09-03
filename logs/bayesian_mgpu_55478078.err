@@ -1,0 +1,207 @@
+  0%|          | 0/6000 [00:00<?, ?it/s]Compiling.. :   0%|          | 0/6000 [00:00<?, ?it/s]
+  0%|          | 0/6000 [00:00<?, ?it/s][A
+Compiling.. :   0%|          | 0/6000 [00:00<?, ?it/s][A
+
+  0%|          | 0/6000 [00:00<?, ?it/s][A[A
+
+Compiling.. :   0%|          | 0/6000 [00:00<?, ?it/s][A[A
+
+
+  0%|          | 0/6000 [00:00<?, ?it/s][A[A[A
+
+
+Compiling.. :   0%|          | 0/6000 [00:00<?, ?it/s][A[A[ARunning chain 0:   0%|          | 0/6000 [00:54<?, ?it/s]
+Running chain 1:   0%|          | 0/6000 [00:54<?, ?it/s][A
+
+Running chain 2:   0%|          | 0/6000 [00:54<?, ?it/s][A[A
+
+
+Running chain 3:   0%|          | 0/6000 [00:54<?, ?it/s][A[A[ARunning chain 0:   5%|▌         | 300/6000 [22:22<6:47:47,  4.29s/it]
+
+
+Running chain 3:   5%|▌         | 300/6000 [22:57<6:58:56,  4.41s/it][A[A[A
+Running chain 1:   5%|▌         | 300/6000 [24:22<7:25:44,  4.69s/it][A
+
+Running chain 2:   5%|▌         | 300/6000 [25:15<7:42:31,  4.87s/it][A[ARunning chain 0:  10%|█         | 600/6000 [32:55<4:30:47,  3.01s/it]
+
+
+Running chain 3:  10%|█         | 600/6000 [33:17<4:32:55,  3.03s/it][A[A[A
+
+Running chain 2:  10%|█         | 600/6000 [34:15<4:35:46,  3.06s/it][A[A
+Running chain 1:  10%|█         | 600/6000 [34:30<4:41:09,  3.12s/it][A
+
+
+Running chain 3:  15%|█▌        | 900/6000 [41:33<3:24:07,  2.40s/it][A[A[ARunning chain 0:  15%|█▌        | 900/6000 [42:22<3:32:19,  2.50s/it]
+
+Running chain 2:  15%|█▌        | 900/6000 [43:41<3:34:41,  2.53s/it][A[A
+Running chain 1:  15%|█▌        | 900/6000 [44:31<3:42:07,  2.61s/it][A
+
+
+Running chain 3:  20%|██        | 1200/6000 [49:44<2:48:00,  2.10s/it][A[A[ARunning chain 0:  20%|██        | 1200/6000 [51:41<2:59:48,  2.25s/it]
+
+Running chain 2:  20%|██        | 1200/6000 [52:28<2:57:50,  2.22s/it][A[A
+Running chain 1:  20%|██        | 1200/6000 [54:50<3:11:40,  2.40s/it][A
+
+
+Running chain 3:  25%|██▌       | 1500/6000 [57:23<2:22:06,  1.89s/it][A[A[ARunning chain 0:  25%|██▌       | 1500/6000 [1:00:09<2:33:36,  2.05s/it]
+
+Running chain 2:  25%|██▌       | 1500/6000 [1:00:54<2:32:12,  2.03s/it][A[A
+Running chain 1:  25%|██▌       | 1500/6000 [1:03:37<2:42:22,  2.16s/it][A
+
+
+Running chain 3:  30%|███       | 1800/6000 [1:05:38<2:06:45,  1.81s/it][A[A[ARunning chain 0:  30%|███       | 1800/6000 [1:08:15<2:13:10,  1.90s/it]
+
+Running chain 2:  30%|███       | 1800/6000 [1:08:51<2:11:34,  1.88s/it][A[A
+Running chain 1:  30%|███       | 1800/6000 [1:12:19<2:21:26,  2.02s/it][A
+
+
+Running chain 3:  35%|███▌      | 2100/6000 [1:13:53<1:54:18,  1.76s/it][A[A[A
+
+Running chain 2:  35%|███▌      | 2100/6000 [1:16:40<1:55:28,  1.78s/it][A[ARunning chain 0:  35%|███▌      | 2100/6000 [1:19:20<2:10:19,  2.01s/it]
+Running chain 1:  35%|███▌      | 2100/6000 [1:20:45<2:04:13,  1.91s/it][A
+
+
+Running chain 3:  40%|████      | 2400/6000 [1:21:20<1:40:21,  1.67s/it][A[A[A
+
+Running chain 2:  40%|████      | 2400/6000 [1:24:05<1:41:00,  1.68s/it][A[A
+Running chain 1:  40%|████      | 2400/6000 [1:28:12<1:46:38,  1.78s/it][A
+
+
+Running chain 3:  45%|████▌     | 2700/6000 [1:28:46<1:28:48,  1.61s/it][A[A[A
+
+Running chain 2:  45%|████▌     | 2700/6000 [1:31:31<1:29:10,  1.62s/it][A[ARunning chain 0:  40%|████      | 2400/6000 [1:34:16<2:19:04,  2.32s/it]
+Running chain 1:  45%|████▌     | 2700/6000 [1:35:39<1:32:49,  1.69s/it][A
+
+
+Running chain 3:  50%|█████     | 3000/6000 [1:36:12<1:18:47,  1.58s/it][A[A[A
+
+Running chain 2:  50%|█████     | 3000/6000 [1:38:56<1:18:57,  1.58s/it][A[A
+Running chain 1:  50%|█████     | 3000/6000 [1:43:06<1:21:20,  1.63s/it][A
+
+
+Running chain 3:  55%|█████▌    | 3300/6000 [1:43:39<1:09:42,  1.55s/it][A[A[A
+
+Running chain 2:  55%|█████▌    | 3300/6000 [1:46:22<1:09:45,  1.55s/it][A[ARunning chain 0:  45%|████▌     | 2700/6000 [1:49:11<2:18:54,  2.53s/it]
+Running chain 1:  55%|█████▌    | 3300/6000 [1:50:33<1:11:19,  1.58s/it][A
+
+
+Running chain 3:  60%|██████    | 3600/6000 [1:51:05<1:01:13,  1.53s/it][A[A[A
+
+Running chain 2:  60%|██████    | 3600/6000 [1:53:47<1:01:13,  1.53s/it][A[A
+Running chain 1:  60%|██████    | 3600/6000 [1:58:00<1:02:14,  1.56s/it][A
+
+
+Running chain 3:  65%|██████▌   | 3900/6000 [1:58:32<53:07,  1.52s/it]  [A[A[A
+
+Running chain 2:  65%|██████▌   | 3900/6000 [2:01:13<53:05,  1.52s/it]  [A[ARunning chain 0:  50%|█████     | 3000/6000 [2:04:06<2:13:20,  2.67s/it]
+Running chain 1:  65%|██████▌   | 3900/6000 [2:05:27<53:46,  1.54s/it]  [A
+
+
+Running chain 3:  70%|███████   | 4200/6000 [2:05:58<45:15,  1.51s/it][A[A[A
+
+Running chain 2:  70%|███████   | 4200/6000 [2:08:38<45:12,  1.51s/it][A[A
+Running chain 1:  70%|███████   | 4200/6000 [2:12:54<45:40,  1.52s/it][A
+
+
+Running chain 3:  75%|███████▌  | 4500/6000 [2:13:25<37:33,  1.50s/it][A[A[A
+
+Running chain 2:  75%|███████▌  | 4500/6000 [2:16:04<37:30,  1.50s/it][A[ARunning chain 0:  55%|█████▌    | 3300/6000 [2:19:01<2:04:21,  2.76s/it]
+Running chain 1:  75%|███████▌  | 4500/6000 [2:20:22<37:49,  1.51s/it][A
+
+
+Running chain 3:  80%|████████  | 4800/6000 [2:20:51<29:57,  1.50s/it][A[A[A
+
+Running chain 2:  80%|████████  | 4800/6000 [2:23:29<29:54,  1.50s/it][A[A
+Running chain 1:  80%|████████  | 4800/6000 [2:27:49<30:07,  1.51s/it][A
+
+
+Running chain 3:  85%|████████▌ | 5100/6000 [2:28:17<22:25,  1.50s/it][A[A[A
+
+Running chain 2:  85%|████████▌ | 5100/6000 [2:30:55<22:23,  1.49s/it][A[ARunning chain 0:  60%|██████    | 3600/6000 [2:33:56<1:53:13,  2.83s/it]
+Running chain 1:  85%|████████▌ | 5100/6000 [2:35:16<22:31,  1.50s/it][A
+
+
+Running chain 3:  90%|█████████ | 5400/6000 [2:35:44<14:55,  1.49s/it][A[A[A
+
+Running chain 2:  90%|█████████ | 5400/6000 [2:38:20<14:53,  1.49s/it][A[A
+Running chain 1:  90%|█████████ | 5400/6000 [2:42:43<14:58,  1.50s/it][A
+
+
+Running chain 3:  95%|█████████▌| 5700/6000 [2:43:10<07:27,  1.49s/it][A[A[A
+
+Running chain 2:  95%|█████████▌| 5700/6000 [2:45:45<07:26,  1.49s/it][A[ARunning chain 0:  65%|██████▌   | 3900/6000 [2:48:51<1:40:41,  2.88s/it]
+Running chain 1:  95%|█████████▌| 5700/6000 [2:50:10<07:28,  1.50s/it][A
+
+
+Running chain 3: 100%|██████████| 6000/6000 [2:50:37<00:00,  1.49s/it][A[A[ARunning chain 3: 100%|██████████| 6000/6000 [2:50:37<00:00,  1.71s/it]
+
+
+Running chain 2: 100%|██████████| 6000/6000 [2:53:11<00:00,  1.49s/it][A[ARunning chain 2: 100%|██████████| 6000/6000 [2:53:11<00:00,  1.73s/it]
+
+Running chain 1: 100%|██████████| 6000/6000 [2:57:37<00:00,  1.49s/it][ARunning chain 1: 100%|██████████| 6000/6000 [2:57:37<00:00,  1.78s/it]
+Running chain 0:  70%|███████   | 4200/6000 [3:03:46<1:27:15,  2.91s/it]Running chain 0:  75%|███████▌  | 4500/6000 [3:18:41<1:13:16,  2.93s/it]Running chain 0:  80%|████████  | 4800/6000 [3:33:36<58:56,  2.95s/it]  Running chain 0:  85%|████████▌ | 5100/6000 [3:48:31<44:22,  2.96s/it]Running chain 0:  90%|█████████ | 5400/6000 [4:03:26<29:39,  2.97s/it]Running chain 0:  95%|█████████▌| 5700/6000 [4:18:21<14:51,  2.97s/it]Running chain 0: 100%|██████████| 6000/6000 [4:33:16<00:00,  2.97s/it]Running chain 0: 100%|██████████| 6000/6000 [4:33:16<00:00,  2.73s/it]
+W0518 10:05:10.975741  681624 bfc_allocator.cc:502] Allocator (GPU_1_bfc) ran out of memory trying to allocate 415.04MiB (rounded to 435200000)requested by op 
+If the cause is memory fragmentation maybe the environment variable 'TF_GPU_ALLOCATOR=cuda_malloc_async' will improve the situation. 
+Current allocation summary follows.
+Current allocation summary follows.
+W0518 10:05:10.975840  681630 bfc_allocator.cc:502] Allocator (GPU_3_bfc) ran out of memory trying to allocate 415.04MiB (rounded to 435200000)requested by op 
+If the cause is memory fragmentation maybe the environment variable 'TF_GPU_ALLOCATOR=cuda_malloc_async' will improve the situation. 
+Current allocation summary follows.
+Current allocation summary follows.
+W0518 10:05:10.975536  681621 bfc_allocator.cc:502] Allocator (GPU_0_bfc) ran out of memory trying to allocate 415.04MiB (rounded to 435200000)requested by op 
+If the cause is memory fragmentation maybe the environment variable 'TF_GPU_ALLOCATOR=cuda_malloc_async' will improve the situation. 
+Current allocation summary follows.
+Current allocation summary follows.
+W0518 10:05:10.975649  681627 bfc_allocator.cc:502] Allocator (GPU_2_bfc) ran out of memory trying to allocate 415.04MiB (rounded to 435200000)requested by op 
+If the cause is memory fragmentation maybe the environment variable 'TF_GPU_ALLOCATOR=cuda_malloc_async' will improve the situation. 
+Current allocation summary follows.
+Current allocation summary follows.
+W0518 10:05:10.979910  681624 bfc_allocator.cc:513] ***************************************************************************************************_
+W0518 10:05:10.979915  681630 bfc_allocator.cc:513] ***************************************************************************************************_
+W0518 10:05:10.979917  681627 bfc_allocator.cc:513] ***************************************************************************************************_
+W0518 10:05:10.979973  681621 bfc_allocator.cc:513] ***************************************************************************************************_
+E0518 10:05:10.979955  681624 pjrt_stream_executor_client.cc:2111] Execution of replica 0 failed: RESOURCE_EXHAUSTED: Out of memory while trying to allocate 415.04MiB. [tf-allocator-allocation-error='']
+E0518 10:05:10.979983  681627 pjrt_stream_executor_client.cc:2111] Execution of replica 0 failed: RESOURCE_EXHAUSTED: Out of memory while trying to allocate 415.04MiB. [tf-allocator-allocation-error='']
+E0518 10:05:10.979969  681630 pjrt_stream_executor_client.cc:2111] Execution of replica 0 failed: RESOURCE_EXHAUSTED: Out of memory while trying to allocate 415.04MiB. [tf-allocator-allocation-error='']
+E0518 10:05:10.980047  681621 pjrt_stream_executor_client.cc:2111] Execution of replica 0 failed: RESOURCE_EXHAUSTED: Out of memory while trying to allocate 415.04MiB. [tf-allocator-allocation-error='']
+Traceback (most recent call last):
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/scripts/04_model_fitting/b_bayesian/fit_bayesian.py", line 45, in <module>
+    main()
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/src/rlwm/fitting/bayesian.py", line 1322, in main
+    save_results(
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/src/rlwm/fitting/bayesian.py", line 716, in save_results
+    pointwise_loglik = compute_pointwise_log_lik(mcmc, pdata_stacked, model)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/scripts/fitting/bayesian_diagnostics.py", line 407, in compute_pointwise_log_lik
+    return jnp.stack(padded_outputs, axis=2)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/site-packages/jax/_src/numpy/lax_numpy.py", line 4441, in stack
+    return concatenate(new_arrays, axis=axis, dtype=dtype)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/site-packages/jax/_src/numpy/lax_numpy.py", line 4615, in concatenate
+    arrays_out = [lax.concatenate(arrays_out[i:i+k], axis)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/site-packages/jax/_src/numpy/lax_numpy.py", line 4615, in <listcomp>
+    arrays_out = [lax.concatenate(arrays_out[i:i+k], axis)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/site-packages/jax/_src/lax/lax.py", line 1979, in concatenate
+    return concatenate_p.bind(*operands, dimension=dimension)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/site-packages/jax/_src/core.py", line 632, in bind
+    return self._true_bind(*args, **params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/site-packages/jax/_src/core.py", line 648, in _true_bind
+    return self.bind_with_trace(prev_trace, args, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/site-packages/jax/_src/core.py", line 660, in bind_with_trace
+    return trace.process_primitive(self, args, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/site-packages/jax/_src/core.py", line 1205, in process_primitive
+    return primitive.impl(*args, **params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/site-packages/jax/_src/dispatch.py", line 91, in apply_primitive
+    outs = fun(*args)
+           ^^^^^^^^^^
+jax.errors.JaxRuntimeError: RESOURCE_EXHAUSTED: Out of memory while trying to allocate 415.04MiB.: while running replica 0 and partition 0 of a replicated computation (other replicas may have failed as well).
+--------------------
+For simplicity, JAX has removed its internal frames from the traceback of the following exception. Set JAX_TRACEBACK_FILTERING=off to include these.

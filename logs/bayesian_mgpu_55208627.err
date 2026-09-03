@@ -1,0 +1,150 @@
+  0%|          | 0/3000 [00:00<?, ?it/s]Compiling.. :   0%|          | 0/3000 [00:00<?, ?it/s]
+  0%|          | 0/3000 [00:00<?, ?it/s][A
+Compiling.. :   0%|          | 0/3000 [00:00<?, ?it/s][A
+
+  0%|          | 0/3000 [00:00<?, ?it/s][A[A
+
+Compiling.. :   0%|          | 0/3000 [00:00<?, ?it/s][A[A
+
+
+  0%|          | 0/3000 [00:00<?, ?it/s][A[A[A
+
+
+Compiling.. :   0%|          | 0/3000 [00:00<?, ?it/s][A[A[ARunning chain 0:   0%|          | 0/3000 [00:39<?, ?it/s]
+Running chain 1:   0%|          | 0/3000 [00:39<?, ?it/s][A
+
+Running chain 2:   0%|          | 0/3000 [00:39<?, ?it/s][A[A
+
+
+Running chain 3:   0%|          | 0/3000 [00:39<?, ?it/s][A[A[A
+Running chain 1:   5%|▌         | 150/3000 [13:30<4:04:08,  5.14s/it][A
+
+
+Running chain 3:   5%|▌         | 150/3000 [13:34<4:05:26,  5.17s/it][A[A[A
+
+Running chain 2:   5%|▌         | 150/3000 [13:51<4:10:40,  5.28s/it][A[ARunning chain 0:   5%|▌         | 150/3000 [14:26<4:21:49,  5.51s/it]
+Running chain 1:  10%|█         | 300/3000 [15:25<1:55:25,  2.56s/it][A
+
+
+Running chain 3:  10%|█         | 300/3000 [15:33<1:56:43,  2.59s/it][A[A[A
+
+Running chain 2:  10%|█         | 300/3000 [15:45<1:57:51,  2.62s/it][A[ARunning chain 0:  10%|█         | 300/3000 [16:25<2:03:08,  2.74s/it]
+Running chain 1:  15%|█▌        | 450/3000 [17:03<1:11:56,  1.69s/it][A
+
+
+Running chain 3:  15%|█▌        | 450/3000 [17:13<1:12:52,  1.71s/it][A[A[A
+
+Running chain 2:  15%|█▌        | 450/3000 [17:23<1:13:10,  1.72s/it][A[ARunning chain 0:  15%|█▌        | 450/3000 [18:13<1:17:12,  1.82s/it]
+Running chain 1:  20%|██        | 600/3000 [18:48<52:06,  1.30s/it]  [A
+
+Running chain 2:  20%|██        | 600/3000 [19:13<53:16,  1.33s/it]  [A[A
+
+
+Running chain 3:  20%|██        | 600/3000 [19:14<54:13,  1.36s/it]  [A[A[ARunning chain 0:  20%|██        | 600/3000 [19:57<54:52,  1.37s/it]  
+Running chain 1:  25%|██▌       | 750/3000 [20:21<39:36,  1.06s/it][A
+
+
+Running chain 3:  25%|██▌       | 750/3000 [20:55<41:36,  1.11s/it][A[A[A
+
+Running chain 2:  25%|██▌       | 750/3000 [20:58<41:23,  1.10s/it][A[ARunning chain 0:  25%|██▌       | 750/3000 [21:27<40:59,  1.09s/it]
+Running chain 1:  30%|███       | 900/3000 [21:53<31:40,  1.11it/s][A
+
+
+Running chain 3:  30%|███       | 900/3000 [22:29<33:04,  1.06it/s][A[A[A
+
+Running chain 2:  30%|███       | 900/3000 [22:43<33:52,  1.03it/s][A[ARunning chain 0:  30%|███       | 900/3000 [22:57<32:25,  1.08it/s]
+Running chain 1:  35%|███▌      | 1050/3000 [23:41<27:24,  1.19it/s][A
+
+
+Running chain 3:  35%|███▌      | 1050/3000 [24:21<28:37,  1.14it/s][A[A[A
+
+Running chain 2:  35%|███▌      | 1050/3000 [24:37<29:14,  1.11it/s][A[ARunning chain 0:  35%|███▌      | 1050/3000 [24:46<27:58,  1.16it/s]
+Running chain 1:  40%|████      | 1200/3000 [25:37<24:39,  1.22it/s][A
+
+
+Running chain 3:  40%|████      | 1200/3000 [26:17<25:24,  1.18it/s][A[A[A
+
+Running chain 2:  40%|████      | 1200/3000 [26:33<25:47,  1.16it/s][A[ARunning chain 0:  40%|████      | 1200/3000 [26:43<25:03,  1.20it/s]
+Running chain 1:  45%|████▌     | 1350/3000 [27:33<22:11,  1.24it/s][A
+
+
+Running chain 3:  45%|████▌     | 1350/3000 [28:14<22:39,  1.21it/s][A[A[A
+
+Running chain 2:  45%|████▌     | 1350/3000 [28:30<22:54,  1.20it/s][A[ARunning chain 0:  45%|████▌     | 1350/3000 [28:40<22:29,  1.22it/s]
+Running chain 1:  50%|█████     | 1500/3000 [29:29<19:55,  1.25it/s][A
+
+
+Running chain 3:  50%|█████     | 1500/3000 [30:10<20:13,  1.24it/s][A[A[A
+
+Running chain 2:  50%|█████     | 1500/3000 [30:26<20:22,  1.23it/s][A[ARunning chain 0:  50%|█████     | 1500/3000 [30:37<20:09,  1.24it/s]
+Running chain 1:  55%|█████▌    | 1650/3000 [31:26<17:47,  1.27it/s][A
+
+
+Running chain 3:  55%|█████▌    | 1650/3000 [32:06<17:57,  1.25it/s][A[A[A
+
+Running chain 2:  55%|█████▌    | 1650/3000 [32:22<18:03,  1.25it/s][A[ARunning chain 0:  55%|█████▌    | 1650/3000 [32:34<17:57,  1.25it/s]
+Running chain 1:  60%|██████    | 1800/3000 [33:22<15:42,  1.27it/s][A
+
+
+Running chain 3:  60%|██████    | 1800/3000 [34:02<15:49,  1.26it/s][A[A[A
+
+Running chain 2:  60%|██████    | 1800/3000 [34:18<15:52,  1.26it/s][A[ARunning chain 0:  60%|██████    | 1800/3000 [34:31<15:51,  1.26it/s]
+Running chain 1:  65%|██████▌   | 1950/3000 [35:18<13:41,  1.28it/s][A
+
+
+Running chain 3:  65%|██████▌   | 1950/3000 [35:58<13:45,  1.27it/s][A[A[A
+
+Running chain 2:  65%|██████▌   | 1950/3000 [36:14<13:47,  1.27it/s][A[ARunning chain 0:  65%|██████▌   | 1950/3000 [36:28<13:48,  1.27it/s]
+Running chain 1:  70%|███████   | 2100/3000 [37:14<11:42,  1.28it/s][A
+
+
+Running chain 3:  70%|███████   | 2100/3000 [37:54<11:44,  1.28it/s][A[A[A
+
+Running chain 2:  70%|███████   | 2100/3000 [38:10<11:45,  1.28it/s][A[ARunning chain 0:  70%|███████   | 2100/3000 [38:25<11:47,  1.27it/s]
+Running chain 1:  75%|███████▌  | 2250/3000 [39:11<09:44,  1.28it/s][A
+
+
+Running chain 3:  75%|███████▌  | 2250/3000 [39:50<09:44,  1.28it/s][A[A[A
+
+Running chain 2:  75%|███████▌  | 2250/3000 [40:07<09:45,  1.28it/s][A[ARunning chain 0:  75%|███████▌  | 2250/3000 [40:22<09:48,  1.28it/s]
+Running chain 1:  80%|████████  | 2400/3000 [41:07<07:46,  1.29it/s][A
+
+
+Running chain 3:  80%|████████  | 2400/3000 [41:46<07:46,  1.29it/s][A[A[A
+
+Running chain 2:  80%|████████  | 2400/3000 [42:03<07:47,  1.28it/s][A[ARunning chain 0:  80%|████████  | 2400/3000 [42:19<07:49,  1.28it/s]
+Running chain 1:  85%|████████▌ | 2550/3000 [43:03<05:49,  1.29it/s][A
+
+
+Running chain 3:  85%|████████▌ | 2550/3000 [43:42<05:49,  1.29it/s][A[A[A
+
+Running chain 2:  85%|████████▌ | 2550/3000 [43:59<05:49,  1.29it/s][A[ARunning chain 0:  85%|████████▌ | 2550/3000 [44:16<05:51,  1.28it/s]
+Running chain 1:  90%|█████████ | 2700/3000 [44:59<03:52,  1.29it/s][A
+
+
+Running chain 3:  90%|█████████ | 2700/3000 [45:38<03:52,  1.29it/s][A[A[A
+
+Running chain 2:  90%|█████████ | 2700/3000 [45:55<03:52,  1.29it/s][A[ARunning chain 0:  90%|█████████ | 2700/3000 [46:13<03:54,  1.28it/s]
+Running chain 1:  95%|█████████▌| 2850/3000 [46:55<01:56,  1.29it/s][A
+
+
+Running chain 3:  95%|█████████▌| 2850/3000 [47:34<01:56,  1.29it/s][A[A[A
+
+Running chain 2:  95%|█████████▌| 2850/3000 [47:51<01:56,  1.29it/s][A[ARunning chain 0:  95%|█████████▌| 2850/3000 [48:09<01:57,  1.28it/s]
+Running chain 1: 100%|██████████| 3000/3000 [48:52<00:00,  1.29it/s][ARunning chain 1: 100%|██████████| 3000/3000 [48:52<00:00,  1.02it/s]
+
+
+
+Running chain 3: 100%|██████████| 3000/3000 [49:31<00:00,  1.29it/s][A[A[ARunning chain 3: 100%|██████████| 3000/3000 [49:31<00:00,  1.01it/s]
+
+
+Running chain 2: 100%|██████████| 3000/3000 [49:47<00:00,  1.29it/s][A[ARunning chain 2: 100%|██████████| 3000/3000 [49:47<00:00,  1.00it/s]
+Running chain 0: 100%|██████████| 3000/3000 [50:06<00:00,  1.28it/s]Running chain 0: 100%|██████████| 3000/3000 [50:06<00:00,  1.00s/it]
+arviz - WARNING - Shape validation failed: input_shape: (1, 2000), minimum_shape: (chains=2, draws=4)
+arviz - WARNING - Shape validation failed: input_shape: (1, 2000), minimum_shape: (chains=2, draws=4)
+arviz - WARNING - Shape validation failed: input_shape: (1, 2000), minimum_shape: (chains=2, draws=4)
+arviz - WARNING - Shape validation failed: input_shape: (1, 2000), minimum_shape: (chains=2, draws=4)
+/scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/site-packages/xarray/core/nputils.py:242: RuntimeWarning: Degrees of freedom <= 0 for slice.
+  result = getattr(npmodule, name)(values, axis=axis, **kwargs)
+/scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/site-packages/arviz/stats/stats.py:782: UserWarning: Estimated shape parameter of Pareto distribution is greater than 0.70 for one or more samples. You should consider using a more robust model, this is because importance sampling is less likely to work well if the marginal posterior and LOO posterior are very different. This is more likely to happen with a non-robust model and highly influential observations.
+  warnings.warn(

@@ -1,0 +1,102 @@
+============================================================
+Stage 03 (GPU) — Model Prefitting: STEP=bayesian_recovery MODEL=wmrl_m6a
+============================================================
+Job ID:     55063006
+Node:       m3g101
+GPU(s):     0
+Project:    /fs04/fc37/adam/projects/rlwm_trauma_analysis
+Start time: Thu Apr 30 07:13:47 AM AEST 2026
+============================================================
+Activated rlwm_gpu by name
+JAX devices: [CudaDevice(id=0)]
+GPU count: 1
+JAX cache: /scratch/fc37/aman0087/.jax_cache_03_prefit_gpu_bayesian_recovery_wmrl_m6a
+
+[Thu Apr 30 07:13:51 AM AEST 2026] Running: python scripts/03_model_prefitting/05_run_bayesian_recovery.py --mode single-subject --model wmrl_m6a --subject-idx 1 --seed 42 --output-dir models/bayesian/21_recovery/
+================================================================================
+STEP 21.2 SINGLE-SUBJECT RECOVERY: model=wmrl_m6a, subject=1
+================================================================================
+  Seed: 42
+  MCMC budget: warmup=500, samples=1000, chains=2, max_tree_depth=8
+  Synthetic task: n_blocks=17, n_trials_per_block=100
+
+>> Sampling true parameters from prior...
+  alpha_neg      = 0.5394
+  alpha_pos      = 0.4175
+  capacity       = 4.0159
+  epsilon        = 0.0140
+  kappa_s        = 0.2968
+  phi            = 0.4897
+  rho            = 0.6571
+
+>> Generating synthetic trial data...
+  Generated 909 trials across 17 blocks
+  Mean reward (proxy accuracy): 0.540
+
+>> Fitting synthetic data via hierarchical MCMC...
+
+>> Preparing stacked participant data...
+  Prepared 1 participants (sorted by ID)
+  Skipping LEC covariate: no matching sona_ids in data/processed/summary_participant_metrics.csv (1 participant(s) — likely synthetic recovery; Level-2 regression not applicable).
+
+>> Running MCMC inference (NUTS + convergence auto-bump)...
+>> Starting MCMC sampling with convergence auto-bump...
+   Chains: 2
+   Host devices: 1
+   Warmup: 500
+   Samples: 1000
+   Max tree depth: 8
+   Total iterations per chain: 1500
+   Acceptance probability schedule: (0.8, 0.95, 0.99)
+
+============================================================
+>> JAX / NumPyro configuration
+   backend            : gpu
+   devices            : [CudaDevice(id=0)]
+   local_device_count : 1
+   x64 enabled        : False
+   chain_method       : vectorized
+   num_chains         : 2
+   NUMPYRO_HOST_DEVICE_COUNT        = <unset>
+   XLA_PYTHON_CLIENT_PREALLOCATE    = <unset>
+   XLA_PYTHON_CLIENT_MEM_FRACTION   = <unset>
+   JAX_COMPILATION_CACHE_DIR        = /scratch/fc37/aman0087/.jax_cache_03_prefit_gpu_bayesian_recovery_wmrl_m6a
+   JAX_PERSISTENT_CACHE_MIN_ENTRY_SIZE_BYTES = 0
+   CUDA_VISIBLE_DEVICES             = 0
+============================================================
+
+   Backend: gpu | chain_method: vectorized
+[timing] target_accept_prob=0.80 wall=518.7s
+[convergence-gate] target_accept_prob=0.80 divergences=0
+[convergence-gate] Zero divergences — accepting this run.
+
+================================================================================
+WMRL-M6A POSTERIOR ESTIMATES — GROUP LEVEL
+================================================================================
+  alpha_neg_mu_pr: 0.516 +/- 0.323
+  alpha_pos_mu_pr: 0.234 +/- 0.428
+  capacity_mu_pr: 0.545 +/- 0.641
+  epsilon_mu_pr: -2.411 +/- 0.395
+  kappa_s_mu_pr: -0.706 +/- 0.228
+  phi_mu_pr: 0.075 +/- 0.191
+  rho_mu_pr: 0.310 +/- 0.239
+
+>> Extracting posterior summaries and HDIs...
+
+  Wrote: models/bayesian/21_recovery/wmrl_m6a_subject_001.json
+  Elapsed: 529.3 s
+================================================================================
+
+[Thu Apr 30 07:22:46 AM AEST 2026] Stage 03 (GPU) STEP=bayesian_recovery MODEL=wmrl_m6a finished (exit code: 0)
+
+============================================================
+AUTO-PUSH: Committing and pushing results
+============================================================
+[main 32384dd] p29_03_prefit_gpu job 55063006 results
+ 7 files changed, 180 insertions(+), 2 deletions(-)
+ create mode 100644 logs/03_prefitting_gpu_55063008.err
+ create mode 100644 logs/03_prefitting_gpu_55063008.out
+ create mode 100644 models/bayesian/21_recovery/wmrl_m6a_subject_001.json
+To github.com:adammanoogian/rlwm_trauma_analysis
+   e8818f2..32384dd  main -> main
+  Auto-push complete

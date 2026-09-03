@@ -1,0 +1,12 @@
+/fs04/fc37/adam/projects/rlwm_trauma_analysis/scripts/05_post_fitting_checks/01_baseline_audit.py:226: DeprecationWarning: models/bayesian/33_single_alpha/qlearning_posterior.nc has no 'parameterization_version' attr — cannot hard-validate against EXPECTED_PARAMETERIZATION. v4.0 NetCDF write sites do not emit this attr; retrofit tracked as a v5.1 item. Model: 'qlearning'.
+  idata = load_netcdf_with_validation(nc_path, model)
+/fs04/fc37/adam/projects/rlwm_trauma_analysis/scripts/05_post_fitting_checks/01_baseline_audit.py:226: DeprecationWarning: models/bayesian/33_single_alpha/wmrl_posterior.nc has no 'parameterization_version' attr — cannot hard-validate against EXPECTED_PARAMETERIZATION. v4.0 NetCDF write sites do not emit this attr; retrofit tracked as a v5.1 item. Model: 'wmrl'.
+  idata = load_netcdf_with_validation(nc_path, model)
+/fs04/fc37/adam/projects/rlwm_trauma_analysis/scripts/05_post_fitting_checks/01_baseline_audit.py:226: DeprecationWarning: models/bayesian/33_single_alpha/wmrl_m3_posterior.nc has no 'parameterization_version' attr — cannot hard-validate against EXPECTED_PARAMETERIZATION. v4.0 NetCDF write sites do not emit this attr; retrofit tracked as a v5.1 item. Model: 'wmrl_m3'.
+  idata = load_netcdf_with_validation(nc_path, model)
+/fs04/fc37/adam/projects/rlwm_trauma_analysis/scripts/05_post_fitting_checks/01_baseline_audit.py:226: DeprecationWarning: models/bayesian/33_single_alpha/wmrl_m5_posterior.nc has no 'parameterization_version' attr — cannot hard-validate against EXPECTED_PARAMETERIZATION. v4.0 NetCDF write sites do not emit this attr; retrofit tracked as a v5.1 item. Model: 'wmrl_m5'.
+  idata = load_netcdf_with_validation(nc_path, model)
+/fs04/fc37/adam/projects/rlwm_trauma_analysis/scripts/05_post_fitting_checks/01_baseline_audit.py:226: DeprecationWarning: models/bayesian/33_single_alpha/wmrl_m6a_posterior.nc has no 'parameterization_version' attr — cannot hard-validate against EXPECTED_PARAMETERIZATION. v4.0 NetCDF write sites do not emit this attr; retrofit tracked as a v5.1 item. Model: 'wmrl_m6a'.
+  idata = load_netcdf_with_validation(nc_path, model)
+/fs04/fc37/adam/projects/rlwm_trauma_analysis/scripts/05_post_fitting_checks/01_baseline_audit.py:226: DeprecationWarning: models/bayesian/33_single_alpha/wmrl_m6b_posterior.nc has no 'parameterization_version' attr — cannot hard-validate against EXPECTED_PARAMETERIZATION. v4.0 NetCDF write sites do not emit this attr; retrofit tracked as a v5.1 item. Model: 'wmrl_m6b'.
+  idata = load_netcdf_with_validation(nc_path, model)

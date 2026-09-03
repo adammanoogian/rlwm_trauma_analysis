@@ -1,0 +1,31 @@
+/fs04/fc37/adam/projects/rlwm_trauma_analysis/scripts/06_fit_analyses/02_compute_loo_stacking.py:834: DeprecationWarning: models/bayesian/33_single_alpha/wmrl_posterior.nc has no 'parameterization_version' attr — cannot hard-validate against EXPECTED_PARAMETERIZATION. v4.0 NetCDF write sites do not emit this attr; retrofit tracked as a v5.1 item. Model: 'wmrl'.
+  compare_dict[display_name] = load_netcdf_with_validation(nc_path, model)
+/fs04/fc37/adam/projects/rlwm_trauma_analysis/scripts/06_fit_analyses/02_compute_loo_stacking.py:834: DeprecationWarning: models/bayesian/33_single_alpha/wmrl_m3_posterior.nc has no 'parameterization_version' attr — cannot hard-validate against EXPECTED_PARAMETERIZATION. v4.0 NetCDF write sites do not emit this attr; retrofit tracked as a v5.1 item. Model: 'wmrl_m3'.
+  compare_dict[display_name] = load_netcdf_with_validation(nc_path, model)
+/fs04/fc37/adam/projects/rlwm_trauma_analysis/scripts/06_fit_analyses/02_compute_loo_stacking.py:834: DeprecationWarning: models/bayesian/33_single_alpha/wmrl_m5_posterior.nc has no 'parameterization_version' attr — cannot hard-validate against EXPECTED_PARAMETERIZATION. v4.0 NetCDF write sites do not emit this attr; retrofit tracked as a v5.1 item. Model: 'wmrl_m5'.
+  compare_dict[display_name] = load_netcdf_with_validation(nc_path, model)
+/fs04/fc37/adam/projects/rlwm_trauma_analysis/scripts/06_fit_analyses/02_compute_loo_stacking.py:834: DeprecationWarning: models/bayesian/33_single_alpha/wmrl_m6a_posterior.nc has no 'parameterization_version' attr — cannot hard-validate against EXPECTED_PARAMETERIZATION. v4.0 NetCDF write sites do not emit this attr; retrofit tracked as a v5.1 item. Model: 'wmrl_m6a'.
+  compare_dict[display_name] = load_netcdf_with_validation(nc_path, model)
+/fs04/fc37/adam/projects/rlwm_trauma_analysis/scripts/06_fit_analyses/02_compute_loo_stacking.py:834: DeprecationWarning: models/bayesian/33_single_alpha/wmrl_m6b_posterior.nc has no 'parameterization_version' attr — cannot hard-validate against EXPECTED_PARAMETERIZATION. v4.0 NetCDF write sites do not emit this attr; retrofit tracked as a v5.1 item. Model: 'wmrl_m6b'.
+  compare_dict[display_name] = load_netcdf_with_validation(nc_path, model)
+[WARNING] M2: 60.12% of observations have pareto_k > 0.7 (threshold: 1.0%). Flagged for human review at Wave 4 checkpoint. NOT auto-excluded per plan-checker Issue #8 Option B.
+[WARNING] M3: 57.96% of observations have pareto_k > 0.7 (threshold: 1.0%). Flagged for human review at Wave 4 checkpoint. NOT auto-excluded per plan-checker Issue #8 Option B.
+[WARNING] M5: 57.96% of observations have pareto_k > 0.7 (threshold: 1.0%). Flagged for human review at Wave 4 checkpoint. NOT auto-excluded per plan-checker Issue #8 Option B.
+[WARNING] M6a: 60.11% of observations have pareto_k > 0.7 (threshold: 1.0%). Flagged for human review at Wave 4 checkpoint. NOT auto-excluded per plan-checker Issue #8 Option B.
+[WARNING] M6b: 57.96% of observations have pareto_k > 0.7 (threshold: 1.0%). Flagged for human review at Wave 4 checkpoint. NOT auto-excluded per plan-checker Issue #8 Option B.
+Traceback (most recent call last):
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/scripts/06_fit_analyses/02_compute_loo_stacking.py", line 973, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/scripts/06_fit_analyses/02_compute_loo_stacking.py", line 903, in main
+    result = compute_loo_stacking_bms(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/fs04/fc37/adam/projects/rlwm_trauma_analysis/scripts/06_fit_analyses/02_compute_loo_stacking.py", line 267, in compute_loo_stacking_bms
+    comparison = az.compare(compare_dict, ic="loo", method="stacking")
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/site-packages/arviz/stats/stats.py", line 225, in compare
+    rows, cols, ic_i_val = _ic_matrix(ics, ic_i)
+                           ^^^^^^^^^^^^^^^^^^^^^
+  File "/scratch/fc37/aman0087/conda/envs/rlwm_gpu/lib/python3.11/site-packages/arviz/stats/stats.py", line 307, in _ic_matrix
+    raise ValueError("The number of observations should be the same across all models")
+ValueError: The number of observations should be the same across all models
